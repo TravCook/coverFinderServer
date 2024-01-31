@@ -1,8 +1,8 @@
 const express = require('express')
-const db = require('./config/connection')
+require('dotenv').config()
 const path = require('path')
 const routes = require('./routes');
-require('dotenv').config()
+const db = require('./config/connection')
 // Initialize the app and create a port
 const app = express();
 const PORT = process.env.PORT || 3001;
