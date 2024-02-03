@@ -20,10 +20,10 @@ app.use(express.static(path.join(__dirname, '../client/build')));
 app.use(routes);
 
 const dbCron =  () => {
-    cron.schedule('* */6 * * *', async () => {
+    cron.schedule('* */24 * * *', async () => {
         console.log("CRON JOB REPEAT")
             console.log("DB CONNECTED ---- STARTING SEED")
-            let sports = ["basketball_nba", "americanfootball_nfl", "icehockey_nhl", "football_epl"]
+            let sports = ["basketball_nba", "americanfootball_nfl", "icehockey_nhl"]
             let events = []
             await Odds.deleteMany({})
             await axios.all(sports.map((sport) =>
@@ -35,9 +35,6 @@ const dbCron =  () => {
                         item.data.map((event) => {
                             events.push(event)
                         })
-                    })
-                    events.map((sport) => {
-                        console.log(sport)
                     })
                     await Odds.collection.insertMany(events)
                     console.info('Odds Seeding complete! 🌱');
@@ -53,6 +50,6 @@ const dbCron =  () => {
 
 // Start the server on the port
 db.once('open', () => {
-    // dbCron()
+    dbCron()
     app.listen(PORT, () => console.log(`Listening on PORT: ${PORT}`));
 })
