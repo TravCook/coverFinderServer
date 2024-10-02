@@ -1,3 +1,4 @@
 const Odds = require('./Odds')
+const Teams = require('./teamStats')
 
-module.exports = {Odds}
+module.exports = {Odds, Teams}

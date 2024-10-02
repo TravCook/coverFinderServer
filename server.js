@@ -104,6 +104,6 @@ const dbCron =  () => {
 
 // Start the server on the port
 db.once('open', () => {
-    dbCron()
+    // dbCron()
     app.listen(PORT, () => console.log(`Listening on PORT: ${PORT}`));
 })
