@@ -88,7 +88,7 @@ const dataSeed = async () => {
             // RETRIEVE LIST OF TEAMS
             const TeamListresponse = await fetch(`https://api.collegefootballdata.com/teams/fbs?year=2024`, {
                 headers: {
-                    "Authorization": `Bearer h7FgTeMQcW2F8meuib8/lay4Pi5omo++nPVYpy1XwxRKGi8FqVcbyBxxhsPTK9MC`,
+                    "Authorization": `Bearer ${process.env.CFB_API_KEY}`,
                     "Accept": "application/json"
                 }
             })
@@ -410,7 +410,7 @@ const dataSeed = async () => {
     let events = []
     let currentOdds = await Odds.find() //USE THIS TO POPULATE UPCOMING GAME ODDS
     await axios.all(sports.map((sport) =>
-        axios.get(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=a905da3a5146223ae759449ff05a6a2c&regions=us&oddsFormat=american&markets=h2h,spreads,totals`)
+        axios.get(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.API_KEY}&regions=us&oddsFormat=american&markets=h2h,spreads,totals`)
     )).then(async (data) => {
         try {
             data.map(async (item) => {
