@@ -1,8 +1,8 @@
 const mongoose = require('mongoose')
 
-const {Schema} = mongoose
+const { Schema } = mongoose
 
-const teamStatsSchema = new Schema ({
+const teamStatsSchema = new Schema({
     teamName: {
         type: String,
         required: true,
@@ -11,6 +11,10 @@ const teamStatsSchema = new Schema ({
         type: String,
         required: true,
     },
+    school: {
+        type: String,
+        required: false
+    }, //college sports only
     league: {
         type: String,
         required: true,
@@ -87,7 +91,7 @@ const teamStatsSchema = new Schema ({
         type: String,
         required: false,
     }, //USAFootball stat
-    xGoals: {
+    goalsforPerGame: {
         type: String,
         required: false,
     },        // hockey stat
@@ -95,7 +99,7 @@ const teamStatsSchema = new Schema ({
         type: String,
         required: false,
     },        // hockey stat
-    xGoalsAgainst: {
+    goalsAgainstPerGame: {
         type: String,
         required: false,
     },        // hockey stat
@@ -206,15 +210,7 @@ const teamStatsSchema = new Schema ({
     assistTurnoverRatio: {
         type: String,
         required: false,
-    },      // basketball Stat 
-    h2hIndex: {
-        type: Number,
-        required: true
-    },
-    h2hIndexUpdatedAt: {
-        type: String,
-        required: false
-    }
+    }      // basketball Stat 
 })
 
 const TeamStats = mongoose.model('TeamStats', teamStatsSchema)

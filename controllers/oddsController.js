@@ -6,7 +6,7 @@ module.exports = {
         Odds.find().then((odds) => {
             let timeFilter = []
             odds.map((odds) => {
-                if(moment(odds.commence_time).isBefore(moment().add(7, 'days'))){
+                if(moment(odds.commence_time).isBefore(moment().add(14, 'days'))){
                     timeFilter.push(odds)
                 }
             })
@@ -30,8 +30,8 @@ module.exports = {
     },
     getOddsBySport(req, res) {
         if(req.body.sport === 'Football'){
-            Odds.find({sport_key: 'americanfootball_nfl'}).then((odds) => {
-                            let timeFilter = []
+            Odds.find({$or: [{sport_key: 'americanfootball_nfl'},{sport_key: 'americanfootball_ncaaf'}]}).then((odds) => {
+            let timeFilter = []
             odds.map((odds) => {
                 if(moment(odds.commence_time).isBefore(moment().add(7, 'days'))){
                     timeFilter.push(odds)
@@ -79,5 +79,35 @@ module.exports = {
             })
         }
         // Odds.find({})
+    },
+    getLowIndex(req, res) {
+        Odds.find({$or: [{'homeTeamIndex' : {$lt: -5}},{'awayTeamIndex' : {$lt: -5}}] }).then((odds) =>{
+            odds.sort(
+                function(a, b) {          
+                   if (a.homeTeamIndex === b.homeTeamIndex) {
+                      // awayTeamIndex is only important when homeTeamIndex are the same
+                      return b.awayTeamIndex - a.awayTeamIndex;
+                   }
+                   return a.homeTeamIndex > b.homeTeamIndex ? 1 : -1;
+                });
+            return res.json(odds)
+        }).catch((err) => {
+            return res.status(500).json(err);
+        })
+    },
+    getHighIndex(req, res) {
+        Odds.find({$or: [{'homeTeamIndex' : {$gt: 5}},{'awayTeamIndex' : {$gt: 5}}] }).then((odds) =>{
+            odds.sort(
+                function(a, b) {          
+                   if (a.homeTeamIndex === b.homeTeamIndex) {
+                      // awayTeamIndex is only important when homeTeamIndex are the same
+                      return b.awayTeamIndex - a.awayTeamIndex;
+                   }
+                   return a.homeTeamIndex < b.homeTeamIndex ? 1 : -1;
+                });
+            return res.json(odds)
+        }).catch((err) => {
+            return res.status(500).json(err);
+        })
     }
 }

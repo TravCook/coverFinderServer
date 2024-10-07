@@ -2,7 +2,7 @@ const mongoose = require('mongoose')
 
 const { Schema } = mongoose;
 
-const oddsSchema = new Schema({
+const pastGameOddsSchema = new Schema({
     id: {
         type: String,
         required: true,
@@ -79,9 +79,25 @@ const oddsSchema = new Schema({
     awayTeamIndex: {
         type: Number,
         required: false
+    },
+    winner: {
+        type: String,
+        required: true
+    },
+    homeScore: {
+        type: Number,
+        required: true
+    },
+    awayScore: {
+        type: Number,
+        required: true
+    },
+    predictionCorrect: {
+        type: Boolean,
+        required: true
     }
 })
 
-const Odds = mongoose.model('Odds', oddsSchema)
+const pastGameOdds = mongoose.model('pastGameOdds', pastGameOddsSchema)
 
-module.exports = Odds
+module.exports = pastGameOdds
