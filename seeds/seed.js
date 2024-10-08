@@ -62,21 +62,6 @@ const dataSeed = async () => {
             statYear: 2024
         },
     ]
-    let searchSports = []
-
-    sports.map((sport) => {
-        if (sport.endMonth < sport.startMonth) { //if true, sport has multi year season
-            if (now.month() + 1 >= sport.startMonth || now.month() + 1 <= sport.endMonth) {
-                searchSports.push(sport)
-            }
-        } else if (sport.startMonth === sport.endMonth) { // if true, sport is year round
-            searchSports.push(sport)
-        } else { // else case covers single year seasons
-            if (now.month() + 1 <= sport.startMonth && now.month() + 1 >= sport.endMonth) {
-                searchSports.push(sport)
-            }
-        }
-    })
     // DETERMINE TEAMS
     console.log(`BEGINNING TEAM SEEDING @ ${moment().format('HH:mm:ss')}`)
     await Teams.deleteMany()
@@ -405,7 +390,7 @@ const dataSeed = async () => {
 
 
 
-    // RETRIEVE ODDS
+    // // RETRIEVE ODDS
     console.log('BEGINNING ODDS SEEDING')
     let events = []
     let currentOdds = await Odds.find() //USE THIS TO POPULATE UPCOMING GAME ODDS
@@ -414,24 +399,61 @@ const dataSeed = async () => {
     )).then(async (data) => {
         try {
             data.map(async (item) => {
-                item.data.map((event) => {
-                    let oddExist = currentOdds.some(odds => odds['id'] !== event.id )
-                    if(oddExist === false){
-                        events.push({
-                         sport: sport.espnSport,
-                             ...event})
+                item.data.map(async (event) => {
+                    let oddExist = await Odds.findOne({ id: event.id })
+                    switch (event.sport_key) {             //WRITE ODDS TO DB
+                        case 'americanfootball_nfl':
+                            if (!oddExist) {
+                                Odds.create({
+                                    sport: 'football',
+                                    ...event
+                                })
+
+                            }
+                        case 'americanfootball_ncaaf':
+                            if (!oddExist) {
+                                Odds.create({
+                                    sport: 'football',
+                                    ...event
+                                })
+
+                            }
+                        case 'basketball_nba':
+                            if (!oddExist) {
+                                Odds.create({
+                                    sport: 'basketball',
+                                    ...event
+                                })
+
+                            }
+                        case 'icehockey_nhl':
+                            if (!oddExist) {
+                                Odds.create({
+                                    sport: 'hockey',
+                                    ...event
+                                })
+
+                            }
+                        case 'baseball_mlb':
+                            if (!oddExist) {
+                                Odds.create({
+                                    sport: 'baseball',
+                                    ...event
+                                })
+
+                            }
                     }
+
                 })
             })
-             //WRITE ODDS TO DB
-            await Odds.insertMany(events)  
+
             console.info('Odds Seeding complete! 🌱');
         } catch (err) {
             if (err) throw (err)
         }
     })
 
-        //DETERMINE H2H INDEXES FOR EVERY GAME IN ODDS
+    //     //DETERMINE H2H INDEXES FOR EVERY GAME IN ODDS
         console.log(`DETERMINING INDEXES @ ${moment().format('HH:mm:ss')}`)
         currentOdds = await Odds.find()
         currentOdds.map(async (game) => {
@@ -610,7 +632,7 @@ const dataSeed = async () => {
                 })
         })
 
-    //REMOVE PAST GAMES FROM DB
+    // //REMOVE PAST GAMES FROM DB
     console.log(`REMOVING PAST GAMES @ ${moment().format('HH:mm:ss')}`)
     let pastGames = []
     currentOdds.map(async (game)=> {
@@ -662,7 +684,6 @@ const dataSeed = async () => {
             //DETERMINE A WINNER
             let homeTeamSchedule = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${game.sport}/${homeTeam.league}/teams/${homeTeam.espnID}/schedule`)
             let homeTeamSchedJSON = await homeTeamSchedule.json()
-
             homeTeamSchedJSON.events.map((event) => {
 
                 if(moment(event.date).format('MM/DD/YYYY') === moment(game.commence_time).format('MM/DD/YYYY')){
@@ -698,5 +719,5 @@ const dataSeed = async () => {
     console.info(`Full Seeding complete! 🌱 @ ${moment().format('HH:mm:ss')}`);
 
 }
-
+// dataSeed()
 module.exports = { dataSeed }
