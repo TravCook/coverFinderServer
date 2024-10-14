@@ -32,6 +32,8 @@ module.exports = {
             req.body.searchTeam=`Louisiana Ragin' Cajuns`
         }else if(req.body.searchTeam === 'Appalachian State Mountaineers'){
             req.body.searchTeam=`App State Mountaineers`
+        }else if(req.body.searchTeam === 'Sam Houston State Bearkats'){
+            req.body.searchTeam =  `Sam Houston Bearkats`
         }
         Teams.findOne({ espnDisplayName: req.body.searchTeam
         }).then((team) => {

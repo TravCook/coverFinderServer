@@ -1,5 +1,6 @@
-const {Odds} = require('../models')
+const {Odds, PastGameOdds} = require('../models')
 const moment = require('moment')
+const pastGameOdds = require('../models/pastGameOdds')
 
 module.exports = {
     getAllOdds(req, res) {
@@ -108,6 +109,52 @@ module.exports = {
             return res.json(odds)
         }).catch((err) => {
             return res.status(500).json(err);
+        })
+    },
+   async getWinRates(req, res)  {
+            const allGames = await PastGameOdds.find()
+            const footballGames = await PastGameOdds.find({sport: 'football'})
+            const baseballGames = await PastGameOdds.find({sport: 'baseball'})
+            const basketballGames = await PastGameOdds.find({sport: 'basketball'})
+            const hockeyGames = await PastGameOdds.find({sport: 'hockey'})
+            let overallCorrectPicks = 0
+            let footballCorrectPicks = 0
+            let baseballCorrectPicks = 0
+            let basketballCorrectPicks = 0
+            let hockeyCorrectPicks = 0
+            allGames.map((game) => {
+                if(game.predictionCorrect === true){
+                    overallCorrectPicks++
+                }
+            })
+            footballGames.map((game) => {
+                if(game.predictionCorrect === true){
+                    footballCorrectPicks++
+                }
+            })
+            baseballGames.map((game) => {
+                if(game.predictionCorrect === true){
+                    baseballCorrectPicks++
+                }
+            })
+            basketballGames.map((game) => {
+                if(game.predictionCorrect === true){
+                    basketballCorrectPicks++
+                }
+            })
+            hockeyGames.map((game) => {
+                if(game.predictionCorrect === true){
+                    hockeyCorrectPicks++
+                }
+            })
+
+
+        return res.json({
+            overallWinRate : overallCorrectPicks/allGames.length,
+            footballWinRate: footballCorrectPicks/footballGames.length,
+            baseballWinRate: baseballCorrectPicks/baseballGames.length,
+            hockeyWinRate: hockeyCorrectPicks/hockeyGames.length,
+            basketballWinRate: basketballCorrectPicks/basketballGames.length
         })
     }
 }

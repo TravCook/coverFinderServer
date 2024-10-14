@@ -43,6 +43,10 @@ const teamStatsSchema = new Schema({
         type: String,
         required: true,
     },
+    lastTenWinLoss: {
+        type: String,
+        required: true
+    },
     winLossAsDog: {
         type: String,
         required: false,
