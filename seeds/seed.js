@@ -4,15 +4,237 @@ const { Odds, Teams, PastGameOdds } = require('../models');
 const axios = require('axios')
 const moment = require('moment')
 const cheerio = require('cheerio');
-const pastGameOdds = require('../models/pastGameOdds');
-const now = moment()
+
+const oddsSeed = async () => {
+    let sports = [
+        {
+            name: "americanfootball_nfl",
+            espnSport: 'football',
+            league: 'nfl',
+            startMonth: 9,
+            endMonth: 2,
+            multiYear: true,
+            statYear: 2024
+        },
+        {
+            name: "americanfootball_ncaaf",
+            espnSport: 'football',
+            league: 'college-football',
+            startMonth: 9,
+            endMonth: 1,
+            multiYear: true,
+            statYear: 2024
+        },
+        {
+            name: "basketball_nba",
+            espnSport: 'basketball',
+            league: 'nba',
+            startMonth: 10,
+            endMonth: 4,
+            multiYear: true,
+            statYear: 2024
+        },
+        {
+            name: "icehockey_nhl",
+            espnSport: 'hockey',
+            league: 'nhl',
+            startMonth: 10,
+            endMonth: 4,
+            multiYear: true,
+            statYear: 2025,
+            prevstatYear: 2024
+        },
+        {
+            name: "baseball_mlb",
+            espnSport: 'baseball',
+            league: 'mlb',
+            startMonth: 3,
+            endMonth: 10,
+            multiYear: false,
+            statYear: 2024
+        },
+    ]
+    // RETRIEVE ODDS
+    console.log('BEGINNING ODDS SEEDING')
+    await axios.all(sports.map((sport) =>
+        axios.get(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.API_KEY}&regions=us&oddsFormat=american&markets=h2h,spreads,totals`)
+    )).then(async (data) => {
+        try {
+            data.map(async (item) => {
+                item.data.map(async (event) => {
+                    let oddExist = await Odds.findOne({ id: event.id })
+
+                    if (event.sport_key === 'americanfootball_nfl') {
+                        if (oddExist) {
+                            await Odds.findOneAndUpdate({ id: event.id }, {
+                                sport: 'football',
+                                ...event
+                            })
+
+                        } else {
+                            await Odds.create({
+                                sport: 'football',
+                                ...event
+                            })
+                        }
+                    } else if (event.sport_key === 'americanfootball_ncaaf') {
+                        if (oddExist) {
+                            await Odds.findOneAndUpdate({ id: event.id }, {
+                                sport: 'football',
+                                ...event
+                            })
+
+                        } else {
+                            await Odds.create({
+                                sport: 'football',
+                                ...event
+                            })
+                        }
+                    } else if (event.sport_key === 'basketball_nba') {
+                        if (oddExist) {
+                            await Odds.findOneAndUpdate({ id: event.id }, {
+                                sport: 'basketball',
+                                ...event
+                            })
+
+                        } else {
+                            await Odds.create({
+                                sport: 'basketball',
+                                ...event
+                            })
+
+                        }
+                    } else if (event.sport_key === 'icehockey_nhl') {
+                        if (oddExist) {
+                            await Odds.findOneAndUpdate({ id: event.id }, {
+                                sport: 'hockey',
+                                ...event
+                            })
+                        } else {
+                            await Odds.create({
+                                sport: 'hockey',
+                                ...event
+                            })
+                        }
+                    } else if (event.sport_key === 'baseball_mlb') {
+                        if (oddExist) {
+                            await Odds.findOneAndUpdate({ id: event.id }, {
+                                sport: 'baseball',
+                                ...event
+                            })
+
+                        } else {
+                            await Odds.create({
+                                sport: 'baseball',
+                                ...event
+                            })
+
+                        }
+                    }       //WRITE ODDS TO DB
+                })
+            })
+            console.info('Odds Seeding complete! 🌱');
+        } catch (err) {
+            if (err) throw (err)
+        }
+    })
+
+    console.log(`REMOVING PAST GAMES @ ${moment().format('HH:mm:ss')}`)
+    let pastGames = []
+    let currentOdds = await Odds.find()
+    currentOdds.map(async (game) => {
+        let homeScore
+        let awayScore
+        let predictionCorrect
+        let winner
+
+        if (moment(game.commence_time).local().isBefore(moment().local())) {  //DETERMINE A GAME HAPPENED IN THE PAST
+            let homeTeam
+            let awayTeam
+            if (game.home_team === 'St Louis Blues') {
+                homeTeam = await Teams.findOne({ 'espnDisplayName': "St. Louis Blues" })
+            } else if (game.home_team === 'Montréal Canadiens') {
+                homeTeam = await Teams.findOne({ 'espnDisplayName': 'Montreal Canadiens' })
+            } else if (game.home_team === 'Los Angeles Clippers') {
+                homeTeam = await Teams.findOne({ 'espnDisplayName': 'LA Clippers' })
+            } else if (game.home_team === 'San Jose State Spartans') {
+                homeTeam = await Teams.findOne({ 'espnDisplayName': 'San José State Spartans' })
+            } else if (game.home_team === 'UMass Minutemen') {
+                homeTeam = await Teams.findOne({ 'espnDisplayName': 'Massachusetts Minutemen' })
+            } else if (game.home_team === 'Southern Mississippi Golden Eagles') {
+                homeTeam = await Teams.findOne({ 'espnDisplayName': 'Southern Miss Golden Eagles' })
+            } else if (game.home_team === 'Hawaii Rainbow Warriors') {
+                homeTeam = await Teams.findOne({ 'espnDisplayName': `Hawai'i Rainbow Warriors` })
+            } else if (game.home_team === 'Louisiana Ragin Cajuns') {
+                homeTeam = await Teams.findOne({ 'espnDisplayName': `Louisiana Ragin' Cajuns` })
+            } else if (game.home_team === 'Appalachian State Mountaineers') {
+                homeTeam = await Teams.findOne({ 'espnDisplayName': `App State Mountaineers` })
+            }else if (game.home_team === 'Sam Houston State Bearkats') {
+                homeTeam = await Teams.findOne({ 'espnDisplayName': `Sam Houston Bearkats` })
+            } else {
+                homeTeam = await Teams.findOne({ 'espnDisplayName': game.home_team })
+            }
+            if (game.away_team === 'St Louis Blues') {
+                awayTeam = await Teams.findOne({ 'espnDisplayName': "St. Louis Blues" })
+            } else if (game.away_team === 'Montréal Canadiens') {
+                awayTeam = await Teams.findOne({ 'espnDisplayName': 'Montreal Canadiens' })
+            } else if (game.away_team === 'Los Angeles Clippers') {
+                awayTeam = await Teams.findOne({ 'espnDisplayName': 'LA Clippers' })
+            } else if (game.away_team === 'San Jose State Spartans') {
+                awayTeam = await Teams.findOne({ 'espnDisplayName': 'San José State Spartans' })
+            } else if (game.away_team === 'UMass Minutemen') {
+                awayTeam = await Teams.findOne({ 'espnDisplayName': 'Massachusetts Minutemen' })
+            } else if (game.away_team === 'Southern Mississippi Golden Eagles') {
+                awayTeam = await Teams.findOne({ 'espnDisplayName': 'Southern Miss Golden Eagles' })
+            } else if (game.away_team === 'Hawaii Rainbow Warriors') {
+                awayTeam = await Teams.findOne({ 'espnDisplayName': `Hawai'i Rainbow Warriors` })
+            } else if (game.away_team === 'Louisiana Ragin Cajuns') {
+                awayTeam = await Teams.findOne({ 'espnDisplayName': `Louisiana Ragin' Cajuns` })
+            } else if (game.away_team === 'Appalachian State Mountaineers') {
+                awayTeam = await Teams.findOne({ 'espnDisplayName': `App State Mountaineers` })
+            } else if (game.away_team === 'Sam Houston State Bearkats') {
+                awayTeam = await Teams.findOne({ 'espnDisplayName': `Sam Houston Bearkats` })
+            } else {
+                awayTeam = await Teams.findOne({ 'espnDisplayName': game.away_team })
+            }
+            //DETERMINE A WINNER
+            let homeTeamSchedule = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${game.sport}/${homeTeam.league}/teams/${homeTeam.espnID}/schedule`)
+            let homeTeamSchedJSON = await homeTeamSchedule.json()
+            homeTeamSchedJSON.events.map((event) => {
+                if (moment(event.date).local().format('MM/DD/YYYY') === moment(game.commence_time).local().format('MM/DD/YYYY')) {
+                    event.competitions[0].competitors.map((team) => {
+                        if (team.homeAway === 'home') {
+
+                            homeScore = team.score.value//home score
+                        } else if (team.homeAway === 'away') {
+
+                            awayScore = team.score.value//away score
+                        }
+                    })
+                    homeScore > awayScore ? winner = 'home' : winner = 'away' //winner
+                    if (game.homeTeamIndex >= game.awayTeamIndex) { // predicted home to win
+                        winner === 'home' ? predictionCorrect = true : predictionCorrect = false
+                    } else if (game.awayTeamIndex > game.homeTeamIndex) {//predicted away to win
+                        winner === 'away' ? predictionCorrect = true : predictionCorrect = false
+                    }//prediction correct
+                }
+            })
+            await PastGameOdds.insertMany({
+                homeScore: homeScore,
+                awayScore: awayScore,
+                winner: winner,
+                predictionCorrect: predictionCorrect,
+                ...game._doc
+            })//SAVE GAME TO PREVIOUSGAMES DB WITH WINNER
+            await Odds.findOneAndDelete({ _id: game._doc._id })//delete from Odds table
+        }
+
+    })
+}
 
 const dataSeed = async () => {
     console.log('starting seed')
     connection.on('error', (err) => err);
-
-    // connection.once('open', async () => {
-
     // DETERMINE SPORTS
     console.log("DB CONNECTED ---- STARTING SEED")
     let sports = [
@@ -105,8 +327,6 @@ const dataSeed = async () => {
                 teams.push({ espnID, espnDisplayName, location, teamName, league, abbreviation, logo })
             })
         }
-
-
         //RETRIEVE TEAM WIN LOSS RECORD
         for (x = 0; x < teams.length; x++) {
             //check month of sport to determine pre or post season
@@ -133,8 +353,6 @@ const dataSeed = async () => {
                 ...teams[x]
             }
         }
-
-
         // RETRIEVE TEAM BETTING STATS
         //UNDERDOG STATS
         if (sports[i].league !== 'nhl') {
@@ -395,9 +613,7 @@ const dataSeed = async () => {
                 }
             }
         }
-        //     // WRITE TEAMS TO DB
-
-
+        // WRITE TEAMS TO DB
         for (team = 0; team < teams.length; team++) {
             let currentTeam = await Teams.findOne({ 'espnDisplayName': teams[team].espnDisplayName })
             if (currentTeam != null) {
@@ -411,98 +627,10 @@ const dataSeed = async () => {
         console.log(`Successfuly saved ${sports[i].league} teams @ ${moment().format('HH:mm:ss')}`)
     }
 
-
-
-
-    // // RETRIEVE ODDS
-    console.log('BEGINNING ODDS SEEDING')
-    let events = []
+    // let events = []
     let currentOdds = await Odds.find() //USE THIS TO POPULATE UPCOMING GAME ODDS
-    await axios.all(sports.map((sport) =>
-        axios.get(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.API_KEY}&regions=us&oddsFormat=american&markets=h2h,spreads,totals`)
-    )).then(async (data) => {
-        try {
-            data.map(async (item) => {
-                item.data.map(async (event) => {
-                    let oddExist = await Odds.findOne({ id: event.id })
 
-                    if (event.sport_key === 'americanfootball_nfl') {
-                        if (oddExist) {
-                            await Odds.findOneAndUpdate({ id: event.id }, {
-                                sport: 'football',
-                                ...event
-                            })
-
-                        } else {
-                            await Odds.create({
-                                sport: 'football',
-                                ...event
-                            })
-                        }
-                    } else if (event.sport_key === 'americanfootball_ncaaf') {
-                        if (oddExist) {
-                            await Odds.findOneAndUpdate({ id: event.id }, {
-                                sport: 'football',
-                                ...event
-                            })
-
-                        } else {
-                            await Odds.create({
-                                sport: 'football',
-                                ...event
-                            })
-                        }
-                    } else if (event.sport_key === 'basketball_nba') {
-                        if (oddExist) {
-                            await Odds.findOneAndUpdate({ id: event.id }, {
-                                sport: 'basketball',
-                                ...event
-                            })
-
-                        } else {
-                            await Odds.create({
-                                sport: 'basketball',
-                                ...event
-                            })
-
-                        }
-                    } else if (event.sport_key === 'icehockey_nhl') {
-                        if (oddExist) {
-                            await Odds.findOneAndUpdate({ id: event.id }, {
-                                sport: 'hockey',
-                                ...event
-                            })
-                        } else {
-                            await Odds.create({
-                                sport: 'hockey',
-                                ...event
-                            })
-                        }
-                    } else if (event.sport_key === 'baseball_mlb') {
-                        if (oddExist) {
-                            await Odds.findOneAndUpdate({ id: event.id }, {
-                                sport: 'baseball',
-                                ...event
-                            })
-
-                        } else {
-                            await Odds.create({
-                                sport: 'baseball',
-                                ...event
-                            })
-
-                        }
-                    }       //WRITE ODDS TO DB
-                })
-            })
-
-            console.info('Odds Seeding complete! 🌱');
-        } catch (err) {
-            if (err) throw (err)
-        }
-    })
-
-    //     //DETERMINE H2H INDEXES FOR EVERY GAME IN ODDS
+    //DETERMINE H2H INDEXES FOR EVERY GAME IN ODDS
     console.log(`DETERMINING INDEXES @ ${moment().format('HH:mm:ss')}`)
     currentOdds = await Odds.find()
     currentOdds.map(async (game) => {
@@ -694,97 +822,9 @@ const dataSeed = async () => {
                 awayTeamIndex: awayIndex
             })
     })
-
-    // //REMOVE PAST GAMES FROM DB
-    console.log(`REMOVING PAST GAMES @ ${moment().format('HH:mm:ss')}`)
-    let pastGames = []
-    currentOdds.map(async (game) => {
-        let homeScore
-        let awayScore
-        let predictionCorrect
-        let winner
-
-        if (moment(game.commence_time).local().isBefore(moment().local())) {  //DETERMINE A GAME HAPPENED IN THE PAST
-            let homeTeam
-            let awayTeam
-            if (game.home_team === 'St Louis Blues') {
-                homeTeam = await Teams.findOne({ 'espnDisplayName': "St. Louis Blues" })
-            } else if (game.home_team === 'Montréal Canadiens') {
-                homeTeam = await Teams.findOne({ 'espnDisplayName': 'Montreal Canadiens' })
-            } else if (game.home_team === 'Los Angeles Clippers') {
-                homeTeam = await Teams.findOne({ 'espnDisplayName': 'LA Clippers' })
-            } else if (game.home_team === 'San Jose State Spartans') {
-                homeTeam = await Teams.findOne({ 'espnDisplayName': 'San José State Spartans' })
-            } else if (game.home_team === 'UMass Minutemen') {
-                homeTeam = await Teams.findOne({ 'espnDisplayName': 'Massachusetts Minutemen' })
-            } else if (game.home_team === 'Southern Mississippi Golden Eagles') {
-                homeTeam = await Teams.findOne({ 'espnDisplayName': 'Southern Miss Golden Eagles' })
-            } else if (game.home_team === 'Hawaii Rainbow Warriors') {
-                homeTeam = await Teams.findOne({ 'espnDisplayName': `Hawai'i Rainbow Warriors` })
-            } else if (game.home_team === 'Louisiana Ragin Cajuns') {
-                homeTeam = await Teams.findOne({ 'espnDisplayName': `Louisiana Ragin' Cajuns` })
-            } else if (game.home_team === 'Appalachian State Mountaineers') {
-                homeTeam = await Teams.findOne({ 'espnDisplayName': `App State Mountaineers` })
-            } else {
-                homeTeam = await Teams.findOne({ 'espnDisplayName': game.home_team })
-            }
-            if (game.away_team === 'St Louis Blues') {
-                awayTeam = await Teams.findOne({ 'espnDisplayName': "St. Louis Blues" })
-            } else if (game.away_team === 'Montréal Canadiens') {
-                awayTeam = await Teams.findOne({ 'espnDisplayName': 'Montreal Canadiens' })
-            } else if (game.away_team === 'Los Angeles Clippers') {
-                awayTeam = await Teams.findOne({ 'espnDisplayName': 'LA Clippers' })
-            } else if (game.away_team === 'San Jose State Spartans') {
-                awayTeam = await Teams.findOne({ 'espnDisplayName': 'San José State Spartans' })
-            } else if (game.away_team === 'UMass Minutemen') {
-                awayTeam = await Teams.findOne({ 'espnDisplayName': 'Massachusetts Minutemen' })
-            } else if (game.away_team === 'Southern Mississippi Golden Eagles') {
-                awayTeam = await Teams.findOne({ 'espnDisplayName': 'Southern Miss Golden Eagles' })
-            } else if (game.away_team === 'Hawaii Rainbow Warriors') {
-                awayTeam = await Teams.findOne({ 'espnDisplayName': `Hawai'i Rainbow Warriors` })
-            } else if (game.away_team === 'Louisiana Ragin Cajuns') {
-                awayTeam = await Teams.findOne({ 'espnDisplayName': `Louisiana Ragin' Cajuns` })
-            } else if (game.away_team === 'Appalachian State Mountaineers') {
-                awayTeam = await Teams.findOne({ 'espnDisplayName': `App State Mountaineers` })
-            } else {
-                awayTeam = await Teams.findOne({ 'espnDisplayName': game.away_team })
-            }
-            //DETERMINE A WINNER
-            let homeTeamSchedule = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${game.sport}/${homeTeam.league}/teams/${homeTeam.espnID}/schedule`)
-            let homeTeamSchedJSON = await homeTeamSchedule.json()
-            homeTeamSchedJSON.events.map((event) => {
-                if (moment(event.date).local().format('MM/DD/YYYY') === moment(game.commence_time).local().format('MM/DD/YYYY')) {
-                    event.competitions[0].competitors.map((team) => {
-                        if (team.homeAway === 'home') {
-
-                            homeScore = team.score.value//home score
-                        } else if (team.homeAway === 'away') {
-
-                            awayScore = team.score.value//away score
-                        }
-                    })
-                    homeScore > awayScore ? winner = 'home' : winner = 'away' //winner
-                    if (game.homeTeamIndex >= game.awayTeamIndex) { // predicted home to win
-                        winner === 'home' ? predictionCorrect = true : predictionCorrect = false
-                    } else if (game.awayTeamIndex > game.homeTeamIndex) {//predicted away to win
-                        winner === 'away' ? predictionCorrect = true : predictionCorrect = false
-                    }//prediction correct
-                }
-            })
-            await PastGameOdds.insertMany({
-                homeScore: homeScore,
-                awayScore: awayScore,
-                winner: winner,
-                predictionCorrect: predictionCorrect,
-                ...game._doc
-            })//SAVE GAME TO PREVIOUSGAMES DB WITH WINNER
-            await Odds.findOneAndDelete({ _id: game._doc._id })//delete from Odds table
-        }
-
-    })
+    //REMOVE PAST GAMES FROM DB
 
     console.info(`Full Seeding complete! 🌱 @ ${moment().format('HH:mm:ss')}`);
-
 }
 // dataSeed()
-module.exports = { dataSeed }
+module.exports = { dataSeed, oddsSeed }

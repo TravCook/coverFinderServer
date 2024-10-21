@@ -70,9 +70,9 @@ module.exports = {
             Odds.find({sport_key: 'icehockey_nhl'}).then((odds) => {
                             let timeFilter = []
             odds.map((odds) => {
-                if(moment(odds.commence_time).isBefore(moment().add(7, 'days'))){
+                // if(moment(odds.commence_time).isBefore(moment().add(7, 'days'))){
                     timeFilter.push(odds)
-                }
+                // }
             })
             return res.json(timeFilter)
             }).catch((err) => {
@@ -114,11 +114,15 @@ module.exports = {
    async getWinRates(req, res)  {
             const allGames = await PastGameOdds.find()
             const footballGames = await PastGameOdds.find({sport: 'football'})
+            const nflGames = await PastGameOdds.find({sport_key: 'americanfootball_nfl'})
+            const ncaafGames = await PastGameOdds.find({sport_key: 'americanfootball_ncaaf'})
             const baseballGames = await PastGameOdds.find({sport: 'baseball'})
             const basketballGames = await PastGameOdds.find({sport: 'basketball'})
             const hockeyGames = await PastGameOdds.find({sport: 'hockey'})
             let overallCorrectPicks = 0
             let footballCorrectPicks = 0
+            let nflCorrectPicks = 0
+            let ncaafCorrectPicks = 0
             let baseballCorrectPicks = 0
             let basketballCorrectPicks = 0
             let hockeyCorrectPicks = 0
@@ -147,11 +151,23 @@ module.exports = {
                     hockeyCorrectPicks++
                 }
             })
+            nflGames.map((game) => {
+                if(game.predictionCorrect === true){
+                    nflCorrectPicks++
+                }
+            })
+            ncaafGames.map((game) => {
+                if(game.predictionCorrect === true){
+                    ncaafCorrectPicks++
+                }
+            })
 
 
         return res.json({
             overallWinRate : overallCorrectPicks/allGames.length,
             footballWinRate: footballCorrectPicks/footballGames.length,
+            nflWinRate: nflCorrectPicks/nflGames.length,
+            ncaafWinRate: ncaafCorrectPicks/ncaafGames.length,
             baseballWinRate: baseballCorrectPicks/baseballGames.length,
             hockeyWinRate: hockeyCorrectPicks/hockeyGames.length,
             basketballWinRate: basketballCorrectPicks/basketballGames.length
