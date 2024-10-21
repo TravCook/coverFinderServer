@@ -141,7 +141,7 @@ module.exports = {
                             timeFilter.push(odds)
                         }
                     })
-                    myCache.set('hockeyOdds', timeFilter, 10800)
+                    myCache.set('hockeyOdds', JSON.stringify(timeFilter), 10800)
                     return res.json(timeFilter)
                 }).catch((err) => {
                     return res.status(500).json(err)
