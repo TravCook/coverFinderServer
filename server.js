@@ -32,7 +32,7 @@ const oddsCron = CronJob.from({
     timeZome: 'America/Denver'
 })
 const dataCron = CronJob.from({
-    cronTime: '0 */10 * * * *',
+    cronTime: '0 0 */2 * * *',
     onTick: function () {
         console.log('tick')
         dataSeed.dataSeed()

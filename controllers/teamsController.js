@@ -1,4 +1,6 @@
 const {Teams, Odds} = require('../models')
+const NodeCache = require( "node-cache" );
+const myCache = new NodeCache();
 
 module.exports = {
     saveTeamIndex(req, res) {
@@ -35,12 +37,22 @@ module.exports = {
         }else if(req.body.searchTeam === 'Sam Houston State Bearkats'){
             req.body.searchTeam =  `Sam Houston Bearkats`
         }
-        Teams.findOne({ espnDisplayName: req.body.searchTeam
-        }).then((team) => {
-            return res.json(team)
-        }).catch((err) => {
-            return res.status(500).json(err);
-        })
+        let team = myCache.get(`${req.body.searchTeam}`)
+        if(team==undefined){
+            Teams.findOne({ espnDisplayName: req.body.searchTeam
+            }).then((team) => {
+                let success = myCache.set(`${req.body.searchTeam}`, JSON.stringify(team), 10800)
+                if(success){
+                  return res.json(team)  
+                }
+            }).catch((err) => {
+                return res.status(500).json(err);
+            })
+        }else{
+            let teamJson = JSON.parse(team)
+            return res.json(teamJson)
+        }
+        
     },
 
 }
