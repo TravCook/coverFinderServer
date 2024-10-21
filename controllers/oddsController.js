@@ -70,9 +70,9 @@ module.exports = {
             Odds.find({sport_key: 'icehockey_nhl'}).then((odds) => {
                             let timeFilter = []
             odds.map((odds) => {
-                // if(moment(odds.commence_time).isBefore(moment().add(7, 'days'))){
+                if(moment(odds.commence_time).isBefore(moment().add(7, 'days'))){
                     timeFilter.push(odds)
-                // }
+                }
             })
             return res.json(timeFilter)
             }).catch((err) => {
@@ -119,6 +119,18 @@ module.exports = {
             const baseballGames = await PastGameOdds.find({sport: 'baseball'})
             const basketballGames = await PastGameOdds.find({sport: 'basketball'})
             const hockeyGames = await PastGameOdds.find({sport: 'hockey'})
+            const highIndex = await PastGameOdds.find({$or: [{'homeTeamIndex' : {$gt: 5}},{'awayTeamIndex' : {$gt: 5}}] })
+            const lowIndex = await PastGameOdds.find({$or: [{'homeTeamIndex' : {$lt: -5}},{'awayTeamIndex' : {$lt: -5}}] })
+            let highIndexDifference = []
+            let lowIndexDifference = []
+            allGames.map((game) => {
+                if(game.homeTeamIndex - game.awayTeamIndex >= 5 || game.awayTeamIndex - game.homeTeamIndex >= 5){
+                    highIndexDifference.push(game)
+                }else if(game.homeTeamIndex - game.awayTeamIndex <= 5 || game.awayTeamIndex - game.homeTeamIndex <= 5){
+                    lowIndexDifference.push(game)
+                }
+            })
+
             let overallCorrectPicks = 0
             let footballCorrectPicks = 0
             let nflCorrectPicks = 0
@@ -126,6 +138,11 @@ module.exports = {
             let baseballCorrectPicks = 0
             let basketballCorrectPicks = 0
             let hockeyCorrectPicks = 0
+            let highIndexCorrect = 0
+            let lowIndexCorrect = 0
+            let highIndexDiffCorrect = 0
+            let lowIndexDiffCorrect = 0
+
             allGames.map((game) => {
                 if(game.predictionCorrect === true){
                     overallCorrectPicks++
@@ -161,6 +178,26 @@ module.exports = {
                     ncaafCorrectPicks++
                 }
             })
+            highIndex.map((game) => {
+                if(game.predictionCorrect === true){
+                    highIndexCorrect++
+                }
+            })
+            lowIndex.map((game) => {
+                if(game.predictionCorrect === true){
+                    lowIndexCorrect++
+                }
+            })
+            highIndexDifference.map((game) => {
+                if(game.predictionCorrect === true){
+                    highIndexDiffCorrect++
+                }
+            })
+            lowIndexDifference.map((game) => {
+                if(game.predictionCorrect === true){
+                    lowIndexDiffCorrect++
+                }
+            })
 
 
         return res.json({
@@ -170,7 +207,11 @@ module.exports = {
             ncaafWinRate: ncaafCorrectPicks/ncaafGames.length,
             baseballWinRate: baseballCorrectPicks/baseballGames.length,
             hockeyWinRate: hockeyCorrectPicks/hockeyGames.length,
-            basketballWinRate: basketballCorrectPicks/basketballGames.length
+            basketballWinRate: basketballCorrectPicks/basketballGames.length,
+            highIndexWinRate: highIndexCorrect/highIndex.length,
+            lowIndexWinRate: lowIndexCorrect/lowIndex.length,
+            highIndexDiffWinRate: highIndexDiffCorrect/highIndexDifference.length,
+            lowIndexDiffWinRate: lowIndexDiffCorrect/lowIndexDifference.length
         })
     }
 }

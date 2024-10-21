@@ -234,7 +234,6 @@ const oddsSeed = async () => {
 
 const dataSeed = async () => {
     console.log('starting seed')
-    connection.on('error', (err) => err);
     // DETERMINE SPORTS
     console.log("DB CONNECTED ---- STARTING SEED")
     let sports = [
