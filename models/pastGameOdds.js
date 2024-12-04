@@ -92,6 +92,10 @@ const pastGameOddsSchema = new Schema({
         type: Number,
         required: true
     },
+    winPercent: {
+        type: Number,
+        required: false
+    },
     predictionCorrect: {
         type: Boolean,
         required: true

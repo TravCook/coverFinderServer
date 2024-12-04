@@ -79,6 +79,10 @@ const oddsSchema = new Schema({
     awayTeamIndex: {
         type: Number,
         required: false
+    },
+    winPercent: {
+        type: Number,
+        required: false
     }
 })
 

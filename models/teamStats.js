@@ -43,178 +43,178 @@ const teamStatsSchema = new Schema({
         type: String,
         required: true,
     },
-    lastTenWinLoss: {
-        type: String,
+    pointDiff: {
+        type: Number,
         required: true
     },
-    winLossAsDog: {
-        type: String,
-        required: false,
-    },
-    winLossAsFav: {
-        type: String,
-        required: false,
-    },
-    winPAsDog: {
-        type: String,
-        required: false,
-    },
-    winPAsFav: {
-        type: String,
-        required: false,
-    },
-    thirdDownConvRate: {
-        type: String,
-        required: false,
-    }, //USAFootball stat
-    yardsPerPlay: {
-        type: String,
-        required: false,
-    }, //USAFootball stat
-    turnoverDiff: {
-        type: String,
-        required: false,
-    }, //USAFootball stat
     takeawaysPerGame: {
-        type: String,
+        type: Number,
         required: false,
     }, //USAFootball stat
     giveawaysPerGame: {
-        type: String,
+        type: Number,
         required: false,
     }, //USAFootball stat
-    yardsAllowedPerGame: {
-        type: String,
+    turnoverDiff: {
+        type: Number,
         required: false,
     }, //USAFootball stat
-    penaltyYardsPerGame: {
-        type: String,
+    pointsPerGame: {
+        type: Number,
+        required: false
+    }, //USAFootball stat
+    yardsPerPlay: {
+        type: Number,
+        required: false,
+    }, //USAFootball stat
+    thirdDownConvRate: {
+        type: Number,
+        required: false,
+    }, //USAFootball stat
+    redZoneEfficiency: {
+        type: Number,
         required: false,
     }, //USAFootball stat
     avgTimeofPossession: {
-        type: String,
+        type: Number,
         required: false,
     }, //USAFootball stat
-    goalsforPerGame: {
-        type: String,
+    sackRate: {
+        type: Number,
+        required: false,
+    }, //USAFootball stat
+    completionPercentage: {
+        type: Number,
+        required: false,
+    }, //USAFootball stat
+    rushingYardsPerGame: {
+        type: Number,
+        required: false,
+    }, //USAFootball stat
+    yardsAllowedPerGame: {
+        type: Number,
+        required: false,
+    }, //USAFootball stat
+    penaltyYardsPerGame: {
+        type: Number,
+        required: false,
+    }, //USAFootball stat
+    powerPlayPct: {
+        type: Number,
         required: false,
     },        // hockey stat
-    goalDiff: {
-        type: String,
-        required: false,
-    },        // hockey stat
-    goalsAgainstPerGame: {
-        type: String,
-        required: false,
-    },        // hockey stat
-    savePct: {
-        type: String,
+    penKillPct: {
+        type: Number,
         required: false,
     },        // hockey stat
     shotsTaken: {
-        type: String,
+        type: Number,
         required: false,
     },        // hockey stat
-    shotsAgainst: {
-        type: String,
+    savePct: {
+        type: Number,
         required: false,
-    },       // hockey stat
-    penaltiesInMinutes: {
-        type: String,
+    },        // hockey stat
+    goalsforPerGame: {
+        type: Number,
+        required: false,
+    },        // hockey stat
+    faceoffsWon: {
+        type: Number,
+        required: false,
+    },        // hockey stat
+    goalsAgainstAverage: {
+        type: Number,
+        required: false,
+    },        // hockey stat
+    shootingPct: {
+        type: Number,
         required: false,
     },        // hockey stat
     shotsBlocked: {
-        type: String,
+        type: Number,
         required: false,
     },       // hockey stat
-    faceoffsWon: {
-        type: String,
-        required: false,
-    },        // hockey stat
     giveaways: {
-        type: String,
+        type: Number,
         required: false,
     },        // hockey stat
     takeaways: {
-        type: String,
+        type: Number,
         required: false,
     },      // hockey stat
-    hits: {
-        type: String,
+    onBasePct: {
+        type: Number,
         required: false,
     },      // baseball Stat
-    walks: {
-        type: String,
+    sluggingPct: {
+        type: Number,
         required: false,
     },      // baseball Stat
-    strikeouts: {
-        type: String,
+    earnedRunAverage: {
+        type: Number,
         required: false,
     },      // baseball Stat
-    runsBattedIn: {
-        type: String,
-        required: false,
-    },      // baseball Stat
-    homeRuns: {
-        type: String,
-        required: false,
-    },      // baseball Stat
-    runsVsEra: {
-        type: String,
-        required: false,
-    },      // baseball Stat
-    strikeouts: {
-        type: String,
-        required: false,
-    },      // baseball Stat
-    saves: {
-        type: String,
-        required: false,
-    },      // baseball Stat
-    groundballs: {
-        type: String,
-        required: false,
-    },      // baseball Stat
-    fieldingErrors: {
-        type: String,
+    strikeoutWalkRatio: {
+        type: Number,
         required: false,
     },      // baseball Stat
     fieldingPercentage: {
-        type: String,
+        type: Number,
         required: false,
     },      // baseball Stat
-    pace: {
-        type: String,
+    stolenBasePercentage: {
+        type: Number,
+        required: false,
+    },      // baseball Stat
+    fieldingErrors: {
+        type: Number,
+        required: false,
+    },      // baseball Stat
+    qualityStarts: {
+        type: Number,
+        required: false,
+    },      // baseball Stat
+    homeRuns: {
+        type: Number,
+        required: false,
+    },      // baseball Stat
+    effectiveFieldGoalPct: {
+        type: Number,
+        required: false,
+    },      // basketball Stat
+    turnoverDiff: {
+        type: Number,
+        required: false,
+    },      // basketball Stat
+    threePointPct: {
+        type: Number,
+        required: false,
+    },      // basketball Stat
+    avgOffensiveRebounds: {
+        type: Number,
         required: false,
     },      // basketball Stat
     freeThrowPct: {
-        type: String,
-        required: false,
-    },      // basketball Stat
-    effectiveFieldGoalPct: {
-        type: String,
-        required: false,
-    },      // basketball Stat
-    reboundRate: {
-        type: String,
-        required: false,
-    },      // basketball Stat
-    fieldGoalsAttempted: {
-        type: String,
-        required: false,
-    },      // basketball Stat
-    stealsPerGame: {
-        type: String,
-        required: false,
-    },      // basketball Stat
-    blocksPerGame: {
-        type: String,
+        type: Number,
         required: false,
     },      // basketball Stat
     assistTurnoverRatio: {
-        type: String,
+        type: Number,
         required: false,
-    }      // basketball Stat 
+    },      // basketball Stat
+    pointsInPaint: {
+        type: Number,
+        required: false,
+    },      // basketball Stat
+    avgDefensiveRebounds: {
+        type: Number,
+        required: false,
+    },      // basketball Stat
+    pace: {
+        type: Number,
+        required: false,
+    },      // basketball Stat
 })
 
 const TeamStats = mongoose.model('TeamStats', teamStatsSchema)

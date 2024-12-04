@@ -23,18 +23,24 @@ app.use(routes);
 
 
 const oddsCron = CronJob.from({
-    cronTime: '0 0 1 * * *',
+    cronTime: '0 0 */8 * * *',
     onTick: function () {
-        console.log('tick')
         dataSeed.oddsSeed()
     },
     start: false,
     timeZome: 'America/Denver'
 })
-const dataCron = CronJob.from({
-    cronTime: '0 0 */2 * * *',
+const winCron = CronJob.from({
+    cronTime: '0 0 */24 * * *',
     onTick: function () {
-        console.log('tick')
+        dataSeed.winSeed()
+    },
+    start: false,
+    timeZome: 'America/Denver'
+})
+const dataCron = CronJob.from({
+    cronTime: '0 */15 * * * *',
+    onTick: function () {
         dataSeed.dataSeed()
     },
     start: false,
@@ -44,6 +50,7 @@ const dataCron = CronJob.from({
 // Start the server on the port
 db.once('open', () => {
     oddsCron.start()
+    winCron.start()
     dataCron.start()
 })
 
