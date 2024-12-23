@@ -327,6 +327,7 @@ const dataSeed = async () => {
                 'completionPct': 'completionPercentage',
                 'rushingYardsPerGame': 'rushingYardsPerGame',
                 'possessionTimeSeconds': 'avgTimeofPossession',
+                'totalPenaltyYards': 'penaltyYardsPerGame',
                 'powerPlayPct': 'powerPlayPct',
                 'penaltyKillPct': 'penKillPct',
                 'avgShots': 'shotsTaken',
@@ -408,7 +409,6 @@ const dataSeed = async () => {
                 await fetchAndUpdateStats(sports[i], team, sports[i].statYear);
             }
             await updateExternalStats(`https://www.teamrankings.com/${sports[i].league}/stat/opponent-yards-per-game`, 'yardsAllowedPerGame', 'yardsAllowedPerGame');
-            await updateExternalStats(`https://www.teamrankings.com/${sports[i].league}/stat/penalty-yards-per-game`, 'penaltyYardsPerGame', 'penaltyYardsPerGame');
         } else if (sports[i].espnSport === 'hockey') {
             for (const team of teams) {
                 await fetchAndUpdateStats(sports[i], team, sports[i].statYear);
@@ -422,316 +422,6 @@ const dataSeed = async () => {
                 await fetchAndUpdateStats(sports[i], team, sports[i].statYear);
             }
         }
-        // }
-
-        // if (sports[i].espnSport === 'football') {
-        //     for (m = 0; m < teams.length; m++) {
-        //         const teamStatResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/football/leagues/${sports[i].league}/seasons/${sports[i].statYear}/types/2/teams/${teams[m].espnID}/statistics?lang=en&region=us`)
-        //         const teamStatjson = await teamStatResponse.json()
-        //         let passYardsPerPlay = 0
-        //         let rushYardsPerPlay = 0
-        //         for (category = 0; category < teamStatjson.splits.categories.length; category++) {
-        //             let statCategory = category
-        //             for (stat = 0; stat < teamStatjson.splits.categories[statCategory].stats.length; stat++) {
-        //                 if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'turnOverDifferential') {
-        //                     teams[m] = {
-        //                         turnoverDiff: teamStatjson.splits.categories[statCategory].stats[stat].value,
-        //                         ...teams[m]
-        //                     }
-        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'totalPointsPerGame') {
-        //                     teams[m] = {
-        //                         pointsPerGame: teamStatjson.splits.categories[statCategory].stats[stat].value,
-        //                         ...teams[m]
-        //                     }
-        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'yardsPerCompletion') { // calculated
-        //                     passYardsPerPlay = teamStatjson.splits.categories[statCategory].stats[stat].value
-        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'yardsPerRushAttempt') { // calculated
-        //                     rushYardsPerPlay = teamStatjson.splits.categories[statCategory].stats[stat].value
-        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'thirdDownConvPct') {
-        //                     teams[m] = {
-        //                         thirdDownConvRate: teamStatjson.splits.categories[statCategory].stats[stat].value,
-        //                         ...teams[m]
-        //                     }
-        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'redzoneEfficiencyPct') {
-        //                     teams[m] = {
-        //                         redZoneEfficiency: teamStatjson.splits.categories[statCategory].stats[stat].value,
-        //                         ...teams[m]
-        //                     }
-        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'sacks' && teamStatjson.splits.categories[statCategory].name === 'defensive') {
-        //                     teams[m] = {
-        //                         sackRate: teamStatjson.splits.categories[statCategory].stats[stat].perGameValue,
-        //                         ...teams[m]
-        //                     }
-        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'completionPct') {
-        //                     teams[m] = {
-        //                         completionPercentage: teamStatjson.splits.categories[statCategory].stats[stat].value,
-        //                         ...teams[m]
-        //                     }
-        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'rushingYardsPerGame') {
-        //                     teams[m] = {
-        //                         rushingYardsPerGame: teamStatjson.splits.categories[statCategory].stats[stat].value,
-        //                         ...teams[m]
-        //                     }
-        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'possessionTimeSeconds') {
-        //                     teams[m] = {
-        //                         avgTimeofPossession: teamStatjson.splits.categories[statCategory].stats[stat].value,
-        //                         ...teams[m]
-        //                     }
-        //                 }
-        //             }
-        //         }
-        //         teams[m] = {
-        //             yardsPerPlay: (passYardsPerPlay + rushYardsPerPlay) / 2,
-        //             ...teams[m]
-        //         }
-
-        //     }
-        //     // yardsAllowedPerGame
-        //     const ypgRequest = await axios.get(`https://www.teamrankings.com/${sports[i].league}/stat/opponent-yards-per-game`, {
-        //         headers: {
-        //             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
-        //             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4"
-        //         }
-        //     })
-        //     const $ypg = await cheerio.load(ypgRequest.data)
-        //     $ypg('tr').each((i, elem) => {
-        //         const index = $ypg(elem).find('td:first-child').text()
-        //         const team = $ypg(elem).find('td:nth-child(2)').text()
-        //         const yardsAllowedPerGame = $ypg(elem).find('td:nth-child(3)').text()
-        //         teams.map((teamItem, idx) => {
-        //             if (teamItem.location === team || teamItem.school === team) {
-        //                 teams[idx] = {
-        //                     yardsAllowedPerGame: yardsAllowedPerGame,
-        //                     ...teams[idx]
-        //                 }
-        //             } else if (teamItem.teamName === team.split(' ')[1]) {
-        //                 teams[idx] = {
-        //                     yardsAllowedPerGame: yardsAllowedPerGame,
-        //                     ...teams[idx]
-        //                 }
-        //             }
-        //         })
-        //     })
-        //     // // penaltyYardsPerGame
-        //     const penYardsPerGameRequest = await axios.get(`https://www.teamrankings.com/${sports[i].league}/stat/penalty-yards-per-game`, {
-        //         headers: {
-        //             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
-        //             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4"
-        //         }
-        //     })
-        //     const $penYardsPerGame = await cheerio.load(penYardsPerGameRequest.data)
-        //     $penYardsPerGame('tr').each((i, elem) => {
-        //         const index = $penYardsPerGame(elem).find('td:first-child').text()
-        //         const team = $penYardsPerGame(elem).find('td:nth-child(2)').text()
-        //         const penYardsPerGame = $penYardsPerGame(elem).find('td:nth-child(3)').text()
-        //         teams.map((teamItem, idx) => {
-        //             if (teamItem.location === team || teamItem.school === team) {
-        //                 teams[idx] = {
-        //                     penaltyYardsPerGame: penYardsPerGame,
-        //                     ...teams[idx]
-        //                 }
-        //             } else if (teamItem.teamName === team.split(' ')[1]) {
-        //                 teams[idx] = {
-        //                     penaltyYardsPerGame: penYardsPerGame,
-        //                     ...teams[idx]
-        //                 }
-        //             }
-        //         })
-        //     })
-        // } else if (sports[i].espnSport === 'hockey') {
-        //     for (m = 0; m < teams.length; m++) {
-        //         let teamStatResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/hockey/leagues/nhl/seasons/${sports[i].statYear}/types/2/teams/${teams[m].espnID}/statistics?lang=en&region=us`)
-        //         if (teamStatResponse.status === 404) {
-        //             teamStatResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/hockey/leagues/nhl/seasons/${sports[i].prevstatYear}/types/2/teams/${teams[m].espnID}/statistics?lang=en&region=us`)
-        //         }
-        //         const teamStatjson = await teamStatResponse.json()
-        //         for (category = 0; category < teamStatjson.splits.categories.length; category++) {
-        //             let statCategory = category
-        //             for (stat = 0; stat < teamStatjson.splits.categories[statCategory].stats.length; stat++) {
-        //                 if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'powerPlayPct') {
-        //                     teams[m] = {
-        //                         powerPlayPct: teamStatjson.splits.categories[statCategory].stats[stat].value,
-        //                         ...teams[m]
-        //                     }
-        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'penaltyKillPct') {
-        //                     teams[m] = {
-        //                         penKillPct: teamStatjson.splits.categories[statCategory].stats[stat].value,
-        //                         ...teams[m]
-        //                     }
-        //                 }
-        //                 else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'avgShots') {
-        //                     teams[m] = {
-        //                         shotsTaken: teamStatjson.splits.categories[statCategory].stats[stat].value,
-        //                         ...teams[m]
-        //                     }
-        //                 }
-        //                 else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'savePct') {
-        //                     teams[m] = {
-        //                         savePct: teamStatjson.splits.categories[statCategory].stats[stat].value,
-        //                         ...teams[m]
-        //                     }
-        //                 }
-        //                 else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'avgGoals') {
-        //                     teams[m] = {
-        //                         goalsforPerGame: teamStatjson.splits.categories[statCategory].stats[stat].value,
-        //                         ...teams[m]
-        //                     }
-        //                 }
-        //                 else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'faceoffsWon') {
-        //                     teams[m] = {
-        //                         faceoffsWon: teamStatjson.splits.categories[statCategory].stats[stat].perGameValue,
-        //                         ...teams[m]
-        //                     }
-        //                 }
-        //                 else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'avgGoalsAgainst') {
-        //                     teams[m] = {
-        //                         goalsAgainstAverage: teamStatjson.splits.categories[statCategory].stats[stat].value,
-        //                         ...teams[m]
-        //                     }
-        //                 }
-        //                 else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'shootingPct') {
-        //                     teams[m] = {
-        //                         shootingPct: teamStatjson.splits.categories[statCategory].stats[stat].perGameValue,
-        //                         ...teams[m]
-        //                     }
-        //                 }
-        //                 else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'blockedShots') {
-        //                     teams[m] = {
-        //                         shotsBlocked: teamStatjson.splits.categories[statCategory].stats[stat].perGameValue,
-        //                         ...teams[m]
-        //                     }
-        //                 }
-        //                 else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'giveaways') {
-        //                     teams[m] = {
-        //                         giveaways: teamStatjson.splits.categories[statCategory].stats[stat].perGameValue,
-        //                         ...teams[m]
-        //                     }
-        //                 }
-        //                 else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'takeaways') {
-        //                     teams[m] = {
-        //                         takeaways: teamStatjson.splits.categories[statCategory].stats[stat].perGameValue,
-        //                         ...teams[m]
-        //                     }
-        //                 }
-        //             }
-        //         }
-        //     }
-        // } else if (sports[i].espnSport === 'baseball') {
-        //     for (m = 0; m < teams.length; m++) {
-        //         let teamStatResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/baseball/leagues/mlb/seasons/${sports[i].statYear}/types/3/teams/${teams[m].espnID}/statistics?lang=en&region=us`)
-        //         if (teamStatResponse.status === 404) {
-        //             teamStatResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/baseball/leagues/mlb/seasons/${sports[i].statYear}/types/2/teams/${teams[m].espnID}/statistics?lang=en&region=us`)
-        //         }
-        //         const teamStatjson = await teamStatResponse.json()
-        //         for (category = 0; category < teamStatjson.splits.categories.length; category++) {
-        //             let statCategory = category
-        //             for (stat = 0; stat < teamStatjson.splits.categories[statCategory].stats.length; stat++) {
-        //                 if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'onBasePct') {
-        //                     teams[m] = {
-        //                         onBasePct: teamStatjson.splits.categories[statCategory].stats[stat].value,
-        //                         ...teams[m]
-        //                     }
-        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'slugAvg') {
-        //                     teams[m] = {
-        //                         sluggingPct: teamStatjson.splits.categories[statCategory].stats[stat].value,
-        //                         ...teams[m]
-        //                     }
-        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'ERA') {
-        //                     teams[m] = {
-        //                         earnedRunAverage: teamStatjson.splits.categories[statCategory].stats[stat].value,
-        //                         ...teams[m]
-        //                     }
-        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'strikeoutToWalkRatio') {
-        //                     teams[m] = {
-        //                         strikeoutWalkRatio: teamStatjson.splits.categories[statCategory].stats[stat].value,
-        //                         ...teams[m]
-        //                     }
-        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'fieldingPct') {
-        //                     teams[m] = {
-        //                         fieldingPercentage: teamStatjson.splits.categories[statCategory].stats[stat].value,
-        //                         ...teams[m]
-        //                     }
-        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'stolenBasePct') {
-        //                     teams[m] = {
-        //                         stolenBasePercentage: teamStatjson.splits.categories[statCategory].stats[stat].value,
-        //                         ...teams[m]
-        //                     }
-        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'errors') {
-        //                     teams[m] = {
-        //                         fieldingErrors: teamStatjson.splits.categories[statCategory].stats[stat].value,
-        //                         ...teams[m]
-        //                     }
-        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'qualityStarts') {
-        //                     teams[m] = {
-        //                         qualityStarts: teamStatjson.splits.categories[statCategory].stats[stat].value,
-        //                         ...teams[m]
-        //                     }
-        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'homeRuns') {
-        //                     teams[m] = {
-        //                         homeRuns: teamStatjson.splits.categories[statCategory].stats[stat].value,
-        //                         ...teams[m]
-        //                     }
-        //                 }
-        //             }
-        //         }
-        //     }
-        // } else if (sports[i].espnSport === 'basketball') {
-        //     for (m = 0; m < teams.length; m++) {
-        //         const teamStatResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/basketball/leagues/nba/seasons/${sports[i].statYear}/types/2/teams/${teams[m].espnID}/statistics?lang=en&region=us`)
-        //         const teamStatjson = await teamStatResponse.json()
-        //         for (category = 0; category < teamStatjson.splits.categories.length; category++) {
-        //             let statCategory = category
-        //             for (stat = 0; stat < teamStatjson.splits.categories[statCategory].stats.length; stat++) {
-        //                 if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'effectiveFGPct') {
-        //                     teams[m] = {
-        //                         effectiveFieldGoalPct: teamStatjson.splits.categories[statCategory].stats[stat].value,
-        //                         ...teams[m]
-        //                     }
-        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'turnoverRatio') {
-        //                     teams[m] = {
-        //                         turnoverDiff: teamStatjson.splits.categories[statCategory].stats[stat].value,
-        //                         ...teams[m]
-        //                     }
-        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'threePointFieldGoalPct') {
-        //                     teams[m] = {
-        //                         threePointPct: teamStatjson.splits.categories[statCategory].stats[stat].value,
-        //                         ...teams[m]
-        //                     }
-        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'avgOffensiveRebounds') {
-        //                     teams[m] = {
-        //                         avgOffensiveRebounds: teamStatjson.splits.categories[statCategory].stats[stat].value,
-        //                         ...teams[m]
-        //                     }
-        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'freeThrowPct') {
-        //                     teams[m] = {
-        //                         freeThrowPct: teamStatjson.splits.categories[statCategory].stats[stat].value,
-        //                         ...teams[m]
-        //                     }
-        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'assistTurnoverRatio') {
-        //                     teams[m] = {
-        //                         assistTurnoverRatio: teamStatjson.splits.categories[statCategory].stats[stat].value,
-        //                         ...teams[m]
-        //                     }
-        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'pointsInPaint') {
-        //                     teams[m] = {
-        //                         pointsInPaint: teamStatjson.splits.categories[statCategory].stats[stat].value,
-        //                         ...teams[m]
-        //                     }
-        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'avgDefensiveRebounds') {
-        //                     teams[m] = {
-        //                         avgDefensiveRebounds: teamStatjson.splits.categories[statCategory].stats[stat].value,
-        //                         ...teams[m]
-        //                     }
-        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'paceFactor') {
-        //                     teams[m] = {
-        //                         pace: teamStatjson.splits.categories[statCategory].stats[stat].value,
-        //                         ...teams[m]
-        //                     }
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
         // WRITE TEAMS TO DB
         const upsertTeam = async (team) => {
             const existingTeam = await Teams.findOne({ 'espnDisplayName': team.espnDisplayName });
@@ -917,7 +607,7 @@ const dataSeed = async () => {
                     // Loop over all outcomes for each market
                     await Promise.all(market.outcomes.map(async (outcome) => {
                         // Perform the update using arrayFilters to target the correct outcome
-                        if(outcome.price < 0 ){
+                        if (outcome.price < 0) {
                             await Odds.findOneAndUpdate(
                                 { 'id': game.id }, // Filter by game id
                                 {
@@ -933,7 +623,7 @@ const dataSeed = async () => {
                                     ]
                                 }
                             );
-                        }else {
+                        } else {
                             await Odds.findOneAndUpdate(
                                 { 'id': game.id }, // Filter by game id
                                 {
@@ -948,7 +638,7 @@ const dataSeed = async () => {
                                         { 'outcome._id': outcome._id } // Match outcome by its _id
                                     ]
                                 }
-                            ); 
+                            );
                         }
                     }));
                 }));
@@ -1007,13 +697,62 @@ const dataSeed = async () => {
                             } else if (game.awayTeamIndex > game.homeTeamIndex) {
                                 predictionCorrect = winner === 'away';
                             }
-
+                            const getCommonStats = (team) => ({
+                                seasonWinLoss: team.seasonWinLoss,
+                                homeWinLoss: team.homeWinLoss,
+                                awayWinLoss: team.awayWinLoss,
+                                pointDiff: team.pointDiff,
+                                takeawaysPerGame: team.takeawaysPerGame, // USAFootball stat
+                                giveawaysPerGame: team.giveawaysPerGame, // USAFootball stat
+                                turnoverDiff: team.turnoverDiff, // USAFootball stat
+                                pointsPerGame: team.pointsPerGame, // USAFootball stat
+                                yardsPerPlay: team.yardsPerPlay, // USAFootball stat
+                                thirdDownConvRate: team.thirdDownConvRate, // USAFootball stat
+                                redZoneEfficiency: team.redZoneEfficiency, // USAFootball stat
+                                avgTimeofPossession: team.avgTimeofPossession, // USAFootball stat
+                                sackRate: team.sackRate, // USAFootball stat
+                                completionPercentage: team.completionPercentage, // USAFootball stat
+                                rushingYardsPerGame: team.rushingYardsPerGame, // USAFootball stat
+                                yardsAllowedPerGame: team.yardsAllowedPerGame, // USAFootball stat
+                                penaltyYardsPerGame: team.penaltyYardsPerGame, // USAFootball stat
+                                powerPlayPct: team.powerPlayPct, // Hockey stat
+                                penKillPct: team.penKillPct, // Hockey stat
+                                shotsTaken: team.shotsTaken, // Hockey stat
+                                savePct: team.savePct, // Hockey stat
+                                goalsforPerGame: team.goalsforPerGame, // Hockey stat
+                                faceoffsWon: team.faceoffsWon, // Hockey stat
+                                goalsAgainstAverage: team.goalsAgainstAverage, // Hockey stat
+                                shootingPct: team.shootingPct, // Hockey stat
+                                shotsBlocked: team.shotsBlocked, // Hockey stat
+                                giveaways: team.giveaways, // Hockey stat
+                                takeaways: team.takeaways, // Hockey stat
+                                onBasePct: team.onBasePct, // Baseball stat
+                                sluggingPct: team.sluggingPct, // Baseball stat
+                                earnedRunAverage: team.earnedRunAverage, // Baseball stat
+                                strikeoutWalkRatio: team.strikeoutWalkRatio, // Baseball stat
+                                fieldingPercentage: team.fieldingPercentage, // Baseball stat
+                                stolenBasePercentage: team.stolenBasePercentage, // Baseball stat
+                                fieldingErrors: team.fieldingErrors, // Baseball stat
+                                qualityStarts: team.qualityStarts, // Baseball stat
+                                homeRuns: team.homeRuns, // Baseball stat
+                                effectiveFieldGoalPct: team.effectiveFieldGoalPct, // Basketball stat
+                                turnoverDiff: team.turnoverDiff, // Basketball stat
+                                threePointPct: team.threePointPct, // Basketball stat
+                                avgOffensiveRebounds: team.avgOffensiveRebounds, // Basketball stat
+                                freeThrowPct: team.freeThrowPct, // Basketball stat
+                                assistTurnoverRatio: team.assistTurnoverRatio, // Basketball stat
+                                pointsInPaint: team.pointsInPaint, // Basketball stat
+                                avgDefensiveRebounds: team.avgDefensiveRebounds, // Basketball stat
+                                pace: team.pace // Basketball stat
+                            });
                             // Save the past game to the PastGameOdds collection
                             await PastGameOdds.create({
                                 homeScore,
                                 awayScore,
                                 winner,
                                 predictionCorrect,
+                                homeTeamStats: getCommonStats(homeTeam),
+                                awayTeamStats: getCommonStats(awayTeam),
                                 ...newGame
                             });
 
@@ -1028,7 +767,5 @@ const dataSeed = async () => {
     console.log("Past games processed successfully!");
     console.info(`Full Seeding complete! 🌱 @ ${moment().format('HH:mm:ss')}`);
 }
-
-
 
 module.exports = { dataSeed, oddsSeed }
