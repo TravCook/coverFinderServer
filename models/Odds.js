@@ -65,6 +65,10 @@ const oddsSchema = new Schema({
                             price: {
                                 type: Number,
                                 required: true,
+                            },
+                            impliedProb: {
+                                type: Number,
+                                required: false
                             }
                         }
                     ]

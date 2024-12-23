@@ -62,73 +62,77 @@ const oddsSeed = async () => {
         try {
             data.map(async (item) => {
                 item.data.map(async (event) => {
-                    let oddExist = await Odds.findOne({ id: event.id })
+                    if (moment().isBefore(moment(event.commence_time))) {
 
-                    if (event.sport_key === 'americanfootball_nfl') {
-                        if (oddExist) {
-                            await Odds.findOneAndReplace({ id: event.id }, {
-                                sport: 'football',
-                                ...event
-                            })
 
-                        } else {
-                            await Odds.create({
-                                sport: 'football',
-                                ...event
-                            })
-                        }
-                    } else if (event.sport_key === 'americanfootball_ncaaf') {
-                        if (oddExist) {
-                            await Odds.findOneAndReplace({ id: event.id }, {
-                                sport: 'football',
-                                ...event
-                            })
+                        let oddExist = await Odds.findOne({ id: event.id })
 
-                        } else {
-                            await Odds.create({
-                                sport: 'football',
-                                ...event
-                            })
-                        }
-                    } else if (event.sport_key === 'basketball_nba') {
-                        if (oddExist) {
-                            await Odds.findOneAndReplace({ id: event.id }, {
-                                sport: 'basketball',
-                                ...event
-                            })
+                        if (event.sport_key === 'americanfootball_nfl') {
+                            if (oddExist) {
+                                await Odds.findOneAndUpdate({ id: event.id }, {
+                                    sport: 'football',
+                                    ...event
+                                })
 
-                        } else {
-                            await Odds.create({
-                                sport: 'basketball',
-                                ...event
-                            })
+                            } else {
+                                await Odds.create({
+                                    sport: 'football',
+                                    ...event
+                                })
+                            }
+                        } else if (event.sport_key === 'americanfootball_ncaaf') {
+                            if (oddExist) {
+                                await Odds.findOneAndUpdate({ id: event.id }, {
+                                    sport: 'football',
+                                    ...event
+                                })
 
-                        }
-                    } else if (event.sport_key === 'icehockey_nhl') {
-                        if (oddExist) {
-                            await Odds.findOneAndReplace({ id: event.id }, {
-                                sport: 'hockey',
-                                ...event
-                            })
-                        } else {
-                            await Odds.create({
-                                sport: 'hockey',
-                                ...event
-                            })
-                        }
-                    } else if (event.sport_key === 'baseball_mlb') {
-                        if (oddExist) {
-                            await Odds.findOneAndReplace({ id: event.id }, {
-                                sport: 'baseball',
-                                ...event
-                            })
+                            } else {
+                                await Odds.create({
+                                    sport: 'football',
+                                    ...event
+                                })
+                            }
+                        } else if (event.sport_key === 'basketball_nba') {
+                            if (oddExist) {
+                                await Odds.findOneAndUpdate({ id: event.id }, {
+                                    sport: 'basketball',
+                                    ...event
+                                })
 
-                        } else {
-                            await Odds.create({
-                                sport: 'baseball',
-                                ...event
-                            })
+                            } else {
+                                await Odds.create({
+                                    sport: 'basketball',
+                                    ...event
+                                })
 
+                            }
+                        } else if (event.sport_key === 'icehockey_nhl') {
+                            if (oddExist) {
+                                await Odds.findOneAndUpdate({ id: event.id }, {
+                                    sport: 'hockey',
+                                    ...event
+                                })
+                            } else {
+                                await Odds.create({
+                                    sport: 'hockey',
+                                    ...event
+                                })
+                            }
+                        } else if (event.sport_key === 'baseball_mlb') {
+                            if (oddExist) {
+                                await Odds.findOneAndUpdate({ id: event.id }, {
+                                    sport: 'baseball',
+                                    ...event
+                                })
+
+                            } else {
+                                await Odds.create({
+                                    sport: 'baseball',
+                                    ...event
+                                })
+
+                            }
                         }
                     }       //WRITE ODDS TO DB
                 })
@@ -138,101 +142,6 @@ const oddsSeed = async () => {
             if (err) throw (err)
         }
     })
-}
-
-const winSeed = async () => {
-    console.log('BEGINNING WIN RATE RECORDING')
-    let allPastGames = await PastGameOdds.find({})
-    let teams = await Teams.find({})
-    let teamWRArray = []
-
-    teams.map((team) => {
-        if (team.espnDisplayName === 'St Louis Blues') {
-            teamWRArray.push({
-                team: team.espnDisplayName,
-                winRate: allPastGames.filter((game) => game.home_team === 'St. Louis Blues' || game.away_team === 'St. Louis Blues').filter((game) => game.predictionCorrect === true).length / allPastGames.filter((game) => game.home_team === 'St. Louis Blues' || game.away_team === 'St. Louis Blues').length
-            })
-        } else if (team.espnDisplayName === 'Montreal Canadiens') {
-            teamWRArray.push({
-                team: team.espnDisplayName,
-                winRate: allPastGames.filter((game) => game.home_team === 'Montréal Canadiens' || game.away_team === 'Montréal Canadiens').filter((game) => game.predictionCorrect === true).length / allPastGames.filter((game) => game.home_team === 'Montréal Canadiens' || game.away_team === 'Montréal Canadiens').length
-            })
-        } else if (team.espnDisplayName === 'LA Clippers') {
-            teamWRArray.push({
-                team: team.espnDisplayName,
-                winRate: allPastGames.filter((game) => game.home_team === 'Los Angeles Clippers' || game.away_team === 'Los Angeles Clippers').filter((game) => game.predictionCorrect === true).length / allPastGames.filter((game) => game.home_team === 'Los Angeles Clippers' || game.away_team === 'Los Angeles Clippers').length
-            })
-        } else if (team.espnDisplayName === 'San José State Spartans') {
-            teamWRArray.push({
-                team: team.espnDisplayName,
-                winRate: allPastGames.filter((game) => game.home_team === 'San Jose State Spartans' || game.away_team === 'San Jose State Spartans').filter((game) => game.predictionCorrect === true).length / allPastGames.filter((game) => game.home_team === 'San Jose State Spartans' || game.away_team === 'San Jose State Spartans').length
-            })
-        } else if (team.espnDisplayName === 'Massachusetts Minutemen') {
-            teamWRArray.push({
-                team: team.espnDisplayName,
-                winRate: allPastGames.filter((game) => game.home_team === 'UMass Minutemen' || game.away_team === 'UMass Minutemen').filter((game) => game.predictionCorrect === true).length / allPastGames.filter((game) => game.home_team === 'UMass Minutemen' || game.away_team === 'UMass Minutemen').length
-            })
-        } else if (team.espnDisplayName === 'Southern Miss Golden Eagles') {
-            teamWRArray.push({
-                team: team.espnDisplayName,
-                winRate: allPastGames.filter((game) => game.home_team === 'Southern Mississippi Golden Eagles' || game.away_team === 'Southern Mississippi Golden Eagles').filter((game) => game.predictionCorrect === true).length / allPastGames.filter((game) => game.home_team === 'Southern Mississippi Golden Eagles' || game.away_team === 'Southern Mississippi Golden Eagles').length
-            })
-        } else if (team.espnDisplayName === `Hawai'i Rainbow Warriors`) {
-            teamWRArray.push({
-                team: team.espnDisplayName,
-                winRate: allPastGames.filter((game) => game.home_team === 'Hawaii Rainbow Warriors' || game.away_team === 'Hawaii Rainbow Warriors').filter((game) => game.predictionCorrect === true).length / allPastGames.filter((game) => game.home_team === 'Hawaii Rainbow Warriors' || game.away_team === 'Hawaii Rainbow Warriors').length
-            })
-        } else if (team.espnDisplayName === `Louisiana Ragin' Cajuns`) {
-            teamWRArray.push({
-                team: team.espnDisplayName,
-                winRate: allPastGames.filter((game) => game.home_team === 'Louisiana Ragin Cajuns' || game.away_team === 'Louisiana Ragin Cajuns').filter((game) => game.predictionCorrect === true).length / allPastGames.filter((game) => game.home_team === 'Louisiana Ragin Cajuns' || game.away_team === 'Louisiana Ragin Cajuns').length
-            })
-        } else if (team.espnDisplayName === 'App State Mountaineers') {
-            teamWRArray.push({
-                team: team.espnDisplayName,
-                winRate: allPastGames.filter((game) => game.home_team === `Appalachian State Mountaineers` || game.away_team === `Appalachian State Mountaineers`).filter((game) => game.predictionCorrect === true).length / allPastGames.filter((game) => game.home_team === `Appalachian State Mountaineers` || game.away_team === `Appalachian State Mountaineers`).length
-            })
-        } else if (team.espnDisplayName === 'Sam Houston Bearkats') {
-            teamWRArray.push({
-                team: team.espnDisplayName,
-                winRate: allPastGames.filter((game) => game.home_team === `Sam Houston State Bearkats` || game.away_team === `Sam Houston State Bearkats`).filter((game) => game.predictionCorrect === true).length / allPastGames.filter((game) => game.home_team === `Sam Houston State Bearkats` || game.away_team === `Sam Houston State Bearkats`).length
-            })
-        } else if (allPastGames.filter((game) => game.home_team === team.espnDisplayName || game.away_team === team.espnDisplayName).length != 0) {
-            teamWRArray.push({
-                team: team.espnDisplayName,
-                winRate: allPastGames.filter((game) => game.home_team === team.espnDisplayName || game.away_team === team.espnDisplayName).filter((game) => game.predictionCorrect === true).length / allPastGames.filter((game) => game.home_team === team.espnDisplayName || game.away_team === team.espnDisplayName).length
-            })
-        }
-
-    })
-
-    WinRate.create({
-        date: JSON.stringify(moment().format('MM/DD/YYYY')),
-        overallWinRate: (allPastGames.filter((game) => game.predictionCorrect === true).length / allPastGames.length),
-        winrateByLeague: [{
-            league: 'NFL',
-            winRate: allPastGames.filter((game) => game.sport_title === 'NFL').filter((game) => game.predictionCorrect === true).length / allPastGames.filter((game) => game.sport_title === 'NFL').length
-        }, {
-            league: 'NCAAF',
-            winRate: allPastGames.filter((game) => game.sport_title === 'NCAAF').filter((game) => game.predictionCorrect === true).length / allPastGames.filter((game) => game.sport_title === 'NCAAF').length
-        }, {
-            league: 'NBA',
-            winRate: allPastGames.filter((game) => game.sport_title === 'NBA').filter((game) => game.predictionCorrect === true).length / allPastGames.filter((game) => game.sport_title === 'NBA').length
-        }, {
-            league: 'NHL',
-            winRate: allPastGames.filter((game) => game.sport_title === 'NHL').filter((game) => game.predictionCorrect === true).length / allPastGames.filter((game) => game.sport_title === 'NHL').length
-        }, {
-            league: 'MLB',
-            winRate: allPastGames.filter((game) => game.sport_title === 'MLB').filter((game) => game.predictionCorrect === true).length / allPastGames.filter((game) => game.sport_title === 'MLB').length
-        }],
-        winrateByTeam: teamWRArray,
-        highIndexWinRate: allPastGames.filter((game) => game.awayTeamIndex > 5 || game.homeTeamIndex > 5).filter((game) => game.predictionCorrect === true).length / allPastGames.filter((game) => game.awayTeamIndex > 5 || game.homeTeamIndex > 5).length,
-        lowIndexWinRate: allPastGames.filter((game) => game.awayTeamIndex < 5 || game.homeTeamIndex < 5).filter((game) => game.predictionCorrect === true).length / allPastGames.filter((game) => game.awayTeamIndex < 5 || game.homeTeamIndex < 5).length,
-        // todaysWinrate: allPastGames.filter((game)=> moment(game.commence_time).local().format('MM/DD/YYYY') === moment().format('MM/DD/YYYY')).filter((game)=>game.predictionCorrect === true).length / allPastGames.filter((game)=> moment(game.commence_time).local().format('MM/DD/YYYY') === moment().format('MM/DD/YYYY')).length,
-    })
-
-    console.log('FINISHED WINRATE RECORDING ')
-
 }
 
 
@@ -290,674 +199,818 @@ const dataSeed = async () => {
     ]
     // DETERMINE TEAMS
     console.log(`BEGINNING TEAM SEEDING @ ${moment().format('HH:mm:ss')}`)
-
+    // CLEANED AND FORMATTED
     for (i = 0; i < sports.length; i++) {
-        // DETERMINE SPORT
-        let teams = []
+        let teams = [];
+        const formatDisplayName = (team) => {
+            const nameMap = {
+                "San José State Spartans": "San Jose State Spartans",
+                "Massachusetts Minutemen": "UMass Minutemen",
+                "Southern Miss Golden Eagles": "Southern Mississippi Golden Eagles",
+                "Hawai'i Rainbow Warriors": "Hawaii Rainbow Warriors",
+                "Louisiana Ragin' Cajuns": "Louisiana Ragin Cajuns",
+                "App State Mountaineers": "Appalachian State Mountaineers",
+                "Sam Houston Bearkats": "Sam Houston State Bearkats"
+            };
+            return nameMap[`${team.school} ${team.mascot}`] || `${team.school} ${team.mascot}`;
+        };
+        let teamListResponse;
+        let teamListJson;
         if (sports[i].name === 'americanfootball_ncaaf') {
-            // RETRIEVE LIST OF TEAMS
-            const TeamListresponse = await fetch(`https://api.collegefootballdata.com/teams/fbs?year=${sports[i].statYear}`, {
+            // Fetch college football teams
+            teamListResponse = await fetch(`https://api.collegefootballdata.com/teams/fbs?year=${sports[i].statYear}`, {
                 headers: {
                     "Authorization": `Bearer ${process.env.CFB_API_KEY}`,
                     "Accept": "application/json"
                 }
-            })
-            const teamListjson = await TeamListresponse.json()
-            try {
-                teamListjson.map((team) => {
-                    let espnID = team.id
-                    let league = sports[i].league
-                    let location = team.location.city
-                    let teamName = team.mascot
-                    let abbreviation = team.abbreviation
-                    let school = team.school
-                    let logo = team.logos[0]
-                    let espnDisplayName
-                    if (`${school} ${team.mascot}` === 'San José State Spartans') {
-                        espnDisplayName = 'San Jose State Spartans'
-                    } else if (`${school} ${team.mascot}` === 'Massachusetts Minutemen') {
-                        espnDisplayName = 'UMass Minutemen'
-                    } else if (`${school} ${team.mascot}` === 'Southern Miss Golden Eagles') {
-                        espnDisplayName = 'Southern Mississippi Golden Eagles'
-                    } else if (`${school} ${team.mascot}` === `Hawai'i Rainbow Warriors`) {
-                        espnDisplayName = 'Hawaii Rainbow Warriors'
-                    } else if (`${school} ${team.mascot}` === `Louisiana Ragin' Cajuns`) {
-                        espnDisplayName = 'Louisiana Ragin Cajuns'
-                    } else if (`${school} ${team.mascot}` === `App State Mountaineers`) {
-                        espnDisplayName = 'Appalachian State Mountaineers'
-                    } else if (`${school} ${team.mascot}` === `Sam Houston Bearkats`) {
-                        espnDisplayName = 'Sam Houston State Bearkats'
-                    }else {
-                        espnDisplayName = `${school} ${team.mascot}`
-                    }
-                    teams.push({ espnID, espnDisplayName, location, teamName, league, abbreviation, logo, school })
-                })
-            } catch (err) {
-                console.log(err)
-            }
-
+            });
+            teamListJson = await teamListResponse.json();
+            teamListJson.forEach((team) => {
+                const { id: espnID, location, mascot: teamName, abbreviation, school, logos } = team;
+                const espnDisplayName = formatDisplayName(team);
+                teams.push({
+                    espnID,
+                    espnDisplayName,
+                    location: location.city,
+                    teamName,
+                    league: sports[i].league,
+                    abbreviation,
+                    logo: logos[0],
+                    school
+                });
+            });
         } else {
-            // RETRIEVE LIST OF TEAMS
-            const TeamListresponse = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sports[i].espnSport}/${sports[i].league}/teams`)
-            const teamListjson = await TeamListresponse.json()
-            let teamList = teamListjson.sports[0].leagues[0].teams
-            teamList.map((team) => {
-                let league = sports[i].league
-                let espnID = team.team.id
-                let espnDisplayName
-                let location = team.team.location
-                let teamName = team.team.name
-                let abbreviation = team.team.abbreviation
-                let logo = team.team.logos[0].href
-                if (team.team.displayName === "St. Louis Blues") {
-                    espnDisplayName = 'St Louis Blues'
-                } else if (team.team.displayName === 'Montreal Canadiens') {
-                    espnDisplayName = 'Montréal Canadiens'
-                } else if (team.team.displayName === 'LA Clippers') {
-                    espnDisplayName = 'Los Angeles Clippers'
-                }else {
-                    espnDisplayName = team.team.displayName
-                } 
-                teams.push({ espnID, espnDisplayName, location, teamName, league, abbreviation, logo })
-            })
+            // Fetch non-football teams
+            teamListResponse = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sports[i].espnSport}/${sports[i].league}/teams`);
+            teamListJson = await teamListResponse.json();
+            const teamList = teamListJson.sports[0].leagues[0].teams;
+
+            teamList.forEach((team) => {
+                const { id: espnID, location, name: teamName, abbreviation, logos } = team.team;
+                const espnDisplayName = team.team.displayName === "St. Louis Blues" ? "St Louis Blues" :
+                    team.team.displayName === "Montreal Canadiens" ? "Montréal Canadiens" :
+                        team.team.displayName === "LA Clippers" ? "Los Angeles Clippers" :
+                            team.team.displayName;
+
+                teams.push({
+                    espnID,
+                    espnDisplayName,
+                    location,
+                    teamName,
+                    league: sports[i].league,
+                    abbreviation,
+                    logo: logos[0].href
+                });
+            });
         }
-        //RETRIEVE TEAM WIN LOSS RECORD
-        for (x = 0; x < teams.length; x++) {
-            //check month of sport to determine pre or post season
-            let teamRecordResponse
-            if (moment().format('M') === sports[i].startMonth) {
-                teamRecordResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/${sports[i].espnSport}/leagues/${sports[i].league}/seasons/${sports[i].statYear}/types/1/teams/${teams[x].espnID}/record?lang=en&region=us`)
-            } else if (moment().format('M') === sports[i].endMonth) {
-                teamRecordResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/${sports[i].espnSport}/leagues/${sports[i].league}/seasons/${sports[i].statYear}/types/3/teams/${teams[x].espnID}/record?lang=en&region=us`)
-            } else {
-                teamRecordResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/${sports[i].espnSport}/leagues/${sports[i].league}/seasons/${sports[i].statYear}/types/2/teams/${teams[x].espnID}/record?lang=en&region=us`)
+
+
+        //RETRIEVE TEAM WIN LOSS RECORD CLEANED AND FORMATTED
+        // Helper function to get the team record URL based on the current month
+        const getTeamRecordUrl = (month, startMonth, endMonth, espnSport, league, statYear, espnID) => {
+            let type = 2; // Default type
+            if (month === startMonth) {
+                type = 1; // Pre-season
+            } else if (month === endMonth) {
+                type = 3; // Post-season
             }
-            if (teamRecordResponse.status === 404) {
-                teamRecordResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/${sports[i].espnSport}/leagues/${sports[i].league}/seasons/${sports[i].prevstatYear}/types/2/teams/${teams[x].espnID}/record?lang=en&region=us`)
-            }
-            teamRecordjson = await teamRecordResponse.json()
-            //check for current year
-            //if 404 check prev year
-            //check for values to exist before writing
+            return `https://sports.core.api.espn.com/v2/sports/${espnSport}/leagues/${league}/seasons/${statYear}/types/${type}/teams/${espnID}/record?lang=en&region=us`;
+        };
+        // Helper function to process the team record response and update the team
+        const updateTeamRecord = (team, teamRecordJson) => {
             try {
-                teamRecordjson.items.map((item) => {
+                teamRecordJson.items.forEach((item) => {
                     if (item.name === 'overall') {
-                        item.stats.map((stat) => {
+                        item.stats.forEach((stat) => {
                             if (stat.name === 'differential') {
-                                teams[x] = {
-                                    pointDiff: stat.value,
-                                    ...teams[x]
-                                }
+                                team.pointDiff = stat.value;
                             }
-                        })
-                        teams[x] = {
-                            seasonWinLoss: item.displayValue,
-                            ...teams[x]
-                        }
+                        });
+                        team.seasonWinLoss = item.displayValue;
                     } else if (item.name === 'Home') {
-                        teams[x] = {
-                            homeWinLoss: item.displayValue,
-                            ...teams[x]
-                        }
+                        team.homeWinLoss = item.displayValue;
                     } else if (item.name === 'Road' || item.name === 'Away') {
-                        teams[x] = {
-                            awayWinLoss: item.displayValue,
-                            ...teams[x]
-                        }
+                        team.awayWinLoss = item.displayValue;
                     }
-                })
+                });
             } catch (err) {
-                console.log(err)
+                console.log(err);
+            }
+        };
+        for (let x = 0; x < teams.length; x++) {
+            // Determine which season type (pre, regular, or post) based on current month
+            const teamRecordUrl = getTeamRecordUrl(moment().format('M'), sports[i].startMonth, sports[i].endMonth, sports[i].espnSport, sports[i].league, sports[i].statYear, teams[x].espnID);
+
+            let teamRecordResponse = await fetch(teamRecordUrl);
+            if (teamRecordResponse.status === 404) {
+                // If not found, try fetching from the previous year's records
+                teamRecordResponse = await fetch(getTeamRecordUrl(moment().format('M'), sports[i].startMonth, sports[i].endMonth, sports[i].espnSport, sports[i].league, sports[i].prevstatYear, teams[x].espnID));
             }
 
+            const teamRecordJson = await teamRecordResponse.json();
+            updateTeamRecord(teams[x], teamRecordJson);
         }
-        // RETRIEVE TEAM SPECIFIC STATS
-        if (sports[i].espnSport === 'football') {
-            for (m = 0; m < teams.length; m++) {
-                const teamStatResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/football/leagues/${sports[i].league}/seasons/${sports[i].statYear}/types/2/teams/${teams[m].espnID}/statistics?lang=en&region=us`)
-                const teamStatjson = await teamStatResponse.json()
-                let passYardsPerPlay = 0
-                let rushYardsPerPlay = 0
-                for (category = 0; category < teamStatjson.splits.categories.length; category++) {
-                    let statCategory = category
-                    for (stat = 0; stat < teamStatjson.splits.categories[statCategory].stats.length; stat++) {
-                        if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'turnOverDifferential') {
-                            teams[m] = {
-                                turnoverDiff: teamStatjson.splits.categories[statCategory].stats[stat].value,
-                                ...teams[m]
-                            }
-                        } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'totalPointsPerGame') {
-                            teams[m] = {
-                                pointsPerGame: teamStatjson.splits.categories[statCategory].stats[stat].value,
-                                ...teams[m]
-                            }
-                        } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'yardsPerCompletion') { // calculated
-                            passYardsPerPlay = teamStatjson.splits.categories[statCategory].stats[stat].value
-                        } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'yardsPerRushAttempt') { // calculated
-                            rushYardsPerPlay = teamStatjson.splits.categories[statCategory].stats[stat].value
-                        } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'thirdDownConvPct') {
-                            teams[m] = {
-                                thirdDownConvRate: teamStatjson.splits.categories[statCategory].stats[stat].value,
-                                ...teams[m]
-                            }
-                        } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'redzoneEfficiencyPct') {
-                            teams[m] = {
-                                redZoneEfficiency: teamStatjson.splits.categories[statCategory].stats[stat].value,
-                                ...teams[m]
-                            }
-                        } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'sacks' && teamStatjson.splits.categories[statCategory].name === 'defensive') {
-                            teams[m] = {
-                                sackRate: teamStatjson.splits.categories[statCategory].stats[stat].perGameValue,
-                                ...teams[m]
-                            }
-                        } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'completionPct') {
-                            teams[m] = {
-                                completionPercentage: teamStatjson.splits.categories[statCategory].stats[stat].value,
-                                ...teams[m]
-                            }
-                        } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'rushingYardsPerGame') {
-                            teams[m] = {
-                                rushingYardsPerGame: teamStatjson.splits.categories[statCategory].stats[stat].value,
-                                ...teams[m]
-                            }
-                        } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'possessionTimeSeconds') {
-                            teams[m] = {
-                                avgTimeofPossession: teamStatjson.splits.categories[statCategory].stats[stat].value,
-                                ...teams[m]
-                            }
-                        }
-                    }
-                }
-                teams[m] = {
-                    yardsPerPlay: (passYardsPerPlay + rushYardsPerPlay) / 2,
-                    ...teams[m]
-                }
 
+
+
+        // RETRIEVE TEAM SPECIFIC STATS
+        // Helper function to update team stats
+        const updateTeamStats = (team, statName, value) => {
+            const statMap = {
+                'turnOverDifferential': 'turnoverDiff',
+                'totalPointsPerGame': 'pointsPerGame',
+                'yardsPerCompletion': 'passYardsPerPlay',
+                'yardsPerRushAttempt': 'rushYardsPerPlay',
+                'thirdDownConvPct': 'thirdDownConvRate',
+                'redzoneEfficiencyPct': 'redZoneEfficiency',
+                'sacks': 'sackRate',
+                'completionPct': 'completionPercentage',
+                'rushingYardsPerGame': 'rushingYardsPerGame',
+                'possessionTimeSeconds': 'avgTimeofPossession',
+                'powerPlayPct': 'powerPlayPct',
+                'penaltyKillPct': 'penKillPct',
+                'avgShots': 'shotsTaken',
+                'savePct': 'savePct',
+                'avgGoals': 'goalsforPerGame',
+                'faceoffsWon': 'faceoffsWon',
+                'avgGoalsAgainst': 'goalsAgainstAverage',
+                'shootingPct': 'shootingPct',
+                'blockedShots': 'shotsBlocked',
+                'giveaways': 'giveaways',
+                'takeaways': 'takeaways',
+                'onBasePct': 'onBasePct',
+                'slugAvg': 'sluggingPct',
+                'ERA': 'earnedRunAverage',
+                'strikeoutToWalkRatio': 'strikeoutWalkRatio',
+                'fieldingPct': 'fieldingPercentage',
+                'stolenBasePct': 'stolenBasePercentage',
+                'errors': 'fieldingErrors',
+                'qualityStarts': 'qualityStarts',
+                'homeRuns': 'homeRuns',
+                'effectiveFGPct': 'effectiveFieldGoalPct',
+                'turnoverRatio': 'turnoverDiff',
+                'threePointFieldGoalPct': 'threePointPct',
+                'avgOffensiveRebounds': 'avgOffensiveRebounds',
+                'freeThrowPct': 'freeThrowPct',
+                'assistTurnoverRatio': 'assistTurnoverRatio',
+                'pointsInPaint': 'pointsInPaint',
+                'avgDefensiveRebounds': 'avgDefensiveRebounds',
+                'paceFactor': 'pace',
+            };
+
+            if (statMap[statName]) {
+                team[statMap[statName]] = value;
             }
-            // yardsAllowedPerGame
-            const ypgRequest = await axios.get(`https://www.teamrankings.com/${sports[i].league}/stat/opponent-yards-per-game`, {
+            return team;
+        };
+
+        // Helper function to fetch and update stats for a team
+        const fetchAndUpdateStats = async (sport, team, statYear) => {
+            const teamStatResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/${sport.espnSport}/leagues/${sport.league}/seasons/${statYear}/types/2/teams/${team.espnID}/statistics?lang=en&region=us`);
+            const teamStatjson = await teamStatResponse.json();
+
+            for (const category of teamStatjson.splits.categories) {
+                for (const stat of category.stats) {
+                    team = updateTeamStats(team, stat.name, stat.value || stat.perGameValue);
+                }
+            }
+
+            return team;
+        };
+
+        // Helper function to update stats from external data sources like TeamRankings
+        const updateExternalStats = async (url, statName, statKey) => {
+            const request = await axios.get(url, {
                 headers: {
                     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
-                    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4"
+                    "User-Agent": "Mozilla/5.0"
                 }
-            })
-            const $ypg = await cheerio.load(ypgRequest.data)
-            $ypg('tr').each((i, elem) => {
-                const index = $ypg(elem).find('td:first-child').text()
-                const team = $ypg(elem).find('td:nth-child(2)').text()
-                const yardsAllowedPerGame = $ypg(elem).find('td:nth-child(3)').text()
-                teams.map((teamItem, idx) => {
-                    if (teamItem.location === team || teamItem.school === team) {
+            });
+            const $ = await cheerio.load(request.data);
+            $('tr').each((i, elem) => {
+                const team = $(elem).find('td:nth-child(2)').text().trim();
+                const statValue = $(elem).find('td:nth-child(3)').text().trim();
+                teams.forEach((teamItem, idx) => {
+                    if (teamItem.location === team || teamItem.school === team || teamItem.teamName === team.split(' ')[1]) {
                         teams[idx] = {
-                            yardsAllowedPerGame: yardsAllowedPerGame,
+                            [statKey]: statValue,
                             ...teams[idx]
-                        }
-                    } else if (teamItem.teamName === team.split(' ')[1]) {
-                        teams[idx] = {
-                            yardsAllowedPerGame: yardsAllowedPerGame,
-                            ...teams[idx]
-                        }
+                        };
                     }
-                })
-            })
-            // // penaltyYardsPerGame
-            const penYardsPerGameRequest = await axios.get(`https://www.teamrankings.com/${sports[i].league}/stat/penalty-yards-per-game`, {
-                headers: {
-                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
-                    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4"
-                }
-            })
-            const $penYardsPerGame = await cheerio.load(penYardsPerGameRequest.data)
-            $penYardsPerGame('tr').each((i, elem) => {
-                const index = $penYardsPerGame(elem).find('td:first-child').text()
-                const team = $penYardsPerGame(elem).find('td:nth-child(2)').text()
-                const penYardsPerGame = $penYardsPerGame(elem).find('td:nth-child(3)').text()
-                teams.map((teamItem, idx) => {
-                    if (teamItem.location === team || teamItem.school === team) {
-                        teams[idx] = {
-                            penaltyYardsPerGame: penYardsPerGame,
-                            ...teams[idx]
-                        }
-                    } else if (teamItem.teamName === team.split(' ')[1]) {
-                        teams[idx] = {
-                            penaltyYardsPerGame: penYardsPerGame,
-                            ...teams[idx]
-                        }
-                    }
-                })
-            })
+                });
+            });
+        };
+
+        // Main loop for different sports
+        // for (const sport of sports) {
+        if (sports[i].espnSport === 'football') {
+            for (const team of teams) {
+                await fetchAndUpdateStats(sports[i], team, sports[i].statYear);
+            }
+            await updateExternalStats(`https://www.teamrankings.com/${sports[i].league}/stat/opponent-yards-per-game`, 'yardsAllowedPerGame', 'yardsAllowedPerGame');
+            await updateExternalStats(`https://www.teamrankings.com/${sports[i].league}/stat/penalty-yards-per-game`, 'penaltyYardsPerGame', 'penaltyYardsPerGame');
         } else if (sports[i].espnSport === 'hockey') {
-            for (m = 0; m < teams.length; m++) {
-                let teamStatResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/hockey/leagues/nhl/seasons/${sports[i].statYear}/types/2/teams/${teams[m].espnID}/statistics?lang=en&region=us`)
-                if (teamStatResponse.status === 404) {
-                    teamStatResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/hockey/leagues/nhl/seasons/${sports[i].prevstatYear}/types/2/teams/${teams[m].espnID}/statistics?lang=en&region=us`)
-                }
-                const teamStatjson = await teamStatResponse.json()
-                for (category = 0; category < teamStatjson.splits.categories.length; category++) {
-                    let statCategory = category
-                    for (stat = 0; stat < teamStatjson.splits.categories[statCategory].stats.length; stat++) {
-                        if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'powerPlayPct') {
-                            teams[m] = {
-                                powerPlayPct: teamStatjson.splits.categories[statCategory].stats[stat].value,
-                                ...teams[m]
-                            }
-                        } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'penaltyKillPct') {
-                            teams[m] = {
-                                penKillPct: teamStatjson.splits.categories[statCategory].stats[stat].value,
-                                ...teams[m]
-                            }
-                        }
-                        else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'avgShots') {
-                            teams[m] = {
-                                shotsTaken: teamStatjson.splits.categories[statCategory].stats[stat].value,
-                                ...teams[m]
-                            }
-                        }
-                        else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'savePct') {
-                            teams[m] = {
-                                savePct: teamStatjson.splits.categories[statCategory].stats[stat].value,
-                                ...teams[m]
-                            }
-                        }
-                        else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'avgGoals') {
-                            teams[m] = {
-                                goalsforPerGame: teamStatjson.splits.categories[statCategory].stats[stat].value,
-                                ...teams[m]
-                            }
-                        }
-                        else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'faceoffsWon') {
-                            teams[m] = {
-                                faceoffsWon: teamStatjson.splits.categories[statCategory].stats[stat].perGameValue,
-                                ...teams[m]
-                            }
-                        }
-                        else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'avgGoalsAgainst') {
-                            teams[m] = {
-                                goalsAgainstAverage: teamStatjson.splits.categories[statCategory].stats[stat].value,
-                                ...teams[m]
-                            }
-                        }
-                        else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'shootingPct') {
-                            teams[m] = {
-                                shootingPct: teamStatjson.splits.categories[statCategory].stats[stat].perGameValue,
-                                ...teams[m]
-                            }
-                        }
-                        else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'blockedShots') {
-                            teams[m] = {
-                                shotsBlocked: teamStatjson.splits.categories[statCategory].stats[stat].perGameValue,
-                                ...teams[m]
-                            }
-                        }
-                        else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'giveaways') {
-                            teams[m] = {
-                                giveaways: teamStatjson.splits.categories[statCategory].stats[stat].perGameValue,
-                                ...teams[m]
-                            }
-                        }
-                        else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'takeaways') {
-                            teams[m] = {
-                                takeaways: teamStatjson.splits.categories[statCategory].stats[stat].perGameValue,
-                                ...teams[m]
-                            }
-                        }
-                    }
-                }
+            for (const team of teams) {
+                await fetchAndUpdateStats(sports[i], team, sports[i].statYear);
             }
         } else if (sports[i].espnSport === 'baseball') {
-            for (m = 0; m < teams.length; m++) {
-                let teamStatResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/baseball/leagues/mlb/seasons/${sports[i].statYear}/types/3/teams/${teams[m].espnID}/statistics?lang=en&region=us`)
-                if (teamStatResponse.status === 404) {
-                    teamStatResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/baseball/leagues/mlb/seasons/${sports[i].statYear}/types/2/teams/${teams[m].espnID}/statistics?lang=en&region=us`)
-                }
-                const teamStatjson = await teamStatResponse.json()
-                for (category = 0; category < teamStatjson.splits.categories.length; category++) {
-                    let statCategory = category
-                    for (stat = 0; stat < teamStatjson.splits.categories[statCategory].stats.length; stat++) {
-                        if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'onBasePct') {
-                            teams[m] = {
-                                onBasePct: teamStatjson.splits.categories[statCategory].stats[stat].value,
-                                ...teams[m]
-                            }
-                        } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'slugAvg') {
-                            teams[m] = {
-                                sluggingPct: teamStatjson.splits.categories[statCategory].stats[stat].value,
-                                ...teams[m]
-                            }
-                        } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'ERA') {
-                            teams[m] = {
-                                earnedRunAverage: teamStatjson.splits.categories[statCategory].stats[stat].value,
-                                ...teams[m]
-                            }
-                        } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'strikeoutToWalkRatio') {
-                            teams[m] = {
-                                strikeoutWalkRatio: teamStatjson.splits.categories[statCategory].stats[stat].value,
-                                ...teams[m]
-                            }
-                        } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'fieldingPct') {
-                            teams[m] = {
-                                fieldingPercentage: teamStatjson.splits.categories[statCategory].stats[stat].value,
-                                ...teams[m]
-                            }
-                        } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'stolenBasePct') {
-                            teams[m] = {
-                                stolenBasePercentage: teamStatjson.splits.categories[statCategory].stats[stat].value,
-                                ...teams[m]
-                            }
-                        } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'errors') {
-                            teams[m] = {
-                                fieldingErrors: teamStatjson.splits.categories[statCategory].stats[stat].value,
-                                ...teams[m]
-                            }
-                        } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'qualityStarts') {
-                            teams[m] = {
-                                qualityStarts: teamStatjson.splits.categories[statCategory].stats[stat].value,
-                                ...teams[m]
-                            }
-                        } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'homeRuns') {
-                            teams[m] = {
-                                homeRuns: teamStatjson.splits.categories[statCategory].stats[stat].value,
-                                ...teams[m]
-                            }
-                        }
-                    }
-                }
+            for (const team of teams) {
+                await fetchAndUpdateStats(sports[i], team, sports[i].statYear);
             }
         } else if (sports[i].espnSport === 'basketball') {
-            for (m = 0; m < teams.length; m++) {
-                const teamStatResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/basketball/leagues/nba/seasons/${sports[i].statYear}/types/2/teams/${teams[m].espnID}/statistics?lang=en&region=us`)
-                const teamStatjson = await teamStatResponse.json()
-                for (category = 0; category < teamStatjson.splits.categories.length; category++) {
-                    let statCategory = category
-                    for (stat = 0; stat < teamStatjson.splits.categories[statCategory].stats.length; stat++) {
-                        if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'effectiveFGPct') {
-                            teams[m] = {
-                                effectiveFieldGoalPct: teamStatjson.splits.categories[statCategory].stats[stat].value,
-                                ...teams[m]
-                            }
-                        } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'turnoverRatio') {
-                            teams[m] = {
-                                turnoverDiff: teamStatjson.splits.categories[statCategory].stats[stat].value,
-                                ...teams[m]
-                            }
-                        } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'threePointFieldGoalPct') {
-                            teams[m] = {
-                                threePointPct: teamStatjson.splits.categories[statCategory].stats[stat].value,
-                                ...teams[m]
-                            }
-                        } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'avgOffensiveRebounds') {
-                            teams[m] = {
-                                avgOffensiveRebounds: teamStatjson.splits.categories[statCategory].stats[stat].value,
-                                ...teams[m]
-                            }
-                        } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'freeThrowPct') {
-                            teams[m] = {
-                                freeThrowPct: teamStatjson.splits.categories[statCategory].stats[stat].value,
-                                ...teams[m]
-                            }
-                        } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'assistTurnoverRatio') {
-                            teams[m] = {
-                                assistTurnoverRatio: teamStatjson.splits.categories[statCategory].stats[stat].value,
-                                ...teams[m]
-                            }
-                        } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'pointsInPaint') {
-                            teams[m] = {
-                                pointsInPaint: teamStatjson.splits.categories[statCategory].stats[stat].value,
-                                ...teams[m]
-                            }
-                        } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'avgDefensiveRebounds') {
-                            teams[m] = {
-                                avgDefensiveRebounds: teamStatjson.splits.categories[statCategory].stats[stat].value,
-                                ...teams[m]
-                            }
-                        } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'paceFactor') {
-                            teams[m] = {
-                                pace: teamStatjson.splits.categories[statCategory].stats[stat].value,
-                                ...teams[m]
-                            }
-                        }
-                    }
-                }
+            for (const team of teams) {
+                await fetchAndUpdateStats(sports[i], team, sports[i].statYear);
             }
         }
+        // }
+
+        // if (sports[i].espnSport === 'football') {
+        //     for (m = 0; m < teams.length; m++) {
+        //         const teamStatResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/football/leagues/${sports[i].league}/seasons/${sports[i].statYear}/types/2/teams/${teams[m].espnID}/statistics?lang=en&region=us`)
+        //         const teamStatjson = await teamStatResponse.json()
+        //         let passYardsPerPlay = 0
+        //         let rushYardsPerPlay = 0
+        //         for (category = 0; category < teamStatjson.splits.categories.length; category++) {
+        //             let statCategory = category
+        //             for (stat = 0; stat < teamStatjson.splits.categories[statCategory].stats.length; stat++) {
+        //                 if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'turnOverDifferential') {
+        //                     teams[m] = {
+        //                         turnoverDiff: teamStatjson.splits.categories[statCategory].stats[stat].value,
+        //                         ...teams[m]
+        //                     }
+        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'totalPointsPerGame') {
+        //                     teams[m] = {
+        //                         pointsPerGame: teamStatjson.splits.categories[statCategory].stats[stat].value,
+        //                         ...teams[m]
+        //                     }
+        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'yardsPerCompletion') { // calculated
+        //                     passYardsPerPlay = teamStatjson.splits.categories[statCategory].stats[stat].value
+        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'yardsPerRushAttempt') { // calculated
+        //                     rushYardsPerPlay = teamStatjson.splits.categories[statCategory].stats[stat].value
+        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'thirdDownConvPct') {
+        //                     teams[m] = {
+        //                         thirdDownConvRate: teamStatjson.splits.categories[statCategory].stats[stat].value,
+        //                         ...teams[m]
+        //                     }
+        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'redzoneEfficiencyPct') {
+        //                     teams[m] = {
+        //                         redZoneEfficiency: teamStatjson.splits.categories[statCategory].stats[stat].value,
+        //                         ...teams[m]
+        //                     }
+        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'sacks' && teamStatjson.splits.categories[statCategory].name === 'defensive') {
+        //                     teams[m] = {
+        //                         sackRate: teamStatjson.splits.categories[statCategory].stats[stat].perGameValue,
+        //                         ...teams[m]
+        //                     }
+        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'completionPct') {
+        //                     teams[m] = {
+        //                         completionPercentage: teamStatjson.splits.categories[statCategory].stats[stat].value,
+        //                         ...teams[m]
+        //                     }
+        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'rushingYardsPerGame') {
+        //                     teams[m] = {
+        //                         rushingYardsPerGame: teamStatjson.splits.categories[statCategory].stats[stat].value,
+        //                         ...teams[m]
+        //                     }
+        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'possessionTimeSeconds') {
+        //                     teams[m] = {
+        //                         avgTimeofPossession: teamStatjson.splits.categories[statCategory].stats[stat].value,
+        //                         ...teams[m]
+        //                     }
+        //                 }
+        //             }
+        //         }
+        //         teams[m] = {
+        //             yardsPerPlay: (passYardsPerPlay + rushYardsPerPlay) / 2,
+        //             ...teams[m]
+        //         }
+
+        //     }
+        //     // yardsAllowedPerGame
+        //     const ypgRequest = await axios.get(`https://www.teamrankings.com/${sports[i].league}/stat/opponent-yards-per-game`, {
+        //         headers: {
+        //             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
+        //             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4"
+        //         }
+        //     })
+        //     const $ypg = await cheerio.load(ypgRequest.data)
+        //     $ypg('tr').each((i, elem) => {
+        //         const index = $ypg(elem).find('td:first-child').text()
+        //         const team = $ypg(elem).find('td:nth-child(2)').text()
+        //         const yardsAllowedPerGame = $ypg(elem).find('td:nth-child(3)').text()
+        //         teams.map((teamItem, idx) => {
+        //             if (teamItem.location === team || teamItem.school === team) {
+        //                 teams[idx] = {
+        //                     yardsAllowedPerGame: yardsAllowedPerGame,
+        //                     ...teams[idx]
+        //                 }
+        //             } else if (teamItem.teamName === team.split(' ')[1]) {
+        //                 teams[idx] = {
+        //                     yardsAllowedPerGame: yardsAllowedPerGame,
+        //                     ...teams[idx]
+        //                 }
+        //             }
+        //         })
+        //     })
+        //     // // penaltyYardsPerGame
+        //     const penYardsPerGameRequest = await axios.get(`https://www.teamrankings.com/${sports[i].league}/stat/penalty-yards-per-game`, {
+        //         headers: {
+        //             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
+        //             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4"
+        //         }
+        //     })
+        //     const $penYardsPerGame = await cheerio.load(penYardsPerGameRequest.data)
+        //     $penYardsPerGame('tr').each((i, elem) => {
+        //         const index = $penYardsPerGame(elem).find('td:first-child').text()
+        //         const team = $penYardsPerGame(elem).find('td:nth-child(2)').text()
+        //         const penYardsPerGame = $penYardsPerGame(elem).find('td:nth-child(3)').text()
+        //         teams.map((teamItem, idx) => {
+        //             if (teamItem.location === team || teamItem.school === team) {
+        //                 teams[idx] = {
+        //                     penaltyYardsPerGame: penYardsPerGame,
+        //                     ...teams[idx]
+        //                 }
+        //             } else if (teamItem.teamName === team.split(' ')[1]) {
+        //                 teams[idx] = {
+        //                     penaltyYardsPerGame: penYardsPerGame,
+        //                     ...teams[idx]
+        //                 }
+        //             }
+        //         })
+        //     })
+        // } else if (sports[i].espnSport === 'hockey') {
+        //     for (m = 0; m < teams.length; m++) {
+        //         let teamStatResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/hockey/leagues/nhl/seasons/${sports[i].statYear}/types/2/teams/${teams[m].espnID}/statistics?lang=en&region=us`)
+        //         if (teamStatResponse.status === 404) {
+        //             teamStatResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/hockey/leagues/nhl/seasons/${sports[i].prevstatYear}/types/2/teams/${teams[m].espnID}/statistics?lang=en&region=us`)
+        //         }
+        //         const teamStatjson = await teamStatResponse.json()
+        //         for (category = 0; category < teamStatjson.splits.categories.length; category++) {
+        //             let statCategory = category
+        //             for (stat = 0; stat < teamStatjson.splits.categories[statCategory].stats.length; stat++) {
+        //                 if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'powerPlayPct') {
+        //                     teams[m] = {
+        //                         powerPlayPct: teamStatjson.splits.categories[statCategory].stats[stat].value,
+        //                         ...teams[m]
+        //                     }
+        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'penaltyKillPct') {
+        //                     teams[m] = {
+        //                         penKillPct: teamStatjson.splits.categories[statCategory].stats[stat].value,
+        //                         ...teams[m]
+        //                     }
+        //                 }
+        //                 else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'avgShots') {
+        //                     teams[m] = {
+        //                         shotsTaken: teamStatjson.splits.categories[statCategory].stats[stat].value,
+        //                         ...teams[m]
+        //                     }
+        //                 }
+        //                 else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'savePct') {
+        //                     teams[m] = {
+        //                         savePct: teamStatjson.splits.categories[statCategory].stats[stat].value,
+        //                         ...teams[m]
+        //                     }
+        //                 }
+        //                 else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'avgGoals') {
+        //                     teams[m] = {
+        //                         goalsforPerGame: teamStatjson.splits.categories[statCategory].stats[stat].value,
+        //                         ...teams[m]
+        //                     }
+        //                 }
+        //                 else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'faceoffsWon') {
+        //                     teams[m] = {
+        //                         faceoffsWon: teamStatjson.splits.categories[statCategory].stats[stat].perGameValue,
+        //                         ...teams[m]
+        //                     }
+        //                 }
+        //                 else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'avgGoalsAgainst') {
+        //                     teams[m] = {
+        //                         goalsAgainstAverage: teamStatjson.splits.categories[statCategory].stats[stat].value,
+        //                         ...teams[m]
+        //                     }
+        //                 }
+        //                 else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'shootingPct') {
+        //                     teams[m] = {
+        //                         shootingPct: teamStatjson.splits.categories[statCategory].stats[stat].perGameValue,
+        //                         ...teams[m]
+        //                     }
+        //                 }
+        //                 else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'blockedShots') {
+        //                     teams[m] = {
+        //                         shotsBlocked: teamStatjson.splits.categories[statCategory].stats[stat].perGameValue,
+        //                         ...teams[m]
+        //                     }
+        //                 }
+        //                 else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'giveaways') {
+        //                     teams[m] = {
+        //                         giveaways: teamStatjson.splits.categories[statCategory].stats[stat].perGameValue,
+        //                         ...teams[m]
+        //                     }
+        //                 }
+        //                 else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'takeaways') {
+        //                     teams[m] = {
+        //                         takeaways: teamStatjson.splits.categories[statCategory].stats[stat].perGameValue,
+        //                         ...teams[m]
+        //                     }
+        //                 }
+        //             }
+        //         }
+        //     }
+        // } else if (sports[i].espnSport === 'baseball') {
+        //     for (m = 0; m < teams.length; m++) {
+        //         let teamStatResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/baseball/leagues/mlb/seasons/${sports[i].statYear}/types/3/teams/${teams[m].espnID}/statistics?lang=en&region=us`)
+        //         if (teamStatResponse.status === 404) {
+        //             teamStatResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/baseball/leagues/mlb/seasons/${sports[i].statYear}/types/2/teams/${teams[m].espnID}/statistics?lang=en&region=us`)
+        //         }
+        //         const teamStatjson = await teamStatResponse.json()
+        //         for (category = 0; category < teamStatjson.splits.categories.length; category++) {
+        //             let statCategory = category
+        //             for (stat = 0; stat < teamStatjson.splits.categories[statCategory].stats.length; stat++) {
+        //                 if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'onBasePct') {
+        //                     teams[m] = {
+        //                         onBasePct: teamStatjson.splits.categories[statCategory].stats[stat].value,
+        //                         ...teams[m]
+        //                     }
+        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'slugAvg') {
+        //                     teams[m] = {
+        //                         sluggingPct: teamStatjson.splits.categories[statCategory].stats[stat].value,
+        //                         ...teams[m]
+        //                     }
+        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'ERA') {
+        //                     teams[m] = {
+        //                         earnedRunAverage: teamStatjson.splits.categories[statCategory].stats[stat].value,
+        //                         ...teams[m]
+        //                     }
+        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'strikeoutToWalkRatio') {
+        //                     teams[m] = {
+        //                         strikeoutWalkRatio: teamStatjson.splits.categories[statCategory].stats[stat].value,
+        //                         ...teams[m]
+        //                     }
+        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'fieldingPct') {
+        //                     teams[m] = {
+        //                         fieldingPercentage: teamStatjson.splits.categories[statCategory].stats[stat].value,
+        //                         ...teams[m]
+        //                     }
+        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'stolenBasePct') {
+        //                     teams[m] = {
+        //                         stolenBasePercentage: teamStatjson.splits.categories[statCategory].stats[stat].value,
+        //                         ...teams[m]
+        //                     }
+        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'errors') {
+        //                     teams[m] = {
+        //                         fieldingErrors: teamStatjson.splits.categories[statCategory].stats[stat].value,
+        //                         ...teams[m]
+        //                     }
+        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'qualityStarts') {
+        //                     teams[m] = {
+        //                         qualityStarts: teamStatjson.splits.categories[statCategory].stats[stat].value,
+        //                         ...teams[m]
+        //                     }
+        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'homeRuns') {
+        //                     teams[m] = {
+        //                         homeRuns: teamStatjson.splits.categories[statCategory].stats[stat].value,
+        //                         ...teams[m]
+        //                     }
+        //                 }
+        //             }
+        //         }
+        //     }
+        // } else if (sports[i].espnSport === 'basketball') {
+        //     for (m = 0; m < teams.length; m++) {
+        //         const teamStatResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/basketball/leagues/nba/seasons/${sports[i].statYear}/types/2/teams/${teams[m].espnID}/statistics?lang=en&region=us`)
+        //         const teamStatjson = await teamStatResponse.json()
+        //         for (category = 0; category < teamStatjson.splits.categories.length; category++) {
+        //             let statCategory = category
+        //             for (stat = 0; stat < teamStatjson.splits.categories[statCategory].stats.length; stat++) {
+        //                 if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'effectiveFGPct') {
+        //                     teams[m] = {
+        //                         effectiveFieldGoalPct: teamStatjson.splits.categories[statCategory].stats[stat].value,
+        //                         ...teams[m]
+        //                     }
+        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'turnoverRatio') {
+        //                     teams[m] = {
+        //                         turnoverDiff: teamStatjson.splits.categories[statCategory].stats[stat].value,
+        //                         ...teams[m]
+        //                     }
+        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'threePointFieldGoalPct') {
+        //                     teams[m] = {
+        //                         threePointPct: teamStatjson.splits.categories[statCategory].stats[stat].value,
+        //                         ...teams[m]
+        //                     }
+        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'avgOffensiveRebounds') {
+        //                     teams[m] = {
+        //                         avgOffensiveRebounds: teamStatjson.splits.categories[statCategory].stats[stat].value,
+        //                         ...teams[m]
+        //                     }
+        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'freeThrowPct') {
+        //                     teams[m] = {
+        //                         freeThrowPct: teamStatjson.splits.categories[statCategory].stats[stat].value,
+        //                         ...teams[m]
+        //                     }
+        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'assistTurnoverRatio') {
+        //                     teams[m] = {
+        //                         assistTurnoverRatio: teamStatjson.splits.categories[statCategory].stats[stat].value,
+        //                         ...teams[m]
+        //                     }
+        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'pointsInPaint') {
+        //                     teams[m] = {
+        //                         pointsInPaint: teamStatjson.splits.categories[statCategory].stats[stat].value,
+        //                         ...teams[m]
+        //                     }
+        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'avgDefensiveRebounds') {
+        //                     teams[m] = {
+        //                         avgDefensiveRebounds: teamStatjson.splits.categories[statCategory].stats[stat].value,
+        //                         ...teams[m]
+        //                     }
+        //                 } else if (teamStatjson.splits.categories[statCategory].stats[stat].name === 'paceFactor') {
+        //                     teams[m] = {
+        //                         pace: teamStatjson.splits.categories[statCategory].stats[stat].value,
+        //                         ...teams[m]
+        //                     }
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
         // WRITE TEAMS TO DB
-        for (team = 0; team < teams.length; team++) {
-            let currentTeam = await Teams.findOne({ 'espnDisplayName': teams[team].espnDisplayName })
-            if (currentTeam != null) {
-                await Teams.findOneAndReplace({ 'espnDisplayName': teams[team].espnDisplayName }, {
-                    ...teams[team]
-                })
+        const upsertTeam = async (team) => {
+            const existingTeam = await Teams.findOne({ 'espnDisplayName': team.espnDisplayName });
+            if (existingTeam) {
+                await Teams.findOneAndReplace({ 'espnDisplayName': team.espnDisplayName }, team);
             } else {
-                await Teams.create({ ...teams[team] })
+                await Teams.create(team);
             }
+        };
+        // Loop through teams and apply the upsert logic
+        for (const team of teams) {
+            await upsertTeam(team);
         }
         console.log(`Successfuly saved ${sports[i].league} teams @ ${moment().format('HH:mm:ss')}`)
     }
-
     // let events = []
     let currentOdds = await Odds.find() //USE THIS TO POPULATE UPCOMING GAME ODDS
-
     //DETERMINE H2H INDEXES FOR EVERY GAME IN ODDS
-    console.log(`DETERMINING INDEXES @ ${moment().format('HH:mm:ss')}`)
-    currentOdds = await Odds.find()
+    console.log(`DETERMINING INDEXES @ ${moment().format('HH:mm:ss')}`); //CLEANED AND FORMATTED
+    currentOdds = await Odds.find();
+    // Helper function to adjust indexes for football games
+    function adjustFootballStats(homeTeam, awayTeam, homeIndex, awayIndex) {
+        homeTeam.turnoverDiff >= awayTeam.turnoverDiff ? homeIndex += 1.5 : awayIndex += 1.5;
+        homeTeam.pointsPerGame >= awayTeam.pointsPerGame ? homeIndex += 0.8 : awayIndex += 0.8;
+        homeTeam.yardsPerPlay >= awayTeam.yardsPerPlay ? homeIndex += 1 : awayIndex += 1;
+        homeTeam.thirdDownConvRate >= awayTeam.thirdDownConvRate ? homeIndex += 0.8 : awayIndex += 0.8;
+        homeTeam.redZoneEfficiency >= awayTeam.redZoneEfficiency ? homeIndex += 1.2 : awayIndex += 1.2;
+        homeTeam.avgTimeofPossession >= awayTeam.avgTimeofPossession ? homeIndex += 0.5 : awayIndex += 0.5;
+        homeTeam.sackRate >= awayTeam.sackRate ? homeIndex += 0.6 : awayIndex += 0.6;
+        homeTeam.completionPercentage >= awayTeam.completionPercentage ? homeIndex += 0.5 : awayIndex += 0.5;
+        homeTeam.rushingYardsPerGame >= awayTeam.rushingYardsPerGame ? homeIndex += 0.8 : awayIndex += 0.8;
+        homeTeam.yardsAllowedPerGame <= awayTeam.yardsAllowedPerGame ? homeIndex += 0.8 : awayIndex += 0.8;
+        homeTeam.penaltyYardsPerGame <= awayTeam.penaltyYardsPerGame ? homeIndex += 0.6 : awayIndex += 0.6;
+        return { homeIndex, awayIndex };
+    }
+    // Helper function to adjust indexes for hockey games
+    function adjustHockeyStats(homeTeam, awayTeam, homeIndex, awayIndex) {
+        homeTeam.powerPlayPct >= awayTeam.powerPlayPct ? homeIndex += 1.5 : awayIndex += 1.5;
+        homeTeam.penKillPct >= awayTeam.penKillPct ? homeIndex += 1.5 : awayIndex += 1.5;
+        homeTeam.shotsTaken >= awayTeam.shotsTaken ? homeIndex += 1.2 : awayIndex += 1.2;
+        homeTeam.savePct >= awayTeam.savePct ? homeIndex += 2 : awayIndex += 2;
+        homeTeam.goalsforPerGame >= awayTeam.goalsforPerGame ? homeIndex += 1.5 : awayIndex += 1.5;
+        homeTeam.faceoffsWon <= awayTeam.faceoffsWon ? homeIndex += 0.8 : awayIndex += 0.8;
+        homeTeam.goalsAgainstAverage <= awayTeam.goalsAgainstAverage ? homeIndex += 1.5 : awayIndex += 1.5;
+        homeTeam.shootingPct >= awayTeam.shootingPct ? homeIndex += 0.8 : awayIndex += 0.8;
+        homeTeam.shotsBlocked >= awayTeam.shotsBlocked ? homeIndex += 0.8 : awayIndex += 0.8;
+        homeTeam.giveaways <= awayTeam.giveaways ? homeIndex += 0.8 : awayIndex += 0.8;
+        homeTeam.takeaways >= awayTeam.takeaways ? homeIndex += 0.8 : awayIndex += 0.8;
+        return { homeIndex, awayIndex };
+    }
+    // Helper function to adjust indexes for basketball games
+    function adjustBasketballStats(homeTeam, awayTeam, homeIndex, awayIndex) {
+        homeTeam.effectiveFieldGoalPct >= awayTeam.effectiveFieldGoalPct ? homeIndex += 2.0 : awayIndex += 2.0;
+        homeTeam.turnoverDiff >= awayTeam.turnoverDiff ? homeIndex += 1.8 : awayIndex += 1.8;
+        homeTeam.threePointPct >= awayTeam.threePointPct ? homeIndex += 1.2 : awayIndex += 1.2;
+        homeTeam.avgOffensiveRebounds >= awayTeam.avgOffensiveRebounds ? homeIndex += 0.8 : awayIndex += 0.8;
+        homeTeam.freeThrowPct >= awayTeam.freeThrowPct ? homeIndex += 0.8 : awayIndex += 0.8;
+        homeTeam.assistTurnoverRatio >= awayTeam.assistTurnoverRatio ? homeIndex += 1.5 : awayIndex += 1.5;
+        homeTeam.pointsInPaint >= awayTeam.pointsInPaint ? homeIndex += 1 : awayIndex += 1;
+        homeTeam.avgDefensiveRebounds >= awayTeam.avgDefensiveRebounds ? homeIndex += 1 : awayIndex += 1;
+        homeTeam.pace >= awayTeam.pace ? homeIndex += 0.7 : awayIndex += 0.7;
+        return { homeIndex, awayIndex };
+    }
+    // Helper function to adjust indexes for baseball games
+    function adjustBaseballStats(homeTeam, awayTeam, homeIndex, awayIndex) {
+        homeTeam.onBasePct >= awayTeam.onBasePct ? homeIndex += 1 : awayIndex += 1;
+        homeTeam.sluggingPct >= awayTeam.sluggingPct ? homeIndex += 1 : awayIndex += 1;
+        homeTeam.earnedRunAverage <= awayTeam.earnedRunAverage ? homeIndex += 1 : awayIndex += 1;
+        homeTeam.strikeoutWalkRatio <= awayTeam.strikeoutWalkRatio ? homeIndex += 1 : awayIndex += 1;
+        homeTeam.fieldingPercentage >= awayTeam.fieldingPercentage ? homeIndex += 1 : awayIndex += 1;
+        homeTeam.stolenBasePercentage >= awayTeam.stolenBasePercentage ? homeIndex += 1 : awayIndex += 1;
+        homeTeam.fieldingErrors <= awayTeam.fieldingErrors ? homeIndex += 1 : awayIndex += 1;
+        homeTeam.qualityStarts >= awayTeam.qualityStarts ? homeIndex += 1 : awayIndex += 1;
+        homeTeam.homeRuns >= awayTeam.homeRuns ? homeIndex += 1 : awayIndex += 1;
+        return { homeIndex, awayIndex };
+    }
     currentOdds.map(async (game) => {
-        let homeTeam = await Teams.findOne({ 'espnDisplayName': game.home_team })
-        let awayTeam = await Teams.findOne({ 'espnDisplayName': game.away_team })
-        let homeIndex = 0
-        let awayIndex = 0
-        if (homeTeam && awayTeam) {
-            if (game.home_team === homeTeam.espnDisplayName) { //home team
-                if (homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0]) {
-                    homeIndex++
-                } else if (homeTeam.homeWinLoss.split("-")[0] < awayTeam.awayWinLoss.split("-")[0]) {
-                    homeIndex--
+        // Check if the game is in the future
+        if (moment().isBefore(moment(game.commence_time))) {
+            let homeTeam = await Teams.findOne({ 'espnDisplayName': game.home_team });
+            let awayTeam = await Teams.findOne({ 'espnDisplayName': game.away_team });
+            let homeIndex = 0;
+            let awayIndex = 0;
+            if (homeTeam && awayTeam) {
+                // Compare home and away team records to adjust indices
+                if (game.home_team === homeTeam.espnDisplayName) { // Home team is listed first
+                    if (homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0]) {
+                        homeIndex += 0.5; // Increment home index
+                    } else {
+                        awayIndex += 0.5; // Increment away index
+                    }
+                }
+                // Overall win-loss record comparison
+                homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0]
+                    ? homeIndex += 0.5 : awayIndex += 0.5;
+                // Point differential comparison
+                homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += 1 : awayIndex += 1;
+                // Sport-specific conditions
+                if (game.sport_key === 'americanfootball_nfl' || game.sport_key === 'americanfootball_ncaaf') {
+                    // Apply various football statistics for the index calculation
+                    ({ homeIndex, awayIndex } = adjustFootballStats(homeTeam, awayTeam, homeIndex, awayIndex));
+                }
+                else if (game.sport_key === 'icehockey_nhl') {
+                    // Apply hockey-specific statistics
+                    ({ homeIndex, awayIndex } = adjustHockeyStats(homeTeam, awayTeam, homeIndex, awayIndex));
+                }
+                else if (game.sport_key === 'basketball_nba') {
+                    // Apply basketball-specific statistics
+                    ({ homeIndex, awayIndex } = adjustBasketballStats(homeTeam, awayTeam, homeIndex, awayIndex));
+                }
+                else if (game.sport_key === 'baseball_mlb') {
+                    // Apply baseball-specific statistics
+                    ({ homeIndex, awayIndex } = adjustBaseballStats(homeTeam, awayTeam, homeIndex, awayIndex));
                 }
             }
-            else if (game.away_team === awayTeam.espnDisplayName) { //away team
-                if (awayTeam.awayWinLoss.split("-")[0] > homeTeam.homeWinLoss.split("-")[0]) {
-                    awayIndex++
-                } else if (awayTeam.awayWinLoss.split("-")[0] <= homeTeam.homeWinLoss.split("-")[0]) {
-                    awayIndex--
-                }
-            }
-            homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex++ : homeIndex-- //total win loss for home team
-            awayTeam.seasonWinLoss.split("-")[0] > homeTeam.seasonWinLoss.split("-")[0] ? awayIndex++ : awayIndex-- //total win loss for away team
-            homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex++ : homeIndex-- //total win loss for home team
-            awayTeam.pointDiff > homeTeam.pointDiff ? awayIndex++ : awayIndex-- //total win loss for away team
-            if (game.sport_key === 'americanfootball_nfl' || game.sport_key === 'americanfootball_ncaaf') {
-                homeTeam.turnoverDiff >= awayTeam.turnoverDiff ? homeIndex++ : homeIndex--//turnoverDiff
-                homeTeam.pointsPerGame >= awayTeam.pointsPerGame ? homeIndex++ : homeIndex--//pointsPerGame
-                homeTeam.yardsPerPlay >= awayTeam.yardsPerPlay ? homeIndex++ : homeIndex--//yardsPerPlay
-                homeTeam.thirdDownConvRate >= awayTeam.thirdDownConvRate ? homeIndex++ : homeIndex--//thirdDownConvRate
-                homeTeam.redZoneEfficiency >= awayTeam.redZoneEfficiency ? homeIndex++ : homeIndex--//redZoneEfficiency
-                homeTeam.avgTimeofPossession >= awayTeam.avgTimeofPossession ? homeIndex++ : homeIndex--//avgTimeofPossession
-                homeTeam.sackRate >= awayTeam.sackRate ? homeIndex++ : homeIndex--//sackRate
-                homeTeam.completionPercentage >= awayTeam.completionPercentage ? homeIndex++ : homeIndex--//completionPercentage
-                homeTeam.rushingYardsPerGame >= awayTeam.rushingYardsPerGame ? homeIndex++ : homeIndex--//rushingYardsPerGame
-                homeTeam.yardsAllowedPerGame <= awayTeam.yardsAllowedPerGame ? homeIndex++ : homeIndex--//yardsAllowedPerGame
-                homeTeam.penaltyYardsPerGame <= awayTeam.penaltyYardsPerGame ? homeIndex++ : homeIndex--//penaltyYardsPerGame
-
-                awayTeam.turnoverDiff > homeTeam.turnoverDiff ? awayIndex++ : awayIndex--//turnoverDiff
-                awayTeam.pointsPerGame > homeTeam.pointsPerGame ? awayIndex++ : awayIndex--//pointsPerGame
-                awayTeam.yardsPerPlay > homeTeam.yardsPerPlay ? awayIndex++ : awayIndex--//yardsPerPlay
-                awayTeam.thirdDownConvRate > homeTeam.thirdDownConvRate ? awayIndex++ : awayIndex--//thirdDownConvRate
-                awayTeam.redZoneEfficiency > homeTeam.redZoneEfficiency ? awayIndex++ : awayIndex--//redZoneEfficiency
-                awayTeam.avgTimeofPossession > homeTeam.avgTimeofPossession ? awayIndex++ : awayIndex--//avgTimeofPossession
-                awayTeam.sackRate > homeTeam.sackRate ? awayIndex++ : awayIndex--//sackRate
-                awayTeam.completionPercentage > homeTeam.completionPercentage ? awayIndex++ : awayIndex--//completionPercentage
-                awayTeam.rushingYardsPerGame > homeTeam.rushingYardsPerGame ? awayIndex++ : awayIndex--//rushingYardsPerGame
-                awayTeam.yardsAllowedPerGame < homeTeam.yardsAllowedPerGame ? awayIndex++ : awayIndex--//yardsAllowedPerGame
-                awayTeam.penaltyYardsPerGame < homeTeam.penaltyYardsPerGame ? awayIndex++ : awayIndex--//penaltyYardsPerGame
-            }
-            else if (game.sport_key === 'icehockey_nhl') {
-                homeTeam.powerPlayPct >= awayTeam.powerPlayPct ? homeIndex++ : homeIndex-- // powerPlayPct
-                homeTeam.penKillPct >= awayTeam.penKillPct ? homeIndex++ : homeIndex-- // penKillPct
-                homeTeam.shotsTaken >= awayTeam.shotsTaken ? homeIndex++ : homeIndex-- // shotsTaken
-                homeTeam.savePct >= awayTeam.savePct ? homeIndex++ : homeIndex-- // savePct
-                homeTeam.goalsforPerGame >= awayTeam.goalsforPerGame ? homeIndex++ : homeIndex-- // goalsforPerGame
-                homeTeam.faceoffsWon <= awayTeam.faceoffsWon ? homeIndex++ : homeIndex-- // faceoffsWon
-                homeTeam.goalsAgainstAverage <= awayTeam.goalsAgainstAverage ? homeIndex++ : homeIndex--// goalsAgainstAverage
-                homeTeam.shootingPct >= awayTeam.shootingPct ? homeIndex++ : homeIndex-- // shootingPct
-                homeTeam.shotsBlocked >= awayTeam.shotsBlocked ? homeIndex++ : homeIndex-- // shotsBlocked
-                homeTeam.giveaways <= awayTeam.giveaways ? homeIndex++ : homeIndex-- // giveaways
-                homeTeam.takeaways >= awayTeam.takeaways ? homeIndex++ : homeIndex-- // takeAways
-
-                awayTeam.powerPlayPct >= homeTeam.powerPlayPct ? homeIndex++ : homeIndex-- // powerPlayPct
-                awayTeam.penKillPct >= homeTeam.penKillPct ? homeIndex++ : homeIndex-- // penKillPct
-                awayTeam.shotsTaken >= homeTeam.shotsTaken ? homeIndex++ : homeIndex-- // shotsTaken
-                awayTeam.savePct >= homeTeam.savePct ? homeIndex++ : homeIndex-- // savePct
-                awayTeam.goalsforPerGame >= homeTeam.goalsforPerGame ? homeIndex++ : homeIndex-- // goalsforPerGame
-                awayTeam.faceoffsWon <= homeTeam.faceoffsWon ? homeIndex++ : homeIndex-- // faceoffsWon
-                awayTeam.goalsAgainstAverage <= homeTeam.goalsAgainstAverage ? homeIndex++ : homeIndex--// goalsAgainstAverage
-                awayTeam.shootingPct >= homeTeam.shootingPct ? homeIndex++ : homeIndex-- // shootingPct
-                awayTeam.shotsBlocked >= homeTeam.shotsBlocked ? homeIndex++ : homeIndex-- // shotsBlocked
-                awayTeam.giveaways <= homeTeam.giveaways ? homeIndex++ : homeIndex-- // giveaways
-                awayTeam.takeaways >= homeTeam.takeaways ? homeIndex++ : homeIndex-- // takeAways
-            } else if (game.sport_key === 'basketball_nba') {
-                homeTeam.effectiveFieldGoalPct >= awayTeam.effectiveFieldGoalPct ? homeIndex++ : homeIndex-- //effectiveFieldGoalPct
-                homeTeam.turnoverDiff >= awayTeam.turnoverDiff ? homeIndex++ : homeIndex-- //turnoverDiff
-                homeTeam.threePointPct >= awayTeam.threePointPct ? homeIndex++ : homeIndex-- //threePointPct
-                homeTeam.avgOffensiveRebounds >= awayTeam.avgOffensiveRebounds ? homeIndex++ : homeIndex-- //avgOffensiveRebounds
-                homeTeam.freeThrowPct >= awayTeam.freeThrowPct ? homeIndex++ : homeIndex-- //freeThrowPct
-                homeTeam.assistTurnoverRatio >= awayTeam.assistTurnoverRatio ? homeIndex++ : homeIndex-- //assistTurnoverRatio
-                homeTeam.pointsInPaint >= awayTeam.pointsInPaint ? homeIndex++ : homeIndex-- //pointsInPaint
-                homeTeam.avgDefensiveRebounds >= awayTeam.avgDefensiveRebounds ? homeIndex++ : homeIndex-- //avgDefensiveRebounds
-                homeTeam.pace >= awayTeam.pace ? homeIndex++ : homeIndex-- //pace
-
-                awayTeam.effectiveFieldGoalPct > homeTeam.effectiveFieldGoalPct ? awayIndex++ : awayIndex-- //effectiveFieldGoalPct
-                awayTeam.turnoverDiff > homeTeam.turnoverDiff ? awayIndex++ : awayIndex-- //turnoverDiff
-                awayTeam.threePointPct > homeTeam.threePointPct ? awayIndex++ : awayIndex-- //threePointPct
-                awayTeam.avgOffensiveRebounds > homeTeam.avgOffensiveRebounds ? awayIndex++ : awayIndex-- //avgOffensiveRebounds
-                awayTeam.freeThrowPct > homeTeam.freeThrowPct ? awayIndex++ : awayIndex-- //freeThrowPct
-                awayTeam.assistTurnoverRatio > homeTeam.assistTurnoverRatio ? awayIndex++ : awayIndex-- //assistTurnoverRatio
-                awayTeam.pointsInPaint > homeTeam.pointsInPaint ? awayIndex++ : awayIndex-- //pointsInPaint
-                awayTeam.avgDefensiveRebounds > homeTeam.avgDefensiveRebounds ? awayIndex++ : awayIndex-- // avgDefensiveRebounds
-                homeTeam.pace >= awayTeam.pace ? homeIndex++ : homeIndex-- //pace
-            } else if (game.sport_key === 'baseball_mlb') {
-                homeTeam.onBasePct >= awayTeam.onBasePct ? homeIndex++ : homeIndex-- //onBasePct
-                homeTeam.sluggingPct >= awayTeam.sluggingPct ? homeIndex++ : homeIndex--//sluggingPct
-                homeTeam.earnedRunAverage <= awayTeam.earnedRunAverage ? homeIndex++ : homeIndex--//earnedRunAverage
-                homeTeam.strikeoutWalkRatio <= awayTeam.strikeoutWalkRatio ? homeIndex++ : homeIndex--//strikeoutWalkRatio
-                homeTeam.fieldingPercentage >= awayTeam.fieldingPercentage ? homeIndex++ : homeIndex--//fieldingPercentage
-                homeTeam.stolenBasePercentage >= awayTeam.stolenBasePercentage ? homeIndex++ : homeIndex--//stolenBasePercentage
-                homeTeam.fieldingErrors <= awayTeam.fieldingErrors ? homeIndex++ : homeIndex--//fieldingErrors
-                homeTeam.qualityStarts >= awayTeam.qualityStarts ? homeIndex++ : homeIndex--//qualityStarts
-                homeTeam.homeRuns >= awayTeam.homeRuns ? homeIndex++ : homeIndex--//homeRuns
-
-                awayTeam.onBasePct >= homeTeam.onBasePct ? homeIndex++ : homeIndex-- //onBasePct
-                awayTeam.sluggingPct >= homeTeam.sluggingPct ? homeIndex++ : homeIndex--//sluggingPct
-                awayTeam.earnedRunAverage <= homeTeam.earnedRunAverage ? homeIndex++ : homeIndex--//earnedRunAverage
-                awayTeam.strikeoutWalkRatio <= homeTeam.strikeoutWalkRatio ? homeIndex++ : homeIndex--//strikeoutWalkRatio
-                awayTeam.fieldingPercentage >= homeTeam.fieldingPercentage ? homeIndex++ : homeIndex--//fieldingPercentage
-                awayTeam.stolenBasePercentage >= homeTeam.stolenBasePercentage ? homeIndex++ : homeIndex--//stolenBasePercentage
-                awayTeam.fieldingErrors <= homeTeam.fieldingErrors ? homeIndex++ : homeIndex--//fieldingErrors
-                awayTeam.qualityStarts >= homeTeam.qualityStarts ? homeIndex++ : homeIndex--//qualityStarts
-                awayTeam.homeRuns >= homeTeam.homeRuns ? homeIndex++ : homeIndex--//homeRuns
-            }
+            // Update the Odds database with the calculated indices
+            await Odds.findOneAndUpdate({ 'id': game.id }, {
+                homeTeamIndex: homeIndex || 0,
+                awayTeamIndex: awayIndex || 0
+            });
         }
-        if (homeIndex > 10) homeIndex = 10
-        if (homeIndex < -10) homeIndex = -10
-        if (awayIndex > 10) awayIndex = 10
-        if (awayIndex < -10) awayIndex = -10
-        await Odds.findOneAndUpdate({ 'id': game.id },
-            {
-                homeTeamIndex: homeIndex,
-                awayTeamIndex: awayIndex
-            })
-    })
-    console.log('CALCULATING WIN RATES')
+    });
+    console.log('CALCULATING WIN RATES and Implied Probability') //CLEANED AND FORMATTED
     let allPastGames = await PastGameOdds.find({})
     currentOdds.map(async (game) => {
-        let homeTeamWinRate = allPastGames.filter((pastGame) => pastGame.home_team === game.home_team || pastGame.away_team === game.home_team).filter((pastGame) => pastGame.predictionCorrect === true).length / allPastGames.filter((pastGame) => pastGame.home_team === game.home_team || pastGame.away_team === game.home_team).length
-        let awayTeamWinRate = allPastGames.filter((pastGame) => pastGame.home_team === game.away_team || pastGame.away_team === game.away_team).filter((pastGame) => pastGame.predictionCorrect === true).length / allPastGames.filter((pastGame) => pastGame.home_team === game.away_team || pastGame.away_team === game.away_team).length
-        let leagueWinRate = allPastGames.filter((pastGame) => pastGame.sport_key === game.sport_key).filter((pastGame) => pastGame.predictionCorrect === true).length / allPastGames.filter((pastGame) => pastGame.sport_key === game.sport_key).length
-        if(homeTeamWinRate && awayTeamWinRate && leagueWinRate){
-            await Odds.findOneAndUpdate({ 'id': game.id }, {
-                winPercent: (homeTeamWinRate + awayTeamWinRate + leagueWinRate) / 3
-            }) 
-        }else if(homeTeamWinRate && leagueWinRate){
-            await Odds.findOneAndUpdate({ 'id': game.id }, {
-                winPercent: (homeTeamWinRate + leagueWinRate) / 2
-            }) 
-        }else if(awayTeamWinRate && leagueWinRate){
-            await Odds.findOneAndUpdate({ 'id': game.id }, {
-                winPercent: (awayTeamWinRate + leagueWinRate) / 2
-            }) 
-        }else{
-            await Odds.findOneAndUpdate({ 'id': game.id }, {
-                winPercent: leagueWinRate
-            }) 
-        }
+        // Pre-calculate win rates in a single loop
+        let winRates = {
+            overall: 0,
+            homeTeam: 0,
+            awayTeam: 0,
+            league: 0,
+            homeTeamGames: 0,
+            awayTeamGames: 0,
+            leagueGames: 0
+        };
 
-    })
-    console.log(`REMOVING PAST GAMES @ ${moment().format('HH:mm:ss')}`)
-    let pastGames = []
-    currentOdds = await Odds.find()
-    currentOdds.map(async (game) => {
-        let homeScore
-        let awayScore
-        let predictionCorrect
-        let winner
-
-        if (moment(game.commence_time).local().isBefore(moment().local())) {  //DETERMINE A GAME HAPPENED IN THE PAST
-            let { _id, ...newGame } = game._doc
-
-
-            let homeTeam
-            let awayTeam
-                homeTeam = await Teams.findOne({ 'espnDisplayName': game.home_team })
-                awayTeam = await Teams.findOne({ 'espnDisplayName': game.away_team })
-            //DETERMINE A WINNER
-            let homeTeamSchedule = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${game.sport}/${homeTeam.league}/teams/${homeTeam.espnID}/schedule`)
-            let homeTeamSchedJSON = await homeTeamSchedule.json()
-            homeTeamSchedJSON.events.map(async (event) => {
-                if (moment(event.date).local().format('MM/DD/YYYY') === moment(game.commence_time).local().format('MM/DD/YYYY')) {
-
-                    if (event.competitions[0].status.type.completed === true) {
-                        let deletedGame = await Odds.findOneAndDelete({ _id: game._doc._id })//delete from Odds table
-                        if (deletedGame) {
-                            console.log(`deleted game: ${deletedGame.home_team} vs ${deletedGame.away_team}`)
-                        }
-                        event.competitions[0].competitors.map((team) => {
-                            if (team.homeAway === 'home') {
-
-                                homeScore = team.score.value//home score
-                            } else if (team.homeAway === 'away') {
-
-                                awayScore = team.score.value//away score
-                            }
-                        })
-                        homeScore > awayScore ? winner = 'home' : winner = 'away' //winner
-                        if (game.homeTeamIndex >= game.awayTeamIndex) { // predicted home to win
-                            winner === 'home' ? predictionCorrect = true : predictionCorrect = false
-                        } else if (game.awayTeamIndex > game.homeTeamIndex) {//predicted away to win
-                            winner === 'away' ? predictionCorrect = true : predictionCorrect = false
-                        }//prediction correct 
-
-
-
-                        await PastGameOdds.create({
-                            homeScore: homeScore,
-                            awayScore: awayScore,
-                            winner: winner,
-                            predictionCorrect: predictionCorrect,
-                            ...newGame
-                        })//SAVE GAME TO PREVIOUSGAMES DB WITH WINNER
-
-
-
-                    }
-
+        allPastGames.forEach((pastGame) => {
+            if (pastGame.predictionCorrect === true) {
+                winRates.overall += 1;
+            }
+            if (pastGame.home_team === game.home_team || pastGame.away_team === game.home_team) {
+                if (pastGame.predictionCorrect === true) {
+                    winRates.homeTeam += 1;
                 }
-            })
+                winRates.homeTeamGames += 1;
+            }
+            if (pastGame.home_team === game.away_team || pastGame.away_team === game.away_team) {
+                if (pastGame.predictionCorrect === true) {
+                    winRates.awayTeam += 1;
+                }
+                winRates.awayTeamGames += 1;
+            }
+            if (pastGame.sport_key === game.sport_key) {
+                if (pastGame.predictionCorrect === true) {
+                    winRates.league += 1;
+                }
+                winRates.leagueGames += 1;
+            }
+        });
 
+        // Calculate win rates safely
+        const safeDivision = (numerator, denominator) => (denominator === 0 ? 0 : numerator / denominator);
+
+        const overallWinRate = safeDivision(winRates.overall, allPastGames.length);
+        const homeTeamWinRate = safeDivision(winRates.homeTeam, winRates.homeTeamGames);
+        const awayTeamWinRate = safeDivision(winRates.awayTeam, winRates.awayTeamGames);
+        const leagueWinRate = safeDivision(winRates.league, winRates.leagueGames);
+
+        // For each game in currentOdds, update the winPercent
+        let winRatesArray = [overallWinRate];
+        if (homeTeamWinRate) winRatesArray.push(homeTeamWinRate);
+        if (awayTeamWinRate) winRatesArray.push(awayTeamWinRate);
+        if (leagueWinRate) winRatesArray.push(leagueWinRate);
+
+        const winPercent = winRatesArray.reduce((sum, rate) => sum + rate, 0) / winRatesArray.length;
+
+        await Odds.findOneAndUpdate({ 'id': game.id }, { winPercent });
+        try {
+            // Loop over all bookmakers
+            await Promise.all(game.bookmakers.map(async (bookmaker) => {
+                // Loop over all markets for each bookmaker
+                await Promise.all(bookmaker.markets.map(async (market) => {
+                    // Loop over all outcomes for each market
+                    await Promise.all(market.outcomes.map(async (outcome) => {
+                        // Perform the update using arrayFilters to target the correct outcome
+                        await Odds.findOneAndUpdate(
+                            { 'id': game.id }, // Filter by game id
+                            {
+                                $set: {
+                                    'bookmakers.$[bookmaker].markets.$[market].outcomes.$[outcome].impliedProb': 100 / (Math.abs(outcome.price) + 100)
+                                }
+                            },
+                            {
+                                arrayFilters: [
+                                    { 'bookmaker.key': bookmaker.key }, // Match bookmaker by key
+                                    { 'market.key': market.key }, // Match market by key
+                                    { 'outcome._id': outcome._id } // Match outcome by its _id
+                                ]
+                            }
+                        );
+                    }));
+                }));
+            }));
+        } catch (error) {
+            console.error('Error updating outcomes:', error);
         }
-
     })
+    console.log(`REMOVING PAST GAMES @ ${moment().format('HH:mm:ss')}`) //CLEANED AND FORMATTED
+    // Fetch current odds and iterate over them using async loop
+    let pastGames = [];
+    currentOdds = await Odds.find();
+    for (let game of currentOdds) {
+        // Check if the game is in the past based on commence_time
+        if (moment(game.commence_time).local().isBefore(moment().local())) {
+            let { _id, ...newGame } = game._doc;
+            let homeTeam, awayTeam;
+            let homeScore, awayScore, predictionCorrect, winner;
+
+            // Fetch team details from the Teams collection
+            homeTeam = await Teams.findOne({ 'espnDisplayName': game.home_team });
+            awayTeam = await Teams.findOne({ 'espnDisplayName': game.away_team });
+
+            try {
+                // Fetch home team schedule from ESPN API
+                let homeTeamSchedule = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${game.sport}/${homeTeam.league}/teams/${homeTeam.espnID}/schedule`);
+                let homeTeamSchedJSON = await homeTeamSchedule.json();
+
+                // Loop through events in the home team schedule
+                for (let event of homeTeamSchedJSON.events) {
+                    // Check if the event matches the current game's date
+                    if (moment(event.date).local().format('MM/DD/YYYY') === moment(game.commence_time).local().format('MM/DD/YYYY')) {
+                        if (event.competitions[0].status.type.completed === true) {
+
+                            // Delete the game from the Odds collection
+                            let deletedGame = await Odds.findOneAndDelete({ _id: game._doc._id });
+                            if (deletedGame) {
+                                console.log(`deleted game: ${deletedGame.home_team} vs ${deletedGame.away_team}`);
+                            }
+
+                            // Determine the scores and winner
+                            event.competitions[0].competitors.forEach((team) => {
+                                if (team.homeAway === 'home') {
+                                    homeScore = team.score.value; // home score
+                                } else if (team.homeAway === 'away') {
+                                    awayScore = team.score.value; // away score
+                                }
+                            });
+
+                            // Determine winner
+                            winner = homeScore > awayScore ? 'home' : 'away';
+
+                            // Check if the prediction was correct
+                            if (game.homeTeamIndex >= game.awayTeamIndex) {
+                                predictionCorrect = winner === 'home';
+                            } else if (game.awayTeamIndex > game.homeTeamIndex) {
+                                predictionCorrect = winner === 'away';
+                            }
+
+                            // Save the past game to the PastGameOdds collection
+                            await PastGameOdds.create({
+                                homeScore,
+                                awayScore,
+                                winner,
+                                predictionCorrect,
+                                ...newGame
+                            });
+
+                        }
+                    }
+                }
+            } catch (err) {
+                console.log(err); // Log any errors encountered during the API call or processing
+            }
+        }
+    }
+    console.log("Past games processed successfully!");
     console.info(`Full Seeding complete! 🌱 @ ${moment().format('HH:mm:ss')}`);
 }
 
 
 
-
-module.exports = { dataSeed, oddsSeed, winSeed }
+module.exports = { dataSeed, oddsSeed }

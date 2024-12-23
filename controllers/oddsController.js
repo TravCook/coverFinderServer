@@ -15,7 +15,7 @@ module.exports = {
                     }
                 })
                 // console.log(odds)
-                let success = myCache.set('allOdds', JSON.stringify(timeFilter), 360)
+                let success = myCache.set('allOdds', JSON.stringify(timeFilter), 840)
                 if (success) {
                     return res.json(odds)
                 }
@@ -61,7 +61,7 @@ module.exports = {
                             timeFilter.push(odds)
                         }
                     })
-                    myCache.set('footballOdds', JSON.stringify(timeFilter), 3600)
+                    myCache.set('footballOdds', JSON.stringify(timeFilter), 840)
                     return res.json(timeFilter)
                 }).catch((err) => {
                     return res.status(500).json(err)
@@ -88,7 +88,7 @@ module.exports = {
                             timeFilter.push(odds)
                         }
                     })
-                    myCache.set('baseballOdds', JSON.stringify(timeFilter), 3600)
+                    myCache.set('baseballOdds', JSON.stringify(timeFilter), 840)
                     return res.json(timeFilter)
                 }).catch((err) => {
                     return res.status(500).json(err)
@@ -115,7 +115,7 @@ module.exports = {
                             timeFilter.push(odds)
                         }
                     })
-                    myCache.set('basketballOdds', JSON.stringify(timeFilter), 3600)
+                    myCache.set('basketballOdds', JSON.stringify(timeFilter), 840)
                     return res.json(timeFilter)
                 }).catch((err) => {
                     return res.status(500).json(err)
@@ -141,7 +141,7 @@ module.exports = {
                             timeFilter.push(odds)
                         }
                     })
-                    myCache.set('hockeyOdds', JSON.stringify(timeFilter), 3600)
+                    myCache.set('hockeyOdds', JSON.stringify(timeFilter), 840)
                     return res.json(timeFilter)
                 }).catch((err) => {
                     return res.status(500).json(err)
@@ -171,7 +171,7 @@ module.exports = {
                     }
                 })
                 // console.log(odds)
-                let success = myCache.set('lowIndexOdds', JSON.stringify(timeFilter), 10800)
+                let success = myCache.set('lowIndexOdds', JSON.stringify(timeFilter), 840)
                 if (success) {
                     return res.json(timeFilter)
                 }
@@ -202,7 +202,7 @@ module.exports = {
                     }
                 })
                 // console.log(odds)
-                let success = myCache.set('highIndexOdds', JSON.stringify(timeFilter), 10800)
+                let success = myCache.set('highIndexOdds', JSON.stringify(timeFilter), 840)
                 if (success) {
                     return res.json(timeFilter)
                 }
@@ -353,6 +353,6 @@ module.exports = {
     async getPastGames(req, res) {
         const pastGames = await PastGameOdds.find()
 
-        res.json(pastGames.filter((game) => moment(game.commence_time).isAfter(moment().subtract(7, 'days'))))
+        res.json(pastGames.filter((game) => moment(game.commence_time).isAfter(moment('2024-12-05'))))
     }
 }
