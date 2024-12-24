@@ -1,358 +1,168 @@
-const { Odds, PastGameOdds } = require('../models')
-const moment = require('moment')
-const pastGameOdds = require('../models/pastGameOdds')
-const NodeCache = require("node-cache");
+const { Odds, PastGameOdds } = require('../models');
+const moment = require('moment');
+const NodeCache = require('node-cache');
 const myCache = new NodeCache();
+
+// Utility function for filtering odds based on commence time
+function filterOddsByCommenceTime(odds, days = 14) {
+    return odds.filter(odds => moment(odds.commence_time).isBefore(moment().add(days, 'days')));
+}
+
+// Cache the odds if needed
+async function getCachedOdds(cacheKey, query, filterDays = 14) {
+    let odds = myCache.get(cacheKey);
+    if (odds === undefined) {
+        try {
+            odds = await Odds.find(query);
+            odds = filterOddsByCommenceTime(odds, filterDays);
+            myCache.set(cacheKey, JSON.stringify(odds), 600); // Cache for 14 minutes
+        } catch (err) {
+            throw new Error('Error fetching odds: ' + err.message);
+        }
+    } else {
+        odds = JSON.parse(odds);
+    }
+    return odds;
+}
+
+// Utility function for calculating win rate
+function calculateWinRate(games, predictionCorrect) {
+    const correctPicks = games.filter(game => game.predictionCorrect === predictionCorrect).length;
+    return correctPicks / games.length;
+}
+
 module.exports = {
     async getAllOdds(req, res) {
-        let odds = myCache.get('allOdds')
-        if (odds == undefined) {
-            await Odds.find().then((odds) => {
-                let timeFilter = []
-                odds.map((odds) => {
-                    if (moment(odds.commence_time).isBefore(moment().add(14, 'days'))) {
-                        timeFilter.push(odds)
-                    }
-                })
-                // console.log(odds)
-                let success = myCache.set('allOdds', JSON.stringify(timeFilter), 840)
-                if (success) {
-                    return res.json(odds)
-                }
-
-            }).catch((err) => {
-                console.log(err);
-                return res.status(500).json(err);
-            })
-        } else {
-            const JSONodds = JSON.parse(odds)
-            let timeFilter = []
-            JSONodds.map((odds) => {
-                if (moment(odds.commence_time).isBefore(moment().add(14, 'days'))) {
-                    timeFilter.push(odds)
-                }
-            })
-            res.json(JSONodds)
-        }
-
-
-    },
-    getQuickOdds(req, res) {
-        Odds.findOne({
-            $and: [
-                { 'home_team': { $regex: new RegExp(req.body.home_team), $options: 'i' } },
-                { 'away_team': { $regex: new RegExp(req.body.away_team), $options: 'i' } }
-            ]
-        }).then((odds) => {
-
-            return res.json(odds)
-        }).catch((err) => {
-            return res.status(500).json(err);
-        })
-    },
-    getOddsBySport(req, res) {
-        if (req.body.sport === 'Football') {
-            let odds = myCache.get('footballOdds')
-            if (odds == undefined) {
-                Odds.find({ $or: [{ sport_key: 'americanfootball_nfl' }, { sport_key: 'americanfootball_ncaaf' }] }).then((odds) => {
-                    let timeFilter = []
-                    odds.map((odds) => {
-                        if (moment(odds.commence_time).isBefore(moment().add(7, 'days'))) {
-                            timeFilter.push(odds)
-                        }
-                    })
-                    myCache.set('footballOdds', JSON.stringify(timeFilter), 840)
-                    return res.json(timeFilter)
-                }).catch((err) => {
-                    return res.status(500).json(err)
-                })
-            } else {
-                let timeFilter = []
-                let jsonOdds = JSON.parse(odds)
-                jsonOdds.map((odds) => {
-                    if (moment(odds.commence_time).isBefore(moment().add(7, 'days'))) {
-                        timeFilter.push(odds)
-                    }
-                })
-
-                return res.json(jsonOdds)
-            }
-
-        } else if (req.body.sport === 'Baseball') {
-            let odds = myCache.get('baseballOdds')
-            if (odds == undefined) {
-                Odds.find({ sport_key: 'baseball_mlb' }).then((odds) => {
-                    let timeFilter = []
-                    odds.map((odds) => {
-                        if (moment(odds.commence_time).isBefore(moment().add(7, 'days'))) {
-                            timeFilter.push(odds)
-                        }
-                    })
-                    myCache.set('baseballOdds', JSON.stringify(timeFilter), 840)
-                    return res.json(timeFilter)
-                }).catch((err) => {
-                    return res.status(500).json(err)
-                })
-            } else {
-                let timeFilter = []
-                let jsonOdds = JSON.parse(odds)
-                jsonOdds.map((odds) => {
-                    if (moment(odds.commence_time).isBefore(moment().add(7, 'days'))) {
-                        timeFilter.push(odds)
-                    }
-                })
-
-                return res.json(jsonOdds)
-            }
-
-        } else if (req.body.sport === 'Basketball') {
-            let odds = myCache.get('basketballOdds')
-            if (odds == undefined) {
-                Odds.find({ sport_key: 'basketball_nba' }).then((odds) => {
-                    let timeFilter = []
-                    odds.map((odds) => {
-                        if (moment(odds.commence_time).isBefore(moment().add(7, 'days'))) {
-                            timeFilter.push(odds)
-                        }
-                    })
-                    myCache.set('basketballOdds', JSON.stringify(timeFilter), 840)
-                    return res.json(timeFilter)
-                }).catch((err) => {
-                    return res.status(500).json(err)
-                })
-            }else{
-                let timeFilter = []
-                let jsonOdds = JSON.parse(odds)
-                jsonOdds.map((odds) => {
-                    if (moment(odds.commence_time).isBefore(moment().add(7, 'days'))) {
-                        timeFilter.push(odds)
-                    }
-                })
-
-                return res.json(jsonOdds)
-            }
-        } else if (req.body.sport === 'Hockey') {
-            let odds = myCache.get('hockeyOdds')
-            if (odds == undefined) {
-                Odds.find({ sport_key: 'icehockey_nhl' }).then((odds) => {
-                    let timeFilter = []
-                    odds.map((odds) => {
-                        if (moment(odds.commence_time).isBefore(moment().add(7, 'days'))) {
-                            timeFilter.push(odds)
-                        }
-                    })
-                    myCache.set('hockeyOdds', JSON.stringify(timeFilter), 840)
-                    return res.json(timeFilter)
-                }).catch((err) => {
-                    return res.status(500).json(err)
-                })
-            }else{
-                let timeFilter = []
-                let jsonOdds = JSON.parse(odds)
-                jsonOdds.map((odds) => {
-                    if (moment(odds.commence_time).isBefore(moment().add(7, 'days'))) {
-                        timeFilter.push(odds)
-                    }
-                })
-
-                return res.json(jsonOdds)
-            }
-
+        try {
+            let odds = await getCachedOdds('allOdds', {});
+            return res.json(odds);
+        } catch (err) {
+            return res.status(500).json({ message: err.message });
         }
     },
-    getLowIndex(req, res) {
-        let odds = myCache.get('lowIndexOdds')
-        if(odds == undefined){
-            Odds.find({ $or: [{ 'homeTeamIndex': { $lt: -5 } }, { 'awayTeamIndex': { $lt: -5 } }] }).then((odds) => {
-                let timeFilter = []
-                odds.map((odds) => {
-                    if (moment(odds.commence_time).isBefore(moment().add(14, 'days'))) {
-                        timeFilter.push(odds)
-                    }
-                })
-                // console.log(odds)
-                let success = myCache.set('lowIndexOdds', JSON.stringify(timeFilter), 840)
-                if (success) {
-                    return res.json(timeFilter)
-                }
-                return res.json(odds)
-            }).catch((err) => {
-                return res.status(500).json(err);
-            })
-        }else{
-            const JSONodds = JSON.parse(odds)
-            let timeFilter = []
-            JSONodds.map((odds) => {
-                if (moment(odds.commence_time).isBefore(moment().add(14, 'days'))) {
-                    timeFilter.push(odds)
-                }
-            })
-            res.json(JSONodds)
+
+    async getQuickOdds(req, res) {
+        try {
+            const odds = await Odds.findOne({
+                $and: [
+                    { 'home_team': { $regex: new RegExp(req.body.home_team, 'i') } },
+                    { 'away_team': { $regex: new RegExp(req.body.away_team, 'i') } }
+                ]
+            });
+            return res.json(odds);
+        } catch (err) {
+            return res.status(500).json({ message: err.message });
+        }
+    },
+
+    async getOddsBySport(req, res) {
+        const sportKeys = {
+            'Football': ['americanfootball_nfl', 'americanfootball_ncaaf'],
+            'Baseball': ['baseball_mlb'],
+            'Basketball': ['basketball_nba'],
+            'Hockey': ['icehockey_nhl']
+        };
+        
+        const sportKey = sportKeys[req.body.sport];
+        if (!sportKey) {
+            return res.status(400).json({ message: 'Invalid sport' });
         }
 
-    },
-    getHighIndex(req, res) {
-        let odds = myCache.get('highIndexOdds')
-        if(odds == undefined){
-            Odds.find({ $or: [{ 'homeTeamIndex': { $gt: 5 } }, { 'awayTeamIndex': { $gt: 5 } }] }).then((odds) => {
-                let timeFilter = []
-                odds.map((odds) => {
-                    if (moment(odds.commence_time).isBefore(moment().add(14, 'days'))) {
-                        timeFilter.push(odds)
-                    }
-                })
-                // console.log(odds)
-                let success = myCache.set('highIndexOdds', JSON.stringify(timeFilter), 840)
-                if (success) {
-                    return res.json(timeFilter)
-                }
-                return res.json(odds)
-            }).catch((err) => {
-                return res.status(500).json(err);
-            })
-        }else{
-            const JSONodds = JSON.parse(odds)
-            let timeFilter = []
-            JSONodds.map((odds) => {
-                if (moment(odds.commence_time).isBefore(moment().add(14, 'days'))) {
-                    timeFilter.push(odds)
-                }
-            })
-            res.json(JSONodds)
+        try {
+            let odds = await getCachedOdds(`${req.body.sport.toLowerCase()}Odds`, { sport_key: { $in: sportKey } });
+            return res.json(odds);
+        } catch (err) {
+            return res.status(500).json({ message: err.message });
         }
-
     },
-    async getWinRates(req, res)  {
-        const allGames = await PastGameOdds.find()
-        const footballGames = await PastGameOdds.find({sport: 'football'})
-        const nflGames = await PastGameOdds.find({sport_key: 'americanfootball_nfl'})
-        const ncaafGames = await PastGameOdds.find({sport_key: 'americanfootball_ncaaf'})
-        const baseballGames = await PastGameOdds.find({sport: 'baseball'})
-        const basketballGames = await PastGameOdds.find({sport: 'basketball'})
-        const hockeyGames = await PastGameOdds.find({sport: 'hockey'})
-        const highIndex = await PastGameOdds.find({$or: [{'homeTeamIndex' : {$gt: 5}},{'awayTeamIndex' : {$gt: 5}}] })
-        const lowIndex = await PastGameOdds.find({$or: [{'homeTeamIndex' : {$lt: -5}},{'awayTeamIndex' : {$lt: -5}}] })
-        let highIndexDifference = []
-        let lowIndexDifference = []
-        allGames.map((game) => {
-            if(game.homeTeamIndex - game.awayTeamIndex >= 5 || game.awayTeamIndex - game.homeTeamIndex >= 5){
-                highIndexDifference.push(game)
-            }else if(game.homeTeamIndex - game.awayTeamIndex <= 5 || game.awayTeamIndex - game.homeTeamIndex <= 5){
-                lowIndexDifference.push(game)
-            }
-        })
-        let overallCorrectPicks = 0
-        let footballCorrectPicks = 0
-        let nflCorrectPicks = 0
-        let ncaafCorrectPicks = 0
-        let baseballCorrectPicks = 0
-        let basketballCorrectPicks = 0
-        let hockeyCorrectPicks = 0
-        let highIndexCorrect = 0
-        let lowIndexCorrect = 0
-        let highIndexDiffCorrect = 0
-        let lowIndexDiffCorrect = 0
-        allGames.map((game) => {
-            if(game.predictionCorrect === true){
-                overallCorrectPicks++
-            }
-        })
-        footballGames.map((game) => {
-            if(game.predictionCorrect === true){
-                footballCorrectPicks++
-            }
-        })
-        baseballGames.map((game) => {
-            if(game.predictionCorrect === true){
-                baseballCorrectPicks++
-            }
-        })
-        basketballGames.map((game) => {
-            if(game.predictionCorrect === true){
-                basketballCorrectPicks++
-            }
-        })
-        hockeyGames.map((game) => {
-            if(game.predictionCorrect === true){
-                hockeyCorrectPicks++
-            }
-        })
-        nflGames.map((game) => {
-            if(game.predictionCorrect === true){
-                nflCorrectPicks++
-            }
-        })
-        ncaafGames.map((game) => {
-            if(game.predictionCorrect === true){
-                ncaafCorrectPicks++
-            }
-        })
-        highIndex.map((game) => {
-            if(game.predictionCorrect === true){
-                highIndexCorrect++
-            }
-        })
-        lowIndex.map((game) => {
-            if(game.predictionCorrect === true){
-                lowIndexCorrect++
-            }
-        })
-        highIndexDifference.map((game) => {
-            if(game.predictionCorrect === true){
-                highIndexDiffCorrect++
-            }
-        })
-        lowIndexDifference.map((game) => {
-            if(game.predictionCorrect === true){
-                lowIndexDiffCorrect++
-            }
-        })
 
+    async getLowIndex(req, res) {
+        try {
+            let odds = await getCachedOdds('lowIndexOdds', { $or: [{ 'homeTeamIndex': { $lt: -5 } }, { 'awayTeamIndex': { $lt: -5 } }] });
+            return res.json(odds);
+        } catch (err) {
+            return res.status(500).json({ message: err.message });
+        }
+    },
 
-    return res.json({
-        overallWinRate : overallCorrectPicks/allGames.length,
-        footballWinRate: footballCorrectPicks/footballGames.length,
-        nflWinRate: nflCorrectPicks/nflGames.length,
-        ncaafWinRate: ncaafCorrectPicks/ncaafGames.length,
-        baseballWinRate: baseballCorrectPicks/baseballGames.length,
-        hockeyWinRate: hockeyCorrectPicks/hockeyGames.length,
-        basketballWinRate: basketballCorrectPicks/basketballGames.length,
-        highIndexWinRate: highIndexCorrect/highIndex.length,
-        lowIndexWinRate: lowIndexCorrect/lowIndex.length,
-        highIndexDiffWinRate: highIndexDiffCorrect/highIndexDifference.length,
-        lowIndexDiffWinRate: lowIndexDiffCorrect/lowIndexDifference.length
-    })
+    async getHighIndex(req, res) {
+        try {
+            let odds = await getCachedOdds('highIndexOdds', { $or: [{ 'homeTeamIndex': { $gt: 5 } }, { 'awayTeamIndex': { $gt: 5 } }] });
+            return res.json(odds);
+        } catch (err) {
+            return res.status(500).json({ message: err.message });
+        }
+    },
 
-},
-    async getIndexDiffWinRate(req, res) {
-        let odds = myCache.get('pastOdds')
-        if (odds == undefined) {
-            const allGames = await PastGameOdds.find()
-            let success = myCache.set('pastOdds', JSON.stringify(allGames), 10800)
-            // console.log(req.body)
-            if (success) {
-                return res.json({
-                    matchingIndexWinRate: allGames.filter((game) => (game.homeTeamIndex - game.awayTeamIndex === req.body.indexDiff ||game.awayTeamIndex - game.homeTeamIndex === req.body.indexDiff)).filter((game)=>game.predictionCorrect===true).length / allGames.filter((game) => (game.homeTeamIndex - game.awayTeamIndex === req.body.indexDiff ||game.awayTeamIndex - game.homeTeamIndex === req.body.indexDiff )).length,
-                    sportGamesWinRate: allGames.filter((game)=> game.sport_key === req.body.sport_key).filter((game)=>game.predictionCorrect===true).length / allGames.filter((game)=> game.sport_key === req.body.sport_key).length,
-                    hometeamWinRate: allGames.filter((game)=>game.home_team === req.body.homeTeam || game.away_team === req.body.homeTeam).filter((game)=>game.predictionCorrect===true).length /  allGames.filter((game)=>game.home_team === req.body.homeTeam || game.away_team === req.body.homeTeam).length,
-                    awayteamWinRate: allGames.filter((game)=>game.home_team === req.body.awayTeam || game.away_team === req.body.awayTeam).filter((game)=>game.predictionCorrect===true).length /  allGames.filter((game)=>game.home_team === req.body.awayTeam || game.away_team === req.body.awayTeam).length
-                })
+    async getWinRates(req, res) {
+        try {
+            const allGames = await PastGameOdds.find();
+            const sportsData = {
+                football: { games: await PastGameOdds.find({ sport: 'football' }), correct: 0 },
+                baseball: { games: await PastGameOdds.find({ sport: 'baseball' }), correct: 0 },
+                basketball: { games: await PastGameOdds.find({ sport: 'basketball' }), correct: 0 },
+                hockey: { games: await PastGameOdds.find({ sport: 'hockey' }), correct: 0 },
+                nfl: { games: await PastGameOdds.find({ sport_key: 'americanfootball_nfl' }), correct: 0 },
+                ncaaf: { games: await PastGameOdds.find({ sport_key: 'americanfootball_ncaaf' }), correct: 0 }
+            };
+
+            // Calculate correct picks for each sport
+            for (const sport in sportsData) {
+                sportsData[sport].correct = sportsData[sport].games.filter(game => game.predictionCorrect === true).length;
             }
 
-        } else {
-            const allGames = JSON.parse(odds)
+            const highIndex = await PastGameOdds.find({ $or: [{ 'homeTeamIndex': { $gt: 5 } }, { 'awayTeamIndex': { $gt: 5 } }] });
+            const lowIndex = await PastGameOdds.find({ $or: [{ 'homeTeamIndex': { $lt: -5 } }, { 'awayTeamIndex': { $lt: -5 } }] });
+
             return res.json({
-                matchingIndexWinRate: allGames.filter((game) => (game.homeTeamIndex - game.awayTeamIndex === req.body.indexDiff ||game.awayTeamIndex - game.homeTeamIndex === req.body.indexDiff)).filter((game)=>game.predictionCorrect===true).length / allGames.filter((game) => (game.homeTeamIndex - game.awayTeamIndex === req.body.indexDiff ||game.awayTeamIndex - game.homeTeamIndex === req.body.indexDiff )).length,
-                sportGamesWinRate: allGames.filter((game)=> game.sport_key === req.body.sport_key).filter((game)=>game.predictionCorrect===true).length / allGames.filter((game)=> game.sport_key === req.body.sport_key).length,
-                hometeamWinRate: allGames.filter((game)=>game.home_team === req.body.homeTeam || game.away_team === req.body.homeTeam).filter((game)=>game.predictionCorrect===true).length /  allGames.filter((game)=>game.home_team === req.body.homeTeam || game.away_team === req.body.homeTeam).length,
-                awayteamWinRate: allGames.filter((game)=>game.home_team === req.body.awayTeam || game.away_team === req.body.awayTeam).filter((game)=>game.predictionCorrect===true).length /  allGames.filter((game)=>game.home_team === req.body.awayTeam || game.away_team === req.body.awayTeam).length
-            })
+                overallWinRate: calculateWinRate(allGames, true),
+                footballWinRate: calculateWinRate(sportsData.football.games, true),
+                baseballWinRate: calculateWinRate(sportsData.baseball.games, true),
+                basketballWinRate: calculateWinRate(sportsData.basketball.games, true),
+                hockeyWinRate: calculateWinRate(sportsData.hockey.games, true),
+                nflWinRate: calculateWinRate(sportsData.nfl.games, true),
+                ncaafWinRate: calculateWinRate(sportsData.ncaaf.games, true),
+                highIndexWinRate: calculateWinRate(highIndex, true),
+                lowIndexWinRate: calculateWinRate(lowIndex, true),
+            });
+        } catch (err) {
+            return res.status(500).json({ message: err.message });
         }
-
     },
-    async getPastGames(req, res) {
-        const pastGames = await PastGameOdds.find()
 
-        res.json(pastGames.filter((game) => moment(game.commence_time).isAfter(moment('2024-12-05'))))
+    async getIndexDiffWinRate(req, res) {
+        try {
+            const allGames = await PastGameOdds.find();
+            const matchingIndexGames = allGames.filter(game => Math.abs(game.homeTeamIndex - game.awayTeamIndex) === req.body.indexDiff);
+            const matchingIndexWinRate = calculateWinRate(matchingIndexGames, true);
+
+            const sportGames = allGames.filter(game => game.sport_key === req.body.sport_key);
+            const sportWinRate = calculateWinRate(sportGames, true);
+
+            const homeTeamGames = allGames.filter(game => game.home_team === req.body.homeTeam || game.away_team === req.body.homeTeam);
+            const homeTeamWinRate = calculateWinRate(homeTeamGames, true);
+
+            const awayTeamGames = allGames.filter(game => game.home_team === req.body.awayTeam || game.away_team === req.body.awayTeam);
+            const awayTeamWinRate = calculateWinRate(awayTeamGames, true);
+
+            return res.json({
+                matchingIndexWinRate,
+                sportGamesWinRate: sportWinRate,
+                hometeamWinRate: homeTeamWinRate,
+                awayteamWinRate: awayTeamWinRate
+            });
+        } catch (err) {
+            return res.status(500).json({ message: err.message });
+        }
+    },
+
+    async getPastGames(req, res) {
+        try {
+            const pastGames = await PastGameOdds.find();
+            const filteredGames = pastGames.filter(game => moment(game.commence_time).isAfter(moment('2024-12-05')));
+            return res.json(filteredGames);
+        } catch (err) {
+            return res.status(500).json({ message: err.message });
+        }
     }
-}
+};
