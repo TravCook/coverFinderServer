@@ -217,29 +217,42 @@ const dataSeed = async () => {
         let teamListResponse;
         let teamListJson;
         if (sports[i].name === 'americanfootball_ncaaf') {
-            // Fetch college football teams
-            teamListResponse = await fetch(`https://api.collegefootballdata.com/teams/fbs?year=${sports[i].statYear}`, {
-                headers: {
-                    "Authorization": `Bearer ${process.env.CFB_API_KEY}`,
-                    "Accept": "application/json"
-                }
-            });
-            teamListJson = await teamListResponse.json();
-            teamListJson.forEach((team) => {
-                const { id: espnID, location, mascot: teamName, abbreviation, school, logos } = team;
-                const espnDisplayName = formatDisplayName(team);
-                teams.push({
-                    espnID,
-                    espnDisplayName,
-                    location: location.city,
-                    teamName,
-                    league: sports[i].league,
-                    abbreviation,
-                    logo: logos[0],
-                    school
+            try {
+                // Fetch college football teams
+                const teamListResponse = await fetch(`https://api.collegefootballdata.com/teams/fbs?year=${sports[i].statYear}`, {
+                    headers: {
+                        "Authorization": `Bearer ${process.env.CFB_API_KEY}`,
+                        "Accept": "application/json"
+                    }
                 });
-            });
-        } else {
+
+                // Parse the response to JSON
+                const teamListJson = await teamListResponse.json();
+
+                // Ensure teamListJson is an array before using forEach
+                if (Array.isArray(teamListJson)) {
+                    teamListJson.forEach((team) => {
+                        const { id: espnID, location, mascot: teamName, abbreviation, school, logos } = team;
+                        const espnDisplayName = formatDisplayName(team);
+                        teams.push({
+                            espnID,
+                            espnDisplayName,
+                            location: location.city,
+                            teamName,
+                            league: sports[i].league,
+                            abbreviation,
+                            logo: logos[0],
+                            school
+                        });
+                    });
+                } else {
+                    console.error("Expected an array but received:", teamListJson);
+                }
+            } catch (error) {
+                console.error("Error fetching or processing team data:", error);
+            }
+        }
+        else {
             // Fetch non-football teams
             teamListResponse = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sports[i].espnSport}/${sports[i].league}/teams`);
             teamListJson = await teamListResponse.json();
