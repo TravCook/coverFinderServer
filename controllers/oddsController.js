@@ -15,7 +15,7 @@ async function getCachedOdds(cacheKey, query, filterDays = 14) {
         try {
             odds = await Odds.find(query);
             odds = filterOddsByCommenceTime(odds, filterDays);
-            myCache.set(cacheKey, JSON.stringify(odds), 600); // Cache for 14 minutes
+            myCache.set(cacheKey, JSON.stringify(odds), 1); // Cache for 5 minutes
         } catch (err) {
             throw new Error('Error fetching odds: ' + err.message);
         }
@@ -35,7 +35,9 @@ module.exports = {
     async getAllOdds(req, res) {
         try {
             let odds = await getCachedOdds('allOdds', {});
-            return res.json(odds);
+            return res.json(odds.sort((a, b) => moment.utc(a.commence_time) === moment.utc(b.commence_time)
+            ? a.winPercent - b.winPercent
+            : moment.utc(a.commence_time) - moment.utc(b.commence_time)));
         } catch (err) {
             return res.status(500).json({ message: err.message });
         }
