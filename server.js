@@ -25,7 +25,7 @@ const cronJobs = [
     timezone, // Ensure this is a string, 'America/Denver'
   },
   {
-    cronTime: '0 */10 * * * *', // every 10 minutes
+    cronTime: '0 */5 * * * *', // every 10 minutes
     onTick: dataSeed.dataSeed,
     timezone, // Ensure this is a string, 'America/Denver'
   },

@@ -3,57 +3,66 @@ const { Odds, Teams, PastGameOdds } = require('../models');
 const axios = require('axios')
 const moment = require('moment')
 const cheerio = require('cheerio');
-const tf = require('@tensorflow/tfjs');
+const fs = require('fs')
+const tf = require('@tensorflow/tfjs-node');
 
+// Suppress TensorFlow.js logging
+process.env.TF_CPP_MIN_LOG_LEVEL = '3'; // Suppress logs
+
+const sports = [
+    {
+        name: "americanfootball_nfl",
+        espnSport: 'football',
+        league: 'nfl',
+        startMonth: 9,
+        endMonth: 2,
+        multiYear: true,
+        statYear: 2024,
+        decayFactor: 0.95
+    },
+    {
+        name: "americanfootball_ncaaf",
+        espnSport: 'football',
+        league: 'college-football',
+        startMonth: 9,
+        endMonth: 1,
+        multiYear: true,
+        statYear: 2024,
+        decayFactor: 0.90
+    },
+    {
+        name: "basketball_nba",
+        espnSport: 'basketball',
+        league: 'nba',
+        startMonth: 10,
+        endMonth: 4,
+        multiYear: true,
+        statYear: 2025,
+        decayFactor: 0.85
+    },
+    {
+        name: "icehockey_nhl",
+        espnSport: 'hockey',
+        league: 'nhl',
+        startMonth: 10,
+        endMonth: 4,
+        multiYear: true,
+        statYear: 2025,
+        prevstatYear: 2024,
+        decayFactor: 0.85
+    },
+    {
+        name: "baseball_mlb",
+        espnSport: 'baseball',
+        league: 'mlb',
+        startMonth: 3,
+        endMonth: 10,
+        multiYear: false,
+        statYear: 2024,
+        decayFactor: 0.75
+    },
+]
 const oddsSeed = async () => {
-    let sports = [
-        {
-            name: "americanfootball_nfl",
-            espnSport: 'football',
-            league: 'nfl',
-            startMonth: 9,
-            endMonth: 2,
-            multiYear: true,
-            statYear: 2024
-        },
-        {
-            name: "americanfootball_ncaaf",
-            espnSport: 'football',
-            league: 'college-football',
-            startMonth: 9,
-            endMonth: 1,
-            multiYear: true,
-            statYear: 2024
-        },
-        {
-            name: "basketball_nba",
-            espnSport: 'basketball',
-            league: 'nba',
-            startMonth: 10,
-            endMonth: 4,
-            multiYear: true,
-            statYear: 2024
-        },
-        {
-            name: "icehockey_nhl",
-            espnSport: 'hockey',
-            league: 'nhl',
-            startMonth: 10,
-            endMonth: 4,
-            multiYear: true,
-            statYear: 2025,
-            prevstatYear: 2024
-        },
-        {
-            name: "baseball_mlb",
-            espnSport: 'baseball',
-            league: 'mlb',
-            startMonth: 3,
-            endMonth: 10,
-            multiYear: false,
-            statYear: 2024
-        },
-    ]
     // RETRIEVE ODDS
     console.log('BEGINNING ODDS SEEDING')
     await axios.all(sports.map((sport) =>
@@ -143,58 +152,9 @@ const oddsSeed = async () => {
         }
     })
 }
-
 const dataSeed = async () => {
     // DETERMINE SPORTS
     console.log("DB CONNECTED ---- STARTING SEED")
-    let sports = [
-        {
-            name: "americanfootball_nfl",
-            espnSport: 'football',
-            league: 'nfl',
-            startMonth: 9,
-            endMonth: 2,
-            multiYear: true,
-            statYear: 2024
-        },
-        {
-            name: "americanfootball_ncaaf",
-            espnSport: 'football',
-            league: 'college-football',
-            startMonth: 9,
-            endMonth: 1,
-            multiYear: true,
-            statYear: 2024
-        },
-        {
-            name: "basketball_nba",
-            espnSport: 'basketball',
-            league: 'nba',
-            startMonth: 10,
-            endMonth: 4,
-            multiYear: true,
-            statYear: 2025
-        },
-        {
-            name: "icehockey_nhl",
-            espnSport: 'hockey',
-            league: 'nhl',
-            startMonth: 10,
-            endMonth: 4,
-            multiYear: true,
-            statYear: 2025,
-            prevstatYear: 2024
-        },
-        {
-            name: "baseball_mlb",
-            espnSport: 'baseball',
-            league: 'mlb',
-            startMonth: 3,
-            endMonth: 10,
-            multiYear: false,
-            statYear: 2024
-        },
-    ]
     // DETERMINE TEAMS
     console.log(`BEGINNING TEAM SEEDING @ ${moment().format('HH:mm:ss')}`)
     // CLEANED AND FORMATTED
@@ -251,28 +211,38 @@ const dataSeed = async () => {
             }
         }
         else {
-            // Fetch non-football teams
-            teamListResponse = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sports[i].espnSport}/${sports[i].league}/teams`);
-            teamListJson = await teamListResponse.json();
-            const teamList = teamListJson.sports[0].leagues[0].teams;
+            try {
+                // Fetch non-football teams
+                teamListResponse = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sports[i].espnSport}/${sports[i].league}/teams`);
+                teamListJson = await teamListResponse.json();
+                // if(Array.isArray(teamListJson)){
+                const teamList = teamListJson.sports[0].leagues[0].teams;
 
-            teamList.forEach((team) => {
-                const { id: espnID, location, name: teamName, abbreviation, logos } = team.team;
-                const espnDisplayName = team.team.displayName === "St. Louis Blues" ? "St Louis Blues" :
-                    team.team.displayName === "Montreal Canadiens" ? "Montréal Canadiens" :
-                        team.team.displayName === "LA Clippers" ? "Los Angeles Clippers" :
-                            team.team.displayName;
+                teamList.forEach((team) => {
+                    const { id: espnID, location, name: teamName, abbreviation, logos } = team.team;
+                    const espnDisplayName = team.team.displayName === "St. Louis Blues" ? "St Louis Blues" :
+                        team.team.displayName === "Montreal Canadiens" ? "Montréal Canadiens" :
+                            team.team.displayName === "LA Clippers" ? "Los Angeles Clippers" :
+                                team.team.displayName;
 
-                teams.push({
-                    espnID,
-                    espnDisplayName,
-                    location,
-                    teamName,
-                    league: sports[i].league,
-                    abbreviation,
-                    logo: logos[0].href
+                    teams.push({
+                        espnID,
+                        espnDisplayName,
+                        location,
+                        teamName,
+                        league: sports[i].league,
+                        abbreviation,
+                        logo: logos[0].href
+                    });
                 });
-            });
+                // }else {
+                // console.error("Expected an array but received:", teamListJson);
+                // }
+            } catch (error) {
+                console.error("Error fetching or processing team data:", error);
+            }
+
+
         }
 
 
@@ -465,22 +435,27 @@ const dataSeed = async () => {
         }
         console.log(`Successfuly saved ${sports[i].league} teams @ ${moment().format('HH:mm:ss')}`)
     }
-
     let currentOdds = await Odds.find() //USE THIS TO POPULATE UPCOMING GAME ODDS
-    let footballWeights = []
-    let basketballWeights = []
-    let baseballWeights = []
-    let hockeyWeights = []
+    let nflWeights = []
+    let nbaWeights = []
+    let mlbWeights = []
+    let nhlWeights = []
+    let ncaafWeights = []
     async function trainSportModel(sport, gameData) {
+        if (gameData.length === 0) {
+            // Handle the case where there is no data for this sport
+            console.log(`No data available for ${sport.league}. Skipping model training.`);
+            // You could also add logic to handle this case more gracefully, 
+            // such as logging the missing sport and providing a default model.
+            return;
+        }
         // Function to convert the game data into tensors
         const xs = []; // Features
         const ys = []; // Labels
-
         // Helper function to safely extract stats with fallback
         const getStat = (stats, statName, fallbackValue = 0) => {
             return stats && stats[statName] !== undefined ? stats[statName] : fallbackValue;
         };
-
         // Helper function to calculate Win-Loss difference
         const getWinLoss = (stats) => {
             if (stats && stats.seasonWinLoss) {
@@ -491,7 +466,6 @@ const dataSeed = async () => {
             }
             return 0;
         };
-
         // Helper function to extract home/away win-loss
         const getHomeAwayWinLoss = (stats, type) => {
             if (stats && stats[type]) {
@@ -502,11 +476,10 @@ const dataSeed = async () => {
             }
             return 0;
         };
-
         // Feature extraction per sport
-        function extractSportFeatures(homeStats, awayStats, sport) {
-            switch (sport) {
-                case 'football':
+        function extractSportFeatures(homeStats, awayStats, league) {
+            switch (league) {
+                case 'americanfootball_nfl':
                     return [
                         getWinLoss(homeStats) - getWinLoss(awayStats),
                         getHomeAwayWinLoss(homeStats, 'homeWinLoss') - getHomeAwayWinLoss(awayStats, 'awayWinLoss'),
@@ -522,7 +495,23 @@ const dataSeed = async () => {
                         getStat(homeStats, 'yardsAllowedPerGame') - getStat(awayStats, 'yardsAllowedPerGame'),
                         getStat(homeStats, 'penaltyYards') - getStat(awayStats, 'penaltyYards'),
                     ];
-                case 'hockey':
+                case 'americanfootball_ncaaf':
+                    return [
+                        getWinLoss(homeStats) - getWinLoss(awayStats),
+                        getHomeAwayWinLoss(homeStats, 'homeWinLoss') - getHomeAwayWinLoss(awayStats, 'awayWinLoss'),
+                        getStat(homeStats, 'pointDiff') - getStat(awayStats, 'pointDiff'),
+                        getStat(homeStats, 'turnoverDiff') - getStat(awayStats, 'turnoverDiff'),
+                        getStat(homeStats, 'pointsPerGame') - getStat(awayStats, 'pointsPerGame'),
+                        getStat(homeStats, 'thirdDownConvRate') - getStat(awayStats, 'thirdDownConvRate'),
+                        getStat(homeStats, 'redZoneEfficiency') - getStat(awayStats, 'redZoneEfficiency'),
+                        getStat(homeStats, 'avgTimeofPossession') - getStat(awayStats, 'avgTimeofPossession'),
+                        getStat(homeStats, 'sackRate') - getStat(awayStats, 'sackRate'),
+                        getStat(homeStats, 'completionPercentage') - getStat(awayStats, 'completionPercentage'),
+                        getStat(homeStats, 'rushingYardsPerGame') - getStat(awayStats, 'rushingYardsPerGame'),
+                        getStat(homeStats, 'yardsAllowedPerGame') - getStat(awayStats, 'yardsAllowedPerGame'),
+                        getStat(homeStats, 'penaltyYards') - getStat(awayStats, 'penaltyYards'),
+                    ];
+                case 'icehockey_nhl':
                     return [
                         getWinLoss(homeStats) - getWinLoss(awayStats),
                         getHomeAwayWinLoss(homeStats, 'homeWinLoss') - getHomeAwayWinLoss(awayStats, 'awayWinLoss'),
@@ -539,7 +528,7 @@ const dataSeed = async () => {
                         getStat(homeStats, 'giveaways') - getStat(awayStats, 'giveaways'),
                         getStat(homeStats, 'takeaways') - getStat(awayStats, 'takeaways')
                     ];
-                case 'baseball':
+                case 'baseball_mlb':
                     return [
                         getWinLoss(homeStats) - getWinLoss(awayStats),
                         getHomeAwayWinLoss(homeStats, 'homeWinLoss') - getHomeAwayWinLoss(awayStats, 'awayWinLoss'),
@@ -554,7 +543,7 @@ const dataSeed = async () => {
                         getStat(homeStats, 'qualityStarts') - getStat(awayStats, 'qualityStarts'),
                         getStat(homeStats, 'homeRuns') - getStat(awayStats, 'homeRuns')
                     ];
-                case 'basketball':
+                case 'basketball_nba':
                     return [
                         getWinLoss(homeStats) - getWinLoss(awayStats),
                         getHomeAwayWinLoss(homeStats, 'homeWinLoss') - getHomeAwayWinLoss(awayStats, 'awayWinLoss'),
@@ -573,13 +562,12 @@ const dataSeed = async () => {
                     return [];
             }
         }
-
         gameData.forEach(game => {
             const homeStats = game.homeTeamStats;
             const awayStats = game.awayTeamStats;
 
             // Extract features based on sport
-            const features = extractSportFeatures(homeStats, awayStats, sport);
+            const features = extractSportFeatures(homeStats, awayStats, sport.name);
 
             // Set label to 1 if home team wins, 0 if away team wins
             const correctPrediction = game.winner = 'home' ? 1 : 0;
@@ -590,407 +578,388 @@ const dataSeed = async () => {
         // Convert arrays to tensors
         const xsTensor = tf.tensor2d(xs);
         const ysTensor = tf.tensor2d(ys, [ys.length, 1]);
-
+        // Define the path to the model
+        const modelPath = `./model_checkpoint/${sport.name}_model/model.json`;
+        // Define the path to the model directory
+        const modelDir = `./model_checkpoint/${sport.name}_model`;
         // Define the model
-        let model = tf.sequential();
-        model.add(tf.layers.dense({ units: 64, inputShape: [xs[0].length], activation: 'relu', kernelInitializer: 'glorotUniform', biasInitializer: 'zeros' }));
-        model.add(tf.layers.dense({ units: xs[0].length * 2, activation: 'relu', kernelInitializer: 'glorotUniform', biasInitializer: 'zeros' }));
-        model.add(tf.layers.dense({ units: xs[0].length * 2, activation: 'relu', kernelInitializer: 'glorotUniform', biasInitializer: 'zeros' }));
-        model.add(tf.layers.dense({ units: 1, activation: 'sigmoid', kernelInitializer: 'glorotUniform', biasInitializer: 'zeros' }));
+        const loadOrCreateModel = async () => {
+            try {
+                if (fs.existsSync(modelPath)) {
+                    console.log('Loading existing model...');
+                    return await tf.loadLayersModel(`file://./model_checkpoint/${sport.name}_model/model.json`);
+                } else {
+                    let newModel = tf.sequential();
 
-        // Compile the model
+                    newModel.add(tf.layers.dense({ units: 64, inputShape: [xs[0].length], activation: 'relu', kernelInitializer: 'glorotUniform', biasInitializer: 'zeros' }));
+                    newModel.add(tf.layers.dense({ units: xs[0].length * 2, activation: 'relu', kernelInitializer: 'glorotUniform', biasInitializer: 'zeros' }));
+                    newModel.add(tf.layers.dense({ units: xs[0].length * 2, activation: 'relu', kernelInitializer: 'glorotUniform', biasInitializer: 'zeros' }));
+                    newModel.add(tf.layers.dense({ units: 1, activation: 'sigmoid', kernelInitializer: 'glorotUniform', biasInitializer: 'zeros' }));
+
+                    // Compile the model
+
+                    return newModel
+                }
+            } catch (err) {
+                console.log(err)
+            }
+        }
+        const model = await loadOrCreateModel()
         model.compile({
             optimizer: tf.train.adam(.01),
             loss: 'binaryCrossentropy',
             metrics: ['accuracy']
         });
-
         const earlyStopping = tf.callbacks.earlyStopping({
             monitor: 'val_loss',
             patience: 25,
         });
-
         // Train the model
         await model.fit(xsTensor, ysTensor, {
-            epochs: 100,
-            batchSize: 32,
-            validationSplit: 0.2,
+            epochs: 500,
+            batchSize: xs.length < 32 ? xs.length : 32,
+            validationSplit: 0.9,
             shuffle: false,
+            verbose: false
         });
-
+        if (!fs.existsSync(modelDir)) {
+            console.log('Creating model directory...');
+            // Create the directory (including any necessary parent directories)
+            fs.mkdirSync(modelDir, { recursive: true });
+        }
         // Save model specific to the sport
-        // await model.save(`file://./model_checkpoint/${sport}_model.json`);
-
+        await model.save(`file://./model_checkpoint/${sport.name}_model`);
         // Log loss and accuracy
         const evaluation = model.evaluate(xsTensor, ysTensor);
+        let ff = []
+        let sportOdds = await Odds.find({ sport_key: sport.name })
+        sportOdds.forEach(game => {
+            const homeStats = game.homeTeamStats;
+            const awayStats = game.awayTeamStats;
+
+            // Extract features based on sport
+            const features = extractSportFeatures(homeStats, awayStats, sport.name);
+
+            // Set label to 1 if home team wins, 0 if away team wins
+            // const correctPrediction = game.winner = 'home' ? 1 : 0;
+
+            ff.push(features);
+            // ys.push(correctPrediction);
+        });
+        const ffTensor = tf.tensor2d(ff);
+        // Get predictions as a promise and wait for it to resolve
+        const predictions = await model.predict(ffTensor);
+        // Convert tensor to an array of predicted probabilities
+        const probabilities = await predictions.array();  // This resolves the tensor to an array
+        sportOdds.forEach(async (game, index) => {
+            const predictedWinPercent = probabilities[index][0]; // Get the probability for the current game
+
+            // Update the game with the predicted win percentage
+            await Odds.findOneAndUpdate({ id: game.id }, { winPercent: predictedWinPercent });
+        });
         const loss = evaluation[0].arraySync();
         const accuracy = evaluation[1].arraySync();
+        console.log(`${sport.name} Model Loss:`, loss);
+        console.log(`${sport.name} Model Accuracy:`, accuracy);
+        let weights
+        let weightMatrix
+        let averages
+        const matrixIterator = (matrix) => {
+            for (let i = 0; i < matrix.length; i++) {
+                let row = matrix[i];
+                // Calculate the sum of the 64 weights in the row
+                let sum = row.reduce((acc, value) => acc + value, 0);
 
-        console.log(`${sport} Model Loss:`, loss);
-        console.log(`${sport} Model Accuracy:`, accuracy);
-        if (accuracy > .95) {
-            let weights
-            let weightMatrix
-            let averages
-            const matrixIterator = (matrix) => {
-                for (let i = 0; i < matrix.length; i++) {
-                    let row = matrix[i];
+                // Calculate the average of the row
+                let average = Math.abs(sum / row.length);
 
-                    // Calculate the sum of the 64 weights in the row
-                    let sum = row.reduce((acc, value) => acc + value, 0);
-
-                    // Calculate the average of the row
-                    let average = Math.abs(sum / row.length);
-
-                    // Store the average in the averages array
-                    averages.push(average * 10);
-                }
+                // Store the average in the averages array
+                averages.push((average * 10));
             }
-            if (sport === 'football') {
-                averages = []
-                // Extract weights from the first (input) layer of the model
-                weights = model.layers[0].getWeights();
-                weightMatrix = await weights[0].array(); // This gives the matrix of weights for each feature
+        }
+        function timeDecayAverage(sport, weights) {
+            // console.log(sport)
+            const decayFactor = sport.decayFactor;
+            let weightedSum = 0;
+            let sumOfDecayFactors = 0;
 
-                // Sum weights for each feature (column-wise)
-                // Iterate through each row in the weight matrix
-                matrixIterator(weightMatrix)
-
-                // Step 2: Normalize the weights (optional, for easier interpretation)
-                // let totalWeight = featureWeightsSum.reduce((sum, weight) => sum + weight, 0);
-                // normalizedFeatureWeights = featureWeightsSum.map(weight => weight / totalWeight);
-
-                // Step 3: Assign weights to preMade array
-                footballWeights = averages
+            // Apply decay factor to each weight
+            for (let i = 0; i < weights.length; i++) {
+                const decayWeight = Math.pow(decayFactor, weights.length - i - 1); // Decay decreases as i increases
+                weightedSum += weights[i] * decayWeight;
+                sumOfDecayFactors += decayWeight;
             }
-            else if (sport === 'basketball') {
-                averages = []
-                // Extract weights from the first (input) layer of the model
-                weights = model.layers[0].getWeights();
-                weightMatrix = await weights[0].array(); // This gives the matrix of weights for each feature
 
-                // Sum weights for each feature (column-wise)
-                // Iterate through each row in the weight matrix
-                matrixIterator(weightMatrix)
+            // Return the time-decay average
+            return weightedSum / sumOfDecayFactors;
+        }
+        if (sport.name === 'americanfootball_nfl') {
+            averages = []
+            // Extract weights from the first (input) layer of the model
+            weights = model.layers[0].getWeights();
+            weightMatrix = await weights[0].array(); // This gives the matrix of weights for each feature
 
-                // Step 2: Normalize the weights (optional, for easier interpretation)
-                // let totalWeight = featureWeightsSum.reduce((sum, weight) => sum + weight, 0);
-                // normalizedFeatureWeights = featureWeightsSum.map(weight => weight / totalWeight);
+            // Sum weights for each feature (column-wise)
+            // Iterate through each row in the weight matrix
+            matrixIterator(weightMatrix)
 
-                // Step 3: Assign weights to preMade array
-                basketballWeights = averages
-            }
-            else if (sport === 'baseball') {
-                averages = []
-                // Extract weights from the first (input) layer of the model
-                weights = model.layers[0].getWeights();
-                weightMatrix = await weights[0].array(); // This gives the matrix of weights for each feature
+            // Step 2: Normalize the weights (optional, for easier interpretation)
+            // let totalWeight = featureWeightsSum.reduce((sum, weight) => sum + weight, 0);
+            // normalizedFeatureWeights = featureWeightsSum.map(weight => weight / totalWeight);
 
-                // Sum weights for each feature (column-wise)
-                // Iterate through each row in the weight matrix
-                matrixIterator(weightMatrix)
+            // Step 3: Assign weights to preMade array
+            nflWeights = averages
+        }
+        else if (sport.name === 'americanfootball_ncaaf') {
+            averages = []
+            // Extract weights from the first (input) layer of the model
+            weights = model.layers[0].getWeights();
+            weightMatrix = await weights[0].array(); // This gives the matrix of weights for each feature
 
-                // Step 2: Normalize the weights (optional, for easier interpretation)
-                // let totalWeight = featureWeightsSum.reduce((sum, weight) => sum + weight, 0);
-                // normalizedFeatureWeights = featureWeightsSum.map(weight => weight / totalWeight);
+            // Sum weights for each feature (column-wise)
+            // Iterate through each row in the weight matrix
+            matrixIterator(weightMatrix)
 
-                // Step 3: Assign weights to preMade array
-                baseballWeights = averages
-            }
-            else if (sport === 'hockey') {
-                averages = []
-                // Extract weights from the first (input) layer of the model
-                weights = model.layers[0].getWeights();
-                weightMatrix = await weights[0].array(); // This gives the matrix of weights for each feature
+            // Step 2: Normalize the weights (optional, for easier interpretation)
+            // let totalWeight = featureWeightsSum.reduce((sum, weight) => sum + weight, 0);
+            // normalizedFeatureWeights = featureWeightsSum.map(weight => weight / totalWeight);
 
-                // Sum weights for each feature (column-wise)
-                // Iterate through each row in the weight matrix
-                matrixIterator(weightMatrix)
+            // Step 3: Assign weights to preMade array
+            ncaafWeights = averages
+        }
+        else if (sport.name === 'basketball_nba') {
+            averages = []
+            // Extract weights from the first (input) layer of the model
+            weights = model.layers[0].getWeights();
+            weightMatrix = await weights[0].array(); // This gives the matrix of weights for each feature
 
-                // Step 2: Normalize the weights (optional, for easier interpretation)
-                // let totalWeight = featureWeightsSum.reduce((sum, weight) => sum + weight, 0);
-                // normalizedFeatureWeights = featureWeightsSum.map(weight => weight / totalWeight);
+            // Sum weights for each feature (column-wise)
+            // Iterate through each row in the weight matrix
+            matrixIterator(weightMatrix)
 
-                // Step 3: Assign weights to preMade array
-                hockeyWeights = averages
-            }
-            //DETERMINE H2H INDEXES FOR EVERY GAME IN ODDS
-            console.log(`DETERMINING ${sport} INDEXES @ ${moment().format('HH:mm:ss')}`); //CLEANED AND FORMATTED
-            // Helper function to adjust indexes for football games
-            function adjustFootballStats(homeTeam, awayTeam, homeIndex, awayIndex) {
-                homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += footballWeights[0] : awayIndex += footballWeights[0];
-                homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += footballWeights[1] : awayIndex += footballWeights[1];
-                homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += footballWeights[2] : awayIndex += footballWeights[2];
-                homeTeam.turnoverDiff >= awayTeam.turnoverDiff ? homeIndex += footballWeights[3] : awayIndex += footballWeights[3];
-                homeTeam.pointsPerGame >= awayTeam.pointsPerGame ? homeIndex += footballWeights[4] : awayIndex += footballWeights[4];
-                homeTeam.thirdDownConvRate >= awayTeam.thirdDownConvRate ? homeIndex += footballWeights[5] : awayIndex += footballWeights[5];
-                homeTeam.redZoneEfficiency >= awayTeam.redZoneEfficiency ? homeIndex += footballWeights[6] : awayIndex += footballWeights[6];
-                homeTeam.avgTimeofPossession >= awayTeam.avgTimeofPossession ? homeIndex += footballWeights[7] : awayIndex += footballWeights[7];
-                homeTeam.sackRate >= awayTeam.sackRate ? homeIndex += footballWeights[8] : awayIndex += footballWeights[8];
-                homeTeam.completionPercentage >= awayTeam.completionPercentage ? homeIndex += footballWeights[9] : awayIndex += footballWeights[9];
-                homeTeam.rushingYardsPerGame >= awayTeam.rushingYardsPerGame ? homeIndex += footballWeights[10] : awayIndex += footballWeights[10];
-                homeTeam.yardsAllowedPerGame <= awayTeam.yardsAllowedPerGame ? homeIndex += footballWeights[11] : awayIndex += footballWeights[11];
-                homeTeam.penaltyYardsPerGame <= awayTeam.penaltyYardsPerGame ? homeIndex += footballWeights[12] : awayIndex += footballWeights[12];
-                return { homeIndex, awayIndex };
-            }
-            // Helper function to adjust indexes for hockey games
-            function adjustHockeyStats(homeTeam, awayTeam, homeIndex, awayIndex) {
-                homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += hockeyWeights[0] : awayIndex += hockeyWeights[0];
-                homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += hockeyWeights[1] : awayIndex += hockeyWeights[1];
-                homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += hockeyWeights[2] : awayIndex += hockeyWeights[2];
-                homeTeam.powerPlayPct >= awayTeam.powerPlayPct ? homeIndex += hockeyWeights[3] : awayIndex += hockeyWeights[3];
-                homeTeam.penKillPct >= awayTeam.penKillPct ? homeIndex += hockeyWeights[4] : awayIndex += hockeyWeights[4];
-                homeTeam.shotsTaken >= awayTeam.shotsTaken ? homeIndex += hockeyWeights[5] : awayIndex += hockeyWeights[5];
-                homeTeam.savePct >= awayTeam.savePct ? homeIndex += hockeyWeights[6] : awayIndex += hockeyWeights[6];
-                homeTeam.goalsforPerGame >= awayTeam.goalsforPerGame ? homeIndex += hockeyWeights[7] : awayIndex += hockeyWeights[7];
-                homeTeam.faceoffsWon <= awayTeam.faceoffsWon ? homeIndex += hockeyWeights[8] : awayIndex += hockeyWeights[8];
-                homeTeam.goalsAgainstAverage <= awayTeam.goalsAgainstAverage ? homeIndex += hockeyWeights[9] : awayIndex += hockeyWeights[9];
-                homeTeam.shootingPct >= awayTeam.shootingPct ? homeIndex += hockeyWeights[10] : awayIndex += hockeyWeights[10];
-                homeTeam.shotsBlocked >= awayTeam.shotsBlocked ? homeIndex += hockeyWeights[11] : awayIndex += hockeyWeights[11];
-                homeTeam.giveaways <= awayTeam.giveaways ? homeIndex += hockeyWeights[12] : awayIndex += hockeyWeights[12];
-                homeTeam.takeaways >= awayTeam.takeaways ? homeIndex += hockeyWeights[13] : awayIndex += hockeyWeights[13];
-                return { homeIndex, awayIndex };
-            }
-            // Helper function to adjust indexes for basketball games
-            function adjustBasketballStats(homeTeam, awayTeam, homeIndex, awayIndex) {
-                homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += basketballWeights[0] : awayIndex += basketballWeights[0];
-                homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += basketballWeights[1] : awayIndex += basketballWeights[1];
-                homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += basketballWeights[2] : awayIndex += basketballWeights[2];
-                homeTeam.effectiveFieldGoalPct >= awayTeam.effectiveFieldGoalPct ? homeIndex += basketballWeights[3] : awayIndex += basketballWeights[3];
-                homeTeam.turnoverDiff >= awayTeam.turnoverDiff ? homeIndex += basketballWeights[4] : awayIndex += basketballWeights[4];
-                homeTeam.threePointPct >= awayTeam.threePointPct ? homeIndex += basketballWeights[5] : awayIndex += basketballWeights[5];
-                homeTeam.avgOffensiveRebounds >= awayTeam.avgOffensiveRebounds ? homeIndex += basketballWeights[6] : awayIndex += basketballWeights[6];
-                homeTeam.freeThrowPct >= awayTeam.freeThrowPct ? homeIndex += basketballWeights[7] : awayIndex += basketballWeights[7];
-                homeTeam.assistTurnoverRatio >= awayTeam.assistTurnoverRatio ? homeIndex += basketballWeights[8] : awayIndex += basketballWeights[8];
-                homeTeam.pointsInPaint >= awayTeam.pointsInPaint ? homeIndex += basketballWeights[9] : awayIndex += basketballWeights[9];
-                homeTeam.avgDefensiveRebounds >= awayTeam.avgDefensiveRebounds ? homeIndex += basketballWeights[10] : awayIndex += basketballWeights[10];
-                homeTeam.pace >= awayTeam.pace ? homeIndex += basketballWeights[11] : awayIndex += basketballWeights[11];
-                return { homeIndex, awayIndex };
-            }
-            // Helper function to adjust indexes for baseball games
-            function adjustBaseballStats(homeTeam, awayTeam, homeIndex, awayIndex) {
-                homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += baseballWeights[0] : awayIndex += baseballWeights[0];
-                homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += baseballWeights[1] : awayIndex += baseballWeights[1];
-                homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += baseballWeights[2] : awayIndex += baseballWeights[2];
-                homeTeam.onBasePct >= awayTeam.onBasePct ? homeIndex += baseballWeights[3] : awayIndex += baseballWeights[3];
-                homeTeam.sluggingPct >= awayTeam.sluggingPct ? homeIndex += baseballWeights[4] : awayIndex += baseballWeights[4];
-                homeTeam.earnedRunAverage <= awayTeam.earnedRunAverage ? homeIndex += baseballWeights[5] : awayIndex += baseballWeights[5];
-                homeTeam.strikeoutWalkRatio <= awayTeam.strikeoutWalkRatio ? homeIndex += baseballWeights[6] : awayIndex += baseballWeights[6];
-                homeTeam.fieldingPercentage >= awayTeam.fieldingPercentage ? homeIndex += baseballWeights[7] : awayIndex += baseballWeights[7];
-                homeTeam.stolenBasePercentage >= awayTeam.stolenBasePercentage ? homeIndex += baseballWeights[8] : awayIndex += baseballWeights[8];
-                homeTeam.fieldingErrors <= awayTeam.fieldingErrors ? homeIndex += baseballWeights[9] : awayIndex += baseballWeights[9];
-                homeTeam.qualityStarts >= awayTeam.qualityStarts ? homeIndex += baseballWeights[10] : awayIndex += baseballWeights[10];
-                homeTeam.homeRuns >= awayTeam.homeRuns ? homeIndex += baseballWeights[11] : awayIndex += baseballWeights[11];
-                return { homeIndex, awayIndex };
-            }
-            currentOdds.map(async (game) => {
-                // Check if the game is in the future
-                if (moment().isBefore(moment(game.commence_time))) {
-                    let homeTeam = await Teams.findOne({ 'espnDisplayName': game.home_team });
-                    let awayTeam = await Teams.findOne({ 'espnDisplayName': game.away_team });
-                    let homeIndex = 0;
-                    let awayIndex = 0;
-                    if (homeTeam && awayTeam) {
-                        // Sport-specific conditions
-                        if (game.sport_key === 'americanfootball_nfl' || game.sport_key === 'americanfootball_ncaaf') {
-                            // Apply various football statistics for the index calculation
-                            ({ homeIndex, awayIndex } = adjustFootballStats(homeTeam, awayTeam, homeIndex, awayIndex));
-                        }
-                        else if (game.sport_key === 'icehockey_nhl') {
-                            // Apply hockey-specific statistics
-                            ({ homeIndex, awayIndex } = adjustHockeyStats(homeTeam, awayTeam, homeIndex, awayIndex));
-                        }
-                        else if (game.sport_key === 'basketball_nba') {
-                            // Apply basketball-specific statistics
-                            ({ homeIndex, awayIndex } = adjustBasketballStats(homeTeam, awayTeam, homeIndex, awayIndex));
-                        }
-                        else if (game.sport_key === 'baseball_mlb') {
-                            // Apply baseball-specific statistics
-                            ({ homeIndex, awayIndex } = adjustBaseballStats(homeTeam, awayTeam, homeIndex, awayIndex));
-                        }
+            // Step 2: Normalize the weights (optional, for easier interpretation)
+            // let totalWeight = featureWeightsSum.reduce((sum, weight) => sum + weight, 0);
+            // normalizedFeatureWeights = featureWeightsSum.map(weight => weight / totalWeight);
+
+            // Step 3: Assign weights to preMade array
+            nbaWeights = averages
+        }
+        else if (sport.name === 'bseball_mlb') {
+            averages = []
+            // Extract weights from the first (input) layer of the model
+            weights = model.layers[0].getWeights();
+            weightMatrix = await weights[0].array(); // This gives the matrix of weights for each feature
+
+            // Sum weights for each feature (column-wise)
+            // Iterate through each row in the weight matrix
+            matrixIterator(weightMatrix)
+
+            // Step 2: Normalize the weights (optional, for easier interpretation)
+            // let totalWeight = featureWeightsSum.reduce((sum, weight) => sum + weight, 0);
+            // normalizedFeatureWeights = featureWeightsSum.map(weight => weight / totalWeight);
+
+            // Step 3: Assign weights to preMade array
+            mlbWeights = averages
+        }
+        else if (sport.name === 'icehockey_nhl') {
+            averages = []
+            // Extract weights from the first (input) layer of the model
+            weights = model.layers[0].getWeights();
+            weightMatrix = await weights[0].array(); // This gives the matrix of weights for each feature
+
+            // Sum weights for each feature (column-wise)
+            // Iterate through each row in the weight matrix
+            matrixIterator(weightMatrix)
+
+            // Step 2: Normalize the weights (optional, for easier interpretation)
+            // let totalWeight = featureWeightsSum.reduce((sum, weight) => sum + weight, 0);
+            // normalizedFeatureWeights = featureWeightsSum.map(weight => weight / totalWeight);
+
+            // Step 3: Assign weights to preMade array
+            nhlWeights = averages
+        }
+        //DETERMINE H2H INDEXES FOR EVERY GAME IN ODDS
+        console.log(`DETERMINING ${sport.name} INDEXES @ ${moment().format('HH:mm:ss')}`); //CLEANED AND FORMATTED
+        // Helper function to adjust indexes for football games
+        function adjustnflStats(homeTeam, awayTeam, homeIndex, awayIndex) {
+            homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += nflWeights[0] : awayIndex += nflWeights[0];
+            homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += nflWeights[1] : awayIndex += nflWeights[1];
+            homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += nflWeights[2] : awayIndex += nflWeights[2];
+            homeTeam.turnoverDiff >= awayTeam.turnoverDiff ? homeIndex += nflWeights[3] : awayIndex += nflWeights[3];
+            homeTeam.pointsPerGame >= awayTeam.pointsPerGame ? homeIndex += nflWeights[4] : awayIndex += nflWeights[4];
+            homeTeam.thirdDownConvRate >= awayTeam.thirdDownConvRate ? homeIndex += nflWeights[5] : awayIndex += nflWeights[5];
+            homeTeam.redZoneEfficiency >= awayTeam.redZoneEfficiency ? homeIndex += nflWeights[6] : awayIndex += nflWeights[6];
+            homeTeam.avgTimeofPossession >= awayTeam.avgTimeofPossession ? homeIndex += nflWeights[7] : awayIndex += nflWeights[7];
+            homeTeam.sackRate >= awayTeam.sackRate ? homeIndex += nflWeights[8] : awayIndex += nflWeights[8];
+            homeTeam.completionPercentage >= awayTeam.completionPercentage ? homeIndex += nflWeights[9] : awayIndex += nflWeights[9];
+            homeTeam.rushingYardsPerGame >= awayTeam.rushingYardsPerGame ? homeIndex += nflWeights[10] : awayIndex += nflWeights[10];
+            homeTeam.yardsAllowedPerGame <= awayTeam.yardsAllowedPerGame ? homeIndex += nflWeights[11] : awayIndex += nflWeights[11];
+            homeTeam.penaltyYardsPerGame <= awayTeam.penaltyYardsPerGame ? homeIndex += nflWeights[12] : awayIndex += nflWeights[12];
+            return { homeIndex, awayIndex };
+        }
+        function adjustncaafStats(homeTeam, awayTeam, homeIndex, awayIndex) {
+            homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += ncaafWeights[0] : awayIndex += ncaafWeights[0];
+            homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += ncaafWeights[1] : awayIndex += ncaafWeights[1];
+            homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += ncaafWeights[2] : awayIndex += ncaafWeights[2];
+            homeTeam.turnoverDiff >= awayTeam.turnoverDiff ? homeIndex += ncaafWeights[3] : awayIndex += ncaafWeights[3];
+            homeTeam.pointsPerGame >= awayTeam.pointsPerGame ? homeIndex += ncaafWeights[4] : awayIndex += ncaafWeights[4];
+            homeTeam.thirdDownConvRate >= awayTeam.thirdDownConvRate ? homeIndex += ncaafWeights[5] : awayIndex += ncaafWeights[5];
+            homeTeam.redZoneEfficiency >= awayTeam.redZoneEfficiency ? homeIndex += ncaafWeights[6] : awayIndex += ncaafWeights[6];
+            homeTeam.avgTimeofPossession >= awayTeam.avgTimeofPossession ? homeIndex += ncaafWeights[7] : awayIndex += ncaafWeights[7];
+            homeTeam.sackRate >= awayTeam.sackRate ? homeIndex += ncaafWeights[8] : awayIndex += ncaafWeights[8];
+            homeTeam.completionPercentage >= awayTeam.completionPercentage ? homeIndex += ncaafWeights[9] : awayIndex += ncaafWeights[9];
+            homeTeam.rushingYardsPerGame >= awayTeam.rushingYardsPerGame ? homeIndex += ncaafWeights[10] : awayIndex += ncaafWeights[10];
+            homeTeam.yardsAllowedPerGame <= awayTeam.yardsAllowedPerGame ? homeIndex += ncaafWeights[11] : awayIndex += ncaafWeights[11];
+            homeTeam.penaltyYardsPerGame <= awayTeam.penaltyYardsPerGame ? homeIndex += ncaafWeights[12] : awayIndex += ncaafWeights[12];
+            return { homeIndex, awayIndex };
+        }
+        // Helper function to adjust indexes for hockey games
+        function adjustnhlStats(homeTeam, awayTeam, homeIndex, awayIndex) {
+            homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += nhlWeights[0] : awayIndex += nhlWeights[0];
+            homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += nhlWeights[1] : awayIndex += nhlWeights[1];
+            homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += nhlWeights[2] : awayIndex += nhlWeights[2];
+            homeTeam.powerPlayPct >= awayTeam.powerPlayPct ? homeIndex += nhlWeights[3] : awayIndex += nhlWeights[3];
+            homeTeam.penKillPct >= awayTeam.penKillPct ? homeIndex += nhlWeights[4] : awayIndex += nhlWeights[4];
+            homeTeam.shotsTaken >= awayTeam.shotsTaken ? homeIndex += nhlWeights[5] : awayIndex += nhlWeights[5];
+            homeTeam.savePct >= awayTeam.savePct ? homeIndex += nhlWeights[6] : awayIndex += nhlWeights[6];
+            homeTeam.goalsforPerGame >= awayTeam.goalsforPerGame ? homeIndex += nhlWeights[7] : awayIndex += nhlWeights[7];
+            homeTeam.faceoffsWon <= awayTeam.faceoffsWon ? homeIndex += nhlWeights[8] : awayIndex += nhlWeights[8];
+            homeTeam.goalsAgainstAverage <= awayTeam.goalsAgainstAverage ? homeIndex += nhlWeights[9] : awayIndex += nhlWeights[9];
+            homeTeam.shootingPct >= awayTeam.shootingPct ? homeIndex += nhlWeights[10] : awayIndex += nhlWeights[10];
+            homeTeam.shotsBlocked >= awayTeam.shotsBlocked ? homeIndex += nhlWeights[11] : awayIndex += nhlWeights[11];
+            homeTeam.giveaways <= awayTeam.giveaways ? homeIndex += nhlWeights[12] : awayIndex += nhlWeights[12];
+            homeTeam.takeaways >= awayTeam.takeaways ? homeIndex += nhlWeights[13] : awayIndex += nhlWeights[13];
+            return { homeIndex, awayIndex };
+        }
+        // Helper function to adjust indexes for basketball games
+        function adjustnbaStats(homeTeam, awayTeam, homeIndex, awayIndex) {
+            homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += nbaWeights[0] : awayIndex += nbaWeights[0];
+            homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += nbaWeights[1] : awayIndex += nbaWeights[1];
+            homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += nbaWeights[2] : awayIndex += nbaWeights[2];
+            homeTeam.effectiveFieldGoalPct >= awayTeam.effectiveFieldGoalPct ? homeIndex += nbaWeights[3] : awayIndex += nbaWeights[3];
+            homeTeam.turnoverDiff >= awayTeam.turnoverDiff ? homeIndex += nbaWeights[4] : awayIndex += nbaWeights[4];
+            homeTeam.threePointPct >= awayTeam.threePointPct ? homeIndex += nbaWeights[5] : awayIndex += nbaWeights[5];
+            homeTeam.avgOffensiveRebounds >= awayTeam.avgOffensiveRebounds ? homeIndex += nbaWeights[6] : awayIndex += nbaWeights[6];
+            homeTeam.freeThrowPct >= awayTeam.freeThrowPct ? homeIndex += nbaWeights[7] : awayIndex += nbaWeights[7];
+            homeTeam.assistTurnoverRatio >= awayTeam.assistTurnoverRatio ? homeIndex += nbaWeights[8] : awayIndex += nbaWeights[8];
+            homeTeam.pointsInPaint >= awayTeam.pointsInPaint ? homeIndex += nbaWeights[9] : awayIndex += nbaWeights[9];
+            homeTeam.avgDefensiveRebounds >= awayTeam.avgDefensiveRebounds ? homeIndex += nbaWeights[10] : awayIndex += nbaWeights[10];
+            homeTeam.pace >= awayTeam.pace ? homeIndex += nbaWeights[11] : awayIndex += nbaWeights[11];
+            return { homeIndex, awayIndex };
+        }
+        // Helper function to adjust indexes for baseball games
+        function adjustmlbStats(homeTeam, awayTeam, homeIndex, awayIndex) {
+            homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += mlbWeights[0] : awayIndex += mlbWeights[0];
+            homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += mlbWeights[1] : awayIndex += mlbWeights[1];
+            homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += mlbWeights[2] : awayIndex += mlbWeights[2];
+            homeTeam.onBasePct >= awayTeam.onBasePct ? homeIndex += mlbWeights[3] : awayIndex += mlbWeights[3];
+            homeTeam.sluggingPct >= awayTeam.sluggingPct ? homeIndex += mlbWeights[4] : awayIndex += mlbWeights[4];
+            homeTeam.earnedRunAverage <= awayTeam.earnedRunAverage ? homeIndex += mlbWeights[5] : awayIndex += mlbWeights[5];
+            homeTeam.strikeoutWalkRatio <= awayTeam.strikeoutWalkRatio ? homeIndex += mlbWeights[6] : awayIndex += mlbWeights[6];
+            homeTeam.fieldingPercentage >= awayTeam.fieldingPercentage ? homeIndex += mlbWeights[7] : awayIndex += mlbWeights[7];
+            homeTeam.stolenBasePercentage >= awayTeam.stolenBasePercentage ? homeIndex += mlbWeights[8] : awayIndex += mlbWeights[8];
+            homeTeam.fieldingErrors <= awayTeam.fieldingErrors ? homeIndex += mlbWeights[9] : awayIndex += mlbWeights[9];
+            homeTeam.qualityStarts >= awayTeam.qualityStarts ? homeIndex += mlbWeights[10] : awayIndex += mlbWeights[10];
+            homeTeam.homeRuns >= awayTeam.homeRuns ? homeIndex += mlbWeights[11] : awayIndex += mlbWeights[11];
+            return { homeIndex, awayIndex };
+        }
+        currentOdds.map(async (game, index) => {
+            // Check if the game is in the future
+            if (moment().isBefore(moment(game.commence_time))) {
+                let homeTeam = await Teams.findOne({ 'espnDisplayName': game.home_team });
+                let awayTeam = await Teams.findOne({ 'espnDisplayName': game.away_team });
+                let homeIndex = 0;
+                let awayIndex = 0;
+                if (homeTeam && awayTeam) {
+                    // Sport-specific conditions
+                    if (game.sport_key === 'americanfootball_nfl') {
+                        // Apply various football statistics for the index calculation
+                        ({ homeIndex, awayIndex } = adjustnflStats(homeTeam, awayTeam, homeIndex, awayIndex));
                     }
-                    const getCommonStats = (team) => ({
-                        seasonWinLoss: team.seasonWinLoss,
-                        homeWinLoss: team.homeWinLoss,
-                        awayWinLoss: team.awayWinLoss,
-                        pointDiff: team.pointDiff,
-                        takeawaysPerGame: team.takeawaysPerGame, // USAFootball stat
-                        giveawaysPerGame: team.giveawaysPerGame, // USAFootball stat
-                        turnoverDiff: team.turnoverDiff, // USAFootball stat
-                        pointsPerGame: team.pointsPerGame, // USAFootball stat
-                        yardsPerPlay: team.yardsPerPlay, // USAFootball stat
-                        thirdDownConvRate: team.thirdDownConvRate, // USAFootball stat
-                        redZoneEfficiency: team.redZoneEfficiency, // USAFootball stat
-                        avgTimeofPossession: team.avgTimeofPossession, // USAFootball stat
-                        sackRate: team.sackRate, // USAFootball stat
-                        completionPercentage: team.completionPercentage, // USAFootball stat
-                        rushingYardsPerGame: team.rushingYardsPerGame, // USAFootball stat
-                        yardsAllowedPerGame: team.yardsAllowedPerGame, // USAFootball stat
-                        penaltyYardsPerGame: team.penaltyYardsPerGame, // USAFootball stat
-                        powerPlayPct: team.powerPlayPct, // Hockey stat
-                        penKillPct: team.penKillPct, // Hockey stat
-                        shotsTaken: team.shotsTaken, // Hockey stat
-                        savePct: team.savePct, // Hockey stat
-                        goalsforPerGame: team.goalsforPerGame, // Hockey stat
-                        faceoffsWon: team.faceoffsWon, // Hockey stat
-                        goalsAgainstAverage: team.goalsAgainstAverage, // Hockey stat
-                        shootingPct: team.shootingPct, // Hockey stat
-                        shotsBlocked: team.shotsBlocked, // Hockey stat
-                        giveaways: team.giveaways, // Hockey stat
-                        takeaways: team.takeaways, // Hockey stat
-                        onBasePct: team.onBasePct, // Baseball stat
-                        sluggingPct: team.sluggingPct, // Baseball stat
-                        earnedRunAverage: team.earnedRunAverage, // Baseball stat
-                        strikeoutWalkRatio: team.strikeoutWalkRatio, // Baseball stat
-                        fieldingPercentage: team.fieldingPercentage, // Baseball stat
-                        stolenBasePercentage: team.stolenBasePercentage, // Baseball stat
-                        fieldingErrors: team.fieldingErrors, // Baseball stat
-                        qualityStarts: team.qualityStarts, // Baseball stat
-                        homeRuns: team.homeRuns, // Baseball stat
-                        effectiveFieldGoalPct: team.effectiveFieldGoalPct, // Basketball stat
-                        turnoverDiff: team.turnoverDiff, // Basketball stat
-                        threePointPct: team.threePointPct, // Basketball stat
-                        avgOffensiveRebounds: team.avgOffensiveRebounds, // Basketball stat
-                        freeThrowPct: team.freeThrowPct, // Basketball stat
-                        assistTurnoverRatio: team.assistTurnoverRatio, // Basketball stat
-                        pointsInPaint: team.pointsInPaint, // Basketball stat
-                        avgDefensiveRebounds: team.avgDefensiveRebounds, // Basketball stat
-                        pace: team.pace // Basketball stat
+                    else if (game.sport_key === 'americanfootball_ncaaf') {
+                        // Apply college football statistics
+                        ({ homeIndex, awayIndex } = adjustncaafStats(homeTeam, awayTeam, homeIndex, awayIndex));
+                    }
+                    else if (game.sport_key === 'icehockey_nhl') {
+                        // Apply hockey-specific statistics
+                        ({ homeIndex, awayIndex } = adjustnhlStats(homeTeam, awayTeam, homeIndex, awayIndex));
+                    }
+                    else if (game.sport_key === 'basketball_nba') {
+                        // Apply basketball-specific statistics
+                        ({ homeIndex, awayIndex } = adjustnbaStats(homeTeam, awayTeam, homeIndex, awayIndex));
+                    }
+                    else if (game.sport_key === 'baseball_mlb') {
+                        // Apply baseball-specific statistics
+                        ({ homeIndex, awayIndex } = adjustmlbStats(homeTeam, awayTeam, homeIndex, awayIndex));
+                    }
+                }
+                const getCommonStats = (team) => ({
+                    seasonWinLoss: team.seasonWinLoss,
+                    homeWinLoss: team.homeWinLoss,
+                    awayWinLoss: team.awayWinLoss,
+                    pointDiff: team.pointDiff,
+                    takeawaysPerGame: team.takeawaysPerGame, // USAFootball stat
+                    giveawaysPerGame: team.giveawaysPerGame, // USAFootball stat
+                    turnoverDiff: team.turnoverDiff, // USAFootball stat
+                    pointsPerGame: team.pointsPerGame, // USAFootball stat
+                    yardsPerPlay: team.yardsPerPlay, // USAFootball stat
+                    thirdDownConvRate: team.thirdDownConvRate, // USAFootball stat
+                    redZoneEfficiency: team.redZoneEfficiency, // USAFootball stat
+                    avgTimeofPossession: team.avgTimeofPossession, // USAFootball stat
+                    sackRate: team.sackRate, // USAFootball stat
+                    completionPercentage: team.completionPercentage, // USAFootball stat
+                    rushingYardsPerGame: team.rushingYardsPerGame, // USAFootball stat
+                    yardsAllowedPerGame: team.yardsAllowedPerGame, // USAFootball stat
+                    penaltyYardsPerGame: team.penaltyYardsPerGame, // USAFootball stat
+                    powerPlayPct: team.powerPlayPct, // Hockey stat
+                    penKillPct: team.penKillPct, // Hockey stat
+                    shotsTaken: team.shotsTaken, // Hockey stat
+                    savePct: team.savePct, // Hockey stat
+                    goalsforPerGame: team.goalsforPerGame, // Hockey stat
+                    faceoffsWon: team.faceoffsWon, // Hockey stat
+                    goalsAgainstAverage: team.goalsAgainstAverage, // Hockey stat
+                    shootingPct: team.shootingPct, // Hockey stat
+                    shotsBlocked: team.shotsBlocked, // Hockey stat
+                    giveaways: team.giveaways, // Hockey stat
+                    takeaways: team.takeaways, // Hockey stat
+                    onBasePct: team.onBasePct, // Baseball stat
+                    sluggingPct: team.sluggingPct, // Baseball stat
+                    earnedRunAverage: team.earnedRunAverage, // Baseball stat
+                    strikeoutWalkRatio: team.strikeoutWalkRatio, // Baseball stat
+                    fieldingPercentage: team.fieldingPercentage, // Baseball stat
+                    stolenBasePercentage: team.stolenBasePercentage, // Baseball stat
+                    fieldingErrors: team.fieldingErrors, // Baseball stat
+                    qualityStarts: team.qualityStarts, // Baseball stat
+                    homeRuns: team.homeRuns, // Baseball stat
+                    effectiveFieldGoalPct: team.effectiveFieldGoalPct, // Basketball stat
+                    turnoverDiff: team.turnoverDiff, // Basketball stat
+                    threePointPct: team.threePointPct, // Basketball stat
+                    avgOffensiveRebounds: team.avgOffensiveRebounds, // Basketball stat
+                    freeThrowPct: team.freeThrowPct, // Basketball stat
+                    assistTurnoverRatio: team.assistTurnoverRatio, // Basketball stat
+                    pointsInPaint: team.pointsInPaint, // Basketball stat
+                    avgDefensiveRebounds: team.avgDefensiveRebounds, // Basketball stat
+                    pace: team.pace // Basketball stat
+                });
+                // Update the Odds database with the calculated indices
+                if (sport.espnSport === game.sport) {
+                    await Odds.findOneAndUpdate({ 'id': game.id }, {
+                        homeTeamIndex: homeIndex * 10 || 0,
+                        awayTeamIndex: awayIndex * 10 || 0,
+                        homeTeamStats: getCommonStats(homeTeam),
+                        awayTeamStats: getCommonStats(awayTeam),
                     });
-                    // Update the Odds database with the calculated indices
-                    if(sport === game.sport){
-                        await Odds.findOneAndUpdate({ 'id': game.id }, {
-                            homeTeamIndex: homeIndex || 0,
-                            awayTeamIndex: awayIndex || 0,
-                            homeTeamStats: getCommonStats(homeTeam),
-                            awayTeamStats: getCommonStats(awayTeam),
-                        });
-                    }
-                    
                 }
-            });
-        }
-    }
-
-    // Example usage for different sports
-    const pastFootballGames = await PastGameOdds.find({ sport: 'football' });
-    await trainSportModel('football', pastFootballGames);
-
-    const pastBasketballGames = await PastGameOdds.find({ sport: 'basketball' });
-    await trainSportModel('basketball', pastBasketballGames);
-
-    // const pastBaseballGames = await PastGameOdds.find({ sport: 'baseball' });
-    // await trainSportModel('baseball', pastBaseballGames);
-
-    const pastHockeyGames = await PastGameOdds.find({ sport: 'hockey' });
-    await trainSportModel('hockey', pastHockeyGames);
-
-
-
-    console.log('CALCULATING WIN RATES and Implied Probability') //CLEANED AND FORMATTED
-    let allPastGames = await PastGameOdds.find({})
-    allPastGames.map(async (game) => {
-        try {
-            // Loop over all bookmakers
-            await Promise.all(game.bookmakers.map(async (bookmaker) => {
-                // Loop over all markets for each bookmaker
-                await Promise.all(bookmaker.markets.map(async (market) => {
-                    // Loop over all outcomes for each market
-                    await Promise.all(market.outcomes.map(async (outcome) => {
-                        // Perform the update using arrayFilters to target the correct outcome
-                        if (outcome.price < 0) {
-                            await PastGameOdds.findOneAndUpdate(
-                                { 'id': game.id }, // Filter by game id
-                                {
-                                    $set: {
-                                        'bookmakers.$[bookmaker].markets.$[market].outcomes.$[outcome].impliedProb': Math.abs(outcome.price) / (Math.abs(outcome.price) + 100)
-                                    }
-                                },
-                                {
-                                    arrayFilters: [
-                                        { 'bookmaker.key': bookmaker.key }, // Match bookmaker by key
-                                        { 'market.key': market.key }, // Match market by key
-                                        { 'outcome._id': outcome._id } // Match outcome by its _id
-                                    ]
-                                }
-                            );
-                        } else {
-                            await PastGameOdds.findOneAndUpdate(
-                                { 'id': game.id }, // Filter by game id
-                                {
-                                    $set: {
-                                        'bookmakers.$[bookmaker].markets.$[market].outcomes.$[outcome].impliedProb': 100 / (outcome.price + 100)
-                                    }
-                                },
-                                {
-                                    arrayFilters: [
-                                        { 'bookmaker.key': bookmaker.key }, // Match bookmaker by key
-                                        { 'market.key': market.key }, // Match market by key
-                                        { 'outcome._id': outcome._id } // Match outcome by its _id
-                                    ]
-                                }
-                            );
-                        }
-                    }));
-                }));
-            }));
-        } catch (error) {
-            console.error('Error updating outcomes:', error);
-        }
-    })
-    currentOdds.map(async (game) => {
-        // Pre-calculate win rates in a single loop
-        let winRates = {
-            overall: 0,
-            homeTeam: 0,
-            awayTeam: 0,
-            league: 0,
-            homeTeamGames: 0,
-            awayTeamGames: 0,
-            leagueGames: 0
-        };
-
-        allPastGames.forEach((pastGame) => {
-            if (pastGame.predictionCorrect === true) {
-                winRates.overall += 1;
-            }
-            if (pastGame.home_team === game.home_team || pastGame.away_team === game.home_team) {
-                if (pastGame.predictionCorrect === true) {
-                    winRates.homeTeam += 1;
-                }
-                winRates.homeTeamGames += 1;
-            }
-            if (pastGame.home_team === game.away_team || pastGame.away_team === game.away_team) {
-                if (pastGame.predictionCorrect === true) {
-                    winRates.awayTeam += 1;
-                }
-                winRates.awayTeamGames += 1;
-            }
-            if (pastGame.sport_key === game.sport_key) {
-                if (pastGame.predictionCorrect === true) {
-                    winRates.league += 1;
-                }
-                winRates.leagueGames += 1;
             }
         });
-
-        // Calculate win rates safely
-        const safeDivision = (numerator, denominator) => (denominator === 0 ? 0 : numerator / denominator);
-
-        const overallWinRate = safeDivision(winRates.overall, allPastGames.length);
-        const homeTeamWinRate = safeDivision(winRates.homeTeam, winRates.homeTeamGames);
-        const awayTeamWinRate = safeDivision(winRates.awayTeam, winRates.awayTeamGames);
-        const leagueWinRate = safeDivision(winRates.league, winRates.leagueGames);
-
-        // For each game in currentOdds, update the winPercent
-        let winRatesArray = [overallWinRate];
-        if (homeTeamWinRate) winRatesArray.push(homeTeamWinRate);
-        if (awayTeamWinRate) winRatesArray.push(awayTeamWinRate);
-        if (leagueWinRate) winRatesArray.push(leagueWinRate);
-
-        const winPercent = winRatesArray.reduce((sum, rate) => sum + rate, 0) / winRatesArray.length;
-
-        await Odds.findOneAndUpdate({ 'id': game.id }, { winPercent });
+    }
+    for (sport = 0; sport < sports.length; sport++) {
+        const pastGames = await PastGameOdds.find({ sport_key: sports[sport].name })
+        await trainSportModel(sports[sport], pastGames)
+    }
+    console.log('CALCULATING Implied Probability') //CLEANED AND FORMATTED
+    // let allPastGames = await PastGameOdds.find({})
+    currentOdds.map(async (game) => {
         try {
             // Loop over all bookmakers
             await Promise.all(game.bookmakers.map(async (bookmaker) => {
