@@ -88,6 +88,14 @@ const oddsSchema = new Schema({
         type: Number,
         required: false
     },
+    homeScore: {
+        type: Number,
+        required: false
+    },
+    awayScore: {
+        type: Number,
+        required: false
+    },
     homeTeamStats: {
         type: Schema.Types.Mixed,
         required: false

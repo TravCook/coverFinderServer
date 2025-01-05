@@ -326,7 +326,7 @@ const retrieveTeamsandStats = async () => {
                     const teamRecordResponse = await fetch(teamRecordUrl);
                     const teamRecordJson = await teamRecordResponse.json();
                     updateTeamRecord(team, teamRecordJson);
-        
+
                     // Fetch team stats
                     const teamStatResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/${sport.espnSport}/leagues/${sport.league}/seasons/${statYear}/types/2/teams/${team.espnID}/statistics?lang=en&region=us`);
                     const teamStatjson = await teamStatResponse.json();
@@ -337,16 +337,16 @@ const retrieveTeamsandStats = async () => {
                     }
                     return team;
                 });
-        
+
                 const updatedTeams = await Promise.all(teamPromises);
-        
+
                 // Bulk upsert the updated teams
                 await upsertTeamsInBulk(updatedTeams, sport.espnSport);
             } catch (error) {
                 console.error("Error fetching or processing team data:", error);
             }
         };
-        
+
         fetchAllTeamData(sports[i], teams, sports[i].statYear)
     }
 }
@@ -360,16 +360,16 @@ const removePastGames = async (currentOdds) => {
             let homeScore, awayScore, predictionCorrect, winner;
 
             // Fetch team details from the Teams collection
-            if(game.sport === 'football'){
+            if (game.sport === 'football') {
                 homeTeam = await UsaFootballTeam.findOne({ 'espnDisplayName': game.home_team });
                 awayTeam = await UsaFootballTeam.findOne({ 'espnDisplayName': game.away_team });
-            }else if(game.sport === 'baseball'){
+            } else if (game.sport === 'baseball') {
                 homeTeam = await BaseballTeam.findOne({ 'espnDisplayName': game.home_team });
                 awayTeam = await BaseballTeam.findOne({ 'espnDisplayName': game.away_team });
-            }else if(game.sport === 'basketball'){
+            } else if (game.sport === 'basketball') {
                 homeTeam = await BasketballTeam.findOne({ 'espnDisplayName': game.home_team });
                 awayTeam = await BasketballTeam.findOne({ 'espnDisplayName': game.away_team });
-            }else if(game.sport === 'hockey'){
+            } else if (game.sport === 'hockey') {
                 homeTeam = await HockeyTeam.findOne({ 'espnDisplayName': game.home_team });
                 awayTeam = await HockeyTeam.findOne({ 'espnDisplayName': game.away_team });
             }
@@ -472,7 +472,7 @@ const removePastGames = async (currentOdds) => {
                                 strikeoutToWalkRatioPitcher: team.stats.strikeoutToWalkRatioPitcher,
                                 doublePlays: team.stats.doublePlays,
                                 fieldingErrors: team.stats.fieldingErrors,
-                                fieldingPercentage: team.stats.fieldingPercentage,   
+                                fieldingPercentage: team.stats.fieldingPercentage,
                                 ReboundsTotal: team.stats.ReboundsTotal,
                                 PointsTotal: team.stats.PointsTotal,
                                 pointsPergame: team.stats.pointsPergame,
@@ -522,17 +522,17 @@ const removePastGames = async (currentOdds) => {
                                 totalSaves: team.stats.totalSaves,
                                 savePerGame: team.stats.savePerGame,
                                 savePct: team.stats.savePct,
-                                takeaways: team.stats.takeaways, 
+                                takeaways: team.stats.takeaways,
                             });
                             const cleanStats = (stats) => {
                                 const cleanedStats = {};
-                            
+
                                 for (const key in stats) {
                                     if (stats[key] !== null && stats[key] !== undefined) {
                                         cleanedStats[key] = stats[key];
                                     }
                                 }
-                            
+
                                 return cleanedStats;
                             };
                             // Save the past game to the PastGameOdds collection
@@ -546,6 +546,37 @@ const removePastGames = async (currentOdds) => {
                                 ...newGame
                             });
 
+                        } else if (event.competitions[0].status.type.description === 'In Progress') {
+                            let currentScoreboard = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${game.sport}/${homeTeam.league}/scoreboard`)
+                            let scoreboardJSON = await currentScoreboard.json()
+
+                            // console.log(score)
+                            for (let event of scoreboardJSON.events) {
+                                let gameHome
+                                let gameAway
+                                event.competitions[0].competitors.map((team) => {
+                                    if(team.homeAway === 'home'){
+                                        gameHome = team.team.displayName
+                                    }else{
+                                        gameAway = team.team.displayName
+                                    }
+                                })
+                                if (moment(event.date).local().format('MM/DD/YYYY') === moment(game.commence_time).local().format('MM/DD/YYYY') && gameHome === game.home_team && gameAway === game.away_team) {
+                                    // Determine the scores and winner
+                                    event.competitions[0].competitors.forEach((team) => {
+                                        if (team.homeAway === 'home') {
+                                            homeScore = parseInt(team.score); // home score
+                                        } else if (team.homeAway === 'away') {
+                                            awayScore = parseInt(team.score); // away score
+                                        }
+                                    });
+                                    await Odds.findOneAndUpdate({id : newGame.id}, {
+                                        homeScore,
+                                        awayScore,
+                                        ...newGame
+                                    });
+                                }
+                            }
                         }
                     }
                 }
@@ -555,6 +586,8 @@ const removePastGames = async (currentOdds) => {
         }
     }
 }
+
+
 
 const sports = [
     {
@@ -715,7 +748,7 @@ const dataSeed = async () => {
     let nhlWeights = []
     let ncaafWeights = []
     async function trainSportModel(sport, gameData) {
-        if (gameData.length ===0) {
+        if (gameData.length === 0) {
             // Handle the case where there is no data for this sport
             console.log(`No data available for ${sport.league}. Skipping model training.`);
             // You could also add logic to handle this case more gracefully, 
@@ -1019,7 +1052,7 @@ const dataSeed = async () => {
         });
         const loss = evaluation[0].arraySync();
         const accuracy = evaluation[1].arraySync();
-        if(accuracy < 1 || loss > 1){
+        if (accuracy < 1 || loss > 1) {
             console.log(`${sport.name} Model Loss:`, loss);
             console.log(`${sport.name} Model Accuracy:`, accuracy);
         }
@@ -1153,7 +1186,7 @@ const dataSeed = async () => {
                 if (homeTeam.stats.hasOwnProperty(stat)) {
                     const homeStat = homeTeam.stats[stat];
                     const awayStat = awayTeam.stats[stat];
-        
+
                     // Check if the stat is one that requires reversed comparison
                     if (reverseComparisonStats.includes(stat)) {
                         // For reversed comparison, check if homeStat is less than or equal to awayStat
@@ -1187,7 +1220,7 @@ const dataSeed = async () => {
                 if (homeTeam.stats.hasOwnProperty(stat)) {
                     const homeStat = homeTeam.stats[stat];
                     const awayStat = awayTeam.stats[stat];
-        
+
                     // Check if the stat is one that requires reversed comparison
                     if (reverseComparisonStats.includes(stat)) {
                         // For reversed comparison, check if homeStat is less than or equal to awayStat
@@ -1221,7 +1254,7 @@ const dataSeed = async () => {
                 if (homeTeam.stats.hasOwnProperty(stat)) {
                     const homeStat = homeTeam.stats[stat];
                     const awayStat = awayTeam.stats[stat];
-        
+
                     // Check if the stat is one that requires reversed comparison
                     if (reverseComparisonStats.includes(stat)) {
                         // For reversed comparison, check if homeStat is less than or equal to awayStat
@@ -1241,7 +1274,7 @@ const dataSeed = async () => {
                 }
                 nhlWeightIndex++
             }
-            
+
 
             return { homeIndex, awayIndex };
         }
@@ -1257,7 +1290,7 @@ const dataSeed = async () => {
                 if (homeTeam.stats.hasOwnProperty(stat)) {
                     const homeStat = homeTeam.stats[stat];
                     const awayStat = awayTeam.stats[stat];
-        
+
                     // Check if the stat is one that requires reversed comparison
                     if (reverseComparisonStats.includes(stat)) {
                         // For reversed comparison, check if homeStat is less than or equal to awayStat
@@ -1292,7 +1325,7 @@ const dataSeed = async () => {
                 if (homeTeam.stats.hasOwnProperty(stat)) {
                     const homeStat = homeTeam.stats[stat];
                     const awayStat = awayTeam.stats[stat];
-        
+
                     // Check if the stat is one that requires reversed comparison
                     if (reverseComparisonStats.includes(stat)) {
                         // For reversed comparison, check if homeStat is less than or equal to awayStat
@@ -1320,16 +1353,16 @@ const dataSeed = async () => {
             if (moment().isBefore(moment(game.commence_time))) {
                 let homeTeam
                 let awayTeam
-                if(game.sport === 'football'){
+                if (game.sport === 'football') {
                     homeTeam = await UsaFootballTeam.findOne({ 'espnDisplayName': game.home_team });
                     awayTeam = await UsaFootballTeam.findOne({ 'espnDisplayName': game.away_team });
-                }else if(game.sport === 'baseball'){
+                } else if (game.sport === 'baseball') {
                     homeTeam = await BaseballTeam.findOne({ 'espnDisplayName': game.home_team });
                     awayTeam = await BaseballTeam.findOne({ 'espnDisplayName': game.away_team });
-                }else if(game.sport === 'basketball'){
+                } else if (game.sport === 'basketball') {
                     homeTeam = await BasketballTeam.findOne({ 'espnDisplayName': game.home_team });
                     awayTeam = await BasketballTeam.findOne({ 'espnDisplayName': game.away_team });
-                }else if(game.sport === 'hockey'){
+                } else if (game.sport === 'hockey') {
                     homeTeam = await HockeyTeam.findOne({ 'espnDisplayName': game.home_team });
                     awayTeam = await HockeyTeam.findOne({ 'espnDisplayName': game.away_team });
                 }
@@ -1422,7 +1455,7 @@ const dataSeed = async () => {
                     strikeoutToWalkRatioPitcher: team.stats.strikeoutToWalkRatioPitcher,
                     doublePlays: team.stats.doublePlays,
                     fieldingErrors: team.stats.fieldingErrors,
-                    fieldingPercentage: team.stats.fieldingPercentage,   
+                    fieldingPercentage: team.stats.fieldingPercentage,
                     ReboundsTotal: team.stats.ReboundsTotal,
                     PointsTotal: team.stats.PointsTotal,
                     pointsPergame: team.stats.pointsPergame,
@@ -1472,17 +1505,17 @@ const dataSeed = async () => {
                     totalSaves: team.stats.totalSaves,
                     savePerGame: team.stats.savePerGame,
                     savePct: team.stats.savePct,
-                    takeaways: team.stats.takeaways, 
+                    takeaways: team.stats.takeaways,
                 });
                 const cleanStats = (stats) => {
                     const cleanedStats = {};
-                
+
                     for (const key in stats) {
                         if (stats[key] !== null && stats[key] !== undefined) {
                             cleanedStats[key] = stats[key];
                         }
                     }
-                
+
                     return cleanedStats;
                 };
                 // Update the Odds database with the calculated indices
@@ -1568,7 +1601,7 @@ const dataSeed = async () => {
     await emitToClients('gameUpdate', currentOdds.sort((a, b) => {
         const timeA = moment.utc(a.commence_time).startOf('minute');  // Round to the start of the minute
         const timeB = moment.utc(b.commence_time).startOf('minute');  // Round to the start of the minute
-    
+
         if (timeA.isSame(timeB)) {
             return a.winPercent - b.winPercent;  // Sort by winPercent if times are the same
         } else {
@@ -1578,11 +1611,11 @@ const dataSeed = async () => {
     await emitToClients('pastGameUpdate', pastOdds.sort((a, b) => {
         const timeA = moment.utc(a.commence_time).startOf('minute');  // Round to the start of the minute
         const timeB = moment.utc(b.commence_time).startOf('minute');  // Round to the start of the minute
-    
+
         if (timeA.isSame(timeB)) {
             return a.winPercent - b.winPercent;  // Sort by winPercent if times are the same
         } else {
-            return timeA.isBefore(timeB) ? -1 : 1;  // Sort by commence_time otherwise
+            return timeA.isBefore(timeB) ? 1 : -1;  // Sort by commence_time otherwise
         }
     }));
     console.info(`Full Seeding complete! 🌱 @ ${moment().format('HH:mm:ss')}`);
