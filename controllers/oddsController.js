@@ -1,4 +1,4 @@
-const { Odds, PastGameOdds, Teams } = require('../models');
+const { Odds, PastGameOdds, UsaFootballTeam, BasketballTeam, HockeyTeam, BaseballTeam } = require('../models');
 const moment = require('moment');
 const NodeCache = require('node-cache');
 const myCache = new NodeCache();
@@ -35,9 +35,16 @@ module.exports = {
     async getAllOdds(req, res) {
         try {
             let odds = await getCachedOdds('allOdds', {});
-            return res.json(odds.sort((a, b) => moment.utc(a.commence_time) === moment.utc(b.commence_time)
-            ? a.winPercent - b.winPercent
-            : moment.utc(a.commence_time) - moment.utc(b.commence_time)));
+            return res.json(odds.sort((a, b) => {
+                const timeA = moment.utc(a.commence_time).startOf('minute');  // Round to the start of the minute
+                const timeB = moment.utc(b.commence_time).startOf('minute');  // Round to the start of the minute
+            
+                if (timeA.isSame(timeB)) {
+                    return a.winPercent - b.winPercent;  // Sort by winPercent if times are the same
+                } else {
+                    return timeA.isBefore(timeB) ? -1 : 1;  // Sort by commence_time otherwise
+                }
+            }));
         } catch (err) {
             return res.status(500).json({ message: err.message });
         }
@@ -179,36 +186,36 @@ module.exports = {
                 let awayTeam
             
                 if (game.sport_title === 'NFL' && nextNFL.length < 3) {
-                    homeTeam = await Teams.findOne({ espnDisplayName: game.home_team })
-                    awayTeam = await Teams.findOne({ espnDisplayName: game.away_team })
+                    homeTeam = await UsaFootballTeam.findOne({ espnDisplayName: game.home_team })
+                    awayTeam = await UsaFootballTeam.findOne({ espnDisplayName: game.away_team })
                     nextNFL.push({
                         homeTeamLogo: homeTeam.logo,
                         awayTeamLogo: awayTeam.logo
                     })
                 } else if (game.sport_title === 'NCAAF' && nextNCAAF.length < 3) {
-                    homeTeam = await Teams.findOne({ espnDisplayName: game.home_team })
-                    awayTeam = await Teams.findOne({ espnDisplayName: game.away_team })
+                    homeTeam = await UsaFootballTeam.findOne({ espnDisplayName: game.home_team })
+                    awayTeam = await UsaFootballTeam.findOne({ espnDisplayName: game.away_team })
                     nextNCAAF.push({
                         homeTeamLogo: homeTeam.logo,
                         awayTeamLogo: awayTeam.logo
                     })
                 } else if (game.sport_title === 'NBA' && nextNBA.length < 3) {
-                    homeTeam = await Teams.findOne({ espnDisplayName: game.home_team })
-                    awayTeam = await Teams.findOne({ espnDisplayName: game.away_team })
+                    homeTeam = await BasketballTeam.findOne({ espnDisplayName: game.home_team })
+                    awayTeam = await BasketballTeam.findOne({ espnDisplayName: game.away_team })
                     nextNBA.push({
                         homeTeamLogo: homeTeam.logo,
                         awayTeamLogo: awayTeam.logo
                     })
                 } else if (game.sport_title === 'NHL' && nextNHL.length < 3) {
-                    homeTeam = await Teams.findOne({ espnDisplayName: game.home_team })
-                    awayTeam = await Teams.findOne({ espnDisplayName: game.away_team })
+                    homeTeam = await HockeyTeam.findOne({ espnDisplayName: game.home_team })
+                    awayTeam = await HockeyTeam.findOne({ espnDisplayName: game.away_team })
                     nextNHL.push({
                         homeTeamLogo: homeTeam.logo,
                         awayTeamLogo: awayTeam.logo
                     })
                 } else if (game.sport_title === 'MLB' && nextMLB.length < 3) {
-                    homeTeam = await Teams.findOne({ espnDisplayName: game.home_team })
-                    awayTeam = await Teams.findOne({ espnDisplayName: game.away_team })
+                    homeTeam = await BaseballTeam.findOne({ espnDisplayName: game.home_team })
+                    awayTeam = await BaseballTeam.findOne({ espnDisplayName: game.away_team })
                     nextMLB.push({
                         homeTeamLogo: homeTeam.logo,
                         awayTeamLogo: awayTeam.logo
@@ -222,7 +229,6 @@ module.exports = {
                 nextNHLGames: nextNHL,
                 nextMLBGames: nextMLB,
             }
-            // console.log(responseOBJ)
             res.json(responseOBJ)
             
         } catch (err) {

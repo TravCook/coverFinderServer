@@ -1,47 +1,82 @@
-const express = require('express')
-require('dotenv').config()
-const cors = require('cors')
-const path = require('path')
-const routes = require('./routes')
-const db = require('./config/connection')
-// Initialize the app and create a port
-const app = express()
-const PORT = process.env.PORT || 3001
-// Set up body parsing, static, and route middleware
-app.use(express.json())
-app.use(express.urlencoded({ extended: true }))
-app.use(cors())
-app.use(express.static(path.join(__dirname, '../client/build')))
-app.use(routes)
-// Cron job configurations
+const express = require('express');
+require('dotenv').config();
+const cors = require('cors');
+const path = require('path');
+const routes = require('./routes');
+const db = require('./config/connection');
+const { Server } = require('socket.io');
+const { createServer } = require('node:http');
 const { CronJob } = require('cron');
+const { setIo } = require('./socketManager'); // Import the socket manager
 const dataSeed = require('./seeds/seed.js');
-// Ensure that the timezone is passed as a valid string
+
+// Initialize the app and create a port
+const app = express();
+const PORT = process.env.PORT || 3001;
+
+// Set up body parsing, static, and route middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cors());
+app.use(express.static(path.join(__dirname, '../client/build')));
+
+
+const server = createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:3000",  // Allow socket connections from this origin
+    methods: ["GET", "POST"],        // Allow these methods
+    allowedHeaders: ["Content-Type"],// You can add more allowed headers if needed
+  }
+});
+setIo(io)
+app.use(routes);
+// Cron job configurations
 const timezone = 'America/Denver';
 const cronJobs = [
   {
     cronTime: '0 0 */8 * * *', // every 8 hours
     onTick: dataSeed.oddsSeed,
-    timezone, // Ensure this is a string, 'America/Denver'
+    timezone,
   },
   {
-    cronTime: '0 */5 * * * *', // every 10 minutes
+    cronTime: '0 */1 * * * *', // every 5 minutes
     onTick: dataSeed.dataSeed,
-    timezone, // Ensure this is a string, 'America/Denver'
+    timezone,
   },
 ];
 
 cronJobs.forEach(({ cronTime, onTick, timezone }) => {
-  // Make sure timezone is a string before passing to CronJob
-  if (typeof timezone !== 'string') {
-    throw new Error('Timezone must be a valid string');
-  }
-  const cronJob = new CronJob(cronTime, onTick, null, true, timezone);  // Ensure cron job is created correctly
+  const cronJob = new CronJob(cronTime, onTick, null, true, timezone);
   cronJob.start();
 });
 
-// Start the server on the port
+// Socket.IO connection event
+io.on('connection', (socket) => {
+  console.log('a user connected');
+  
+  // Optionally handle events from the client
+  socket.on('message', (data) => {
+    console.log('Message from client:', data);
+  });
+
+  // Broadcast message to all clients
+  socket.emit('welcome', { message: 'Welcome to the server!' });
+
+  // Handle disconnect event
+  socket.on('disconnect', () => {
+    console.log('User disconnected');
+  });
+});
+
+// Start the server
 db.once('open', () => {
-    console.log(`Listening on PORT: ${PORT}`)
-    app.listen(PORT)
-})
+  console.log(`Connected to the database`);
+});
+
+server.listen(PORT, () => {
+  console.log(`Listening on PORT: ${PORT}`);
+});
+
+
+module.exports = io ;
