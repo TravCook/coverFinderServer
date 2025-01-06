@@ -79,7 +79,7 @@ db.once('open', () => {
   console.log(`Connected to the database`);
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`Listening on PORT: ${PORT}`);
 });
 
