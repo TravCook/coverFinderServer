@@ -45,7 +45,7 @@ const cronJobs = [
     timezone,
   },
   {
-    cronTime: '*/2 * * * * *',
+    cronTime: '*/15 * * * * *',
     onTick: dataSeed.removeSeed,
     timezone
   }
