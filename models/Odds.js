@@ -96,6 +96,10 @@ const oddsSchema = new Schema({
         type: Number,
         required: false
     },
+    timeRemaining: {
+        type: String,
+        required: false
+    },
     homeTeamStats: {
         type: Schema.Types.Mixed,
         required: false

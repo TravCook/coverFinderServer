@@ -357,7 +357,7 @@ const removePastGames = async (currentOdds) => {
         if (moment(game.commence_time).local().isBefore(moment().local())) {
             let { _id, ...newGame } = game._doc;
             let homeTeam, awayTeam;
-            let homeScore, awayScore, predictionCorrect, winner;
+            let homeScore, awayScore, predictionCorrect, winner, timeRemaining;
 
             // Fetch team details from the Teams collection
             if (game.sport === 'football') {
@@ -536,46 +536,57 @@ const removePastGames = async (currentOdds) => {
                                 return cleanedStats;
                             };
                             // Save the past game to the PastGameOdds collection
-                            await PastGameOdds.create({
-                                homeScore,
-                                awayScore,
-                                winner,
-                                predictionCorrect,
-                                homeTeamStats: cleanStats(getCommonStats(homeTeam)),
-                                awayTeamStats: cleanStats(getCommonStats(awayTeam)),
-                                ...newGame
+                            // Check if the game already exists in the PastGameOdds collection
+                            const existingGame = await PastGameOdds.findOne({
+                                home_team: game.home_team,
+                                away_team: game.away_team,
+                                commence_time: game.commence_time
                             });
 
-                        } else if (event.competitions[0].status.type.description === 'In Progress') {
+                            if (!existingGame) {
+                                // If no existing record, create a new entry
+                                await PastGameOdds.create({
+                                    ...newGame,
+                                    homeScore,
+                                    awayScore,
+                                    winner,
+                                    predictionCorrect,
+                                    homeTeamStats: cleanStats(getCommonStats(homeTeam)),
+                                    awayTeamStats: cleanStats(getCommonStats(awayTeam)),
+                                });
+                            } else {
+                                console.log('Game already exists in PastGameOdds');
+                            }
+                        } else if (event.competitions[0].status.type.description === 'In Progress' || event.competitions[0].status.type.description === 'Halftime' || event.competitions[0].status.type.description === 'End of Period') {
                             let currentScoreboard = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${game.sport}/${homeTeam.league}/scoreboard`)
                             let scoreboardJSON = await currentScoreboard.json()
-
-                            // console.log(score)
-                            for (let event of scoreboardJSON.events) {
-                                let gameHome
-                                let gameAway
-                                event.competitions[0].competitors.map((team) => {
-                                    if(team.homeAway === 'home'){
-                                        gameHome = team.team.displayName
-                                    }else{
-                                        gameAway = team.team.displayName
-                                    }
-                                })
-                                if (moment(event.date).local().format('MM/DD/YYYY') === moment(game.commence_time).local().format('MM/DD/YYYY') && gameHome === game.home_team && gameAway === game.away_team) {
+                            for (let SBevent of scoreboardJSON.events) {
+                                if (moment(SBevent.date).isSame(moment(game.commence_time), 'day') && SBevent.name === `${game.away_team} at ${game.home_team}`) {
                                     // Determine the scores and winner
-                                    event.competitions[0].competitors.forEach((team) => {
+                                    SBevent.competitions[0].competitors.forEach((team) => {
                                         if (team.homeAway === 'home') {
                                             homeScore = parseInt(team.score); // home score
                                         } else if (team.homeAway === 'away') {
                                             awayScore = parseInt(team.score); // away score
                                         }
                                     });
-                                    await Odds.findOneAndUpdate({id : newGame.id}, {
-                                        homeScore,
-                                        awayScore,
-                                        ...newGame
-                                    });
+
+                                    timeRemaining = SBevent.competitions[0].status.type.shortDetail
+                                    try {
+                                        await Odds.findOneAndUpdate({ _id: game._doc._id }, {
+                                            ...newGame,
+                                            homeScore: homeScore,
+                                            awayScore: awayScore,
+                                            timeRemaining: timeRemaining,
+                                        }, { new: true });
+
+                                    } catch (error) {
+                                        console.error('Error updating game:', error);
+                                    }
+
                                 }
+
+
                             }
                         }
                     }
@@ -731,6 +742,35 @@ const oddsSeed = async () => {
             if (err) throw (err)
         }
     })
+}
+
+const removeSeed = async () => {
+    currentOdds = await Odds.find();
+    await removePastGames(currentOdds)
+
+    currentOdds = await Odds.find();
+    pastOdds = await PastGameOdds.find()
+
+    await emitToClients('gameUpdate', currentOdds.sort((a, b) => {
+        const timeA = new Date(a.commence_time).getTime();  // Round to the start of the minute
+        const timeB = new Date(b.commence_time).getTime();  // Round to the start of the minute
+
+        if (timeA === timeB) {
+            return a.winPercent - b.winPercent;  // Sort by winPercent if times are the same
+        } else {
+            return timeA < timeB ? -1 : 1;  // Sort by commence_time otherwise
+        }
+    }));
+    await emitToClients('pastGameUpdate', pastOdds.sort((a, b) => {
+        const timeA = new Date(a.commence_time).getTime();  // Round to the start of the minute
+        const timeB = new Date(b.commence_time).getTime();  // Round to the start of the minute
+
+        if (timeA === timeB) {
+            return a.winPercent - b.winPercent;  // Sort by winPercent if times are the same
+        } else {
+            return timeA < timeB ? 1 : -1;  // Sort by commence_time otherwise
+        }
+    }));
 }
 const dataSeed = async () => {
 
@@ -1588,36 +1628,7 @@ const dataSeed = async () => {
         }
     })
     console.log(`FINISHED CALCULATING IMPLIED PROBABILITY @ ${moment().format('HH:mm:ss')}`) //CLEANED AND FORMATTED
-
-    console.log(`REMOVING PAST GAMES @ ${moment().format('HH:mm:ss')}`) //CLEANED AND FORMATTED
     // Fetch current odds and iterate over them using async loop
-    pastGames = [];
-    currentOdds = await Odds.find();
-    await removePastGames(currentOdds)
-    console.log(`Past games processed successfully @ ${moment().format('HH:mm:ss')}`);
-    currentOdds = await Odds.find();
-    pastOdds = await PastGameOdds.find()
-    console.log(`SENDING GAME DATA TO CLIENT @ ${moment().format('HH:mm:ss')}`)
-    await emitToClients('gameUpdate', currentOdds.sort((a, b) => {
-        const timeA = moment.utc(a.commence_time).startOf('minute');  // Round to the start of the minute
-        const timeB = moment.utc(b.commence_time).startOf('minute');  // Round to the start of the minute
-
-        if (timeA.isSame(timeB)) {
-            return a.winPercent - b.winPercent;  // Sort by winPercent if times are the same
-        } else {
-            return timeA.isBefore(timeB) ? -1 : 1;  // Sort by commence_time otherwise
-        }
-    }));
-    await emitToClients('pastGameUpdate', pastOdds.sort((a, b) => {
-        const timeA = moment.utc(a.commence_time).startOf('minute');  // Round to the start of the minute
-        const timeB = moment.utc(b.commence_time).startOf('minute');  // Round to the start of the minute
-
-        if (timeA.isSame(timeB)) {
-            return a.winPercent - b.winPercent;  // Sort by winPercent if times are the same
-        } else {
-            return timeA.isBefore(timeB) ? 1 : -1;  // Sort by commence_time otherwise
-        }
-    }));
     console.info(`Full Seeding complete! 🌱 @ ${moment().format('HH:mm:ss')}`);
 }
-module.exports = { dataSeed, oddsSeed }
+module.exports = { dataSeed, oddsSeed, removeSeed }

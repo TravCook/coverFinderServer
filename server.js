@@ -44,6 +44,11 @@ const cronJobs = [
     onTick: dataSeed.dataSeed,
     timezone,
   },
+  {
+    cronTime: '*/2 * * * * *',
+    onTick: dataSeed.removeSeed,
+    timezone
+  }
 ];
 
 cronJobs.forEach(({ cronTime, onTick, timezone }) => {
