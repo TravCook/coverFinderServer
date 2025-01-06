@@ -15,9 +15,9 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Set up body parsing, static, and route middleware
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors());
 app.use(express.static(path.join(__dirname, '../client/build')));
 
 
