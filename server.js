@@ -24,7 +24,7 @@ app.use(express.static(path.join(__dirname, '../client/build')));
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000",  // Allow socket connections from this origin
+    origin: "*",  // Allow socket connections from this origin
     methods: ["GET", "POST"],        // Allow these methods
     allowedHeaders: ["Content-Type"],// You can add more allowed headers if needed
   }
