@@ -40,12 +40,12 @@ const cronJobs = [
     timezone,
   },
   {
-    cronTime: '0 */1 * * * *', // every 5 minutes
+    cronTime: '0 */15 * * * *', // every 5 minutes
     onTick: dataSeed.dataSeed,
     timezone,
   },
   {
-    cronTime: '*/15 * * * * *',
+    cronTime: '*/30 * * * * *',
     onTick: dataSeed.removeSeed,
     timezone
   }
