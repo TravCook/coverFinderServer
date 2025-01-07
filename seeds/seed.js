@@ -561,7 +561,7 @@ const removePastGames = async (currentOdds) => {
                             let currentScoreboard = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${game.sport}/${homeTeam.league}/scoreboard`)
                             let scoreboardJSON = await currentScoreboard.json()
                             for (let SBevent of scoreboardJSON.events) {
-                                if (moment(SBevent.date).isSame(moment(game.commence_time), 'day') && SBevent.name === `${game.away_team} at ${game.home_team}`) {
+                                if (moment(SBevent.date).isSame(moment(game.commence_time), 'day') && SBevent.name === `${game.away_team} at ${game.home_team}` || SBevent.shortName === `${awayTeam.abbreviation} @ ${homeTeam.abbreviation}`) {
                                     // Determine the scores and winner
                                     SBevent.competitions[0].competitors.forEach((team) => {
                                         if (team.homeAway === 'home') {
