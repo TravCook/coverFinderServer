@@ -632,7 +632,7 @@ const sports = [
         statYear: 2025,
         decayFactor: 0.85
     }, {
-        name: "basketball_wncaab",
+        name: "basketball_ncaab",
         espnSport: 'basketball',
         league: 'womens-college-basketball',
         startMonth: 11,
@@ -718,6 +718,20 @@ const oddsSeed = async () => {
                             } else {
                                 await Odds.create({
                                     sport: 'baseball',
+                                    ...event
+                                })
+
+                            }
+                        } else if (event.sport_key === 'basketball_ncaab') {
+                            if (oddExist) {
+                                await Odds.findOneAndUpdate({ id: event.id }, {
+                                    sport: 'basketball',
+                                    ...event
+                                })
+
+                            } else {
+                                await Odds.create({
+                                    sport: 'basketball',
                                     ...event
                                 })
 
@@ -1544,25 +1558,77 @@ const dataSeed = async () => {
         currentOdds.map(async (game, index) => {
             // Check if the game is in the future
             if (moment().isBefore(moment(game.commence_time))) {
+                let homeTeamList = []
+                let awayTeamList = []
                 let homeTeam
                 let awayTeam
+
+                // Fetch team data based on sport
                 if (game.sport === 'football') {
-                    homeTeam = await UsaFootballTeam.findOne({ 'espnDisplayName': game.home_team });
-                    awayTeam = await UsaFootballTeam.findOne({ 'espnDisplayName': game.away_team });
+                    homeTeamList = await UsaFootballTeam.find({ 'espnDisplayName': game.home_team });
+                    awayTeamList = await UsaFootballTeam.find({ 'espnDisplayName': game.away_team });
                 } else if (game.sport === 'baseball') {
-                    homeTeam = await BaseballTeam.findOne({ 'espnDisplayName': game.home_team });
-                    awayTeam = await BaseballTeam.findOne({ 'espnDisplayName': game.away_team });
+                    homeTeamList = await BaseballTeam.find({ 'espnDisplayName': game.home_team });
+                    awayTeamList = await BaseballTeam.find({ 'espnDisplayName': game.away_team });
                 } else if (game.sport === 'basketball') {
-                    homeTeam = await BasketballTeam.findOne({ 'espnDisplayName': game.home_team });
-                    awayTeam = await BasketballTeam.findOne({ 'espnDisplayName': game.away_team });
+                    homeTeamList = await BasketballTeam.find({ 'espnDisplayName': game.home_team });
+                    awayTeamList = await BasketballTeam.find({ 'espnDisplayName': game.away_team });
                 } else if (game.sport === 'hockey') {
-                    homeTeam = await HockeyTeam.findOne({ 'espnDisplayName': game.home_team });
-                    awayTeam = await HockeyTeam.findOne({ 'espnDisplayName': game.away_team });
+                    homeTeamList = await HockeyTeam.find({ 'espnDisplayName': game.home_team });
+                    awayTeamList = await HockeyTeam.find({ 'espnDisplayName': game.away_team });
                 }
+
+
+
+
+                // Function to find a team based on schedule date
+                async function findTeamSchedule(teamList, teamType) {
+                    if (teamList.length > 1) {
+                        // Loop through teams if there are multiple
+                        for (let idx = 0; idx < teamList.length; idx++) {
+                            let team = teamList[idx];
+                            try {
+                                // Fetch team schedule from ESPN API
+                                let scheduleResponse = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${game.sport}/${team.league}/teams/${team.espnID}/schedule`);
+                                let scheduleJSON = await scheduleResponse.json();
+
+                                // Loop through events in the team's schedule
+                                for (let event of scheduleJSON.events) {
+                                    // Check if the event matches the current game's date
+                                    if (moment(event.date).local().format('MM/DD/YYYY') === moment(game.commence_time).local().format('MM/DD/YYYY')) {
+                                        if (teamType === 'home') {
+                                            homeTeam = teamList[idx];
+                                        } else if (teamType === 'away') {
+                                            awayTeam = teamList[idx];
+                                        }
+                                    }
+                                }
+                            } catch (error) {
+                                console.error(`Error fetching schedule for ${team.espnDisplayName}:`, error);
+                            }
+                        }
+                    } else if (teamList.length === 1) {
+                        // If only one team is found, assign it directly
+                        if (teamType === 'home') {
+                            homeTeam = teamList[0];
+                        } else if (teamType === 'away') {
+                            awayTeam = teamList[0];
+                        }
+                    } else if (teamList.length === 0){
+                        await Odds.deleteOne({ id: game.id });
+                    }
+                }
+
+
+                // Call the function to check home and away teams
+                await findTeamSchedule(homeTeamList, 'home');
+                await findTeamSchedule(awayTeamList, 'away');
+                // If no home or away team found, delete the odds document
+
 
                 let homeIndex = 0;
                 let awayIndex = 0;
-                if (homeTeam.stats && awayTeam.stats && homeTeam.seasonWinLoss && awayTeam.seasonWinLoss) {
+                if (homeTeam && awayTeam && homeTeam.stats && awayTeam.stats && homeTeam.seasonWinLoss && awayTeam.seasonWinLoss) {
                     // Sport-specific conditions
                     if (game.sport_key === 'americanfootball_nfl') {
                         // Apply various football statistics for the index calculation
@@ -1724,10 +1790,10 @@ const dataSeed = async () => {
                     await Odds.findOneAndUpdate({ 'id': game.id }, {
                         homeTeamIndex: homeIndex * 10 || 0,
                         awayTeamIndex: awayIndex * 10 || 0,
-                        homeTeamStats: cleanStats(getCommonStats(homeTeam)),
-                        awayTeamStats: cleanStats(getCommonStats(awayTeam)),
-                        homeTeamlogo: homeTeam.logo,
-                        awayTeamlogo: awayTeam.logo
+                        homeTeamStats: homeTeam ? cleanStats(getCommonStats(homeTeam)) : 'no stat data',
+                        awayTeamStats: awayTeam ? cleanStats(getCommonStats(awayTeam)) : 'no stat data',
+                        homeTeamlogo: homeTeam ? homeTeam.logo : 'no logo data',
+                        awayTeamlogo: awayTeam ? awayTeam.logo : 'no logo data'
                     });
                 }
             }
