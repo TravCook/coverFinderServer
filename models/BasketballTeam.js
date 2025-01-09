@@ -9,7 +9,7 @@ const BasketballTeamSchema = new Schema({
     },
     logo: {
         type: String,
-        required: true,
+        required: false,
     },
     school: {
         type: String,
@@ -33,114 +33,114 @@ const BasketballTeamSchema = new Schema({
     },
     seasonWinLoss: {
         type: String,
-        required: true,
+        required: false,
     },
     homeWinLoss: {
         type: String,
-        required: true,
+        required: false,
     },
     awayWinLoss: {
         type: String,
-        required: true,
+        required: false,
     },
     pointDiff: {
         type: Number,
-        required: true
+        required: false
     },
     stats: {
         ReboundsTotal: {
             type: Number,
-            required: true
+            required: false
         },
         PointsTotal: {
             type: Number,
-            required: true
+            required: false
         },
         pointsPergame: {
             type: Number,
-            required: true
+            required: false
         },
         blocksTotal: {
             type: Number,
-            required: true
+            required: false
         },
         blocksPerGame: {
             type: Number,
-            required: true
+            required: false
         },
         defensiveRebounds: {
             type: Number,
-            required: true
+            required: false
         },
         defensiveReboundsperGame: {
             type: Number,
-            required: true
+            required: false
         },
         offensiveRebounds: {
             type: Number,
-            required: true
+            required: false
         },
         offensiveReboundsperGame: {
             type: Number,
-            required: true
+            required: false
         },
         steals: {
             type: Number,
-            required: true
+            required: false
         },
         stealsperGame: {
             type: Number,
-            required: true
+            required: false
         },
         effectiveFieldGoalPct: {
             type: Number,
-            required: true
+            required: false
         },
         fieldGoalMakesperAttempts: {
             type: Number,
-            required: true,
-            displayValue: true
+            required: false,
+            displayValue: false
         },
         freeThrowsMadeperAttemps: {
             type: Number,
-            required: true,
-            displayValue: true
+            required: false,
+            displayValue: false
         },
         freeThrowPct: {
             type: Number,
-            required: true
+            required: false
         },
         totalTurnovers: {
             type: Number,
-            required: true
+            required: false
         },
         averageTurnovers: {
             type: Number,
-            required: true
+            required: false
         },
         threePointPct: {
             type: Number,
-            required: true
+            required: false
         },
-        trueShootingPct: {
+        falseShootingPct: {
             type: Number,
-            required: true
+            required: false
         },
         turnoverRatio: {
             type: Number,
-            required: true
+            required: false
         },
         assisttoTurnoverRatio: {
             type: Number,
-            required: true
+            required: false
         },
         pointsinPaint: {
             type: Number,
-            required: true
+            required: false
         },
         pace: {
             type: Number,
-            required: true
+            required: false
         }
     }
     

@@ -40,21 +40,26 @@ const cronJobs = [
     timezone,
   },
   {
-    cronTime: '0 */15 * * * *', // every 5 minutes
+    cronTime: '0 */15 * * * *', // every 15 minutes
     onTick: dataSeed.dataSeed,
     timezone,
   },
   {
-    cronTime: '*/30 * * * * *',
+    cronTime: '*/30 * * * * *', //every 30 seconds
     onTick: dataSeed.removeSeed,
+    timezone
+  },
+  {
+    cronTime: '* * * * * */4', //every quarter
+    onTick: dataSeed.espnSeed,
     timezone
   }
 ];
 
-cronJobs.forEach(({ cronTime, onTick, timezone }) => {
-  const cronJob = new CronJob(cronTime, onTick, null, true, timezone);
-  cronJob.start();
-});
+// cronJobs.forEach(({ cronTime, onTick, timezone }) => {
+//   const cronJob = new CronJob(cronTime, onTick, null, true, timezone);
+//   cronJob.start();
+// });
 
 // Socket.IO connection event
 io.on('connection', (socket) => {
@@ -77,11 +82,15 @@ io.on('connection', (socket) => {
 // Start the server
 db.once('open', () => {
   console.log(`Connected to the database`);
+  dataSeed.espnSeed()
 });
+
+
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`Listening on PORT: ${PORT}`);
 });
+
 
 
 module.exports = io ;

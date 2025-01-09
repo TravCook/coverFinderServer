@@ -9,7 +9,7 @@ const BaseballTeamSchema = new Schema({
     },
     logo: {
         type: String,
-        required: true,
+        required: false,
     },
     school: {
         type: String,
@@ -33,148 +33,148 @@ const BaseballTeamSchema = new Schema({
     },
     seasonWinLoss: {
         type: String,
-        required: true,
+        required: false,
     },
     homeWinLoss: {
         type: String,
-        required: true,
+        required: false,
     },
     awayWinLoss: {
         type: String,
-        required: true,
+        required: false,
     },
     pointDiff: {
         type: Number,
-        required: true
+        required: false
     },
     stats: {
         strikeoutsTotal: {
             type: Number,
-            required: true
+            required: false
         },
         rBIsTotal: {
             type: Number,
-            required: true
+            required: false
         },
         hitsTotal: {
             type: Number,
-            required: true
+            required: false
         },
         stolenBasesTotal: {
             type: Number,
-            required: true
+            required: false
         },
         walksTotal: {
             type: Number,
-            required: true
+            required: false
         },
         runsTotal: {
             type: Number,
-            required: true
+            required: false
         },
         homeRunsTotal: {
             type: Number,
-            required: true
+            required: false
         },
         totalBases: {
             type: Number,
-            required: true
+            required: false
         },
         extraBaseHitsTotal: {
             type: Number,
-            required: true
+            required: false
         },
         battingAverageTotal: {
             type: Number,
-            required: true
+            required: false
         },
         sluggingPercentage: {
             type: Number,
-            required: true
+            required: false
         },
         onBasePercent: {
             type: Number,
-            required: true
+            required: false
         },
         onBasePlusSlugging: {
             type: Number,
-            required: true
+            required: false
         },
         stolenBasePct: {
             type: Number,
-            required: true
+            required: false
         },
         walkToStrikeoutRatio: {
             type: Number,
-            required: true
+            required: false
         },
         saves: {
             type: Number,
-            required: true
+            required: false
         },
         strikeoutsPitchingTotal: {
             type: Number,
-            required: true
+            required: false
         },
         walksPitchingTotal: {
             type: Number,
-            required: true
+            required: false
         },
         qualityStarts: {
             type: Number,
-            required: true
+            required: false
         },
         earnedRunAverage: {
             type: Number,
-            required: true
+            required: false
         },
         walksHitsPerInningPitched: {
             type: Number,
-            required: true
+            required: false
         },
         groundToFlyRatio: {
             type: Number,
-            required: true
+            required: false
         },
         runSupportAverage: {
             type: Number,
-            required: true
+            required: false
         },
         oppBattingAverage: {
             type: Number,
-            required: true
+            required: false
         },
         oppSlugging: {
             type: Number,
-            required: true
+            required: false
         },
         oppOPS: {
             type: Number,
-            required: true
+            required: false
         },
         savePct: {
             type: Number,
-            required: true
+            required: false
         },
         strikeoutPerNine: {
             type: Number,
-            required: true
+            required: false
         },
         strikeoutToWalkRatioPitcher: {
             type: Number,
-            required: true
+            required: false
         },
         doublePlays: {
             type: Number,
-            required: true
+            required: false
         },
         fieldingErrors: {
             type: Number,
-            required: true
+            required: false
         },
         fieldingPercentage: {
             type: Number,
-            required: true
+            required: false
         },
     }
     

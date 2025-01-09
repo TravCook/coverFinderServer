@@ -11,86 +11,34 @@ process.env.TF_CPP_MIN_LOG_LEVEL = '3'; // Suppress logs
 
 const retrieveTeamsandStats = async () => {
     for (let i = 0; i < sports.length; i++) {
-        let teams = [];
-        const formatDisplayName = (team) => {
-            const nameMap = {
-                "San José State Spartans": "San Jose State Spartans",
-                "Massachusetts Minutemen": "UMass Minutemen",
-                "Southern Miss Golden Eagles": "Southern Mississippi Golden Eagles",
-                "Hawai'i Rainbow Warriors": "Hawaii Rainbow Warriors",
-                "Louisiana Ragin' Cajuns": "Louisiana Ragin Cajuns",
-                "App State Mountaineers": "Appalachian State Mountaineers",
-                "Sam Houston Bearkats": "Sam Houston State Bearkats"
-            };
-            return nameMap[`${team.school} ${team.mascot}`] || `${team.school} ${team.mascot}`;
-        };
-
-        let teamListResponse;
-        let teamListJson;
-        if (sports[i].name === 'americanfootball_ncaaf' || sports[i].name === 'nfl') {
-            try {
-                // Fetch college football teams
-                teamListResponse = await fetch(`https://api.collegefootballdata.com/teams/fbs?year=${sports[i].statYear}`, {
-                    headers: {
-                        "Authorization": `Bearer ${process.env.CFB_API_KEY}`,
-                        "Accept": "application/json"
-                    }
-                });
-
-                // Parse the response to JSON
-                teamListJson = await teamListResponse.json();
-
-                // Ensure teamListJson is an array before using forEach
-                if (Array.isArray(teamListJson)) {
-                    teamListJson.forEach((team) => {
-                        const { id: espnID, location, mascot: teamName, abbreviation, school, logos } = team;
-                        const espnDisplayName = formatDisplayName(team);
-                        teams.push({
-                            espnID,
-                            espnDisplayName,
-                            location: location.city,
-                            teamName,
-                            league: sports[i].league,
-                            abbreviation,
-                            logo: logos[0],
-                            school
-                        });
-                    });
-                } else {
-                    console.error("Expected an array but received:", teamListJson);
-                }
-            } catch (error) {
-                console.error("Error fetching or processing team data:", error);
-            }
-        } else {
-            try {
-                // Fetch non-football teams
-                teamListResponse = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sports[i].espnSport}/${sports[i].league}/teams`);
-                teamListJson = await teamListResponse.json();
-                const teamList = teamListJson.sports[0].leagues[0].teams;
-
-                teamList.forEach((team) => {
-                    const { id: espnID, location, name: teamName, abbreviation, logos } = team.team;
-                    const espnDisplayName = team.team.displayName === "St. Louis Blues" ? "St Louis Blues" :
-                        team.team.displayName === "Montreal Canadiens" ? "Montréal Canadiens" :
-                            team.team.displayName === "LA Clippers" ? "Los Angeles Clippers" :
-                                team.team.displayName;
-
-                    teams.push({
-                        espnID,
-                        espnDisplayName,
-                        location,
-                        teamName,
-                        league: sports[i].league,
-                        abbreviation,
-                        logo: logos[0].href
-                    });
-                });
-            } catch (error) {
-                console.error("Error fetching or processing team data:", error);
-            }
+        let TeamModel;
+        switch (sports[i].espnSport) {
+            case 'football':
+                TeamModel = UsaFootballTeam;
+                break;
+            case 'basketball':
+                TeamModel = BasketballTeam;
+                break;
+            case 'hockey':
+                TeamModel = HockeyTeam;
+                break;
+            case 'baseball':
+                TeamModel = BaseballTeam;
+                break;
+            default:
+                console.error("Unsupported sport:", sports[i].espnSport);
+                return;
         }
-
+        let teams
+        if (sports[i].espnSport === 'football') {
+            teams = await UsaFootballTeam.find({})
+        } else if (sports[i].espnSport === 'basketball') {
+            teams = await BasketballTeam.find({})
+        } else if (sports[i].espnSport === 'baseball') {
+            teams = await BaseballTeam.find({})
+        } else if (sports[i].espnSport === 'hockey') {
+            teams = await HockeyTeam.find({})
+        }
         // Helper function to get the team record URL based on the current month
         const getTeamRecordUrl = (month, startMonth, endMonth, espnSport, league, statYear, espnID) => {
             let type = 2; // Default type
@@ -289,27 +237,14 @@ const retrieveTeamsandStats = async () => {
         };
 
         const upsertTeamsInBulk = async (teams, sport) => {
-            let TeamModel;
-            switch (sport) {
-                case 'football':
-                    TeamModel = UsaFootballTeam;
-                    break;
-                case 'basketball':
-                    TeamModel = BasketballTeam;
-                    break;
-                case 'hockey':
-                    TeamModel = HockeyTeam;
-                    break;
-                case 'baseball':
-                    TeamModel = BaseballTeam;
-                    break;
-                default:
-                    console.error("Unsupported sport:", sports[i].espnSport);
-                    return;
-            }
+
             const bulkOps = teams.map(team => ({
+
                 updateOne: {
-                    filter: { 'espnDisplayName': team.espnDisplayName },
+                    filter: {
+                        'espnID': team.espnID,        // Unique to the team
+                        'league': team.league,        // Ensures uniqueness within the league
+                    },
                     update: { $set: team },
                     upsert: true,
                 }
@@ -318,9 +253,8 @@ const retrieveTeamsandStats = async () => {
         };
 
         const fetchAllTeamData = async (sport, teams, statYear) => {
-            try {
-                // Fetch all team records and stats in parallel
-                const teamPromises = teams.map(async (team) => {
+            const fetchTeamData = async (team, sport) => {
+                try {
                     // Fetch team record
                     const teamRecordUrl = getTeamRecordUrl(moment().format('M'), sport.startMonth, sport.endMonth, sport.espnSport, sport.league, sport.statYear, team.espnID);
                     const teamRecordResponse = await fetch(teamRecordUrl);
@@ -329,24 +263,55 @@ const retrieveTeamsandStats = async () => {
 
                     // Fetch team stats
                     const teamStatResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/${sport.espnSport}/leagues/${sport.league}/seasons/${statYear}/types/2/teams/${team.espnID}/statistics?lang=en&region=us`);
-                    const teamStatjson = await teamStatResponse.json();
-                    for (const category of teamStatjson.splits.categories) {
-                        for (const stat of category.stats) {
-                            team = updateTeamStats(team, stat.name, stat.value, stat.perGameValue || stat.displayValue, category.name);
+                    const teamStatJson = await teamStatResponse.json();
+                    if (teamStatJson.splits) {
+                        for (const category of teamStatJson.splits.categories) {
+                            for (const stat of category.stats) {
+                                team = updateTeamStats(team, stat.name, stat.value, stat.perGameValue || stat.displayValue, category.name);
+                            }
                         }
                     }
-                    return team;
-                });
+                    return team;  // Return the updated team
+                } catch (error) {
+                    console.log(`Error fetching data for team ${team.espnID}:`, error);
+                }
+            };
 
-                const updatedTeams = await Promise.all(teamPromises);
+            const MAX_CONCURRENT_REQUESTS = 50; // You can adjust this number to control concurrency
+            const promises = [];
 
-                // Bulk upsert the updated teams
-                await upsertTeamsInBulk(updatedTeams, sport.espnSport);
+            try {
+                // Loop through each team and fetch their data
+                for (let team of teams) {
+                    promises.push(fetchTeamData(team, sport).then(updatedTeam => {
+                        if (updatedTeam) {
+                            return updatedTeam; // Add the updated team to the result
+                        }
+                    }));
+
+                    // If we reach the maximum number of concurrent requests, wait for them to resolve
+                    if (promises.length >= MAX_CONCURRENT_REQUESTS) {
+                        // Wait for all current promises to resolve
+                        const results = await Promise.all(promises);
+                        // Filter out any undefined results (in case some fetches failed)
+                        const filteredResults = results.filter(result => result !== undefined);
+                        // Upsert the fetched team data in bulk
+                        await upsertTeamsInBulk(filteredResults, sport.espnSport);
+                        promises.length = 0; // Clear the array after waiting for requests to resolve
+                    }
+                }
+
+                // After all requests have been processed, make sure to upsert the remaining teams
+                if (promises.length > 0) {
+                    const results = await Promise.all(promises);
+                    const filteredResults = results.filter(result => result !== undefined);
+                    await upsertTeamsInBulk(filteredResults, sport.espnSport);
+                }
+
             } catch (error) {
                 console.error("Error fetching or processing team data:", error);
             }
         };
-
         fetchAllTeamData(sports[i], teams, sports[i].statYear)
     }
 }
@@ -588,6 +553,12 @@ const removePastGames = async (currentOdds) => {
 
 
                             }
+                        } else if (event.competitions[0].status.type.description === 'Postponed') {
+                            // Delete the game from the Odds collection
+                            let deletedGame = await Odds.findOneAndDelete({ _id: game._doc._id });
+                            if (deletedGame) {
+                                console.log(`deleted game: ${deletedGame.home_team} vs ${deletedGame.away_team}`);
+                            }
                         }
                     }
                 }
@@ -651,6 +622,24 @@ const sports = [
         multiYear: false,
         statYear: 2024,
         decayFactor: 0.75
+    }, {
+        name: "basketball_ncaab",
+        espnSport: 'basketball',
+        league: 'mens-college-basketball',
+        startMonth: 11,
+        endMonth: 4,
+        multiYear: true,
+        statYear: 2025,
+        decayFactor: 0.85
+    }, {
+        name: "basketball_wncaab",
+        espnSport: 'basketball',
+        league: 'womens-college-basketball',
+        startMonth: 11,
+        endMonth: 4,
+        multiYear: true,
+        statYear: 2025,
+        decayFactor: 0.85
     },
 ]
 const oddsSeed = async () => {
@@ -787,8 +776,10 @@ const dataSeed = async () => {
     let mlbWeights = []
     let nhlWeights = []
     let ncaafWeights = []
+    let ncaamWeights = []
+    let ncaawWeights = []
     async function trainSportModel(sport, gameData) {
-        if (gameData.length === 0) {
+        if (gameData.length < 5) {
             // Handle the case where there is no data for this sport
             console.log(`No data available for ${sport.league}. Skipping model training.`);
             // You could also add logic to handle this case more gracefully, 
@@ -962,6 +953,64 @@ const dataSeed = async () => {
                         getStat(homeStats, 'fieldingErrors') - getStat(awayStats, 'fieldingErrors'),
                         getStat(homeStats, 'fieldingPercentage') - getStat(awayStats, 'fieldingPercentage'),
                     ];
+                case 'basketball_ncaab':
+                    return [
+                        getWinLoss(homeStats) - getWinLoss(awayStats),
+                        getHomeAwayWinLoss(homeStats, 'homeWinLoss') - getHomeAwayWinLoss(awayStats, 'awayWinLoss'),
+                        getStat(homeStats, 'pointDiff') - getStat(awayStats, 'pointDiff'),
+                        getStat(homeStats, 'ReboundsTotal') - getStat(awayStats, 'ReboundsTotal'),
+                        getStat(homeStats, 'PointsTotal') - getStat(awayStats, 'PointsTotal'),
+                        getStat(homeStats, 'pointsPergame') - getStat(awayStats, 'pointsPergame'),
+                        getStat(homeStats, 'blocksTotal') - getStat(awayStats, 'blocksTotal'),
+                        getStat(homeStats, 'blocksPerGame') - getStat(awayStats, 'blocksPerGame'),
+                        getStat(homeStats, 'defensiveRebounds') - getStat(awayStats, 'defensiveRebounds'),
+                        getStat(homeStats, 'defensiveReboundsperGame') - getStat(awayStats, 'defensiveReboundsperGame'),
+                        getStat(homeStats, 'offensiveRebounds') - getStat(awayStats, 'offensiveRebounds'),
+                        getStat(homeStats, 'offensiveReboundsperGame') - getStat(awayStats, 'offensiveReboundsperGame'),
+                        getStat(homeStats, 'steals') - getStat(awayStats, 'steals'),
+                        getStat(homeStats, 'stealsperGame') - getStat(awayStats, 'stealsperGame'),
+                        getStat(homeStats, 'effectiveFieldGoalPct') - getStat(awayStats, 'effectiveFieldGoalPct'),
+                        getStat(homeStats, 'fieldGoalMakesperAttempts') - getStat(awayStats, 'fieldGoalMakesperAttempts'),
+                        getStat(homeStats, 'freeThrowsMadeperAttemps') - getStat(awayStats, 'freeThrowsMadeperAttemps'),
+                        getStat(homeStats, 'freeThrowPct') - getStat(awayStats, 'freeThrowPct'),
+                        getStat(homeStats, 'totalTurnovers') - getStat(awayStats, 'totalTurnovers'),
+                        getStat(homeStats, 'averageTurnovers') - getStat(awayStats, 'averageTurnovers'),
+                        getStat(homeStats, 'threePointPct') - getStat(awayStats, 'threePointPct'),
+                        getStat(homeStats, 'trueShootingPct') - getStat(awayStats, 'trueShootingPct'),
+                        getStat(homeStats, 'turnoverRatio') - getStat(awayStats, 'turnoverRatio'),
+                        getStat(homeStats, 'assisttoTurnoverRatio') - getStat(awayStats, 'assisttoTurnoverRatio'),
+                        getStat(homeStats, 'pointsinPaint') - getStat(awayStats, 'pointsinPaint'),
+                        getStat(homeStats, 'pace') - getStat(awayStats, 'pace'),
+                    ];
+                case 'basketball_wncaab':
+                    return [
+                        getWinLoss(homeStats) - getWinLoss(awayStats),
+                        getHomeAwayWinLoss(homeStats, 'homeWinLoss') - getHomeAwayWinLoss(awayStats, 'awayWinLoss'),
+                        getStat(homeStats, 'pointDiff') - getStat(awayStats, 'pointDiff'),
+                        getStat(homeStats, 'ReboundsTotal') - getStat(awayStats, 'ReboundsTotal'),
+                        getStat(homeStats, 'PointsTotal') - getStat(awayStats, 'PointsTotal'),
+                        getStat(homeStats, 'pointsPergame') - getStat(awayStats, 'pointsPergame'),
+                        getStat(homeStats, 'blocksTotal') - getStat(awayStats, 'blocksTotal'),
+                        getStat(homeStats, 'blocksPerGame') - getStat(awayStats, 'blocksPerGame'),
+                        getStat(homeStats, 'defensiveRebounds') - getStat(awayStats, 'defensiveRebounds'),
+                        getStat(homeStats, 'defensiveReboundsperGame') - getStat(awayStats, 'defensiveReboundsperGame'),
+                        getStat(homeStats, 'offensiveRebounds') - getStat(awayStats, 'offensiveRebounds'),
+                        getStat(homeStats, 'offensiveReboundsperGame') - getStat(awayStats, 'offensiveReboundsperGame'),
+                        getStat(homeStats, 'steals') - getStat(awayStats, 'steals'),
+                        getStat(homeStats, 'stealsperGame') - getStat(awayStats, 'stealsperGame'),
+                        getStat(homeStats, 'effectiveFieldGoalPct') - getStat(awayStats, 'effectiveFieldGoalPct'),
+                        getStat(homeStats, 'fieldGoalMakesperAttempts') - getStat(awayStats, 'fieldGoalMakesperAttempts'),
+                        getStat(homeStats, 'freeThrowsMadeperAttemps') - getStat(awayStats, 'freeThrowsMadeperAttemps'),
+                        getStat(homeStats, 'freeThrowPct') - getStat(awayStats, 'freeThrowPct'),
+                        getStat(homeStats, 'totalTurnovers') - getStat(awayStats, 'totalTurnovers'),
+                        getStat(homeStats, 'averageTurnovers') - getStat(awayStats, 'averageTurnovers'),
+                        getStat(homeStats, 'threePointPct') - getStat(awayStats, 'threePointPct'),
+                        getStat(homeStats, 'trueShootingPct') - getStat(awayStats, 'trueShootingPct'),
+                        getStat(homeStats, 'turnoverRatio') - getStat(awayStats, 'turnoverRatio'),
+                        getStat(homeStats, 'assisttoTurnoverRatio') - getStat(awayStats, 'assisttoTurnoverRatio'),
+                        getStat(homeStats, 'pointsinPaint') - getStat(awayStats, 'pointsinPaint'),
+                        getStat(homeStats, 'pace') - getStat(awayStats, 'pace'),
+                    ];
                 case 'basketball_nba':
                     return [
                         getWinLoss(homeStats) - getWinLoss(awayStats),
@@ -1066,30 +1115,32 @@ const dataSeed = async () => {
         const evaluation = model.evaluate(xsTensor, ysTensor);
         let ff = []
         let sportOdds = await Odds.find({ sport_key: sport.name })
-        sportOdds.forEach(game => {
-            const homeStats = game.homeTeamStats;
-            const awayStats = game.awayTeamStats;
+        if (sportOdds.length > 0) {
+            sportOdds.forEach(game => {
+                const homeStats = game.homeTeamStats;
+                const awayStats = game.awayTeamStats;
 
-            // Extract features based on sport
-            const features = extractSportFeatures(homeStats, awayStats, sport.name);
+                // Extract features based on sport
+                const features = extractSportFeatures(homeStats, awayStats, sport.name);
 
-            // Set label to 1 if home team wins, 0 if away team wins
-            // const correctPrediction = game.winner = 'home' ? 1 : 0;
+                // Set label to 1 if home team wins, 0 if away team wins
+                // const correctPrediction = game.winner = 'home' ? 1 : 0;
 
-            ff.push(features);
-            // ys.push(correctPrediction);
-        });
-        const ffTensor = tf.tensor2d(ff);
-        // Get predictions as a promise and wait for it to resolve
-        const predictions = await model.predict(ffTensor);
-        // Convert tensor to an array of predicted probabilities
-        const probabilities = await predictions.array();  // This resolves the tensor to an array
-        sportOdds.forEach(async (game, index) => {
-            const predictedWinPercent = probabilities[index][0]; // Get the probability for the current game
+                ff.push(features);
+                // ys.push(correctPrediction);
+            });
+            const ffTensor = tf.tensor2d(ff);
+            // Get predictions as a promise and wait for it to resolve
+            const predictions = await model.predict(ffTensor);
+            // Convert tensor to an array of predicted probabilities
+            const probabilities = await predictions.array();  // This resolves the tensor to an array
+            sportOdds.forEach(async (game, index) => {
+                const predictedWinPercent = probabilities[index][0]; // Get the probability for the current game
 
-            // Update the game with the predicted win percentage
-            await Odds.findOneAndUpdate({ id: game.id }, { winPercent: predictedWinPercent });
-        });
+                // Update the game with the predicted win percentage
+                await Odds.findOneAndUpdate({ id: game.id }, { winPercent: predictedWinPercent });
+            });
+        }
         const loss = evaluation[0].arraySync();
         const accuracy = evaluation[1].arraySync();
         if (accuracy < 1 || loss > 1) {
@@ -1212,6 +1263,40 @@ const dataSeed = async () => {
 
             // Step 3: Assign weights to preMade array
             nhlWeights = averages
+        }
+        else if (sport.name === 'basketball_ncaab') {
+            averages = []
+            // Extract weights from the first (input) layer of the model
+            weights = model.layers[0].getWeights();
+            weightMatrix = await weights[0].array(); // This gives the matrix of weights for each feature
+
+            // Sum weights for each feature (column-wise)
+            // Iterate through each row in the weight matrix
+            matrixIterator(weightMatrix)
+
+            // Step 2: Normalize the weights (optional, for easier interpretation)
+            // let totalWeight = featureWeightsSum.reduce((sum, weight) => sum + weight, 0);
+            // normalizedFeatureWeights = featureWeightsSum.map(weight => weight / totalWeight);
+
+            // Step 3: Assign weights to preMade array
+            ncaamWeights = averages
+        }
+        else if (sport.name === 'basketball_wncaab') {
+            averages = []
+            // Extract weights from the first (input) layer of the model
+            weights = model.layers[0].getWeights();
+            weightMatrix = await weights[0].array(); // This gives the matrix of weights for each feature
+
+            // Sum weights for each feature (column-wise)
+            // Iterate through each row in the weight matrix
+            matrixIterator(weightMatrix)
+
+            // Step 2: Normalize the weights (optional, for easier interpretation)
+            // let totalWeight = featureWeightsSum.reduce((sum, weight) => sum + weight, 0);
+            // normalizedFeatureWeights = featureWeightsSum.map(weight => weight / totalWeight);
+
+            // Step 3: Assign weights to preMade array
+            ncaawWeights = averages
         }
         //DETERMINE H2H INDEXES FOR EVERY GAME IN ODDS
         // Helper function to adjust indexes for football games
@@ -1388,6 +1473,74 @@ const dataSeed = async () => {
 
             return { homeIndex, awayIndex };
         }
+        function adjustncaamStats(homeTeam, awayTeam, homeIndex, awayIndex) {
+            homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += nbaWeights[0] : awayIndex += nbaWeights[0];
+            homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += nbaWeights[1] : awayIndex += nbaWeights[1];
+            homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += nbaWeights[2] : awayIndex += nbaWeights[2];
+            let nbaWeightIndex = 3
+            const reverseComparisonStats = ['averageTurnovers', 'totalTurnovers'];
+            // Loop through homeTeam.stats to goalsAgainst each stat
+            for (const stat in homeTeam.stats) {
+                if (homeTeam.stats.hasOwnProperty(stat)) {
+                    const homeStat = homeTeam.stats[stat];
+                    const awayStat = awayTeam.stats[stat];
+
+                    // Check if the stat is one that requires reversed comparison
+                    if (reverseComparisonStats.includes(stat)) {
+                        // For reversed comparison, check if homeStat is less than or equal to awayStat
+                        if (homeStat <= awayStat) {
+                            homeIndex += nflWeights[nbaWeightIndex];
+                        } else {
+                            awayIndex += nflWeights[nbaWeightIndex];
+                        }
+                    } else {
+                        // For all other stats, check if homeStat is greater than or equal to awayStat
+                        if (homeStat >= awayStat) {
+                            homeIndex += nflWeights[nbaWeightIndex];
+                        } else {
+                            awayIndex += nflWeights[nbaWeightIndex];
+                        }
+                    }
+                }
+                nbaWeightIndex++
+            }
+
+            return { homeIndex, awayIndex };
+        }
+        function adjustncaafStats(homeTeam, awayTeam, homeIndex, awayIndex) {
+            homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += nbaWeights[0] : awayIndex += nbaWeights[0];
+            homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += nbaWeights[1] : awayIndex += nbaWeights[1];
+            homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += nbaWeights[2] : awayIndex += nbaWeights[2];
+            let nbaWeightIndex = 3
+            const reverseComparisonStats = ['averageTurnovers', 'totalTurnovers'];
+            // Loop through homeTeam.stats to goalsAgainst each stat
+            for (const stat in homeTeam.stats) {
+                if (homeTeam.stats.hasOwnProperty(stat)) {
+                    const homeStat = homeTeam.stats[stat];
+                    const awayStat = awayTeam.stats[stat];
+
+                    // Check if the stat is one that requires reversed comparison
+                    if (reverseComparisonStats.includes(stat)) {
+                        // For reversed comparison, check if homeStat is less than or equal to awayStat
+                        if (homeStat <= awayStat) {
+                            homeIndex += nflWeights[nbaWeightIndex];
+                        } else {
+                            awayIndex += nflWeights[nbaWeightIndex];
+                        }
+                    } else {
+                        // For all other stats, check if homeStat is greater than or equal to awayStat
+                        if (homeStat >= awayStat) {
+                            homeIndex += nflWeights[nbaWeightIndex];
+                        } else {
+                            awayIndex += nflWeights[nbaWeightIndex];
+                        }
+                    }
+                }
+                nbaWeightIndex++
+            }
+
+            return { homeIndex, awayIndex };
+        }
         currentOdds.map(async (game, index) => {
             // Check if the game is in the future
             if (moment().isBefore(moment(game.commence_time))) {
@@ -1409,7 +1562,7 @@ const dataSeed = async () => {
 
                 let homeIndex = 0;
                 let awayIndex = 0;
-                if (homeTeam && awayTeam) {
+                if (homeTeam.stats && awayTeam.stats && homeTeam.seasonWinLoss && awayTeam.seasonWinLoss) {
                     // Sport-specific conditions
                     if (game.sport_key === 'americanfootball_nfl') {
                         // Apply various football statistics for the index calculation
@@ -1430,6 +1583,14 @@ const dataSeed = async () => {
                     else if (game.sport_key === 'baseball_mlb') {
                         // Apply baseball-specific statistics
                         ({ homeIndex, awayIndex } = adjustmlbStats(homeTeam, awayTeam, homeIndex, awayIndex));
+                    }
+                    else if (game.sport_key === 'basketball_ncaab') {
+                        // Apply basketball-specific statistics
+                        ({ homeIndex, awayIndex } = adjustncaamStats(homeTeam, awayTeam, homeIndex, awayIndex));
+                    }
+                    else if (game.sport_key === 'basketball_wncaab') {
+                        // Apply basketball-specific statistics
+                        ({ homeIndex, awayIndex } = adjustncaafStats(homeTeam, awayTeam, homeIndex, awayIndex));
                     }
                 }
                 const getCommonStats = (team) => ({
@@ -1576,7 +1737,7 @@ const dataSeed = async () => {
         const pastGames = await PastGameOdds.find({ sport_key: sports[sport].name })
         await trainSportModel(sports[sport], pastGames)
     }
-    console.log(`FINISHED TRAINING MODEL @ ${moment().format('HH:mm:ss')}`)
+    // console.log(`FINISHED TRAINING MODEL @ ${moment().format('HH:mm:ss')}`)
 
     currentOdds.map(async (game) => {
         try {
@@ -1631,4 +1792,148 @@ const dataSeed = async () => {
     // Fetch current odds and iterate over them using async loop
     console.info(`Full Seeding complete! 🌱 @ ${moment().format('HH:mm:ss')}`);
 }
-module.exports = { dataSeed, oddsSeed, removeSeed }
+
+
+const espnSeed = async () => {
+    const fetchTeamData = async (teamID, sport) => {
+        const response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport.espnSport}/${sport.league}/teams/${teamID}`);
+        const teamData = await response.json();
+        return teamData;
+    };
+    const upsertTeamsInBulk = async (teams, sport) => {
+        let TeamModel;
+        switch (sport) {
+            case 'football':
+                TeamModel = UsaFootballTeam;
+                break;
+            case 'basketball':
+                TeamModel = BasketballTeam;
+                break;
+            case 'hockey':
+                TeamModel = HockeyTeam;
+                break;
+            case 'baseball':
+                TeamModel = BaseballTeam;
+                break;
+            default:
+                console.error("Unsupported sport:", sport.espnSport);
+                return;
+        }
+        const bulkOps = teams.map(team => ({
+            updateOne: {
+                filter: {
+                    'espnID': team.espnID,        // Unique to the team
+                    'league': team.league,        // Ensures uniqueness within the league
+                },
+                update: { $set: team },
+                upsert: true,
+            }
+        }));
+        await TeamModel.bulkWrite(bulkOps);
+    };
+    const promises = [];
+    const MAX_CONCURRENT_REQUESTS = 2000; // You can adjust this number to control concurrency
+
+
+    // Loop through each sport
+    for (let sport of sports) {
+        let teamArr = [];
+        console.log(`starting ${sport.league} @ ${moment().format("h:mma")}`)
+        // Loop through each team ID sequentially
+        if (sport.league === 'college-football' || sport.league === 'mens-college-basketball' || sport.league === 'womens-college-basketball') {
+            for (let teamID = 1; teamID < 150000; teamID++) {
+                try {
+                    promises.push(fetchTeamData(teamID, sport).then((teamListJson) => {
+                        // Log the team data if available
+                        if (teamListJson && teamListJson.team && teamListJson.team.isActive) {
+                            // console.log(`${teamListJson.team.id} is active: ${teamListJson.team.isActive}`);
+                            const { id: espnID, location, name: teamName, abbreviation, school, logos, displayName: espnDisplayName } = teamListJson.team;
+                            // const espnDisplayName = formatDisplayName(teamListJson.team);
+                            teamArr.push({
+                                espnID,
+                                espnDisplayName,
+                                location: location,
+                                teamName,
+                                league: sport.league,
+                                abbreviation,
+                                logo: logos ? logos[0].href : undefined,
+                                school
+                            });
+                        }
+                        else {
+                            // console.log(`No team with ID#${teamID}`);
+                        }
+                    }))
+
+                } catch (error) {
+                    console.error(`Error fetching data for team ID#${teamID}:`, error);
+                }
+                // If we reach the maximum number of concurrent requests, wait for them to resolve
+                if (promises.length >= MAX_CONCURRENT_REQUESTS) {
+                    await Promise.all(promises);
+                    promises.length = 0; // Clear the array after waiting
+                }
+            }
+        } else {
+            for (let teamID = 1; teamID < 150000; teamID++) {
+                try {
+                    promises.push(fetchTeamData(teamID, sport).then((teamListJson) => {
+
+                        // Log the team data if available
+                        if (teamListJson && teamListJson.team && teamListJson.team.isActive) {
+                            // console.log(`${teamListJson.team.id} is active: ${teamListJson.team.isActive}`);
+                            const { id: espnID, location, name: teamName, abbreviation, logos } = teamListJson.team;
+                            let espnDisplayName;
+                            switch (teamListJson.team.displayName) {
+                                case "St. Louis Blues":
+                                    espnDisplayName = "St Louis Blues";
+                                    break;
+                                case "Montreal Canadiens":
+                                    espnDisplayName = "Montréal Canadiens";
+                                    break;
+                                case "LA Clippers":
+                                    espnDisplayName = "Los Angeles Clippers";
+                                    break;
+                                default:
+                                    espnDisplayName = teamListJson.team.displayName;
+                                    break;
+                            }
+
+                            teamArr.push({
+                                espnID,
+                                espnDisplayName,
+                                location,
+                                teamName,
+                                league: sport.league,
+                                abbreviation,
+                                logo: logos ? logos[0].href : undefined
+                            });
+                        } else {
+                            // console.log(`No team with ID#${teamID}`);
+                        }
+                    }))
+                } catch (error) {
+                    console.error(`Error fetching data for team ID#${teamID}:`, error);
+                }
+                // If we reach the maximum number of concurrent requests, wait for them to resolve
+                if (promises.length >= MAX_CONCURRENT_REQUESTS) {
+                    await Promise.all(promises);
+                    promises.length = 0; // Clear the array after waiting
+                }
+            }
+        }
+        console.log(`writing teams @ ${moment().format("h:mma")}`)
+        upsertTeamsInBulk(teamArr, sport.espnSport)
+        console.log(`finished teams @ ${moment().format("h:mma")}`)
+    }
+
+
+
+    // fetchAllTeamData(sport, teams, sport.statYear)
+
+};
+
+
+
+
+module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed }

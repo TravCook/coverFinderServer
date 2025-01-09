@@ -9,7 +9,7 @@ const HockeyTeamSchema = new Schema({
     },
     logo: {
         type: String,
-        required: true,
+        required: false,
     },
     school: {
         type: String,
@@ -33,128 +33,128 @@ const HockeyTeamSchema = new Schema({
     },
     seasonWinLoss: {
         type: String,
-        required: true,
+        required: false,
     },
     homeWinLoss: {
         type: String,
-        required: true,
+        required: false,
     },
     awayWinLoss: {
         type: String,
-        required: true,
+        required: false,
     },
     pointDiff: {
         type: Number,
-        required: true
+        required: false
     },
     stats: {
         goals: {
             type: Number,
-            required: true
+            required: false
         },
         goalsPerGame: {
             type: Number,
-            required: true
+            required: false
         },
         assists: {
             type: Number,
-            required: true
+            required: false
         },
         assistsPerGame: {
             type: Number,
-            required: true
+            required: false
         },
         totalShotsTaken: {
             type: Number,
-            required: true
+            required: false
         },
         shotsTakenPerGame: {
             type: Number,
-            required: true
+            required: false
         },
         powerPlayGoals: {
             type: Number,
-            required: true
+            required: false
         },
         powerPlayGoalsPerGame: {
             type: Number,
-            required: true
+            required: false
         },
         powerPlayPct: {
             type: Number,
-            required: true
+            required: false
         },
         shootingPct: {
             type: Number,
-            required: true
+            required: false
         },
         faceoffsWon: {
             type: Number,
-            required: true
+            required: false
         },
         faceoffsWonPerGame: {
             type: Number,
-            required: true
+            required: false
         },
         faceoffPercent: {
             type: Number,
-            required: true
+            required: false
         },
         giveaways: {
             type: Number,
-            required: true
+            required: false
         },
         penaltyMinutes: {
             type: Number,
-            required: true
+            required: false
         },
         penaltyMinutesPerGame: {
             type: Number,
-            required: true
+            required: false
         },
         goalsAgainst: {
             type: Number,
-            required: true
+            required: false
         },
         goalsAgainstAverage: {
             type: Number,
-            required: true
+            required: false
         },
         shotsAgainst: {
             type: Number,
-            required: true
+            required: false
         },
         shotsAgainstPerGame: {
             type: Number,
-            required: true
+            required: false
         },
         shotsBlocked: {
             type: Number,
-            required: true
+            required: false
         },
         shotsBlockedPerGame: {
             type: Number,
-            required: true
+            required: false
         },
         penaltyKillPct: {
             type: Number,
-            required: true
+            required: false
         },
         totalSaves: {
             type: Number,
-            required: true
+            required: false
         },
         savePerGame: {
             type: Number,
-            required: true
+            required: false
         },
         savePct: {
             type: Number,
-            required: true
+            required: false
         },
         takeaways: {
             type: Number,
-            required: true
+            required: false
         }
     }
     

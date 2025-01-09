@@ -9,7 +9,7 @@ const UsaFootballTeamSchema = new Schema({
     },
     logo: {
         type: String,
-        required: true,
+        required: false,
     },
     school: {
         type: String,
@@ -33,128 +33,128 @@ const UsaFootballTeamSchema = new Schema({
     },
     seasonWinLoss: {
         type: String,
-        required: true,
+        required: false,
     },
     homeWinLoss: {
         type: String,
-        required: true,
+        required: false,
     },
     awayWinLoss: {
         type: String,
-        required: true,
+        required: false,
     },
     pointDiff: {
         type: Number,
-        required: true
+        required: false
     },
     stats: {
         pointsPerGame: {
             type: Number,
-            required: true
+            required: false
         },
         totalPoints: {
             type: Number,
-            required: true
+            required: false
         },
         totalFirstDowns: {
             type: Number,
-            required: true
+            required: false
         },
         rushingFirstDowns: {
             type: Number,
-            required: true
+            required: false
         },
         passingFirstDowns: {
             type: Number,
-            required: true
+            required: false
         },
         thirdDownEfficiency: {
             type: Number,
-            required: true
+            required: false
         },
         netPassingYardsPerGame: {
             type: Number,
-            required: true
+            required: false
         },
         interceptions: {
             type: Number,
-            required: true
+            required: false
         },
         completionPercent: {
             type: Number,
-            required: true
+            required: false
         },
         rushingYards: {
             type: Number,
-            required: true
+            required: false
         },
         rushingYardsPerGame: {
             type: Number,
-            required: true
+            required: false
         },
         yardsPerRushAttempt: {
             type: Number,
-            required: true
+            required: false
         },
         yardsPerGame: {
             type: Number,
-            required: true
+            required: false
         },
         fGgoodPct: {
             type: Number,
-            required: true
+            required: false
         },
         touchBackPercentage: {
             type: Number,
-            required: true
+            required: false
         },
         totalPenyards: {
             type: Number,
-            required: true
+            required: false
         }, 
         averagePenYardsPerGame: {
             type: Number,
-            required: true,
+            required: false,
         }, 
         giveaways: {
             type: Number,
-            required: true
+            required: false
         },
         takeaways: {
             type: Number,
-            required: true
+            required: false
         },
         turnoverDiff: {
             type: Number,
-            required: true
+            required: false
         },
         sacksTotal: {
             type: Number,
-            required: true
+            required: false
         }, 
         sacksPerGame: {
             type: Number,
-            required: true,
+            required: false,
         }, 
         yardsLostPerSack: {
             type: Number,
-            required: true
+            required: false
         }, 
         passesDefended: {
             type: Number,
-            required: true
+            required: false
         },
         passesDefendedPerGame: {
             type: Number,
-            required: true,
+            required: false,
         },
         tacklesforLoss: {
             type: Number,
-            required: true
+            required: false
         },
         tacklesforLossPerGame: {
             type: Number,
-            required: true,
+            required: false,
         }
     }
 })
