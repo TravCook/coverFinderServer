@@ -56,7 +56,7 @@ const retrieveTeamsandStats = async () => {
                 teamRecordJson.items.forEach((item) => {
                     if (item.name === 'overall') {
                         item.stats.forEach((stat) => {
-                            if (stat.name === 'differential') {
+                            if (stat.name === 'pointDifferential') {
                                 team.pointDiff = stat.value;
                             }
                         });
