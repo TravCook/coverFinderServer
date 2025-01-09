@@ -35,7 +35,7 @@ app.use(routes);
 const timezone = 'America/Denver';
 const cronJobs = [
   {
-    cronTime: '0 0 */8 * * *', // every 8 hours
+    cronTime: '0 0 */12 * * *', // every 12 hours
     onTick: dataSeed.oddsSeed,
     timezone,
   },
@@ -49,17 +49,17 @@ const cronJobs = [
     onTick: dataSeed.removeSeed,
     timezone
   },
-  {
-    cronTime: '* * * * * */4', //every quarter
-    onTick: dataSeed.espnSeed,
-    timezone
-  }
+  // {
+  //   cronTime: '* * * * */3 *', //every quarter
+  //   onTick: dataSeed.espnSeed,
+  //   timezone
+  // }
 ];
 
-// cronJobs.forEach(({ cronTime, onTick, timezone }) => {
-//   const cronJob = new CronJob(cronTime, onTick, null, true, timezone);
-//   cronJob.start();
-// });
+cronJobs.forEach(({ cronTime, onTick, timezone }) => {
+  const cronJob = new CronJob(cronTime, onTick, null, true, timezone);
+  cronJob.start();
+});
 
 // Socket.IO connection event
 io.on('connection', (socket) => {
@@ -82,7 +82,6 @@ io.on('connection', (socket) => {
 // Start the server
 db.once('open', () => {
   console.log(`Connected to the database`);
-  dataSeed.espnSeed()
 });
 
 
