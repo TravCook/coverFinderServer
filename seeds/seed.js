@@ -688,7 +688,7 @@ const sports = [
         statYear: 2025,
         decayFactor: 0.85
     }, {
-        name: "basketball_ncaab",
+        name: "basketball_wncaab",
         espnSport: 'basketball',
         league: 'womens-college-basketball',
         startMonth: 11,
