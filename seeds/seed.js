@@ -1040,8 +1040,6 @@ const dataSeed = async () => {
                         getStat(homeStats, 'steals') - getStat(awayStats, 'steals'),
                         getStat(homeStats, 'stealsperGame') - getStat(awayStats, 'stealsperGame'),
                         getStat(homeStats, 'effectiveFieldGoalPct') - getStat(awayStats, 'effectiveFieldGoalPct'),
-                        getStat(homeStats, 'fieldGoalMakesperAttempts') - getStat(awayStats, 'fieldGoalMakesperAttempts'),
-                        getStat(homeStats, 'freeThrowsMadeperAttemps') - getStat(awayStats, 'freeThrowsMadeperAttemps'),
                         getStat(homeStats, 'freeThrowPct') - getStat(awayStats, 'freeThrowPct'),
                         getStat(homeStats, 'totalTurnovers') - getStat(awayStats, 'totalTurnovers'),
                         getStat(homeStats, 'averageTurnovers') - getStat(awayStats, 'averageTurnovers'),
@@ -1069,8 +1067,6 @@ const dataSeed = async () => {
                         getStat(homeStats, 'steals') - getStat(awayStats, 'steals'),
                         getStat(homeStats, 'stealsperGame') - getStat(awayStats, 'stealsperGame'),
                         getStat(homeStats, 'effectiveFieldGoalPct') - getStat(awayStats, 'effectiveFieldGoalPct'),
-                        getStat(homeStats, 'fieldGoalMakesperAttempts') - getStat(awayStats, 'fieldGoalMakesperAttempts'),
-                        getStat(homeStats, 'freeThrowsMadeperAttemps') - getStat(awayStats, 'freeThrowsMadeperAttemps'),
                         getStat(homeStats, 'freeThrowPct') - getStat(awayStats, 'freeThrowPct'),
                         getStat(homeStats, 'totalTurnovers') - getStat(awayStats, 'totalTurnovers'),
                         getStat(homeStats, 'averageTurnovers') - getStat(awayStats, 'averageTurnovers'),
@@ -1098,8 +1094,6 @@ const dataSeed = async () => {
                         getStat(homeStats, 'steals') - getStat(awayStats, 'steals'),
                         getStat(homeStats, 'stealsperGame') - getStat(awayStats, 'stealsperGame'),
                         getStat(homeStats, 'effectiveFieldGoalPct') - getStat(awayStats, 'effectiveFieldGoalPct'),
-                        getStat(homeStats, 'fieldGoalMakesperAttempts') - getStat(awayStats, 'fieldGoalMakesperAttempts'),
-                        getStat(homeStats, 'freeThrowsMadeperAttemps') - getStat(awayStats, 'freeThrowsMadeperAttemps'),
                         getStat(homeStats, 'freeThrowPct') - getStat(awayStats, 'freeThrowPct'),
                         getStat(homeStats, 'totalTurnovers') - getStat(awayStats, 'totalTurnovers'),
                         getStat(homeStats, 'averageTurnovers') - getStat(awayStats, 'averageTurnovers'),
@@ -1206,7 +1200,6 @@ const dataSeed = async () => {
             const probabilities = await predictions.array();  // This resolves the tensor to an array
             sportOdds.forEach(async (game, index) => {
                 const predictedWinPercent = probabilities[index][0]; // Get the probability for the current game
-
                 // Update the game with the predicted win percentage
                 await Odds.findOneAndUpdate({ id: game.id }, { winPercent: predictedWinPercent });
             });
