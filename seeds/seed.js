@@ -271,7 +271,7 @@ const retrieveTeamsandStats = async () => {
                     if (teamStatJson.splits) {
                         for (const category of teamStatJson.splits.categories) {
                             for (const stat of category.stats) {
-                                team = updateTeamStats(team, stat.name, stat.value, stat.perGameValue || stat.displayValue, category.name);
+                                team = updateTeamStats(team, stat.name, stat.value, stat.perGameValue, stat.displayValue, category.name);
                             }
                         }
                     }
