@@ -30,15 +30,7 @@ const retrieveTeamsandStats = async () => {
                 return;
         }
         let teams
-        if (sports[i].espnSport === 'football') {
-            teams = await UsaFootballTeam.find({})
-        } else if (sports[i].espnSport === 'basketball') {
-            teams = await BasketballTeam.find({})
-        } else if (sports[i].espnSport === 'baseball') {
-            teams = await BaseballTeam.find({})
-        } else if (sports[i].espnSport === 'hockey') {
-            teams = await HockeyTeam.find({})
-        }
+        teams = await TeamModel.find({})
         // Helper function to get the team record URL based on the current month
         const getTeamRecordUrl = (month, startMonth, endMonth, espnSport, league, statYear, espnID) => {
             let type = 2; // Default type
@@ -72,7 +64,7 @@ const retrieveTeamsandStats = async () => {
             }
         };
         // Helper function to update team stats
-        const updateTeamStats = (team, statName, value, perGameValue, category) => {
+        const updateTeamStats = (team, statName, value, perGameValue, displayValue, category) => {
             const statMap = {
                 'totalPointsPerGame': [{ modelField: 'pointsPerGame', category: 'scoring' }],
                 'totalPoints': [{ modelField: 'totalPoints', category: 'scoring' }],
@@ -224,7 +216,8 @@ const retrieveTeamsandStats = async () => {
 
                         // If it's a per-game stat, update with perGameValue
                         if (statInfo.isPerGame || statInfo.isDisplayValue) {
-                            team.stats[statKey] = perGameValue;
+                            statInfo.isDisplayValue ? team.stats[statKey] = displayValue : 0
+                            statInfo.isPerGame ? team.stats[statKey] = perGameValue : 0;
                         } else {
                             // If it's not a per-game stat, store the regular value
                             team.stats[statKey] = value;
@@ -237,19 +230,30 @@ const retrieveTeamsandStats = async () => {
         };
 
         const upsertTeamsInBulk = async (teams, sport) => {
+            const bulkOps = teams.map(team => {
+                // Create a new object without the _id field
+                const { _id, ...teamWithoutId } = team;
 
-            const bulkOps = teams.map(team => ({
-
-                updateOne: {
-                    filter: {
-                        'espnID': team.espnID,        // Unique to the team
-                        'league': team.league,        // Ensures uniqueness within the league
-                    },
-                    update: { $set: team },
-                    upsert: true,
+                if (sport.league === team.league) {
+                    return {
+                        updateOne: {
+                            filter: {
+                                'espnID': team.espnID, // Unique to the team
+                                'league': sport.league, // Ensures uniqueness within the league
+                            },
+                            update: { $set: teamWithoutId }, // Ensure you're not updating _id
+                            upsert: true,
+                        }
+                    };
                 }
-            }));
-            await TeamModel.bulkWrite(bulkOps);
+
+                return null
+
+            }).filter(operation => operation !== null);
+
+            if (bulkOps.length > 0) {
+                await TeamModel.bulkWrite(bulkOps);
+            }
         };
 
         const fetchAllTeamData = async (sport, teams, statYear) => {
@@ -296,7 +300,7 @@ const retrieveTeamsandStats = async () => {
                         // Filter out any undefined results (in case some fetches failed)
                         const filteredResults = results.filter(result => result !== undefined);
                         // Upsert the fetched team data in bulk
-                        await upsertTeamsInBulk(filteredResults, sport.espnSport);
+                        await upsertTeamsInBulk(filteredResults, sport);
                         promises.length = 0; // Clear the array after waiting for requests to resolve
                     }
                 }
@@ -305,7 +309,7 @@ const retrieveTeamsandStats = async () => {
                 if (promises.length > 0) {
                     const results = await Promise.all(promises);
                     const filteredResults = results.filter(result => result !== undefined);
-                    await upsertTeamsInBulk(filteredResults, sport.espnSport);
+                    await upsertTeamsInBulk(filteredResults, sport);
                 }
 
             } catch (error) {
@@ -321,23 +325,74 @@ const removePastGames = async (currentOdds) => {
         // Check if the game is in the past based on commence_time
         if (moment(game.commence_time).local().isBefore(moment().local())) {
             let { _id, ...newGame } = game._doc;
-            let homeTeam, awayTeam;
             let homeScore, awayScore, predictionCorrect, winner, timeRemaining;
+            let homeTeamList = []
+            let awayTeamList = []
+            let homeTeam
+            let awayTeam
 
-            // Fetch team details from the Teams collection
+            // Fetch team data based on sport
             if (game.sport === 'football') {
-                homeTeam = await UsaFootballTeam.findOne({ 'espnDisplayName': game.home_team });
-                awayTeam = await UsaFootballTeam.findOne({ 'espnDisplayName': game.away_team });
+                homeTeamList = await UsaFootballTeam.find({ 'espnDisplayName': game.home_team });
+                awayTeamList = await UsaFootballTeam.find({ 'espnDisplayName': game.away_team });
             } else if (game.sport === 'baseball') {
-                homeTeam = await BaseballTeam.findOne({ 'espnDisplayName': game.home_team });
-                awayTeam = await BaseballTeam.findOne({ 'espnDisplayName': game.away_team });
+                homeTeamList = await BaseballTeam.find({ 'espnDisplayName': game.home_team });
+                awayTeamList = await BaseballTeam.find({ 'espnDisplayName': game.away_team });
             } else if (game.sport === 'basketball') {
-                homeTeam = await BasketballTeam.findOne({ 'espnDisplayName': game.home_team });
-                awayTeam = await BasketballTeam.findOne({ 'espnDisplayName': game.away_team });
+                homeTeamList = await BasketballTeam.find({ 'espnDisplayName': game.home_team });
+                awayTeamList = await BasketballTeam.find({ 'espnDisplayName': game.away_team });
             } else if (game.sport === 'hockey') {
-                homeTeam = await HockeyTeam.findOne({ 'espnDisplayName': game.home_team });
-                awayTeam = await HockeyTeam.findOne({ 'espnDisplayName': game.away_team });
+                homeTeamList = await HockeyTeam.find({ 'espnDisplayName': game.home_team });
+                awayTeamList = await HockeyTeam.find({ 'espnDisplayName': game.away_team });
             }
+
+
+
+
+            // Function to find a team based on schedule date
+            async function findTeamSchedule(teamList, teamType) {
+                if (teamList.length > 1) {
+                    // Loop through teams if there are multiple
+                    for (let idx = 0; idx < teamList.length; idx++) {
+                        let team = teamList[idx];
+                        try {
+                            // Fetch team schedule from ESPN API
+                            let scheduleResponse = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${game.sport}/${team.league}/teams/${team.espnID}/schedule`);
+                            let scheduleJSON = await scheduleResponse.json();
+
+                            // Loop through events in the team's schedule
+                            for (let event of scheduleJSON.events) {
+                                // Check if the event matches the current game's date
+                                if (moment(event.date).isSame(moment(game.commence_time))) {
+                                    if (teamType === 'home') {
+                                        homeTeam = teamList[idx];
+                                    } else if (teamType === 'away') {
+                                        awayTeam = teamList[idx];
+                                    }
+                                }
+                            }
+                        } catch (error) {
+                            console.error(`Error fetching schedule for ${team.espnDisplayName}:`, error);
+                        }
+                    }
+                } else if (teamList.length === 1) {
+                    // If only one team is found, assign it directly
+                    if (teamType === 'home') {
+                        homeTeam = teamList[0];
+                    } else if (teamType === 'away') {
+                        awayTeam = teamList[0];
+                    }
+                } else if (teamList.length === 0) {
+                    await Odds.deleteOne({ id: game.id });
+                }
+            }
+
+
+            // Call the function to check home and away teams
+            await findTeamSchedule(homeTeamList, 'home');
+            await findTeamSchedule(awayTeamList, 'away');
+
+
 
             try {
                 // Fetch home team schedule from ESPN API
@@ -346,8 +401,9 @@ const removePastGames = async (currentOdds) => {
 
                 // Loop through events in the home team schedule
                 for (let event of homeTeamSchedJSON.events) {
+
                     // Check if the event matches the current game's date
-                    if (moment(event.date).local().format('MM/DD/YYYY') === moment(game.commence_time).local().format('MM/DD/YYYY')) {
+                    if (moment(event.date).isSame(moment(game.commence_time))) {
                         if (event.competitions[0].status.type.completed === true) {
 
                             // Delete the game from the Odds collection
@@ -1595,7 +1651,7 @@ const dataSeed = async () => {
                                 // Loop through events in the team's schedule
                                 for (let event of scheduleJSON.events) {
                                     // Check if the event matches the current game's date
-                                    if (moment(event.date).local().format('MM/DD/YYYY') === moment(game.commence_time).local().format('MM/DD/YYYY')) {
+                                    if (moment(event.date).isSame(moment(game.commence_time))) {
                                         if (teamType === 'home') {
                                             homeTeam = teamList[idx];
                                         } else if (teamType === 'away') {
@@ -1614,7 +1670,7 @@ const dataSeed = async () => {
                         } else if (teamType === 'away') {
                             awayTeam = teamList[0];
                         }
-                    } else if (teamList.length === 0){
+                    } else if (teamList.length === 0) {
                         await Odds.deleteOne({ id: game.id });
                     }
                 }

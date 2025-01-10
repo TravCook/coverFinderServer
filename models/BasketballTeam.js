@@ -97,12 +97,12 @@ const BasketballTeamSchema = new Schema({
             required: false
         },
         fieldGoalMakesperAttempts: {
-            type: Number,
+            type: String,
             required: false,
             displayValue: false
         },
         freeThrowsMadeperAttemps: {
-            type: Number,
+            type: String,
             required: false,
             displayValue: false
         },
