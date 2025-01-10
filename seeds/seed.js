@@ -406,12 +406,6 @@ const removePastGames = async (currentOdds) => {
                     if (moment(event.date).isSame(moment(game.commence_time))) {
                         if (event.competitions[0].status.type.completed === true) {
 
-                            // Delete the game from the Odds collection
-                            let deletedGame = await Odds.findOneAndDelete({ _id: game._doc._id });
-                            if (deletedGame) {
-                                console.log(`deleted game: ${deletedGame.home_team} vs ${deletedGame.away_team}`);
-                            }
-
                             // Determine the scores and winner
                             event.competitions[0].competitors.forEach((team) => {
                                 if (team.homeAway === 'home') {
@@ -575,6 +569,12 @@ const removePastGames = async (currentOdds) => {
                                     homeTeamStats: cleanStats(getCommonStats(homeTeam)),
                                     awayTeamStats: cleanStats(getCommonStats(awayTeam)),
                                 });
+
+                                // Delete the game from the Odds collection
+                                let deletedGame = await Odds.findOneAndDelete({ _id: game._doc._id });
+                                if (deletedGame) {
+                                    console.log(`deleted game: ${deletedGame.home_team} vs ${deletedGame.away_team}`);
+                                }
                             } else {
                                 console.log('Game already exists in PastGameOdds');
                             }
@@ -1577,7 +1577,7 @@ const dataSeed = async () => {
 
             return { homeIndex, awayIndex };
         }
-        function adjustncaafStats(homeTeam, awayTeam, homeIndex, awayIndex) {
+        function adjustwncaabStats(homeTeam, awayTeam, homeIndex, awayIndex) {
             homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += nbaWeights[0] : awayIndex += nbaWeights[0];
             homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += nbaWeights[1] : awayIndex += nbaWeights[1];
             homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += nbaWeights[2] : awayIndex += nbaWeights[2];
@@ -1712,7 +1712,7 @@ const dataSeed = async () => {
                     }
                     else if (game.sport_key === 'basketball_wncaab') {
                         // Apply basketball-specific statistics
-                        ({ homeIndex, awayIndex } = adjustncaafStats(homeTeam, awayTeam, homeIndex, awayIndex));
+                        ({ homeIndex, awayIndex } = adjustwncaabStats(homeTeam, awayTeam, homeIndex, awayIndex));
                     }
                 }
                 const getCommonStats = (team) => ({
