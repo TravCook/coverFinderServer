@@ -73,7 +73,7 @@ module.exports = {
         // }
 
         try {
-            let odds = await getCachedOdds(`${req.body.sport.toLowerCase()}Odds`, { sport_key: req.body.sport });
+            let odds = await getCachedOdds(`${req.body.sport.toLowerCase()}Odds`, { sport_title: req.body.sport });
             return res.json(odds);
         } catch (err) {
             return res.status(500).json({ message: err.message });
