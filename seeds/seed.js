@@ -363,7 +363,7 @@ const removePastGames = async (currentOdds) => {
                             // Loop through events in the team's schedule
                             for (let event of scheduleJSON.events) {
                                 // Check if the event matches the current game's date
-                                if (moment(event.date).isSame(moment(game.commence_time))) {
+                                if (moment(event.date).isSame(moment(game.commence_time), 'hour')) {
                                     if (teamType === 'home') {
                                         homeTeam = teamList[idx];
                                     } else if (teamType === 'away') {
@@ -392,8 +392,6 @@ const removePastGames = async (currentOdds) => {
             await findTeamSchedule(homeTeamList, 'home');
             await findTeamSchedule(awayTeamList, 'away');
 
-
-
             try {
                 // Fetch home team schedule from ESPN API
                 let homeTeamSchedule = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${game.sport}/${homeTeam.league}/teams/${homeTeam.espnID}/schedule`);
@@ -403,7 +401,7 @@ const removePastGames = async (currentOdds) => {
                 for (let event of homeTeamSchedJSON.events) {
 
                     // Check if the event matches the current game's date
-                    if (moment(event.date).isSame(moment(game.commence_time))) {
+                    if (moment(event.date).isSame(moment(game.commence_time), 'hour')) {
                         if (event.competitions[0].status.type.completed === true) {
 
                             // Determine the scores and winner
