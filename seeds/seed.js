@@ -1411,16 +1411,16 @@ const dataSeed = async () => {
                     if (reverseComparisonStats.includes(stat)) {
                         // For reversed comparison, check if homeStat is less than or equal to awayStat
                         if (homeStat <= awayStat) {
-                            homeIndex += nflWeights[ncaafWeightIndex];
+                            homeIndex += ncaafWeights[ncaafWeightIndex];
                         } else {
-                            awayIndex += nflWeights[ncaafWeightIndex];
+                            awayIndex += ncaafWeights[ncaafWeightIndex];
                         }
                     } else {
                         // For all other stats, check if homeStat is greater than or equal to awayStat
                         if (homeStat >= awayStat) {
-                            homeIndex += nflWeights[ncaafWeightIndex];
+                            homeIndex += ncaafWeights[ncaafWeightIndex];
                         } else {
-                            awayIndex += nflWeights[ncaafWeightIndex];
+                            awayIndex += ncaafWeights[ncaafWeightIndex];
                         }
                     }
                 }
@@ -1445,16 +1445,16 @@ const dataSeed = async () => {
                     if (reverseComparisonStats.includes(stat)) {
                         // For reversed comparison, check if homeStat is less than or equal to awayStat
                         if (homeStat <= awayStat) {
-                            homeIndex += nflWeights[nhlWeightIndex];
+                            homeIndex += nhlWeights[nhlWeightIndex];
                         } else {
-                            awayIndex += nflWeights[nhlWeightIndex];
+                            awayIndex += nhlWeights[nhlWeightIndex];
                         }
                     } else {
                         // For all other stats, check if homeStat is greater than or equal to awayStat
                         if (homeStat >= awayStat) {
-                            homeIndex += nflWeights[nhlWeightIndex];
+                            homeIndex += nhlWeights[nhlWeightIndex];
                         } else {
-                            awayIndex += nflWeights[nhlWeightIndex];
+                            awayIndex += nhlWeights[nhlWeightIndex];
                         }
                     }
                 }
@@ -1481,16 +1481,16 @@ const dataSeed = async () => {
                     if (reverseComparisonStats.includes(stat)) {
                         // For reversed comparison, check if homeStat is less than or equal to awayStat
                         if (homeStat <= awayStat) {
-                            homeIndex += nflWeights[nbaWeightIndex];
+                            homeIndex += nbaWeights[nbaWeightIndex];
                         } else {
-                            awayIndex += nflWeights[nbaWeightIndex];
+                            awayIndex += nbaWeights[nbaWeightIndex];
                         }
                     } else {
                         // For all other stats, check if homeStat is greater than or equal to awayStat
                         if (homeStat >= awayStat) {
-                            homeIndex += nflWeights[nbaWeightIndex];
+                            homeIndex += nbaWeights[nbaWeightIndex];
                         } else {
-                            awayIndex += nflWeights[nbaWeightIndex];
+                            awayIndex += nbaWeights[nbaWeightIndex];
                         }
                     }
                 }
@@ -1516,16 +1516,16 @@ const dataSeed = async () => {
                     if (reverseComparisonStats.includes(stat)) {
                         // For reversed comparison, check if homeStat is less than or equal to awayStat
                         if (homeStat <= awayStat) {
-                            homeIndex += nflWeights[mlbWeightIndex];
+                            homeIndex += mlbWeights[mlbWeightIndex];
                         } else {
-                            awayIndex += nflWeights[mlbWeightIndex];
+                            awayIndex += mlbWeights[mlbWeightIndex];
                         }
                     } else {
                         // For all other stats, check if homeStat is greater than or equal to awayStat
                         if (homeStat >= awayStat) {
-                            homeIndex += nflWeights[mlbWeightIndex];
+                            homeIndex += mlbWeights[mlbWeightIndex];
                         } else {
-                            awayIndex += nflWeights[mlbWeightIndex];
+                            awayIndex += mlbWeights[mlbWeightIndex];
                         }
                     }
                 }
@@ -1535,10 +1535,10 @@ const dataSeed = async () => {
             return { homeIndex, awayIndex };
         }
         function adjustncaamStats(homeTeam, awayTeam, homeIndex, awayIndex) {
-            homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += nbaWeights[0] : awayIndex += nbaWeights[0];
-            homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += nbaWeights[1] : awayIndex += nbaWeights[1];
-            homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += nbaWeights[2] : awayIndex += nbaWeights[2];
-            let nbaWeightIndex = 3
+            homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += ncaamWeights[0] : awayIndex += ncaamWeights[0];
+            homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += ncaamWeights[1] : awayIndex += ncaamWeights[1];
+            homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += ncaamWeights[2] : awayIndex += ncaamWeights[2];
+            let ncaamWeightIndex = 3
             const reverseComparisonStats = ['averageTurnovers', 'totalTurnovers'];
             // Loop through homeTeam.stats to goalsAgainst each stat
             for (const stat in homeTeam.stats) {
@@ -1550,29 +1550,29 @@ const dataSeed = async () => {
                     if (reverseComparisonStats.includes(stat)) {
                         // For reversed comparison, check if homeStat is less than or equal to awayStat
                         if (homeStat <= awayStat) {
-                            homeIndex += nflWeights[nbaWeightIndex];
+                            homeIndex += ncaamWeights[ncaamWeightIndex];
                         } else {
-                            awayIndex += nflWeights[nbaWeightIndex];
+                            awayIndex += ncaamWeights[ncaamWeightIndex];
                         }
                     } else {
                         // For all other stats, check if homeStat is greater than or equal to awayStat
                         if (homeStat >= awayStat) {
-                            homeIndex += nflWeights[nbaWeightIndex];
+                            homeIndex += ncaamWeights[ncaamWeightIndex];
                         } else {
-                            awayIndex += nflWeights[nbaWeightIndex];
+                            awayIndex += ncaamWeights[ncaamWeightIndex];
                         }
                     }
                 }
-                nbaWeightIndex++
+                ncaamWeightIndex++
             }
 
             return { homeIndex, awayIndex };
         }
         function adjustwncaabStats(homeTeam, awayTeam, homeIndex, awayIndex) {
-            homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += nbaWeights[0] : awayIndex += nbaWeights[0];
-            homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += nbaWeights[1] : awayIndex += nbaWeights[1];
-            homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += nbaWeights[2] : awayIndex += nbaWeights[2];
-            let nbaWeightIndex = 3
+            homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += ncaawWeights[0] : awayIndex += ncaawWeights[0];
+            homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += ncaawWeights[1] : awayIndex += ncaawWeights[1];
+            homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += ncaawWeights[2] : awayIndex += ncaawWeights[2];
+            let ncaawWeightIndex = 3
             const reverseComparisonStats = ['averageTurnovers', 'totalTurnovers'];
             // Loop through homeTeam.stats to goalsAgainst each stat
             for (const stat in homeTeam.stats) {
@@ -1584,20 +1584,20 @@ const dataSeed = async () => {
                     if (reverseComparisonStats.includes(stat)) {
                         // For reversed comparison, check if homeStat is less than or equal to awayStat
                         if (homeStat <= awayStat) {
-                            homeIndex += nflWeights[nbaWeightIndex];
+                            homeIndex += ncaawWeights[ncaawWeightIndex];
                         } else {
-                            awayIndex += nflWeights[nbaWeightIndex];
+                            awayIndex += ncaawWeights[ncaawWeightIndex];
                         }
                     } else {
                         // For all other stats, check if homeStat is greater than or equal to awayStat
                         if (homeStat >= awayStat) {
-                            homeIndex += nflWeights[nbaWeightIndex];
+                            homeIndex += ncaawWeights[ncaawWeightIndex];
                         } else {
-                            awayIndex += nflWeights[nbaWeightIndex];
+                            awayIndex += ncaawWeights[ncaawWeightIndex];
                         }
                     }
                 }
-                nbaWeightIndex++
+                ncaawWeightIndex++
             }
 
             return { homeIndex, awayIndex };
