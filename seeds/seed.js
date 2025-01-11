@@ -281,7 +281,7 @@ const retrieveTeamsandStats = async () => {
                 }
             };
 
-            const MAX_CONCURRENT_REQUESTS = 50; // You can adjust this number to control concurrency
+            const MAX_CONCURRENT_REQUESTS = 25; // You can adjust this number to control concurrency
             const promises = [];
 
             try {
