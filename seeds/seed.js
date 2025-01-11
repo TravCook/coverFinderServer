@@ -847,6 +847,7 @@ const dataSeed = async () => {
     let ncaamWeights = []
     let ncaawWeights = []
     async function trainSportModel(sport, gameData) {
+
         if (gameData.length < 5) {
             // Handle the case where there is no data for this sport
             console.log(`No data available for ${sport.league}. Skipping model training.`);
@@ -1359,6 +1360,7 @@ const dataSeed = async () => {
             // Step 3: Assign weights to preMade array
             ncaawWeights = averages
         }
+
         //DETERMINE H2H INDEXES FOR EVERY GAME IN ODDS
         // Helper function to adjust indexes for football games
         function adjustnflStats(homeTeam, awayTeam, homeIndex, awayIndex) {

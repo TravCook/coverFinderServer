@@ -112,8 +112,7 @@ module.exports = {
                 sport_title: 1, 
                 sport:1, 
                 bookmakers: 1});
-            const filteredGames = pastGames.filter(game => moment(game.commence_time).isAfter(moment('2024-12-05')));
-            return res.json(filteredGames);
+            return res.json(pastGames);
         } catch (err) {
             return res.status(500).json({ message: err.message });
         }
