@@ -580,7 +580,7 @@ const removePastGames = async (currentOdds) => {
                             let currentScoreboard = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${game.sport}/${homeTeam.league}/scoreboard`)
                             let scoreboardJSON = await currentScoreboard.json()
                             for (let SBevent of scoreboardJSON.events) {
-                                if (moment(SBevent.date).isSame(moment(game.commence_time), 'day') && SBevent.name === `${game.away_team} at ${game.home_team}` || SBevent.shortName === `${awayTeam.abbreviation} @ ${homeTeam.abbreviation}`) {
+                                if (moment(SBevent.date).isSame(moment(game.commence_time), 'hour') && (SBevent.name === `${game.away_team} at ${game.home_team}` || SBevent.shortName === `${awayTeam.abbreviation} @ ${homeTeam.abbreviation}`)) {
                                     // Determine the scores and winner
                                     SBevent.competitions[0].competitors.forEach((team) => {
                                         if (team.homeAway === 'home') {
@@ -699,7 +699,23 @@ const sports = [
 const oddsSeed = async () => {
     // RETRIEVE ODDS
     console.log('BEGINNING ODDS SEEDING')
-    await axios.all(sports.map((sport) =>
+    await axios.all(sports.filter(sport => {
+        const { startMonth, endMonth, multiYear } = sport;
+    
+        // Multi-year sports have a range that spans over the calendar year
+        if (multiYear) {
+            // Check if current month is within the range
+            if (startMonth <= currentMonth || currentMonth <= endMonth) {
+                return true;
+            }
+        } else {
+            // Single-year sports are only valid in their specific month range
+            if (currentMonth >= startMonth && currentMonth <= endMonth) {
+                return true;
+            }
+        }
+        return false;
+    }).map((sport) =>
         axios.get(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_TCDEV}&regions=us&oddsFormat=american&markets=h2h`)
     )).then(async (data) => {
         try {
