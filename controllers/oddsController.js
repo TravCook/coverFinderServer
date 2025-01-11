@@ -13,7 +13,24 @@ async function getCachedOdds(cacheKey, query, filterDays = 30) {
     let odds = myCache.get(cacheKey);
     if (odds === undefined) {
         try {
-            odds = await Odds.find(query);
+            odds = await Odds.find(query, {
+                commence_time: 1, 
+                home_team: 1, 
+                homeTeamIndex: 1, 
+                homeScore: 1, 
+                away_team: 1, 
+                awayTeamIndex: 1, 
+                awayScore: 1, 
+                winPercent: 1, 
+                homeTeamlogo: 1, 
+                awayTeamlogo: 1, 
+                winner: 1, 
+                predictionCorrect: 1, 
+                id: 1, 
+                sport_key:1, 
+                sport_title: 1, 
+                sport:1, 
+                bookmakers: 1});
             odds = filterOddsByCommenceTime(odds, filterDays);
             myCache.set(cacheKey, JSON.stringify(odds), 1); // Cache for 5 minutes
         } catch (err) {
