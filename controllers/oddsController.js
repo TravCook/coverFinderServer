@@ -25,11 +25,6 @@ async function getCachedOdds(cacheKey, query, filterDays = 30) {
     return odds;
 }
 
-// Utility function for calculating win rate
-function calculateWinRate(games, predictionCorrect) {
-    const correctPicks = games.filter(game => game.predictionCorrect === predictionCorrect).length;
-    return correctPicks / games.length;
-}
 
 module.exports = {
     async getAllOdds(req, res) {
@@ -80,89 +75,26 @@ module.exports = {
         }
     },
 
-    async getLowIndex(req, res) {
-        try {
-            let odds = await getCachedOdds('lowIndexOdds', { $or: [{ 'homeTeamIndex': { $lt: -5 } }, { 'awayTeamIndex': { $lt: -5 } }] });
-            return res.json(odds);
-        } catch (err) {
-            return res.status(500).json({ message: err.message });
-        }
-    },
-
-    async getHighIndex(req, res) {
-        try {
-            let odds = await getCachedOdds('highIndexOdds', { $or: [{ 'homeTeamIndex': { $gt: 5 } }, { 'awayTeamIndex': { $gt: 5 } }] });
-            return res.json(odds);
-        } catch (err) {
-            return res.status(500).json({ message: err.message });
-        }
-    },
-
-    async getWinRates(req, res) {
-        try {
-            const allGames = await PastGameOdds.find();
-            const sportsData = {
-                football: { games: await PastGameOdds.find({ sport: 'football' }), correct: 0 },
-                baseball: { games: await PastGameOdds.find({ sport: 'baseball' }), correct: 0 },
-                basketball: { games: await PastGameOdds.find({ sport: 'basketball' }), correct: 0 },
-                hockey: { games: await PastGameOdds.find({ sport: 'hockey' }), correct: 0 },
-                nfl: { games: await PastGameOdds.find({ sport_key: 'americanfootball_nfl' }), correct: 0 },
-                ncaaf: { games: await PastGameOdds.find({ sport_key: 'americanfootball_ncaaf' }), correct: 0 }
-            };
-
-            // Calculate correct picks for each sport
-            for (const sport in sportsData) {
-                sportsData[sport].correct = sportsData[sport].games.filter(game => game.predictionCorrect === true).length;
-            }
-
-            const highIndex = await PastGameOdds.find({ $or: [{ 'homeTeamIndex': { $gt: 5 } }, { 'awayTeamIndex': { $gt: 5 } }] });
-            const lowIndex = await PastGameOdds.find({ $or: [{ 'homeTeamIndex': { $lt: -5 } }, { 'awayTeamIndex': { $lt: -5 } }] });
-
-            return res.json({
-                overallWinRate: calculateWinRate(allGames, true),
-                footballWinRate: calculateWinRate(sportsData.football.games, true),
-                baseballWinRate: calculateWinRate(sportsData.baseball.games, true),
-                basketballWinRate: calculateWinRate(sportsData.basketball.games, true),
-                hockeyWinRate: calculateWinRate(sportsData.hockey.games, true),
-                nflWinRate: calculateWinRate(sportsData.nfl.games, true),
-                ncaafWinRate: calculateWinRate(sportsData.ncaaf.games, true),
-                highIndexWinRate: calculateWinRate(highIndex, true),
-                lowIndexWinRate: calculateWinRate(lowIndex, true),
-            });
-        } catch (err) {
-            return res.status(500).json({ message: err.message });
-        }
-    },
-
-    async getIndexDiffWinRate(req, res) {
-        try {
-            const allGames = await PastGameOdds.find();
-            const matchingIndexGames = allGames.filter(game => Math.abs(game.homeTeamIndex - game.awayTeamIndex) === req.body.indexDiff);
-            const matchingIndexWinRate = calculateWinRate(matchingIndexGames, true);
-
-            const sportGames = allGames.filter(game => game.sport_key === req.body.sport_key);
-            const sportWinRate = calculateWinRate(sportGames, true);
-
-            const homeTeamGames = allGames.filter(game => game.home_team === req.body.homeTeam || game.away_team === req.body.homeTeam);
-            const homeTeamWinRate = calculateWinRate(homeTeamGames, true);
-
-            const awayTeamGames = allGames.filter(game => game.home_team === req.body.awayTeam || game.away_team === req.body.awayTeam);
-            const awayTeamWinRate = calculateWinRate(awayTeamGames, true);
-
-            return res.json({
-                matchingIndexWinRate,
-                sportGamesWinRate: sportWinRate,
-                hometeamWinRate: homeTeamWinRate,
-                awayteamWinRate: awayTeamWinRate
-            });
-        } catch (err) {
-            return res.status(500).json({ message: err.message });
-        }
-    },
-
     async getPastGames(req, res) {
         try {
-            const pastGames = await PastGameOdds.find();
+            const pastGames = await PastGameOdds.find({}, {
+                commence_time: 1, 
+                home_team: 1, 
+                homeTeamIndex: 1, 
+                homeScore: 1, 
+                away_team: 1, 
+                awayTeamIndex: 1, 
+                awayScore: 1, 
+                winPercent: 1, 
+                homeTeamlogo: 1, 
+                awayTeamlogo: 1, 
+                winner: 1, 
+                predictionCorrect: 1, 
+                id: 1, 
+                sport_key:1, 
+                sport_title: 1, 
+                sport:1, 
+                bookmakers: 1});
             const filteredGames = pastGames.filter(game => moment(game.commence_time).isAfter(moment('2024-12-05')));
             return res.json(filteredGames);
         } catch (err) {
