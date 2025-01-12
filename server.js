@@ -103,10 +103,10 @@ io.on('connection', async (socket) => {
         sport_title: 1, 
         sport:1, 
         bookmakers: 1}).sort({ commence_time: -1, winPercent: 1 }), // Sorting in database
-      UsaFootballTeam.find({},  { teamId: 1, teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }).select('teamId teamName logo'),
-      BasketballTeam.find({},  { teamId: 1, teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }).select('teamId teamName logo'),
-      BaseballTeam.find({},  { teamId: 1, teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }).select('teamId teamName logo'),
-      HockeyTeam.find({},  { teamId: 1, teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }).select('teamId teamName logo')
+      UsaFootballTeam.find({},  {  teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }),
+      BasketballTeam.find({},  {  teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }),
+      BaseballTeam.find({},  {  teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }),
+      HockeyTeam.find({},  {  teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 })
     ]);
 
     let allTeams = {
@@ -118,26 +118,8 @@ io.on('connection', async (socket) => {
     console.log(`retrieved data @ ${moment().format('HH:mm:ss')}`);
    emitToClients('teamUpdate', allTeams);
 
-   emitToClients('gameUpdate', currentOdds.sort((a, b) => {
-      const timeA = new Date(a.commence_time).getTime();  // Round to the start of the minute
-      const timeB = new Date(b.commence_time).getTime();  // Round to the start of the minute
-
-      if (timeA === timeB) {
-          return a.winPercent - b.winPercent;  // Sort by winPercent if times are the same
-      } else {
-          return timeA < timeB ? -1 : 1;  // Sort by commence_time otherwise
-      }
-  }));
-   emitToClients('pastGameUpdate', pastOdds.sort((a, b) => {
-      const timeA = new Date(a.commence_time).getTime();  // Round to the start of the minute
-      const timeB = new Date(b.commence_time).getTime();  // Round to the start of the minute
-
-      if (timeA === timeB) {
-          return a.winPercent - b.winPercent;  // Sort by winPercent if times are the same
-      } else {
-          return timeA < timeB ? 1 : -1;  // Sort by commence_time otherwise
-      }
-  }));
+   emitToClients('gameUpdate', currentOdds);
+   emitToClients('pastGameUpdate', pastOdds);
   console.log(`sent data @ ${moment().format('HH:mm:ss')}`);
   
   // Handle disconnect event

@@ -701,7 +701,7 @@ const oddsSeed = async () => {
     console.log('BEGINNING ODDS SEEDING')
     await axios.all(sports.filter(sport => {
         const { startMonth, endMonth, multiYear } = sport;
-    
+
         // Multi-year sports have a range that spans over the calendar year
         if (multiYear) {
             // Check if current month is within the range
@@ -1123,6 +1123,78 @@ const dataSeed = async () => {
                     return [];
             }
         }
+        // Define the utility functions above your existing code
+        async function extractSportWeights(model, sportName) {
+            let weights, weightMatrix, averages = [];
+
+            // Extract weights from the first (input) layer of the model
+            weights = model.layers[0].getWeights();
+            weightMatrix = await weights[0].array(); // This gives the matrix of weights for each feature
+
+            // Sum weights for each feature (column-wise)
+            matrixIterator(weightMatrix, averages);
+
+            // Return the averages array specific to the sport
+            return averages;
+        }
+
+        function matrixIterator(weightMatrix, averages) {
+            for (let i = 0; i < weightMatrix.length; i++) {
+                let row = weightMatrix[i];
+                // Calculate the sum of the 64 weights in the row
+                let sum = row.reduce((acc, value) => acc + value, 0);
+
+                // Calculate the average of the row
+                let average = Math.abs(sum / row.length);
+
+                // Store the average in the averages array
+                averages.push(average * 10);  // Optional: Multiply for better scaling
+            }
+        }
+
+        async function handleSportWeights(model, sport) {
+            let sportWeights;
+
+            switch (sport.name) {
+                case 'americanfootball_nfl':
+                    sportWeights = await extractSportWeights(model, 'americanfootball_nfl');
+                    nflWeights = sportWeights;
+                    break;
+
+                case 'americanfootball_ncaaf':
+                    sportWeights = await extractSportWeights(model, 'americanfootball_ncaaf');
+                    ncaafWeights = sportWeights;
+                    break;
+
+                case 'basketball_nba':
+                    sportWeights = await extractSportWeights(model, 'basketball_nba');
+                    nbaWeights = sportWeights;
+                    break;
+
+                case 'baseball_mlb':
+                    sportWeights = await extractSportWeights(model, 'baseball_mlb');
+                    mlbWeights = sportWeights;
+                    break;
+
+                case 'icehockey_nhl':
+                    sportWeights = await extractSportWeights(model, 'icehockey_nhl');
+                    nhlWeights = sportWeights;
+                    break;
+
+                case 'basketball_ncaab':
+                    sportWeights = await extractSportWeights(model, 'basketball_ncaab');
+                    ncaamWeights = sportWeights;
+                    break;
+
+                case 'basketball_wncaab':
+                    sportWeights = await extractSportWeights(model, 'basketball_wncaab');
+                    ncaawWeights = sportWeights;
+                    break;
+
+                default:
+                    console.log(`No weight extraction logic for sport: ${sport.name}`);
+            }
+        }
         gameData.forEach(game => {
             const homeStats = game.homeTeamStats;
             const awayStats = game.awayTeamStats;
@@ -1191,7 +1263,7 @@ const dataSeed = async () => {
         // Save model specific to the sport
         await model.save(`file://./model_checkpoint/${sport.name}_model`);
         // Log loss and accuracy
-        const evaluation = model.evaluate(xsTensor, ysTensor);
+
         let ff = []
         let sportOdds = await Odds.find({ sport_key: sport.name })
         if (sportOdds.length > 0) {
@@ -1219,163 +1291,23 @@ const dataSeed = async () => {
                 await Odds.findOneAndUpdate({ id: game.id }, { winPercent: predictedWinPercent });
             });
         }
+
+        // After model is trained and evaluated, integrate the weight extraction
+        const evaluation = model.evaluate(xsTensor, ysTensor);
         const loss = evaluation[0].arraySync();
         const accuracy = evaluation[1].arraySync();
+
         if (accuracy < 1 || loss > 1) {
             console.log(`${sport.name} Model Loss:`, loss);
             console.log(`${sport.name} Model Accuracy:`, accuracy);
         }
-        let weights
-        let weightMatrix
-        let averages
-        const matrixIterator = (matrix) => {
-            for (let i = 0; i < matrix.length; i++) {
-                let row = matrix[i];
-                // Calculate the sum of the 64 weights in the row
-                let sum = row.reduce((acc, value) => acc + value, 0);
 
-                // Calculate the average of the row
-                let average = Math.abs(sum / row.length);
+        // Handle the weights extraction after training
+        await handleSportWeights(model, sport);
 
-                // Store the average in the averages array
-                averages.push((average * 10));
-            }
-        }
-        function timeDecayAverage(sport, weights) {
-            // console.log(sport)
-            const decayFactor = sport.decayFactor;
-            let weightedSum = 0;
-            let sumOfDecayFactors = 0;
+        // Example of accessing the weights (e.g., after training)
+        // Now you can access the weights for each sport like this:
 
-            // Apply decay factor to each weight
-            for (let i = 0; i < weights.length; i++) {
-                const decayWeight = Math.pow(decayFactor, weights.length - i - 1); // Decay decreases as i increases
-                weightedSum += weights[i] * decayWeight;
-                sumOfDecayFactors += decayWeight;
-            }
-
-            // Return the time-decay average
-            return weightedSum / sumOfDecayFactors;
-        }
-        if (sport.name === 'americanfootball_nfl') {
-            averages = []
-            // Extract weights from the first (input) layer of the model
-            weights = model.layers[0].getWeights();
-            weightMatrix = await weights[0].array(); // This gives the matrix of weights for each feature
-
-            // Sum weights for each feature (column-wise)
-            // Iterate through each row in the weight matrix
-            matrixIterator(weightMatrix)
-
-            // Step 2: Normalize the weights (optional, for easier interpretation)
-            // let totalWeight = featureWeightsSum.reduce((sum, weight) => sum + weight, 0);
-            // normalizedFeatureWeights = featureWeightsSum.map(weight => weight / totalWeight);
-
-            // Step 3: Assign weights to preMade array
-            nflWeights = averages
-        }
-        else if (sport.name === 'americanfootball_ncaaf') {
-            averages = []
-            // Extract weights from the first (input) layer of the model
-            weights = model.layers[0].getWeights();
-            weightMatrix = await weights[0].array(); // This gives the matrix of weights for each feature
-
-            // Sum weights for each feature (column-wise)
-            // Iterate through each row in the weight matrix
-            matrixIterator(weightMatrix)
-
-            // Step 2: Normalize the weights (optional, for easier interpretation)
-            // let totalWeight = featureWeightsSum.reduce((sum, weight) => sum + weight, 0);
-            // normalizedFeatureWeights = featureWeightsSum.map(weight => weight / totalWeight);
-
-            // Step 3: Assign weights to preMade array
-            ncaafWeights = averages
-        }
-        else if (sport.name === 'basketball_nba') {
-            averages = []
-            // Extract weights from the first (input) layer of the model
-            weights = model.layers[0].getWeights();
-            weightMatrix = await weights[0].array(); // This gives the matrix of weights for each feature
-
-            // Sum weights for each feature (column-wise)
-            // Iterate through each row in the weight matrix
-            matrixIterator(weightMatrix)
-
-            // Step 2: Normalize the weights (optional, for easier interpretation)
-            // let totalWeight = featureWeightsSum.reduce((sum, weight) => sum + weight, 0);
-            // normalizedFeatureWeights = featureWeightsSum.map(weight => weight / totalWeight);
-
-            // Step 3: Assign weights to preMade array
-            nbaWeights = averages
-        }
-        else if (sport.name === 'bseball_mlb') {
-            averages = []
-            // Extract weights from the first (input) layer of the model
-            weights = model.layers[0].getWeights();
-            weightMatrix = await weights[0].array(); // This gives the matrix of weights for each feature
-
-            // Sum weights for each feature (column-wise)
-            // Iterate through each row in the weight matrix
-            matrixIterator(weightMatrix)
-
-            // Step 2: Normalize the weights (optional, for easier interpretation)
-            // let totalWeight = featureWeightsSum.reduce((sum, weight) => sum + weight, 0);
-            // normalizedFeatureWeights = featureWeightsSum.map(weight => weight / totalWeight);
-
-            // Step 3: Assign weights to preMade array
-            mlbWeights = averages
-        }
-        else if (sport.name === 'icehockey_nhl') {
-            averages = []
-            // Extract weights from the first (input) layer of the model
-            weights = model.layers[0].getWeights();
-            weightMatrix = await weights[0].array(); // This gives the matrix of weights for each feature
-
-            // Sum weights for each feature (column-wise)
-            // Iterate through each row in the weight matrix
-            matrixIterator(weightMatrix)
-
-            // Step 2: Normalize the weights (optional, for easier interpretation)
-            // let totalWeight = featureWeightsSum.reduce((sum, weight) => sum + weight, 0);
-            // normalizedFeatureWeights = featureWeightsSum.map(weight => weight / totalWeight);
-
-            // Step 3: Assign weights to preMade array
-            nhlWeights = averages
-        }
-        else if (sport.name === 'basketball_ncaab') {
-            averages = []
-            // Extract weights from the first (input) layer of the model
-            weights = model.layers[0].getWeights();
-            weightMatrix = await weights[0].array(); // This gives the matrix of weights for each feature
-
-            // Sum weights for each feature (column-wise)
-            // Iterate through each row in the weight matrix
-            matrixIterator(weightMatrix)
-
-            // Step 2: Normalize the weights (optional, for easier interpretation)
-            // let totalWeight = featureWeightsSum.reduce((sum, weight) => sum + weight, 0);
-            // normalizedFeatureWeights = featureWeightsSum.map(weight => weight / totalWeight);
-
-            // Step 3: Assign weights to preMade array
-            ncaamWeights = averages
-        }
-        else if (sport.name === 'basketball_wncaab') {
-            averages = []
-            // Extract weights from the first (input) layer of the model
-            weights = model.layers[0].getWeights();
-            weightMatrix = await weights[0].array(); // This gives the matrix of weights for each feature
-
-            // Sum weights for each feature (column-wise)
-            // Iterate through each row in the weight matrix
-            matrixIterator(weightMatrix)
-
-            // Step 2: Normalize the weights (optional, for easier interpretation)
-            // let totalWeight = featureWeightsSum.reduce((sum, weight) => sum + weight, 0);
-            // normalizedFeatureWeights = featureWeightsSum.map(weight => weight / totalWeight);
-
-            // Step 3: Assign weights to preMade array
-            ncaawWeights = averages
-        }
 
         //DETERMINE H2H INDEXES FOR EVERY GAME IN ODDS
         // Helper function to adjust indexes for football games
@@ -1553,34 +1485,36 @@ const dataSeed = async () => {
             return { homeIndex, awayIndex };
         }
         function adjustncaamStats(homeTeam, awayTeam, homeIndex, awayIndex) {
-            homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += ncaamWeights[0] : awayIndex += ncaamWeights[0];
-            homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += ncaamWeights[1] : awayIndex += ncaamWeights[1];
-            homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += ncaamWeights[2] : awayIndex += ncaamWeights[2];
+
+            homeTeam?.seasonWinLoss?.split("-")[0] >= awayTeam?.seasonWinLoss?.split("-")[0] ? homeIndex += ncaamWeights[0] : awayIndex += ncaamWeights[0];
+            homeTeam?.homeWinLoss?.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += ncaamWeights[1] : awayIndex += ncaamWeights[1];
+            homeTeam?.pointDiff >= awayTeam?.pointDiff ? homeIndex += ncaamWeights[2] : awayIndex += ncaamWeights[2];
             let ncaamWeightIndex = 3
             const reverseComparisonStats = ['averageTurnovers', 'totalTurnovers'];
             // Loop through homeTeam.stats to goalsAgainst each stat
             for (const stat in homeTeam.stats) {
-                if (homeTeam.stats.hasOwnProperty(stat)) {
-                    const homeStat = homeTeam.stats[stat];
-                    const awayStat = awayTeam.stats[stat];
+                if (stat === 'fieldGoalMakesPerAttempts' || stat === 'freeThrowsMadePerAttempts')
+                    if (homeTeam.stats.hasOwnProperty(stat)) {
+                        const homeStat = homeTeam.stats[stat];
+                        const awayStat = awayTeam.stats[stat];
 
-                    // Check if the stat is one that requires reversed comparison
-                    if (reverseComparisonStats.includes(stat)) {
-                        // For reversed comparison, check if homeStat is less than or equal to awayStat
-                        if (homeStat <= awayStat) {
-                            homeIndex += ncaamWeights[ncaamWeightIndex];
+                        // Check if the stat is one that requires reversed comparison
+                        if (reverseComparisonStats.includes(stat)) {
+                            // For reversed comparison, check if homeStat is less than or equal to awayStat
+                            if (homeStat <= awayStat) {
+                                homeIndex += ncaamWeights[ncaamWeightIndex];
+                            } else {
+                                awayIndex += ncaamWeights[ncaamWeightIndex];
+                            }
                         } else {
-                            awayIndex += ncaamWeights[ncaamWeightIndex];
-                        }
-                    } else {
-                        // For all other stats, check if homeStat is greater than or equal to awayStat
-                        if (homeStat >= awayStat) {
-                            homeIndex += ncaamWeights[ncaamWeightIndex];
-                        } else {
-                            awayIndex += ncaamWeights[ncaamWeightIndex];
+                            // For all other stats, check if homeStat is greater than or equal to awayStat
+                            if (homeStat >= awayStat) {
+                                homeIndex += ncaamWeights[ncaamWeightIndex];
+                            } else {
+                                awayIndex += ncaamWeights[ncaamWeightIndex];
+                            }
                         }
                     }
-                }
                 ncaamWeightIndex++
             }
 
@@ -1623,10 +1557,10 @@ const dataSeed = async () => {
         currentOdds.map(async (game, index) => {
             // Check if the game is in the future
             if (moment().isBefore(moment(game.commence_time))) {
-                let homeTeamList = []
-                let awayTeamList = []
-                let homeTeam
-                let awayTeam
+                let homeTeamList = [];
+                let awayTeamList = [];
+                let homeTeam;
+                let awayTeam;
 
                 // Fetch team data based on sport
                 if (game.sport === 'football') {
@@ -1642,9 +1576,6 @@ const dataSeed = async () => {
                     homeTeamList = await HockeyTeam.find({ 'espnDisplayName': game.home_team });
                     awayTeamList = await HockeyTeam.find({ 'espnDisplayName': game.away_team });
                 }
-
-
-
 
                 // Function to find a team based on schedule date
                 async function findTeamSchedule(teamList, teamType) {
@@ -1684,43 +1615,33 @@ const dataSeed = async () => {
                     }
                 }
 
-
                 // Call the function to check home and away teams
                 await findTeamSchedule(homeTeamList, 'home');
                 await findTeamSchedule(awayTeamList, 'away');
-                // If no home or away team found, delete the odds document
-
 
                 let homeIndex = 0;
                 let awayIndex = 0;
                 if (homeTeam && awayTeam && homeTeam.stats && awayTeam.stats && homeTeam.seasonWinLoss && awayTeam.seasonWinLoss) {
                     // Sport-specific conditions
                     if (game.sport_key === 'americanfootball_nfl') {
-                        // Apply various football statistics for the index calculation
                         ({ homeIndex, awayIndex } = adjustnflStats(homeTeam, awayTeam, homeIndex, awayIndex));
                     }
                     else if (game.sport_key === 'americanfootball_ncaaf') {
-                        // Apply college football statistics
                         ({ homeIndex, awayIndex } = adjustncaafStats(homeTeam, awayTeam, homeIndex, awayIndex));
                     }
                     else if (game.sport_key === 'icehockey_nhl') {
-                        // Apply hockey-specific statistics
                         ({ homeIndex, awayIndex } = adjustnhlStats(homeTeam, awayTeam, homeIndex, awayIndex));
                     }
                     else if (game.sport_key === 'basketball_nba') {
-                        // Apply basketball-specific statistics
                         ({ homeIndex, awayIndex } = adjustnbaStats(homeTeam, awayTeam, homeIndex, awayIndex));
                     }
                     else if (game.sport_key === 'baseball_mlb') {
-                        // Apply baseball-specific statistics
                         ({ homeIndex, awayIndex } = adjustmlbStats(homeTeam, awayTeam, homeIndex, awayIndex));
                     }
                     else if (game.sport_key === 'basketball_ncaab') {
-                        // Apply basketball-specific statistics
                         ({ homeIndex, awayIndex } = adjustncaamStats(homeTeam, awayTeam, homeIndex, awayIndex));
                     }
                     else if (game.sport_key === 'basketball_wncaab') {
-                        // Apply basketball-specific statistics
                         ({ homeIndex, awayIndex } = adjustwncaabStats(homeTeam, awayTeam, homeIndex, awayIndex));
                     }
                 }
@@ -1850,6 +1771,7 @@ const dataSeed = async () => {
 
                     return cleanedStats;
                 };
+
                 // Update the Odds database with the calculated indices
                 if (sport.espnSport === game.sport) {
                     await Odds.findOneAndUpdate({ 'id': game.id }, {
@@ -1863,6 +1785,7 @@ const dataSeed = async () => {
                 }
             }
         });
+
     }
     for (sport = 0; sport < sports.length; sport++) {
         const pastGames = await PastGameOdds.find({ sport_key: sports[sport].name })
