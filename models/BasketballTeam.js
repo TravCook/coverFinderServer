@@ -122,7 +122,7 @@ const BasketballTeamSchema = new Schema({
             type: Number,
             required: false
         },
-        falseShootingPct: {
+        trueShootingPct: {
             type: Number,
             required: false
         },
