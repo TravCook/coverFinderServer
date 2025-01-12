@@ -7,8 +7,11 @@ const db = require('./config/connection');
 const { Server } = require('socket.io');
 const { createServer } = require('node:http');
 const { CronJob } = require('cron');
+const { Odds, PastGameOdds, UsaFootballTeam, BasketballTeam, BaseballTeam, HockeyTeam } = require('./models');
 const { setIo } = require('./socketManager'); // Import the socket manager
 const dataSeed = require('./seeds/seed.js');
+const { emitToClients } = require('./socketManager')
+const moment = require('moment')
 
 // Initialize the app and create a port
 const app = express();
@@ -62,17 +65,81 @@ cronJobs.forEach(({ cronTime, onTick, timezone }) => {
 });
 
 // Socket.IO connection event
-io.on('connection', (socket) => {
-  console.log('a user connected');
+io.on('connection', async (socket) => {
+  console.log(`a user connected @ ${moment().format('HH:mm:ss')}`);
+
+    const [currentOdds, pastOdds, footballTeams, basketballTeams, baseballTeams, hockeyTeams] = await Promise.all([
+      Odds.find({}, {commence_time: 1, 
+        home_team: 1, 
+        homeTeamIndex: 1, 
+        homeScore: 1, 
+        away_team: 1, 
+        awayTeamIndex: 1, 
+        awayScore: 1, 
+        winPercent: 1, 
+        homeTeamlogo: 1, 
+        awayTeamlogo: 1, 
+        winner: 1, 
+        predictionCorrect: 1, 
+        id: 1, 
+        sport_key:1, 
+        sport_title: 1, 
+        sport:1, 
+        bookmakers: 1}).sort({ commence_time: 1, winPercent: 1 }), // Sorting in database
+      PastGameOdds.find({}, {commence_time: 1, 
+        home_team: 1, 
+        homeTeamIndex: 1, 
+        homeScore: 1, 
+        away_team: 1, 
+        awayTeamIndex: 1, 
+        awayScore: 1, 
+        winPercent: 1, 
+        homeTeamlogo: 1, 
+        awayTeamlogo: 1, 
+        winner: 1, 
+        predictionCorrect: 1, 
+        id: 1, 
+        sport_key:1, 
+        sport_title: 1, 
+        sport:1, 
+        bookmakers: 1}).sort({ commence_time: -1, winPercent: 1 }), // Sorting in database
+      UsaFootballTeam.find({},  { teamId: 1, teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }).select('teamId teamName logo'),
+      BasketballTeam.find({},  { teamId: 1, teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }).select('teamId teamName logo'),
+      BaseballTeam.find({},  { teamId: 1, teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }).select('teamId teamName logo'),
+      HockeyTeam.find({},  { teamId: 1, teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }).select('teamId teamName logo')
+    ]);
+
+    let allTeams = {
+        football: footballTeams,
+        basketball: basketballTeams,
+        baseball: baseballTeams,
+        hockey: hockeyTeams
+    };
+    console.log(`retrieved data @ ${moment().format('HH:mm:ss')}`);
+   emitToClients('teamUpdate', allTeams);
+
+   emitToClients('gameUpdate', currentOdds.sort((a, b) => {
+      const timeA = new Date(a.commence_time).getTime();  // Round to the start of the minute
+      const timeB = new Date(b.commence_time).getTime();  // Round to the start of the minute
+
+      if (timeA === timeB) {
+          return a.winPercent - b.winPercent;  // Sort by winPercent if times are the same
+      } else {
+          return timeA < timeB ? -1 : 1;  // Sort by commence_time otherwise
+      }
+  }));
+   emitToClients('pastGameUpdate', pastOdds.sort((a, b) => {
+      const timeA = new Date(a.commence_time).getTime();  // Round to the start of the minute
+      const timeB = new Date(b.commence_time).getTime();  // Round to the start of the minute
+
+      if (timeA === timeB) {
+          return a.winPercent - b.winPercent;  // Sort by winPercent if times are the same
+      } else {
+          return timeA < timeB ? 1 : -1;  // Sort by commence_time otherwise
+      }
+  }));
+  console.log(`sent data @ ${moment().format('HH:mm:ss')}`);
   
-  // Optionally handle events from the client
-  socket.on('message', (data) => {
-    console.log('Message from client:', data);
-  });
-
-  // Broadcast message to all clients
-  socket.emit('welcome', { message: 'Welcome to the server!' });
-
   // Handle disconnect event
   socket.on('disconnect', () => {
     console.log('User disconnected');

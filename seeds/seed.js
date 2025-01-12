@@ -705,12 +705,12 @@ const oddsSeed = async () => {
         // Multi-year sports have a range that spans over the calendar year
         if (multiYear) {
             // Check if current month is within the range
-            if (startMonth <= currentMonth || currentMonth <= endMonth) {
+            if (startMonth <= moment().month() + 1 || moment().month() + 1 <= endMonth) {
                 return true;
             }
         } else {
             // Single-year sports are only valid in their specific month range
-            if (currentMonth >= startMonth && currentMonth <= endMonth) {
+            if (moment().month() + 1 >= startMonth && moment().month() + 1 <= endMonth) {
                 return true;
             }
         }
