@@ -391,7 +391,8 @@ const removePastGames = async (currentOdds) => {
                         awayTeam = teamList[0];
                     }
                 } else if (teamList.length === 0) {
-                    await Odds.deleteOne({ id: game.id });
+                    console.log(game.id)
+                    // await Odds.deleteOne({ id: game.id });
                 }
             }
 
@@ -1093,20 +1094,22 @@ const mlModelTraining = async (gameData, xs, ys, sport) => {
     return { model, xsTensor, ysTensor }
     // Log loss and accuracy
 }
-const predictions = async (sportOdds, ff) => {
+const predictions = async (sportOdds, ff, model) => {
     if (sportOdds.length > 0) {
         sportOdds.forEach(game => {
-            const homeStats = game.homeTeamStats;
-            const awayStats = game.awayTeamStats;
+            if(game.homeTeamStats && game.awayTeamStats){
+                const homeStats = game.homeTeamStats;
+                const awayStats = game.awayTeamStats;
 
-            // Extract features based on sport
-            const features = extractSportFeatures(homeStats, awayStats, sport.name);
+                
+    
+                // Extract features based on sport
+                const features = extractSportFeatures(homeStats, awayStats, game.sport_key);
+    
+                
+                ff.push(features);
+            }
 
-            // Set label to 1 if home team wins, 0 if away team wins
-            // const correctPrediction = game.winner = 'home' ? 1 : 0;
-
-            ff.push(features);
-            // ys.push(correctPrediction);
         });
         const ffTensor = tf.tensor2d(ff);
         // Get predictions as a promise and wait for it to resolve
@@ -1114,9 +1117,14 @@ const predictions = async (sportOdds, ff) => {
         // Convert tensor to an array of predicted probabilities
         const probabilities = await predictions.array();  // This resolves the tensor to an array
         sportOdds.forEach(async (game, index) => {
-            const predictedWinPercent = probabilities[index][0]; // Get the probability for the current game
-            // Update the game with the predicted win percentage
-            await Odds.findOneAndUpdate({ id: game.id }, { winPercent: predictedWinPercent });
+            if(!game.awayTeamStats && !game.homeTeamStats){
+
+            }else{
+                const predictedWinPercent = probabilities[index][0]; // Get the probability for the current game
+                // Update the game with the predicted win percentage
+                await Odds.findOneAndUpdate({ id: game.id }, { winPercent: predictedWinPercent });
+            }
+
         });
     }
 }
@@ -1450,7 +1458,8 @@ const indexAdjuster = (currentOdds, sport) => {
                         awayTeam = teamList[0];
                     }
                 } else if (teamList.length === 0) {
-                    await Odds.deleteOne({ id: game.id });
+                    console.log(game.id)
+                    // await Odds.deleteOne({ id: game.id });
                 }
             }
 
@@ -1647,7 +1656,7 @@ const oddsSeed = async () => {
         }
         return false;
     }).map((sport) =>
-        axios.get(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_TCDEV}&regions=us&oddsFormat=american&markets=h2h`)
+        axios.get(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_LOWRES}&regions=us&oddsFormat=american&markets=h2h`)
     )).then(async (data) => {
         try {
             data.map(async (item) => {
@@ -1802,7 +1811,7 @@ const dataSeed = async () => {
 
         let ff = []
         let sportOdds = await Odds.find({ sport_key: sport.name })
-        // predictions(sportOdds, ff, model)
+        predictions(sportOdds, ff, model)
 
 
         // After model is trained and evaluated, integrate the weight extraction
