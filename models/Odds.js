@@ -116,6 +116,14 @@ const oddsSchema = new Schema({
         type: String,
         required: false,
     },
+    awayTeamAbbr: {
+        type: String,
+        required: false
+    },
+    homeTeamAbbr: {
+        type: String,
+        required: false
+    },
 })
 
 const Odds = mongoose.model('Odds', oddsSchema)

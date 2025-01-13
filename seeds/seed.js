@@ -1628,7 +1628,9 @@ const indexAdjuster = (currentOdds, sport) => {
                     homeTeamStats: homeTeam ? cleanStats(getCommonStats(homeTeam)) : 'no stat data',
                     awayTeamStats: awayTeam ? cleanStats(getCommonStats(awayTeam)) : 'no stat data',
                     homeTeamlogo: homeTeam ? homeTeam.logo : 'no logo data',
-                    awayTeamlogo: awayTeam ? awayTeam.logo : 'no logo data'
+                    awayTeamlogo: awayTeam ? awayTeam.logo : 'no logo data',
+                    homeTeamAbbr: homeTeam.abbreviation,
+                    awayTeamAbbr: awayTeam.abbreviation
                 });
             }
         }
