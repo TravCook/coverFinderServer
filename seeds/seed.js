@@ -1648,7 +1648,7 @@ const normalizeTeamName = (teamName, league) => {
     }
 
     if (knownTeamNames[teamName]) {
-        return knownTeamNames[teamName];
+        teamName = knownTeamNames[teamName];
     }
 
     if (league === 'basketball_ncaab') {
