@@ -1376,28 +1376,40 @@ function adjustwncaabStats(homeTeam, awayTeam, homeIndex, awayIndex) {
     const reverseComparisonStats = ['averageTurnovers', 'totalTurnovers'];
     // Loop through homeTeam.stats to goalsAgainst each stat
     for (const stat in homeTeam.stats) {
-        if (homeTeam.stats.hasOwnProperty(stat)) {
-            const homeStat = homeTeam.stats[stat];
-            const awayStat = awayTeam.stats[stat];
+        if (stat === 'fieldGoalMakesPerAttempts' || stat === 'freeThrowsMadePerAttempts') {
 
-            // Check if the stat is one that requires reversed comparison
-            if (reverseComparisonStats.includes(stat)) {
-                // For reversed comparison, check if homeStat is less than or equal to awayStat
-                if (homeStat <= awayStat) {
-                    homeIndex += ncaawWeights[ncaawWeightIndex];
+        } else {
+            if (homeTeam.stats.hasOwnProperty(stat)) {
+                const homeStat = homeTeam.stats[stat];
+                const awayStat = awayTeam.stats[stat];
+
+                // Check if the stat is one that requires reversed comparison
+                if (reverseComparisonStats.includes(stat)) {
+                    // For reversed comparison, check if homeStat is less than or equal to awayStat
+                    if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
+                        if (homeStat <= awayStat) {
+                            homeIndex += ncaawWeights[ncaawWeightIndex];
+                        } else {
+                            awayIndex += ncaawWeights[ncaawWeightIndex];
+                        }
+                        ncaawWeightIndex++
+                    }
+
                 } else {
-                    awayIndex += ncaawWeights[ncaawWeightIndex];
+                    if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
+                        if (homeStat >= awayStat) {
+                            homeIndex += ncaawWeights[ncaawWeightIndex];
+                        } else {
+                            awayIndex += ncaawWeights[ncaawWeightIndex];
+                        }
+                        ncaawWeightIndex++
+                    }
+
                 }
-            } else {
-                // For all other stats, check if homeStat is greater than or equal to awayStat
-                if (homeStat >= awayStat) {
-                    homeIndex += ncaawWeights[ncaawWeightIndex];
-                } else {
-                    awayIndex += ncaawWeights[ncaawWeightIndex];
-                }
+
             }
         }
-        ncaawWeightIndex++
+
     }
 
     return { homeIndex, awayIndex };
@@ -1440,7 +1452,7 @@ const indexAdjuster = (currentOdds, sport) => {
                             // Loop through events in the team's schedule
                             for (let event of scheduleJSON.events) {
                                 // Check if the event matches the current game's date
-                                if (moment(event.date).isSame(moment(game.commence_time))) {
+                                if (moment(event.date).isSame(moment(game.commence_time), 'hour')) {
                                     if (teamType === 'home') {
                                         homeTeam = teamList[idx];
                                     } else if (teamType === 'away') {
@@ -1647,16 +1659,16 @@ const normalizeTeamName = (teamName, league) => {
         "Arkansas-Little Rock Trojans": "Little Rock Trojans"
     }
 
-    if (knownTeamNames[teamName]) {
-        teamName = knownTeamNames[teamName];
-    }
+
 
     if (league === 'basketball_ncaab') {
         // Replace common abbreviations or patterns
         teamName = teamName.replace(/\bst\b(?!\.)/gi, 'State'); // Match "St" or "st" as a separate word, not followed by a perio
     }
 
-
+    if (knownTeamNames[teamName]) {
+        teamName = knownTeamNames[teamName];
+    }
 
     // // Replace hyphens with spaces
     // teamName = teamName.replace(/-/g, ' '); // Replace all hyphens with spaces
@@ -1693,7 +1705,7 @@ const oddsSeed = async () => {
         }
         return false;
     }).map((sport) =>
-        axios.get(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_TCDEV}&regions=us&oddsFormat=american&markets=h2h`)
+        axios.get(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_SMOKEY}&regions=us&oddsFormat=american&markets=h2h`)
     )).then(async (data) => {
         try {
             data.map(async (item) => {
@@ -1729,7 +1741,7 @@ const oddsSeed = async () => {
 
                         if (event.sport_key === 'americanfootball_nfl' || event.sport_key === 'americanfootball_ncaaf') {
                             sportType = 'football';
-                        } else if (event.sport_key === 'basketball_nba' || event.sport_key === 'basketball_ncaab') {
+                        } else if (event.sport_key === 'basketball_nba' || event.sport_key === 'basketball_ncaab' || event.sport_key === 'basketball_wncaab') {
                             sportType = 'basketball';
                         } else if (event.sport_key === 'icehockey_nhl') {
                             sportType = 'hockey';
@@ -1737,25 +1749,32 @@ const oddsSeed = async () => {
                             sportType = 'baseball';
                         }
 
-                        if (oddExist) {
-                            // Update the existing odds with normalized team names and sport type
-                            await Odds.findOneAndUpdate({ id: event.id }, {
-                                ...event,
-                                home_team: normalizedHomeTeam,
-                                away_team: normalizedAwayTeam,
-                                bookmakers: updatedBookmakers, // Include the updated bookmakers with normalized outcomes
-                                sport: sportType,
-                            });
+
+
+                        if (!event.sport_key) {
+                            console.error(`sportType is undefined for event: ${event.id}`);
                         } else {
-                            // Create a new odds entry with normalized team names and sport type
-                            await Odds.create({
-                                ...event,
-                                home_team: normalizedHomeTeam,
-                                away_team: normalizedAwayTeam,
-                                bookmakers: updatedBookmakers, // Include the updated bookmakers with normalized outcomes
-                                sport: sportType,
-                            });
+                            if (oddExist) {
+                                // Update the existing odds with normalized team names and sport type
+                                await Odds.findOneAndUpdate({ id: event.id }, {
+                                    ...event,
+                                    home_team: normalizedHomeTeam,
+                                    away_team: normalizedAwayTeam,
+                                    bookmakers: updatedBookmakers, // Include the updated bookmakers with normalized outcomes
+                                    sport: sportType,
+                                });
+                            } else {
+                                // Create a new odds entry with normalized team names and sport type
+                                await Odds.create({
+                                    ...event,
+                                    home_team: normalizedHomeTeam,
+                                    away_team: normalizedAwayTeam,
+                                    bookmakers: updatedBookmakers, // Include the updated bookmakers with normalized outcomes
+                                    sport: sportType,
+                                });
+                            }
                         }
+
 
 
                         // let oddExist = await Odds.findOne({ id: event.id })
