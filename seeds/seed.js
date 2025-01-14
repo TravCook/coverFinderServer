@@ -1118,16 +1118,16 @@ const predictions = async (sportOdds, ff, model) => {
         const predictions = await model.predict(ffTensor);
         // Convert tensor to an array of predicted probabilities
         const probabilities = await predictions.array();  // This resolves the tensor to an array
-        sportOdds.forEach(async (game, index) => {
-            if (!game.awayTeamStats && !game.homeTeamStats) {
+        // sportOdds.forEach(async (game, index) => {
+        //     if (!game.awayTeamStats && !game.homeTeamStats) {
 
-            } else {
-                const predictedWinPercent = probabilities[index][0]; // Get the probability for the current game
-                // Update the game with the predicted win percentage
-                await Odds.findOneAndUpdate({ id: game.id }, { winPercent: predictedWinPercent });
-            }
+        //     } else {
+        //         const predictedWinPercent = probabilities[index][0]; // Get the probability for the current game
+        //         // Update the game with the predicted win percentage
+        //         await Odds.findOneAndUpdate({ id: game.id }, { winPercent: predictedWinPercent });
+        //     }
 
-        });
+        // });
     }
 }
 //DETERMINE H2H INDEXES FOR EVERY GAME IN ODDS
@@ -1634,21 +1634,29 @@ const indexAdjuster = (currentOdds, sport) => {
                     awayTeamStats: awayTeam ? cleanStats(getCommonStats(awayTeam)) : 'no stat data',
                     homeTeamlogo: homeTeam ? homeTeam.logo : 'no logo data',
                     awayTeamlogo: awayTeam ? awayTeam.logo : 'no logo data',
-                    homeTeamAbbr: homeTeam.abbreviation,
-                    awayTeamAbbr: awayTeam.abbreviation
+                    homeTeamAbbr: homeTeam?.abbreviation,
+                    awayTeamAbbr: awayTeam?.abbreviation
                 });
             }
         }
     });
 }
 const normalizeTeamName = (teamName, league) => {
+    const knownTeamNames = {
+        "SE Missouri State Redhawks" : "Southeast Missouri State Redhawks",
+        "Arkansas-Little Rock Trojans": "Little Rock Trojans"
+    }
 
+    if (knownTeamNames[teamName]) {
+        return knownTeamNames[teamName];
+    }
 
     if (league === 'basketball_ncaab') {
-        console.log(teamName)
         // Replace common abbreviations or patterns
-        teamName = teamName.replace(/\bst\b/gi, 'State'); // Replace "St" with "State"
+        teamName = teamName.replace(/\bst\b(?!\.)/gi, 'State'); // Match "St" or "st" as a separate word, not followed by a perio
     }
+
+    
 
     // // Replace hyphens with spaces
     // teamName = teamName.replace(/-/g, ' '); // Replace all hyphens with spaces
@@ -1899,9 +1907,6 @@ const dataSeed = async () => {
 
         const { model, xsTensor, ysTensor } = await mlModelTraining(gameData, xs, ys, sport)
 
-        let ff = []
-        let sportOdds = await Odds.find({ sport_key: sport.name })
-        predictions(sportOdds, ff, model)
 
 
         // After model is trained and evaluated, integrate the weight extraction
@@ -1922,6 +1927,11 @@ const dataSeed = async () => {
 
 
         indexAdjuster(currentOdds, sport)
+
+        let ff = []
+        let sportOdds = await Odds.find({ sport_key: sport.name })
+        predictions(sportOdds, ff, model)
+
 
 
     }
