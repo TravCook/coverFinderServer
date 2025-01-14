@@ -1665,7 +1665,7 @@ const normalizeTeamName = (teamName, league) => {
 
 
 
-    if (league === 'basketball_ncaab') {
+    if (league === 'basketball_ncaab' || league === 'basketball_wncaab') {
         // Replace common abbreviations or patterns
         teamName = teamName.replace(/\bst\b(?!\.)/gi, 'State'); // Match "St" or "st" as a separate word, not followed by a perio
     }
