@@ -392,7 +392,9 @@ const removePastGames = async (currentOdds) => {
                     }
                 } else if (teamList.length === 0) {
                     console.log(game.id)
-                    // await Odds.deleteOne({ id: game.id });
+                    // if (game.id === '386b527dff39523d361ab43df5a85a5a') {
+                    //     await Odds.deleteOne({ id: game.id });
+                    // }
                 }
             }
 
@@ -1097,16 +1099,16 @@ const mlModelTraining = async (gameData, xs, ys, sport) => {
 const predictions = async (sportOdds, ff, model) => {
     if (sportOdds.length > 0) {
         sportOdds.forEach(game => {
-            if(game.homeTeamStats && game.awayTeamStats){
+            if (game.homeTeamStats && game.awayTeamStats) {
                 const homeStats = game.homeTeamStats;
                 const awayStats = game.awayTeamStats;
 
-                
-    
+
+
                 // Extract features based on sport
                 const features = extractSportFeatures(homeStats, awayStats, game.sport_key);
-    
-                
+
+
                 ff.push(features);
             }
 
@@ -1117,9 +1119,9 @@ const predictions = async (sportOdds, ff, model) => {
         // Convert tensor to an array of predicted probabilities
         const probabilities = await predictions.array();  // This resolves the tensor to an array
         sportOdds.forEach(async (game, index) => {
-            if(!game.awayTeamStats && !game.homeTeamStats){
+            if (!game.awayTeamStats && !game.homeTeamStats) {
 
-            }else{
+            } else {
                 const predictedWinPercent = probabilities[index][0]; // Get the probability for the current game
                 // Update the game with the predicted win percentage
                 await Odds.findOneAndUpdate({ id: game.id }, { winPercent: predictedWinPercent });
@@ -1459,7 +1461,10 @@ const indexAdjuster = (currentOdds, sport) => {
                     }
                 } else if (teamList.length === 0) {
                     console.log(game.id)
-                    // await Odds.deleteOne({ id: game.id });
+                    // if (game.id === '386b527dff39523d361ab43df5a85a5a') {
+                    //     await Odds.deleteOne({ id: game.id });
+                    // }
+
                 }
             }
 
@@ -1636,6 +1641,51 @@ const indexAdjuster = (currentOdds, sport) => {
         }
     });
 }
+const normalizeTeamName = (teamName, league) => {
+
+
+    if (league === 'basketball_ncaab') {
+        console.log(teamName)
+        // Replace common abbreviations or patterns
+        teamName = teamName.replace(/\bst\b/gi, 'State'); // Replace "St" with "State"
+    }
+
+    // // Replace hyphens with spaces
+    // teamName = teamName.replace(/-/g, ' '); // Replace all hyphens with spaces
+
+    // // Remove all punctuation and extra spaces
+    // teamName = teamName.replace(/[^\w\s&]/g, ''); // Removes non-alphanumeric characters except spaces and ampersands
+    // teamName = teamName.replace(/\s+/g, ' ').trim(); // Remove extra spaces and trim leading/trailing spaces
+
+    return teamName;
+}
+
+// Function to normalize team names in all models
+const normalizeAllTeamNames = async () => {
+    try {
+        // List of models to process
+        const models = [UsaFootballTeam, BasketballTeam, BaseballTeam, HockeyTeam];
+
+        // Loop through each model and normalize the team names
+        for (let model of models) {
+            const teams = await model.find({});
+
+            for (let team of teams) {
+                const normalizedTeamName = normalizeTeamName(team.espnDisplayName, team.league);
+
+                // Update the team record with the normalized name
+                await model.findOneAndUpdate({ _id: team._id }, { espnDisplayName: normalizedTeamName });
+            }
+        }
+
+        console.log('Team names have been normalized for all models!');
+    } catch (error) {
+        console.error('Error during team name normalization:', error);
+    }
+};
+
+
+
 
 
 const oddsSeed = async () => {
@@ -1658,93 +1708,131 @@ const oddsSeed = async () => {
         }
         return false;
     }).map((sport) =>
-        axios.get(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_LOWRES}&regions=us&oddsFormat=american&markets=h2h`)
+        axios.get(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_TCDEV}&regions=us&oddsFormat=american&markets=h2h`)
     )).then(async (data) => {
         try {
             data.map(async (item) => {
                 item.data.map(async (event) => {
                     if (moment().isBefore(moment(event.commence_time))) {
 
-
                         let oddExist = await Odds.findOne({ id: event.id })
+
+                        const normalizedHomeTeam = normalizeTeamName(event.home_team, event.sport_key)
+                        const normalizedAwayTeam = normalizeTeamName(event.away_team, event.sport_key)
 
                         if (event.sport_key === 'americanfootball_nfl') {
                             if (oddExist) {
                                 await Odds.findOneAndUpdate({ id: event.id }, {
+                                    ...event,
+                                    home_team: normalizedHomeTeam ,
+                                    away_team: normalizedAwayTeam ,
                                     sport: 'football',
-                                    ...event
+
                                 })
 
                             } else {
                                 await Odds.create({
+                                    ...event,
+                                    home_team: normalizedHomeTeam ,
+                                    away_team: normalizedAwayTeam ,
                                     sport: 'football',
-                                    ...event
+
                                 })
                             }
                         } else if (event.sport_key === 'americanfootball_ncaaf') {
                             if (oddExist) {
                                 await Odds.findOneAndUpdate({ id: event.id }, {
+                                    ...event,
+                                    home_team: normalizedHomeTeam ,
+                                    away_team: normalizedAwayTeam ,
                                     sport: 'football',
-                                    ...event
+
                                 })
 
                             } else {
                                 await Odds.create({
+                                    ...event,
+                                    home_team: normalizedHomeTeam ,
+                                    away_team: normalizedAwayTeam ,
                                     sport: 'football',
-                                    ...event
+
                                 })
                             }
                         } else if (event.sport_key === 'basketball_nba') {
                             if (oddExist) {
                                 await Odds.findOneAndUpdate({ id: event.id }, {
+                                    ...event,
+                                    home_team: normalizedHomeTeam ,
+                                    away_team: normalizedAwayTeam ,
                                     sport: 'basketball',
-                                    ...event
+
                                 })
 
                             } else {
                                 await Odds.create({
+                                    ...event,
+                                    home_team: normalizedHomeTeam ,
+                                    away_team: normalizedAwayTeam ,
                                     sport: 'basketball',
-                                    ...event
+
                                 })
 
                             }
                         } else if (event.sport_key === 'icehockey_nhl') {
                             if (oddExist) {
                                 await Odds.findOneAndUpdate({ id: event.id }, {
+                                    ...event,
+                                    home_team: normalizedHomeTeam ,
+                                    away_team: normalizedAwayTeam ,
                                     sport: 'hockey',
-                                    ...event
+
                                 })
                             } else {
                                 await Odds.create({
+                                    ...event,
+                                    home_team: normalizedHomeTeam ,
+                                    away_team: normalizedAwayTeam ,
                                     sport: 'hockey',
-                                    ...event
+
                                 })
                             }
                         } else if (event.sport_key === 'baseball_mlb') {
                             if (oddExist) {
                                 await Odds.findOneAndUpdate({ id: event.id }, {
+                                    ...event,
+                                    home_team: normalizedHomeTeam ,
+                                    away_team: normalizedAwayTeam ,
                                     sport: 'baseball',
-                                    ...event
+
                                 })
 
                             } else {
                                 await Odds.create({
+                                    ...event,
+                                    home_team: normalizedHomeTeam ,
+                                    away_team: normalizedAwayTeam ,
                                     sport: 'baseball',
-                                    ...event
+
                                 })
 
                             }
                         } else if (event.sport_key === 'basketball_ncaab') {
                             if (oddExist) {
                                 await Odds.findOneAndUpdate({ id: event.id }, {
+                                    ...event,
+                                    home_team: normalizedHomeTeam ,
+                                    away_team: normalizedAwayTeam ,
                                     sport: 'basketball',
-                                    ...event
+
                                 })
 
                             } else {
                                 await Odds.create({
+                                    ...event,
+                                    home_team: normalizedHomeTeam ,
+                                    away_team: normalizedAwayTeam ,
                                     sport: 'basketball',
-                                    ...event
+
                                 })
 
                             }
@@ -2026,12 +2114,11 @@ const espnSeed = async () => {
     }
 
 
-
+    // Run the normalization function
+    // await normalizeAllTeamNames();
     // fetchAllTeamData(sport, teams, sport.statYear)
 
 };
-
-
 
 
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed }
