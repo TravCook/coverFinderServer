@@ -1643,7 +1643,7 @@ const indexAdjuster = (currentOdds, sport) => {
 }
 const normalizeTeamName = (teamName, league) => {
     const knownTeamNames = {
-        "SE Missouri State Redhawks" : "Southeast Missouri State Redhawks",
+        "SE Missouri State Redhawks": "Southeast Missouri State Redhawks",
         "Arkansas-Little Rock Trojans": "Little Rock Trojans"
     }
 
@@ -1656,7 +1656,7 @@ const normalizeTeamName = (teamName, league) => {
         teamName = teamName.replace(/\bst\b(?!\.)/gi, 'State'); // Match "St" or "st" as a separate word, not followed by a perio
     }
 
-    
+
 
     // // Replace hyphens with spaces
     // teamName = teamName.replace(/-/g, ' '); // Replace all hyphens with spaces
@@ -1668,29 +1668,6 @@ const normalizeTeamName = (teamName, league) => {
     return teamName;
 }
 
-// Function to normalize team names in all models
-const normalizeAllTeamNames = async () => {
-    try {
-        // List of models to process
-        const models = [UsaFootballTeam, BasketballTeam, BaseballTeam, HockeyTeam];
-
-        // Loop through each model and normalize the team names
-        for (let model of models) {
-            const teams = await model.find({});
-
-            for (let team of teams) {
-                const normalizedTeamName = normalizeTeamName(team.espnDisplayName, team.league);
-
-                // Update the team record with the normalized name
-                await model.findOneAndUpdate({ _id: team._id }, { espnDisplayName: normalizedTeamName });
-            }
-        }
-
-        console.log('Team names have been normalized for all models!');
-    } catch (error) {
-        console.error('Error during team name normalization:', error);
-    }
-};
 
 
 
@@ -1723,128 +1700,186 @@ const oddsSeed = async () => {
                 item.data.map(async (event) => {
                     if (moment().isBefore(moment(event.commence_time))) {
 
-                        let oddExist = await Odds.findOne({ id: event.id })
 
-                        const normalizedHomeTeam = normalizeTeamName(event.home_team, event.sport_key)
-                        const normalizedAwayTeam = normalizeTeamName(event.away_team, event.sport_key)
+                        // Normalize the team names in outcomes (used for the 'name' field)
+                        const normalizeOutcomes = (outcomes, league) => {
+                            return outcomes.map(outcome => ({
+                                ...outcome,
+                                name: normalizeTeamName(outcome.name, league) // Normalize the outcome team name
+                            }));
+                        };
 
-                        if (event.sport_key === 'americanfootball_nfl') {
-                            if (oddExist) {
-                                await Odds.findOneAndUpdate({ id: event.id }, {
-                                    ...event,
-                                    home_team: normalizedHomeTeam ,
-                                    away_team: normalizedAwayTeam ,
-                                    sport: 'football',
+                        let oddExist = await Odds.findOne({ id: event.id });
 
-                                })
+                        // Normalize team names for home and away teams
+                        const normalizedHomeTeam = normalizeTeamName(event.home_team, event.sport_key);
+                        const normalizedAwayTeam = normalizeTeamName(event.away_team, event.sport_key);
 
-                            } else {
-                                await Odds.create({
-                                    ...event,
-                                    home_team: normalizedHomeTeam ,
-                                    away_team: normalizedAwayTeam ,
-                                    sport: 'football',
+                        // Normalize the outcomes (nested inside bookmakers -> markets -> outcomes)
+                        const updatedBookmakers = event.bookmakers.map(bookmaker => ({
+                            ...bookmaker,
+                            markets: bookmaker.markets.map(market => ({
+                                ...market,
+                                outcomes: normalizeOutcomes(market.outcomes, event.sport_key) // Normalize outcomes names
+                            }))
+                        }));
 
-                                })
-                            }
-                        } else if (event.sport_key === 'americanfootball_ncaaf') {
-                            if (oddExist) {
-                                await Odds.findOneAndUpdate({ id: event.id }, {
-                                    ...event,
-                                    home_team: normalizedHomeTeam ,
-                                    away_team: normalizedAwayTeam ,
-                                    sport: 'football',
+                        // Use the sport_key to determine the sport type for the odds
+                        let sportType = '';
 
-                                })
-
-                            } else {
-                                await Odds.create({
-                                    ...event,
-                                    home_team: normalizedHomeTeam ,
-                                    away_team: normalizedAwayTeam ,
-                                    sport: 'football',
-
-                                })
-                            }
-                        } else if (event.sport_key === 'basketball_nba') {
-                            if (oddExist) {
-                                await Odds.findOneAndUpdate({ id: event.id }, {
-                                    ...event,
-                                    home_team: normalizedHomeTeam ,
-                                    away_team: normalizedAwayTeam ,
-                                    sport: 'basketball',
-
-                                })
-
-                            } else {
-                                await Odds.create({
-                                    ...event,
-                                    home_team: normalizedHomeTeam ,
-                                    away_team: normalizedAwayTeam ,
-                                    sport: 'basketball',
-
-                                })
-
-                            }
+                        if (event.sport_key === 'americanfootball_nfl' || event.sport_key === 'americanfootball_ncaaf') {
+                            sportType = 'football';
+                        } else if (event.sport_key === 'basketball_nba' || event.sport_key === 'basketball_ncaab') {
+                            sportType = 'basketball';
                         } else if (event.sport_key === 'icehockey_nhl') {
-                            if (oddExist) {
-                                await Odds.findOneAndUpdate({ id: event.id }, {
-                                    ...event,
-                                    home_team: normalizedHomeTeam ,
-                                    away_team: normalizedAwayTeam ,
-                                    sport: 'hockey',
-
-                                })
-                            } else {
-                                await Odds.create({
-                                    ...event,
-                                    home_team: normalizedHomeTeam ,
-                                    away_team: normalizedAwayTeam ,
-                                    sport: 'hockey',
-
-                                })
-                            }
+                            sportType = 'hockey';
                         } else if (event.sport_key === 'baseball_mlb') {
-                            if (oddExist) {
-                                await Odds.findOneAndUpdate({ id: event.id }, {
-                                    ...event,
-                                    home_team: normalizedHomeTeam ,
-                                    away_team: normalizedAwayTeam ,
-                                    sport: 'baseball',
-
-                                })
-
-                            } else {
-                                await Odds.create({
-                                    ...event,
-                                    home_team: normalizedHomeTeam ,
-                                    away_team: normalizedAwayTeam ,
-                                    sport: 'baseball',
-
-                                })
-
-                            }
-                        } else if (event.sport_key === 'basketball_ncaab') {
-                            if (oddExist) {
-                                await Odds.findOneAndUpdate({ id: event.id }, {
-                                    ...event,
-                                    home_team: normalizedHomeTeam ,
-                                    away_team: normalizedAwayTeam ,
-                                    sport: 'basketball',
-
-                                })
-
-                            } else {
-                                await Odds.create({
-                                    ...event,
-                                    home_team: normalizedHomeTeam ,
-                                    away_team: normalizedAwayTeam ,
-                                    sport: 'basketball',
-
-                                })
-
-                            }
+                            sportType = 'baseball';
                         }
+
+                        if (oddExist) {
+                            // Update the existing odds with normalized team names and sport type
+                            await Odds.findOneAndUpdate({ id: event.id }, {
+                                ...event,
+                                home_team: normalizedHomeTeam,
+                                away_team: normalizedAwayTeam,
+                                bookmakers: updatedBookmakers, // Include the updated bookmakers with normalized outcomes
+                                sport: sportType,
+                            });
+                        } else {
+                            // Create a new odds entry with normalized team names and sport type
+                            await Odds.create({
+                                ...event,
+                                home_team: normalizedHomeTeam,
+                                away_team: normalizedAwayTeam,
+                                bookmakers: updatedBookmakers, // Include the updated bookmakers with normalized outcomes
+                                sport: sportType,
+                            });
+                        }
+
+
+                        // let oddExist = await Odds.findOne({ id: event.id })
+
+                        // const normalizedHomeTeam = normalizeTeamName(event.home_team, event.sport_key)
+                        // const normalizedAwayTeam = normalizeTeamName(event.away_team, event.sport_key)
+
+                        // if (event.sport_key === 'americanfootball_nfl') {
+                        //     if (oddExist) {
+                        //         await Odds.findOneAndUpdate({ id: event.id }, {
+                        //             ...event,
+                        //             home_team: normalizedHomeTeam ,
+                        //             away_team: normalizedAwayTeam ,
+                        //             sport: 'football',
+
+                        //         })
+
+                        //     } else {
+                        //         await Odds.create({
+                        //             ...event,
+                        //             home_team: normalizedHomeTeam ,
+                        //             away_team: normalizedAwayTeam ,
+                        //             sport: 'football',
+
+                        //         })
+                        //     }
+                        // } else if (event.sport_key === 'americanfootball_ncaaf') {
+                        //     if (oddExist) {
+                        //         await Odds.findOneAndUpdate({ id: event.id }, {
+                        //             ...event,
+                        //             home_team: normalizedHomeTeam ,
+                        //             away_team: normalizedAwayTeam ,
+                        //             sport: 'football',
+
+                        //         })
+
+                        //     } else {
+                        //         await Odds.create({
+                        //             ...event,
+                        //             home_team: normalizedHomeTeam ,
+                        //             away_team: normalizedAwayTeam ,
+                        //             sport: 'football',
+
+                        //         })
+                        //     }
+                        // } else if (event.sport_key === 'basketball_nba') {
+                        //     if (oddExist) {
+                        //         await Odds.findOneAndUpdate({ id: event.id }, {
+                        //             ...event,
+                        //             home_team: normalizedHomeTeam ,
+                        //             away_team: normalizedAwayTeam ,
+                        //             sport: 'basketball',
+
+                        //         })
+
+                        //     } else {
+                        //         await Odds.create({
+                        //             ...event,
+                        //             home_team: normalizedHomeTeam ,
+                        //             away_team: normalizedAwayTeam ,
+                        //             sport: 'basketball',
+
+                        //         })
+
+                        //     }
+                        // } else if (event.sport_key === 'icehockey_nhl') {
+                        //     if (oddExist) {
+                        //         await Odds.findOneAndUpdate({ id: event.id }, {
+                        //             ...event,
+                        //             home_team: normalizedHomeTeam ,
+                        //             away_team: normalizedAwayTeam ,
+                        //             sport: 'hockey',
+
+                        //         })
+                        //     } else {
+                        //         await Odds.create({
+                        //             ...event,
+                        //             home_team: normalizedHomeTeam ,
+                        //             away_team: normalizedAwayTeam ,
+                        //             sport: 'hockey',
+
+                        //         })
+                        //     }
+                        // } else if (event.sport_key === 'baseball_mlb') {
+                        //     if (oddExist) {
+                        //         await Odds.findOneAndUpdate({ id: event.id }, {
+                        //             ...event,
+                        //             home_team: normalizedHomeTeam ,
+                        //             away_team: normalizedAwayTeam ,
+                        //             sport: 'baseball',
+
+                        //         })
+
+                        //     } else {
+                        //         await Odds.create({
+                        //             ...event,
+                        //             home_team: normalizedHomeTeam ,
+                        //             away_team: normalizedAwayTeam ,
+                        //             sport: 'baseball',
+
+                        //         })
+
+                        //     }
+                        // } else if (event.sport_key === 'basketball_ncaab') {
+                        //     if (oddExist) {
+                        //         await Odds.findOneAndUpdate({ id: event.id }, {
+                        //             ...event,
+                        //             home_team: normalizedHomeTeam ,
+                        //             away_team: normalizedAwayTeam ,
+                        //             sport: 'basketball',
+
+                        //         })
+
+                        //     } else {
+                        //         await Odds.create({
+                        //             ...event,
+                        //             home_team: normalizedHomeTeam ,
+                        //             away_team: normalizedAwayTeam ,
+                        //             sport: 'basketball',
+
+                        //         })
+
+                        //     }
+                        // }
                     }       //WRITE ODDS TO DB
                 })
             })
