@@ -1656,7 +1656,11 @@ const indexAdjuster = (currentOdds, sport) => {
 const normalizeTeamName = (teamName, league) => {
     const knownTeamNames = {
         "SE Missouri State Redhawks": "Southeast Missouri State Redhawks",
-        "Arkansas-Little Rock Trojans": "Little Rock Trojans"
+        "Arkansas-Little Rock Trojans": "Little Rock Trojans",
+        "GW Revolutionaries": "George Washington Revolutionaries",
+        "Loyola (Chi) Ramblers": "Loyola Chicago Ramblers",
+        "IUPUI Jaguars": "IU Indianapolis Jaguars",
+        "Fort Wayne Mastodons": "Purdue Fort Wayne Mastodons"
     }
 
 
@@ -1705,13 +1709,12 @@ const oddsSeed = async () => {
         }
         return false;
     }).map((sport) =>
-        axios.get(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_SMOKEY}&regions=us&oddsFormat=american&markets=h2h`)
+        axios.get(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_TRAVM}&regions=us&oddsFormat=american&markets=h2h`)
     )).then(async (data) => {
         try {
             data.map(async (item) => {
                 item.data.map(async (event) => {
                     if (moment().isBefore(moment(event.commence_time))) {
-
 
                         // Normalize the team names in outcomes (used for the 'name' field)
                         const normalizeOutcomes = (outcomes, league) => {
@@ -1727,6 +1730,204 @@ const oddsSeed = async () => {
                         const normalizedHomeTeam = normalizeTeamName(event.home_team, event.sport_key);
                         const normalizedAwayTeam = normalizeTeamName(event.away_team, event.sport_key);
 
+                        let homeTeam
+                        let awayTeam
+                        let scheduleSport
+                        let homeTeamList = [];
+                        let awayTeamList = [];
+
+                        // Fetch team data based on sport
+                        if (event.sport_key === 'americanfootball_nfl' || event.sport_key === 'americanfootball_ncaaf') {
+                            homeTeamList = await UsaFootballTeam.find({ 'espnDisplayName': normalizedHomeTeam });
+                            awayTeamList = await UsaFootballTeam.find({ 'espnDisplayName': normalizedAwayTeam });
+                            scheduleSport = 'football'
+                        } else if (event.sport_key === 'basketball_nba' || event.sport_key === 'basketball_ncaab' || event.sport_key === 'basketball_wncaab') {
+                            homeTeamList = await BasketballTeam.find({ 'espnDisplayName': normalizedHomeTeam });
+                            awayTeamList = await BasketballTeam.find({ 'espnDisplayName': normalizedAwayTeam });
+                            scheduleSport = 'basketball'
+                        } else if (event.sport_key === 'baseball_mlb') {
+                            homeTeamList = await BaseballTeam.find({ 'espnDisplayName': normalizedHomeTeam });
+                            awayTeamList = await BaseballTeam.find({ 'espnDisplayName': normalizedAwayTeam });
+                            scheduleSport = 'baseball'
+                        } else if (event.sport_key === 'icehockey_nhl') {
+                            homeTeamList = await HockeyTeam.find({ 'espnDisplayName': normalizedHomeTeam });
+                            awayTeamList = await HockeyTeam.find({ 'espnDisplayName': normalizedAwayTeam });
+                            scheduleSport = 'hockey'
+                        }
+
+                        // Function to find a team based on schedule date
+                        async function findTeamSchedule(teamList, teamType) {
+                            if (teamList.length > 1) {
+                                // Loop through teams if there are multiple
+                                for (let idx = 0; idx < teamList.length; idx++) {
+                                    let team = teamList[idx];
+                                    try {
+                                        // Fetch team schedule from ESPN API
+                                        let scheduleResponse = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${scheduleSport}/${team.league}/teams/${team.espnID}/schedule`);
+                                        let scheduleJSON = await scheduleResponse.json();
+
+  
+                                        // Loop through events in the team's schedule
+                                        for (let SBevent of scheduleJSON.events) {
+ 
+                                            // Check if the event matches the current event's date
+                                            if (moment(SBevent.date).isSame(moment(event.commence_time), 'hour')) {
+
+                                                if (teamType === 'home') {
+                                                    homeTeam = teamList[idx];
+                                                } else if (teamType === 'away') {
+                                                    awayTeam = teamList[idx];
+                                                }
+                                            }
+                                        }
+                                    } catch (error) {
+                                        console.error(`Error fetching schedule for https://site.api.espn.com/apis/site/v2/sports/${scheduleSport}/${team.league}/teams/${team.espnID}/schedule :`, error);
+                                    }
+                                }
+                            } else if (teamList.length === 1) {
+                                // If only one team is found, assign it directly
+                                if (teamType === 'home') {
+                                    homeTeam = teamList[0];
+                                } else if (teamType === 'away') {
+                                    awayTeam = teamList[0];
+                                }
+                            } else if (teamList.length === 0) {
+                                console.log(event.id)
+
+                            }
+                        }
+
+                        // Call the function to check home and away teams
+                        await findTeamSchedule(homeTeamList, 'home');
+                        await findTeamSchedule(awayTeamList, 'away');
+
+                        const getCommonStats = (team) => ({
+                            seasonWinLoss: team.seasonWinLoss,
+                            homeWinLoss: team.homeWinLoss,
+                            awayWinLoss: team.awayWinLoss,
+                            pointDiff: team.pointDiff,
+                            pointsPerGame: team.stats.pointsPerGame,
+                            totalPoints: team.stats.totalPoints,
+                            totalFirstDowns: team.stats.totalFirstDowns,
+                            rushingFirstDowns: team.stats.rushingFirstDowns,
+                            passingFirstDowns: team.stats.passingFirstDowns,
+                            thirdDownEfficiency: team.stats.thirdDownEfficiency,
+                            netPassingYardsPerGame: team.stats.netPassingYardsPerGame,
+                            interceptions: team.stats.interceptions,
+                            completionPercent: team.stats.completionPercent,
+                            rushingYards: team.stats.rushingYards,
+                            rushingYardsPerGame: team.stats.rushingYardsPerGame,
+                            yardsPerRushAttempt: team.stats.yardsPerRushAttempt,
+                            yardsPerGame: team.stats.yardsPerGame,
+                            fGgoodPct: team.stats.fGgoodPct,
+                            touchBackPercentage: team.stats.touchBackPercentage,
+                            totalPenyards: team.stats.totalPenyards,
+                            averagePenYardsPerGame: team.stats.averagePenYardsPerGame,
+                            giveaways: team.stats.giveaways,
+                            takeaways: team.stats.takeaways,
+                            turnoverDiff: team.stats.turnoverDiff,
+                            sacksTotal: team.stats.sacksTotal,
+                            sacksPerGame: team.stats.sacksPerGame,
+                            yardsLostPerSack: team.stats.yardsLostPerSack,
+                            passesDefended: team.stats.passesDefended,
+                            passesDefendedPerGame: team.stats.passesDefendedPerGame,
+                            tacklesforLoss: team.stats.tacklesforLoss,
+                            tacklesforLossPerGame: team.stats.tacklesforLossPerGame,
+                            strikeoutsTotal: team.stats.strikeoutsTotal,
+                            rBIsTotal: team.stats.rBIsTotal,
+                            hitsTotal: team.stats.hitsTotal,
+                            stolenBasesTotal: team.stats.stolenBasesTotal,
+                            walksTotal: team.stats.walksTotal,
+                            runsTotal: team.stats.runsTotal,
+                            homeRunsTotal: team.stats.homeRunsTotal,
+                            totalBases: team.stats.totalBases,
+                            extraBaseHitsTotal: team.stats.extraBaseHitsTotal,
+                            battingAverageTotal: team.stats.battingAverageTotal,
+                            sluggingPercentage: team.stats.sluggingPercentage,
+                            onBasePercent: team.stats.onBasePercent,
+                            onBasePlusSlugging: team.stats.onBasePlusSlugging,
+                            stolenBasePct: team.stats.stolenBasePct,
+                            walkToStrikeoutRatio: team.stats.walkToStrikeoutRatio,
+                            saves: team.stats.saves,
+                            strikeoutsPitchingTotal: team.stats.strikeoutsPitchingTotal,
+                            walksPitchingTotal: team.stats.walksPitchingTotal,
+                            qualityStarts: team.stats.qualityStarts,
+                            earnedRunAverage: team.stats.earnedRunAverage,
+                            walksHitsPerInningPitched: team.stats.walksHitsPerInningPitched,
+                            groundToFlyRatio: team.stats.groundToFlyRatio,
+                            runSupportAverage: team.stats.runSupportAverage,
+                            oppBattingAverage: team.stats.oppBattingAverage,
+                            oppSlugging: team.stats.oppSlugging,
+                            oppOPS: team.stats.oppOPS,
+                            savePct: team.stats.savePct,
+                            strikeoutPerNine: team.stats.strikeoutPerNine,
+                            strikeoutToWalkRatioPitcher: team.stats.strikeoutToWalkRatioPitcher,
+                            doublePlays: team.stats.doublePlays,
+                            fieldingErrors: team.stats.fieldingErrors,
+                            fieldingPercentage: team.stats.fieldingPercentage,
+                            ReboundsTotal: team.stats.ReboundsTotal,
+                            PointsTotal: team.stats.PointsTotal,
+                            pointsPergame: team.stats.pointsPergame,
+                            blocksTotal: team.stats.blocksTotal,
+                            blocksPerGame: team.stats.blocksPerGame,
+                            defensiveRebounds: team.stats.defensiveRebounds,
+                            defensiveReboundsperGame: team.stats.defensiveReboundsperGame,
+                            offensiveRebounds: team.stats.offensiveRebounds,
+                            offensiveReboundsperGame: team.stats.offensiveReboundsperGame,
+                            steals: team.stats.steals,
+                            stealsperGame: team.stats.stealsperGame,
+                            effectiveFieldGoalPct: team.stats.effectiveFieldGoalPct,
+                            fieldGoalMakesperAttempts: team.stats.fieldGoalMakesperAttempts,
+                            freeThrowsMadeperAttemps: team.stats.freeThrowsMadeperAttemps,
+                            freeThrowPct: team.stats.freeThrowPct,
+                            totalTurnovers: team.stats.totalTurnovers,
+                            averageTurnovers: team.stats.averageTurnovers,
+                            threePointPct: team.stats.threePointPct,
+                            trueShootingPct: team.stats.trueShootingPct,
+                            turnoverRatio: team.stats.turnoverRatio,
+                            assisttoTurnoverRatio: team.stats.assisttoTurnoverRatio,
+                            pointsinPaint: team.stats.pointsinPaint,
+                            pace: team.stats.pace,
+                            goals: team.stats.goals,
+                            goalsPerGame: team.stats.goalsPerGame,
+                            assists: team.stats.assists,
+                            assistsPerGame: team.stats.assistsPerGame,
+                            totalShotsTaken: team.stats.totalShotsTaken,
+                            shotsTakenPerGame: team.stats.shotsTakenPerGame,
+                            powerPlayGoals: team.stats.powerPlayGoals,
+                            powerPlayGoalsPerGame: team.stats.powerPlayGoalsPerGame,
+                            powerPlayPct: team.stats.powerPlayPct,
+                            shootingPct: team.stats.shootingPct,
+                            faceoffsWon: team.stats.faceoffsWon,
+                            faceoffsWonPerGame: team.stats.faceoffsWonPerGame,
+                            faceoffPercent: team.stats.faceoffPercent,
+                            giveaways: team.stats.giveaways,
+                            penaltyMinutes: team.stats.penaltyMinutes,
+                            penaltyMinutesPerGame: team.stats.penaltyMinutesPerGame,
+                            goalsAgainst: team.stats.goalsAgainst,
+                            goalsAgainstAverage: team.stats.goalsAgainstAverage,
+                            shotsAgainst: team.stats.shotsAgainst,
+                            shotsAgainstPerGame: team.stats.shotsAgainstPerGame,
+                            shotsBlocked: team.stats.shotsBlocked,
+                            shotsBlockedPerGame: team.stats.shotsBlockedPerGame,
+                            penaltyKillPct: team.stats.penaltyKillPct,
+                            totalSaves: team.stats.totalSaves,
+                            savePerGame: team.stats.savePerGame,
+                            savePct: team.stats.savePct,
+                            takeaways: team.stats.takeaways,
+                        });
+                        const cleanStats = (stats) => {
+                            const cleanedStats = {};
+
+                            for (const key in stats) {
+                                if (stats[key] !== null && stats[key] !== undefined) {
+                                    cleanedStats[key] = stats[key];
+                                }
+                            }
+
+                            return cleanedStats;
+                        };
+
                         // Normalize the outcomes (nested inside bookmakers -> markets -> outcomes)
                         const updatedBookmakers = event.bookmakers.map(bookmaker => ({
                             ...bookmaker,
@@ -1736,21 +1937,6 @@ const oddsSeed = async () => {
                             }))
                         }));
 
-                        // Use the sport_key to determine the sport type for the odds
-                        let sportType = '';
-
-                        if (event.sport_key === 'americanfootball_nfl' || event.sport_key === 'americanfootball_ncaaf') {
-                            sportType = 'football';
-                        } else if (event.sport_key === 'basketball_nba' || event.sport_key === 'basketball_ncaab' || event.sport_key === 'basketball_wncaab') {
-                            sportType = 'basketball';
-                        } else if (event.sport_key === 'icehockey_nhl') {
-                            sportType = 'hockey';
-                        } else if (event.sport_key === 'baseball_mlb') {
-                            sportType = 'baseball';
-                        }
-
-
-
                         if (!event.sport_key) {
                             console.error(`sportType is undefined for event: ${event.id}`);
                         } else {
@@ -1758,148 +1944,35 @@ const oddsSeed = async () => {
                                 // Update the existing odds with normalized team names and sport type
                                 await Odds.findOneAndUpdate({ id: event.id }, {
                                     ...event,
+                                    homeTeamStats: homeTeam ? cleanStats(getCommonStats(homeTeam)) : 'no stat data',
+                                    awayTeamStats: awayTeam ? cleanStats(getCommonStats(awayTeam)) : 'no stat data',
+                                    homeTeamlogo: homeTeam ? homeTeam.logo : 'no logo data',
+                                    awayTeamlogo: awayTeam ? awayTeam.logo : 'no logo data',
+                                    homeTeamAbbr: homeTeam?.abbreviation,
+                                    awayTeamAbbr: awayTeam?.abbreviation,
                                     home_team: normalizedHomeTeam,
                                     away_team: normalizedAwayTeam,
                                     bookmakers: updatedBookmakers, // Include the updated bookmakers with normalized outcomes
-                                    sport: sportType,
+                                    sport: scheduleSport,
                                 });
                             } else {
                                 // Create a new odds entry with normalized team names and sport type
                                 await Odds.create({
                                     ...event,
+                                    homeTeamStats: homeTeam ? cleanStats(getCommonStats(homeTeam)) : 'no stat data',
+                                    awayTeamStats: awayTeam ? cleanStats(getCommonStats(awayTeam)) : 'no stat data',
+                                    homeTeamlogo: homeTeam ? homeTeam.logo : 'no logo data',
+                                    awayTeamlogo: awayTeam ? awayTeam.logo : 'no logo data',
+                                    homeTeamAbbr: homeTeam?.abbreviation,
+                                    awayTeamAbbr: awayTeam?.abbreviation,
                                     home_team: normalizedHomeTeam,
                                     away_team: normalizedAwayTeam,
                                     bookmakers: updatedBookmakers, // Include the updated bookmakers with normalized outcomes
-                                    sport: sportType,
+                                    sport: scheduleSport,
                                 });
                             }
                         }
-
-
-
-                        // let oddExist = await Odds.findOne({ id: event.id })
-
-                        // const normalizedHomeTeam = normalizeTeamName(event.home_team, event.sport_key)
-                        // const normalizedAwayTeam = normalizeTeamName(event.away_team, event.sport_key)
-
-                        // if (event.sport_key === 'americanfootball_nfl') {
-                        //     if (oddExist) {
-                        //         await Odds.findOneAndUpdate({ id: event.id }, {
-                        //             ...event,
-                        //             home_team: normalizedHomeTeam ,
-                        //             away_team: normalizedAwayTeam ,
-                        //             sport: 'football',
-
-                        //         })
-
-                        //     } else {
-                        //         await Odds.create({
-                        //             ...event,
-                        //             home_team: normalizedHomeTeam ,
-                        //             away_team: normalizedAwayTeam ,
-                        //             sport: 'football',
-
-                        //         })
-                        //     }
-                        // } else if (event.sport_key === 'americanfootball_ncaaf') {
-                        //     if (oddExist) {
-                        //         await Odds.findOneAndUpdate({ id: event.id }, {
-                        //             ...event,
-                        //             home_team: normalizedHomeTeam ,
-                        //             away_team: normalizedAwayTeam ,
-                        //             sport: 'football',
-
-                        //         })
-
-                        //     } else {
-                        //         await Odds.create({
-                        //             ...event,
-                        //             home_team: normalizedHomeTeam ,
-                        //             away_team: normalizedAwayTeam ,
-                        //             sport: 'football',
-
-                        //         })
-                        //     }
-                        // } else if (event.sport_key === 'basketball_nba') {
-                        //     if (oddExist) {
-                        //         await Odds.findOneAndUpdate({ id: event.id }, {
-                        //             ...event,
-                        //             home_team: normalizedHomeTeam ,
-                        //             away_team: normalizedAwayTeam ,
-                        //             sport: 'basketball',
-
-                        //         })
-
-                        //     } else {
-                        //         await Odds.create({
-                        //             ...event,
-                        //             home_team: normalizedHomeTeam ,
-                        //             away_team: normalizedAwayTeam ,
-                        //             sport: 'basketball',
-
-                        //         })
-
-                        //     }
-                        // } else if (event.sport_key === 'icehockey_nhl') {
-                        //     if (oddExist) {
-                        //         await Odds.findOneAndUpdate({ id: event.id }, {
-                        //             ...event,
-                        //             home_team: normalizedHomeTeam ,
-                        //             away_team: normalizedAwayTeam ,
-                        //             sport: 'hockey',
-
-                        //         })
-                        //     } else {
-                        //         await Odds.create({
-                        //             ...event,
-                        //             home_team: normalizedHomeTeam ,
-                        //             away_team: normalizedAwayTeam ,
-                        //             sport: 'hockey',
-
-                        //         })
-                        //     }
-                        // } else if (event.sport_key === 'baseball_mlb') {
-                        //     if (oddExist) {
-                        //         await Odds.findOneAndUpdate({ id: event.id }, {
-                        //             ...event,
-                        //             home_team: normalizedHomeTeam ,
-                        //             away_team: normalizedAwayTeam ,
-                        //             sport: 'baseball',
-
-                        //         })
-
-                        //     } else {
-                        //         await Odds.create({
-                        //             ...event,
-                        //             home_team: normalizedHomeTeam ,
-                        //             away_team: normalizedAwayTeam ,
-                        //             sport: 'baseball',
-
-                        //         })
-
-                        //     }
-                        // } else if (event.sport_key === 'basketball_ncaab') {
-                        //     if (oddExist) {
-                        //         await Odds.findOneAndUpdate({ id: event.id }, {
-                        //             ...event,
-                        //             home_team: normalizedHomeTeam ,
-                        //             away_team: normalizedAwayTeam ,
-                        //             sport: 'basketball',
-
-                        //         })
-
-                        //     } else {
-                        //         await Odds.create({
-                        //             ...event,
-                        //             home_team: normalizedHomeTeam ,
-                        //             away_team: normalizedAwayTeam ,
-                        //             sport: 'basketball',
-
-                        //         })
-
-                        //     }
-                        // }
-                    }       //WRITE ODDS TO DB
+                    }
                 })
             })
             console.info('Odds Seeding complete! 🌱');
