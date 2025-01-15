@@ -2328,6 +2328,7 @@ const indexAdjuster = (currentOdds, sport) => {
     });
 }
 const normalizeTeamName = (teamName, league) => {
+
     const knownTeamNames = {
         "SE Missouri State Redhawks": "Southeast Missouri State Redhawks",
         "Arkansas-Little Rock Trojans": "Little Rock Trojans",
@@ -2365,6 +2366,12 @@ const normalizeTeamName = (teamName, league) => {
 
     if (knownTeamNames[teamName]) {
         teamName = knownTeamNames[teamName];
+    }
+
+    if(league === 'basketball_wncaab'){
+        if(teamName === 'Penn State Nittany Lions'){
+            teamName === 'Penn State Lady Lions'
+        }
     }
 
     // // Replace hyphens with spaces
