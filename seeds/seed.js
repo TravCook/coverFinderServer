@@ -2337,7 +2337,23 @@ const normalizeTeamName = (teamName, league) => {
         "Fort Wayne Mastodons": "Purdue Fort Wayne Mastodons",
         "Boston Univ. Terriers": "Boston University Terriers",
         "Army Knights": "Army Black Knights",
-        "Gardner-Webb Bulldogs": "Gardner-Webb Runnin' Bulldogs"
+        "Gardner-Webb Bulldogs": "Gardner-Webb Runnin' Bulldogs",
+        "Albany Great Danes": "UAlbany Great Danes",
+        "Florida Int'l Golden Panthers": "Florida International Panthers",
+        "N Colorado Bears": "Northern Colorado Bears",
+        "Long Beach State 49ers": "Long Beach State Beach",
+        "SIU-Edwardsville Cougars": "SIU Edwardsville Cougars",
+        "Grand Canyon Antelopes": "Grand Canyon Lopes",
+        "Tenn-Martin Skyhawks": "UT Martin Skyhawks",
+        "Seattle Redhawks": "Seattle U Redhawks",
+        "CSU Northridge Matadors": "Cal State Northridge Matadors",
+        "UT-Arlington Mavericks": "UT Arlington Mavericks",
+        "Appalachian State Mountaineers": "App State Mountaineers",
+        "Mt. St. Mary's Mountaineers": "Mount St. Mary's Mountaineers",
+        "Sam Houston State Bearkats": "Sam Houston Bearkats",
+        "UMKC Kangaroos": "Kansas City Roos",
+        "Cal Baptist Lancers": "California Baptist Lancers",
+        "CSU Fullerton Titans": "Cal State Fullerton Titans",
     }
 
 
