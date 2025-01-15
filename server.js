@@ -102,7 +102,7 @@ io.on('connection', async (socket) => {
         sport_key:1, 
         sport_title: 1, 
         sport:1, 
-        bookmakers: 1}).getFilter((game) => game.homeTeamIndex === game.awayTeamIndex).sort({ commence_time: -1, winPercent: 1 }), // Sorting in database
+        bookmakers: 1}).filter((game) => game.homeTeamIndex === game.awayTeamIndex).sort({ commence_time: -1, winPercent: 1 }), // Sorting in database
       UsaFootballTeam.find({},  {  teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }),
       BasketballTeam.find({},  {  teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }),
       BaseballTeam.find({},  {  teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }),
