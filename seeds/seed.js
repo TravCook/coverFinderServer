@@ -2741,6 +2741,8 @@ const oddsSeed = async () => {
                                 // Update the existing odds with normalized team names and sport type
                                 await Odds.findOneAndUpdate({ id: event.id }, {
                                     ...event,
+                                    homeTeamIndex: 0,
+                                    awayTeamIndex: 0,
                                     homeTeamStats: homeTeam ? cleanStats(getCommonStats(homeTeam)) : 'no stat data',
                                     awayTeamStats: awayTeam ? cleanStats(getCommonStats(awayTeam)) : 'no stat data',
                                     homeTeamlogo: homeTeam ? homeTeam.logo : 'no logo data',
