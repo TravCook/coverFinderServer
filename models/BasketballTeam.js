@@ -48,103 +48,199 @@ const BasketballTeamSchema = new Schema({
         required: false
     },
     stats: {
-        ReboundsTotal: {
+        //OFFENSIVE
+        BSKBtotalPoints: {
             type: Number,
-            required: false
-        },
-        PointsTotal: {
-            type: Number,
-            required: false
-        },
-        pointsPergame: {
-            type: Number,
-            required: false
-        },
-        blocksTotal: {
-            type: Number,
-            required: false
-        },
-        blocksPerGame: {
-            type: Number,
-            required: false
-        },
-        defensiveRebounds: {
-            type: Number,
-            required: false
-        },
-        defensiveReboundsperGame: {
-            type: Number,
-            required: false
-        },
-        offensiveRebounds: {
-            type: Number,
-            required: false
-        },
-        offensiveReboundsperGame: {
-            type: Number,
-            required: false
-        },
-        steals: {
-            type: Number,
-            required: false
-        },
-        stealsperGame: {
-            type: Number,
-            required: false
-        },
-        effectiveFieldGoalPct: {
-            type: Number,
-            required: false
-        },
-        fieldGoalMakesperAttempts: {
-            type: String,
             required: false,
-            displayValue: false
+            category: 'offensive'
         },
-        freeThrowsMadeperAttemps: {
-            type: String,
+        BSKBpointsPerGame: {
+            type: Number,
             required: false,
-            displayValue: false
+            category: 'offensive'
         },
-        freeThrowPct: {
+        BSKBassists: {
             type: Number,
-            required: false
+            required: false,
+            category: 'offensive'
         },
-        totalTurnovers: {
+        BSKBassistsPerGame: {
             type: Number,
-            required: false
+            required: false,
+            category: 'offensive'
         },
-        averageTurnovers: {
+        BSKBassistRatio: {
             type: Number,
-            required: false
+            required: false,
+            category: 'offensive'
         },
-        threePointPct: {
+        BSKBeffectiveFgPercent: {
             type: Number,
-            required: false
+            required: false,
+            category: 'offensive'
         },
-        trueShootingPct: {
+        BSKBfieldGoalPercent: {
             type: Number,
-            required: false
+            required: false,
+            category: 'offensive'
         },
-        turnoverRatio: {
+        BSKBfieldGoalsAttempted: {
             type: Number,
-            required: false
+            required: false,
+            category: 'offensive'
         },
-        assisttoTurnoverRatio: {
+        BSKBfieldGoalsMade: {
             type: Number,
-            required: false
+            required: false,
+            category: 'offensive'
         },
-        pointsinPaint: {
+        BSKBfieldGoalsPerGame: {
             type: Number,
-            required: false
+            required: false,
+            category: 'offensive'
         },
-        pace: {
+        BSKBfreeThrowPercent: {
             type: Number,
-            required: false
+            required: false,
+            category: 'offensive'
+        },
+        BSKBfreeThrowsAttempted: {
+            type: Number,
+            required: false,
+            category: 'offensive'
+        },
+        BSKBfreeThrowsMade: {
+            type: Number,
+            required: false,
+            category: 'offensive'
+        },
+        BSKBfreeThrowsMadePerGame: {
+            type: Number,
+            required: false,
+            category: 'offensive'
+        },
+        BSKBoffensiveRebounds: {
+            type: Number,
+            required: false,
+            category: 'offensive'
+        },
+        BSKBoffensiveReboundsPerGame: {
+            type: Number,
+            required: false,
+            category: 'offensive'
+        },
+        BSKBoffensiveReboundRate: {
+            type: Number,
+            required: false,
+            category: 'offensive'
+        },
+        BSKBoffensiveTurnovers: {
+            type: Number,
+            required: false,
+            category: 'offensive'
+        },
+        BSKBturnoversPerGame: {
+            type: Number,
+            required: false,
+            category: 'offensive'
+        },
+        BSKBturnoverRatio: {
+            type: Number,
+            required: false,
+            category: 'offensive'
+        },
+        BSKBthreePointPct: {
+            type: Number,
+            required: false,
+            category: 'offensive'
+        },
+        BSKBthreePointsAttempted: {
+            type: Number,
+            required: false,
+            category: 'offensive'
+        },
+        BSKBthreePointsMade: {
+            type: Number,
+            required: false,
+            category: 'offensive'
+        },
+        BSKBtrueShootingPct: {
+            type: Number,
+            required: false,
+            category: 'offensive'
+        },
+        BSKBpace: {
+            type: Number,
+            required: false,
+            category: 'offensive'
+        },
+        BSKBpointsInPaint: {
+            type: Number,
+            required: false,
+            category: 'offensive'
+        },
+        BSKBshootingEfficiency: {
+            type: Number,
+            required: false,
+            category: 'offensive'
+        },
+        BSKBscoringEfficiency: {
+            type: Number,
+            required: false,
+            category: 'offensive'
+        }, 
+        BSKBblocks: {
+            type: Number,
+            required: false,
+            category: 'defensive'
+        },
+        BSKBblocksPerGame: {
+            type: Number,
+            required: false,
+            category: 'defensive'
+        },
+        BSKBdefensiveRebounds: {
+            type: Number,
+            required: false,
+            category: 'defensive'
+        },
+        BSKBdefensiveReboundsPerGame: {
+            type: Number,
+            required: false,
+            category: 'defensive'
+        },
+        BSKBsteals: {
+            type: Number,
+            required: false,
+            category: 'defensive'
+        },
+        BSKBstealsPerGame: {
+            type: Number,
+            required: false,
+            category: 'defensive'
+        },
+        BSKBreboundRate: {
+            type: Number,
+            required: false,
+            category: 'general'
+        },
+        BSKBreboundsPerGame: {
+            type: Number,
+            required: false,
+            category: 'general'
+        },
+        BSKBfoulsPerGame: {
+            type: Number,
+            required: false,
+            category: 'general'
+        },
+        BSKBteamAssistToTurnoverRatio: {
+            type: Number,
+            required: false,
+            category: 'general'
         }
     }
-    
-    
+ 
 })
 
 const BasketballTeam = mongoose.model('BasketballTeam', BasketballTeamSchema)

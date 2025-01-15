@@ -43,7 +43,7 @@ const cronJobs = [
     timezone,
   },
   {
-    cronTime: '0 */5 * * * *', // every 15 minutes
+    cronTime: '0 */2 * * * *', // every 15 minutes
     onTick: dataSeed.dataSeed,
     timezone,
   },

@@ -73,141 +73,363 @@ const retrieveTeamsandStats = async () => {
         // Helper function to update team stats
         const updateTeamStats = (team, statName, value, perGameValue, displayValue, category) => {
             const statMap = {
-                'totalPointsPerGame': [{ modelField: 'pointsPerGame', category: 'scoring' }],
-                'totalPoints': [{ modelField: 'totalPoints', category: 'scoring' }],
-                'firstDowns': [{ modelField: 'totalFirstDowns', category: 'miscellaneous' }],
-                'rushingFirstDowns': [{ modelField: 'rushingFirstDowns', category: 'rushing' }],
-                'passingFirstDowns': [{ modelField: 'passingFirstDowns', category: 'passing' }],
-                'thirdDownConvPct': [{ modelField: 'thirdDownEfficiency', category: 'miscellaneous' }],
-                'netPassingYardsPerGame': [{ modelField: 'netPassingYardsPerGame', category: 'passing' }],
-                'interceptions': [{ modelField: 'interceptions', category: 'passing' }],
-                'completionPct': [{ modelField: 'completionPercent', category: 'passing' }],
-                'rushingYards': [{ modelField: 'rushingYards', category: 'rushing' }],
-                'rushingYardsPerGame': [{ modelField: 'rushingYardsPerGame', category: 'rushing' }],
-                'yardsPerRushAttempt': [{ modelField: 'yardsPerRushAttempt', category: 'rushing' }],
-                'netYardsPerGame': [{ modelField: 'yardsPerGame', category: 'passing' }],
-                'fieldGoalPct': [{ modelField: 'fGgoodPct', category: 'kicking' }],
-                'touchbackPct': [{ modelField: 'touchBackPercentage', category: 'kicking' }],
-                'totalPenaltyYards': [
-                    { modelField: 'totalPenyards', category: 'miscellaneous' },
-                    { modelField: 'averagePenYardsPerGame', isPerGame: true, category: 'miscellaneous' }
-                ],
-                'totalGiveaways': [{ modelField: 'giveaways', category: 'miscellaneous' }],
-                'totalTakeaways': [{ modelField: 'takeaways', category: 'miscellaneous' }],
-                'turnOverDifferential': [{ modelField: 'turnoverDiff', category: 'miscellaneous' }],
-                'sacks': [
-                    { modelField: 'sacksTotal', category: 'defensive' },
-                    { modelField: 'sacksPerGame', isPerGame: true, category: 'defensive' }
-                ],
-                'sackYards': [{ modelField: 'yardsLostPerSack', category: 'defensive' }],
-                'passesDefended': [
-                    { modelField: 'passesDefended', category: 'defensive' },
-                    { modelField: 'passesDefendedPerGame', isPerGame: true, category: 'defensive' }
-                ],
-                'tacklesForLoss': [
-                    { modelField: 'tacklesforLoss', category: 'defensive' },
-                    { modelField: 'tacklesforLossPerGame', isPerGame: true, category: 'defensive' }
-                ],
-                'totalRebounds': [{ modelField: 'ReboundsTotal', category: 'general' }],
-                'points': [{ modelField: 'PointsTotal', category: 'offensive' }],
-                'avgPoints': [{ modelField: 'pointsPergame', isDisplayValue: true, category: 'offensive' }],
-                'blocks': [{ modelField: 'blocksTotal', category: 'defensive' }],
-                'avgBlocks': [{ modelField: 'blocksPerGame', isDisplayValue: true, category: 'defensive' }],
-                'defensiveRebounds': [{ modelField: 'defensiveRebounds', category: 'defensive' }],
-                'avgDefensiveRebounds': [{ modelField: 'defensiveReboundsperGame', isDisplayValue: true, category: 'defensive' }],
-                'offensiveRebounds': [{ modelField: 'offensiveRebounds', category: 'offensive' }],
-                'avgOffensiveRebounds': [{ modelField: 'offensiveReboundsperGame', isDisplayValue: true, category: 'offensive' }],
-                'steals': [{ modelField: 'steals', category: 'defensive' }],
-                'avgSteals': [{ modelField: 'stealsperGame', isDisplayValue: true, category: 'defensive' }],
-                'effectiveFGPct': [{ modelField: 'effectiveFieldGoalPct', category: 'offensive' }],
-                'fieldGoals': [{ modelField: 'fieldGoalMakesperAttempts', isDisplayValue: true, category: 'offensive' }],
-                'freeThrows': [{ modelField: 'freeThrowsMadeperAttemps', isDisplayValue: true, category: 'offensive' }],
-                'freeThrowPct': [{ modelField: 'freeThrowPct', category: 'offensive' }],
-                'totalTurnovers': [{ modelField: 'totalTurnovers', category: 'offensive' }],
-                'avgTurnovers': [{ modelField: 'averageTurnovers', isDisplayValue: true, category: 'offensive' }],
-                'threePointFieldGoalPct': [{ modelField: 'threePointPct', category: 'offensive' }],
-                'trueShootingPct': [{ modelField: 'trueShootingPct', category: 'offensive' }],
-                'turnoverRatio': [{ modelField: 'turnoverRatio', category: 'offensive' }],
-                'assistTurnoverRatio': [{ modelField: 'assisttoTurnoverRatio', category: 'offensive' }],
-                'pointsInPaint': [{ modelField: 'pointsinPaint', category: 'offensive' }],
-                'paceFactor': [{ modelField: 'pace', category: 'offensive' }],
-                'goals': [{ modelField: 'goals', category: 'offensive' }],
-                'avgGoals': [{ modelField: 'goalsPerGame', category: 'offensive' }],
                 'assists': [
-                    { modelField: 'assists', category: 'offensive' },
-                    { modelField: 'assistsPerGame', isPerGame: true, category: 'offensive' }
+                    { modelField: 'BSKBassists', category: 'offensive' },
+                    { modelField: 'HKYassists', category: 'offensive' },
+                    { modelField: 'HKYassistsPerGame', isPerGame: true, category: 'offensive' },
+                    { modelField: 'BSBassists', category: 'fielding' }
+                ],
+                'hits': [
+                    { modelField: 'BSBHitsTotal', category: 'batting' },
+                    { modelField: 'BSBhitsGivenUp', category: 'pitching' },
+                    { modelField: 'HKYhits', category: 'defensive' },
+                    { modelField: 'HKYhitsPerGame', isPerGame: true, category: 'defensive' }
+                ],
+                'shutouts': [
+                    { modelField: 'HKYshutouts', category: 'defensive' },
+                    { modelField: 'BSBshutouts', category: 'pitching' }
+                ],
+                'saves': [
+                    { modelField: 'HKYsaves', category: 'defensive' },
+                    { modelField: 'HKYsavesPerGame', isPerGame: true, category: 'defensive' },
+                    { modelField: 'BSBsaves', category: 'pitching' }
+                ],
+                'savePct': [
+                    { modelField: 'HKYsavePct', category: 'defensive' },
+                    { modelField: 'BSBsavePct', category: 'pitching' }
+                ],
+                //'statinapi : [{modelField: 'fieldindb'}, category: 'categoryinDb']
+                //-------------------------------AMERICAN FOOTBALL STATS---------------------------------------------
+                'completionPct': [{ modelField: 'USFBcompletionPercent', category: 'passing' }],
+                'completions': [
+                    { modelField: 'USFBcompletions', category: 'passing' },
+                    { modelField: 'USFBcompletionsPerGame', isPerGame: true, category: 'passing' }],
+                'netPassingYards': [
+                    { modelField: 'USFBnetPassingYards', category: 'passing' },
+                    { modelField: 'USFBnetPassingYardsPerGame', isPerGame: true, category: 'passing' }
+                ],
+                'passingFirstDowns': [{ modelField: 'USFBpassingFirstDowns', category: 'passing' }],
+                'passingTouchdowns': [{ modelField: 'USFBpassingTouchdowns', category: 'passing' }],
+                'passingYards': [
+                    { USFBpassingYards: 'USFBnetPassingYards', category: 'passing' },
+                    { USFBpassingYardsPerGame: 'USFBnetPassingYardsPerGame', isPerGame: true, category: 'passing' }
+                ],
+                'passingAttempts': [
+                    { modelField: 'USFBpassingAttempts', category: 'passing' },
+                    { modelField: 'USFBpassingAttemptsPerGame', isPerGame: true, category: 'passing' }
+                ],
+                'yardsPerPassAttempt': [{ modelField: 'USFByardsPerPassAttempt', category: 'passing' }],
+                'rushingAttempts': [{ modelField: 'USFBrushingAttempts', category: 'rushing' }],
+                'rushingFirstDowns': [{ modelField: 'USFBrushingFirstDowns', category: 'rushing' }],
+                'rushingTouchdowns': [{ modelField: 'USFBrushingTouchdowns', category: 'rushing' }],
+                'rushingYards': [
+                    { modelField: 'USFBrushingYards', category: 'rushing' },
+                    { modelField: 'USFBrushingYardsPerGame', isPerGame: true, category: 'rushing' }
+                ],
+                'yardsPerRushAttempt': [{ modelField: 'USFByardsPerRushAttempt', category: 'rushing' }],
+                'receivingFirstDowns': [{ modelField: 'USFBreceivingFirstDowns', category: 'rushing' }],
+                'receivingTouchdowns': [{ modelField: 'USFBreceivingTouchdowns', category: 'rushing' }],
+                'receivingYards': [
+                    { modelField: 'USFBreceivingYards', category: 'rushing' },
+                    { modelField: 'USFBreceivingYardsPerGame', category: 'rushing' }
+                ],
+                'yardsPerReception': [{ modelField: 'USFBreceivingYardsPerReception', category: 'rushing' }],
+                'receivingYardsAfterCatch': [
+                    { modelField: 'USFBreceivingYardsAfterCatch', category: 'rushing' },
+                    { modelField: 'USFBreceivingYardsAfterCatchPerGame', category: 'rushing' }
+                ],
+                'totalTouchdowns': [
+                    { modelField: 'USFBtotalTouchdowns', category: 'rushing' },
+                    { modelField: 'USFBtouchdownsPerGame', category: 'rushing' }
+                ],
+                'totalPoints': [{ modelField: 'USFBtotalPoints', category: 'scoring' }],
+                'totalPointsPerGame': [{ modelField: 'USFBpointsPerGame', category: 'scoring' }],
+                'tacklesForLoss': [
+                    { modelField: 'USFBtacklesforLoss', category: 'defensive' },
+                    { modelField: 'USFBtacklesforLossPerGame', isPerGame: true, category: 'defensive' }
+                ],
+                'interceptions': [{ modelField: 'USFBinterceptions', category: 'defensiveInterceptions' }],
+                'avgInterceptionYards': [{ modelField: 'USFByardsPerInterception', category: 'defensive' }],
+                'sacks': [
+                    { modelField: 'USFBsacksTotal', category: 'defensive' },
+                    { modelField: 'USFBsacksPerGame', isPerGame: true, category: 'defensive' }
+                ],
+                'sackYards': [
+                    { modelField: 'USFBsackYards', category: 'defensive' },
+                    { modelField: 'USFBsackYardsPerGame', isPerGame: true, category: 'defensive' }
+                ],
+                'stuffs': [
+                    { modelField: 'USFBstuffs', category: 'defensive' },
+                    { modelField: 'USFBstuffsPerGame', isPerGame: true, category: 'defensive' }
+                ],
+                'stuffYards': [{ modelField: 'USFBstuffYards', category: 'defensive' }],
+                'passesDefended': [
+                    { modelField: 'USFBpassesDefended', category: 'defensive' },
+                    { modelField: 'USFBpassesDefendedPerGame', isPerGame: true, category: 'defensive' }
+                ],
+                'safeties': [{ modelField: 'USFBsafties', category: 'defensive' }],
+                'avgKickoffYards': [
+                    { modelField: 'USFBaverageKickoffYards', category: 'defensive' },
+                    { modelField: 'USFBaverageKickoffYardsPerGame', isPerGame: true, category: 'kicking' }
+                ],
+                'extraPointAttempts': [
+                    { modelField: 'USFBextraPointAttempts', category: 'defensive' },
+                    { modelField: 'USFBextraPointAttemptsPerGame', isPerGame: true, category: 'kicking' }
+                ],
+                'extraPointsMade': [
+                    { modelField: 'USFBextraPointsMade', category: 'defensive' },
+                    { modelField: 'USFBextraPointsMadePerGame', isPerGame: true, category: 'kicking' }
+                ],
+                'extraPointPct': [
+                    { modelField: 'USFBextraPointPercent', category: 'defensive' },
+                    { modelField: 'USFBextraPointPercentPerGame', isPerGame: true, category: 'kicking' }
+                ],
+                'fieldGoalAttempts': [
+                    { modelField: 'USFBfieldGoalAttempts', category: 'defensive' },
+                    { modelField: 'USFBfieldGoalAttemptsPerGame', isPerGame: true, category: 'kicking' }
+                ],
+                'fieldGoalsMade': [
+                    { modelField: 'USFBfieldGoalsMade', category: 'defensive' },
+                    { modelField: 'USFBfieldGoalsMadePerGame', isPerGame: true, category: 'kicking' }
+                ],
+                'fieldGoalPct': [
+                    { modelField: 'USFBfieldGoalPct', category: 'defensive' },
+                    { modelField: 'USFBfieldGoalPercentPerGame', isPerGame: true, category: 'kicking' }
+                ],
+                'touchbacks': [
+                    { modelField: 'USFBtouchbacks', category: 'kicking' },
+                    { modelField: 'USFBtouchbacksPerGame', isPerGame: true, category: 'kicking' }
+                ],
+                'touchbackPct': [{ modelField: 'USFBtouchBackPercentage', category: 'kicking' }],
+                'kickReturns': [
+                    { modelField: 'USFBkickReturns', category: 'returning' },
+                    { modelField: 'USFBkickReturnsPerGame', isPerGame: true, category: 'returning' }
+                ],
+                'kickReturnYards': [
+                    { modelField: 'USFBkickReturnYards', category: 'returning' },
+                    { modelField: 'USFBkickReturnYardsPerGame', isPerGame: true, category: 'returning' }
+                ],
+                'puntReturns': [
+                    { modelField: 'USFBpuntReturns', category: 'returning' },
+                    { modelField: 'USFBpuntReturnsPerGame', isPerGame: true, category: 'returning' }
+                ],
+                'puntReturnFairCatchPct': [{ modelField: 'USFBpuntReturnFairCatchPct', category: 'returning' }],
+                'puntReturnYards': [
+                    { modelField: 'USFBpuntReturnYards', category: 'returning' },
+                    { modelField: 'USFBpuntReturnYardsPerGame', isPerGame: true, category: 'returning' }
+                ],
+                'yardsPerReturn': [{ modelField: 'USFByardsPerReturn', category: 'returning' }],
+                'thirdDownConvPct': [{ modelField: 'USFBthirdDownEfficiency', category: 'miscellaneous' }],
+                'totalPenaltyYards': [
+                    { modelField: 'USFBtotalPenyards', category: 'miscellaneous' },
+                    { modelField: 'USFBaveragePenYardsPerGame', isPerGame: true, category: 'miscellaneous' }
+                ],
+                'totalGiveaways': [{ modelField: 'USFBgiveaways', category: 'miscellaneous' }],
+                'totalTakeaways': [{ modelField: 'USFBtakeaways', category: 'miscellaneous' }],
+                'turnOverDifferential': [{ modelField: 'USFBturnoverDiff', category: 'miscellaneous' }],
+                'firstDowns': [{ modelField: 'USFBtotalFirstDowns', category: 'miscellaneous' }],
+                //------------------------------------BASKETBALL STATS--------------------------------------------------------------
+                'points': [{ modelField: 'BSKBtotalPoints', category: 'offensive' }],
+                'avgPoints': [{ modelField: 'BSKBpointsPerGame', category: 'offensive' }],
+
+                'avgAssists': [{ modelField: 'BSKBassistsPerGame', category: 'offensive' }],
+                'assistRatio': [{ modelField: 'BSKBassistRatio', category: 'offensive' }],
+                'effectiveFGPct': [{ modelField: 'BSKBeffectiveFgPercent', category: 'offensive' }],
+                'fieldGoalPct': [{ modelField: 'BSKBfieldGoalPercent', category: 'offensive' }],
+                'fieldGoalsAttempted': [{ modelField: 'BSKBfieldGoalsAttempted', category: 'offensive' }],
+                'fieldGoalsMade': [{ modelField: 'BSKBfieldGoalsMade', category: 'offensive' }],
+                'avgFieldGoalsMade': [{ modelField: 'BSKBfieldGoalsPerGame', category: 'offensive' }],
+                'freeThrowPct': [{ modelField: 'BSKBfreeThrowPercent', category: 'offensive' }],
+                'freeThrowsAttempted': [{ modelField: 'BSKBfreeThrowsAttempted', category: 'offensive' }],
+                'freeThrowsMade': [{ modelField: 'BSKBfreeThrowsMade', category: 'offensive' }],
+                'avgFreeThrowsMade': [{ modelField: 'BSKBfreeThrowsMadePerGame', category: 'offensive' }],
+                'offensiveRebounds': [{ modelField: 'BSKBoffensiveRebounds', category: 'offensive' }],
+                'avgOffensiveRebounds': [{ modelField: 'BSKBoffensiveReboundsPerGame', category: 'offensive' }],
+                'offensiveReboundPct': [{ modelField: 'BSKBoffensiveReboundRate', category: 'offensive' }],
+                'turnovers': [{ modelField: 'BSKBoffensiveTurnovers', category: 'offensive' }],
+                'avgTurnovers': [{ modelField: 'BSKBturnoversPerGame', category: 'offensive' }],
+                'turnoverRatio': [{ modelField: 'BSKBturnoverRatio', category: 'offensive' }],
+                'turnthreePointPctverRatio': [{ modelField: 'BSKBthreePointPct', category: 'offensive' }],
+                'threePointFieldGoalsAttempted': [{ modelField: 'BSKBthreePointsAttempted', category: 'offensive' }],
+                'threePointFieldGoalsMade': [{ modelField: 'BSKBthreePointsMade', category: 'offensive' }],
+                'trueShootingPct': [{ modelField: 'BSKBtrueShootingPct', category: 'offensive' }],
+                'paceFactor': [{ modelField: 'BSKBpace', category: 'offensive' }],
+                'pointsInPaint': [{ modelField: 'BSKBpointsInPaint', category: 'offensive' }],
+                'shootingEfficiency': [{ modelField: 'BSKBshootingEfficiency', category: 'offensive' }],
+                'scoringEfficiency': [{ modelField: 'BSKBscoringEfficiency', category: 'offensive' }],
+                'blocks': [{ modelField: 'BSKBblocks', category: 'defensive' }],
+                'avgBlocks': [{ modelField: 'BSKBblocksPerGame', category: 'defensive' }],
+                'defensiveRebounds': [{ modelField: 'BSKBdefensiveRebounds', category: 'defensive' }],
+                'avgDefensiveRebounds': [{ modelField: 'BSKBdefensiveReboundsPerGame', category: 'defensive' }],
+                'steals': [{ modelField: 'BSKBsteals', category: 'defensive' }],
+                'avgSteals': [{ modelField: 'BSKBstealsPerGame', category: 'defensive' }],
+                'reboundRate': [{ modelField: 'BSKBreboundRate', category: 'general' }],
+                'avgRebounds': [{ modelField: 'BSKBreboundsPerGame', category: 'general' }],
+                'avgFouls': [{ modelField: 'BSKBfoulsPerGame', category: 'general' }],
+                'teamAssistTurnoverRatio': [{ modelField: 'BSKBteamAssistToTurnoverRatio', category: 'general' }],
+                //------------------------------------HOCKEY STATS--------------------------------------------------------------
+                'goals': [{ modelField: 'HKYgoals', category: 'offensive' }],
+                'avgGoals': [{ modelField: 'HKYgoalsPerGame', category: 'offensive' }],
+                'shotsIn1stPeriod': [
+                    { modelField: 'HKYshotsIn1st', category: 'offensive' },
+                    { modelField: 'HKYshotsIn1stPerGame', isPerGame: true, category: 'offensive' }
+                ],
+                'shotsIn2ndPeriod': [
+                    { modelField: 'HKYshotsIn2nd', category: 'offensive' },
+                    { modelField: 'HKYshotsIn2ndPerGame', isPerGame: true, category: 'offensive' }
+                ],
+                'shotsIn3rdPeriod': [
+                    { modelField: 'HKYshotsIn3rd', category: 'offensive' },
+                    { modelField: 'HKYshotsIn3rdPerGame', isPerGame: true, category: 'offensive' }
                 ],
                 'shotsTotal': [
-                    { modelField: 'totalShotsTaken', category: 'offensive' },
-                    { modelField: 'shotsTakenPerGame', isDisplayValue: true, category: 'offensive' }
+                    { modelField: 'HKYtotalShots', category: 'offensive' },
+                ],
+                'avgShots': [
+                    { modelField: 'HKYtotalShotsPerGame', category: 'offensive' },
+                ],
+                'shotsMissed': [
+                    { modelField: 'HKYshotsMissed', category: 'offensive' },
+                    { modelField: 'HKYshotsMissedPerGame', isPerGame: true, category: 'offensive' }
                 ],
                 'powerPlayGoals': [
-                    { modelField: 'powerPlayGoals', category: 'offensive' },
-                    { modelField: 'powerPlayGoalsPerGame', isPerGame: true, category: 'offensive' }
+                    { modelField: 'HKYppgGoals', category: 'offensive' },
+                    { modelField: 'HKYppgGoalsPerGame', isPerGame: true, category: 'offensive' }
                 ],
-                'powerPlayPct': [{ modelField: 'powerPlayPct', category: 'offensive' }],
-                'shootingPct': [{ modelField: 'shootingPct', category: 'offensive' }],
+                'powerPlayAssists': [
+                    { modelField: 'HKYppassists', category: 'offensive' },
+                    { modelField: 'HKYppassistsPerGame', isPerGame: true, category: 'offensive' }
+                ],
+                'powerPlayPct': [
+                    { modelField: 'HKYpowerplayPct', category: 'offensive' },
+                ],
+                'shortHandedGoals': [
+                    { modelField: 'HKYshortHandedGoals', category: 'offensive' },
+                    { modelField: 'HKYshortHandedGoalsPerGame', isPerGame: true, category: 'offensive' }
+                ],
+                'shootingPct': [
+                    { modelField: 'HKYshootingPct', category: 'offensive' },
+                ],
+                'totalFaceOffs': [
+                    { modelField: 'HKYfaceoffs', category: 'offensive' },
+                    { modelField: 'HKYfaceoffsPerGame', isPerGame: true, category: 'offensive' }
+                ],
                 'faceoffsWon': [
-                    { modelField: 'faceoffsWon', category: 'offensive' },
-                    { modelField: 'faceoffsWonPerGame', isPerGame: true, category: 'offensive' }
+                    { modelField: 'HKYfaceoffsWon', category: 'offensive' },
+                    { modelField: 'HKYfaceoffsWonPerGame', isPerGame: true, category: 'offensive' }
                 ],
-                'faceoffPercent': [{ modelField: 'faceoffPercent', category: 'offensive' }],
-                'giveaways': [{ modelField: 'giveaways', category: 'offensive' }],
-                'penaltyMinutes': [
-                    { modelField: 'penaltyMinutes', category: 'penalties' },
-                    { modelField: 'penaltyMinutesPerGame', isPerGame: true, category: 'penalties' }
+                'faceoffsLost': [
+                    { modelField: 'HKYfaceoffsLost', category: 'offensive' },
+                    { modelField: 'HKYfaceoffsLostPerGame', isPerGame: true, category: 'offensive' }
                 ],
-                'goalsAgainst': [{ modelField: 'goalsAgainst', category: 'defensive' }],
-                'avgGoalsAgainst': [{ modelField: 'goalsAgainstAverage', category: 'defensive' }],
-                'shotsAgainst': [{ modelField: 'shotsAgainst', category: 'defensive' }],
-                'avgShotsAgainst': [{ modelField: 'shotsAgainstPerGame', category: 'defensive' }],
+                'faceoffPercent': [
+                    { modelField: 'HKYfaceoffPct', category: 'offensive' },
+                    { modelField: 'HKYfaceoffPctPerGame', isPerGame: true, category: 'offensive' }
+                ],
+                'giveaways': [
+                    { modelField: 'HKYgiveaways', category: 'offensive' },
+                ],
+                'goalsAgainst': [
+                    { modelField: 'HKYgoalsAgainst', category: 'defensive' },
+                ],
+                'avgGoalsAgainst': [
+                    { modelField: 'HKYgoalsAgainstPerGame', category: 'defensive' },
+                ],
+                'shotsAgainst': [
+                    { modelField: 'HKYshotsAgainst', category: 'defensive' },
+                ],
+                'avgShotsAgainst': [
+                    { modelField: 'HKYshotsAgainstPerGame', category: 'defensive' },
+                ],
+                'penaltyKillPct': [
+                    { modelField: 'HKYpenaltyKillPct', category: 'defensive' },
+                    { modelField: 'HKYpenaltyKillPctPerGame', isPerGame: true, category: 'defensive' }
+                ],
+                'powerPlayGoalsAgainst': [
+                    { modelField: 'HKYppGoalsAgainst', category: 'defensive' },
+                    { modelField: 'HKYppGoalsAgainstPerGame', isPerGame: true, category: 'defensive' }
+                ],
+
                 'blockedShots': [
-                    { modelField: 'shotsBlocked', category: 'defensive' },
-                    { modelField: 'shotsBlockedPerGame', isPerGame: true, category: 'defensive' }
+                    { modelField: 'HKYblockedShots', category: 'defensive' },
+                    { modelField: 'HKYblockedShotsPerGame', isPerGame: true, category: 'defensive' }
                 ],
-                'penaltyKillPct': [{ modelField: 'penaltyKillPct', category: 'defensive' }],
-                'saves': [
-                    { modelField: 'totalSaves', category: 'defensive' },
-                    { modelField: 'savePerGame', isPerGame: true, category: 'defensive' }
+                'takeaways': [
+                    { modelField: 'HKYtakeaways', category: 'defensive' },
+                    { modelField: 'HKYtakeawaysPerGame', isPerGame: true, category: 'defensive' }
                 ],
-                'savePct': [{ modelField: 'savePct', category: 'defensive' }],
-                'takeaways': [{ modelField: 'takeaways', category: 'defensive' }],
+                'shotDifferential': [
+                    { modelField: 'HKYshotDifferential', category: 'general' },
+                    { modelField: 'HKYshotDifferentialPerGame', isPerGame: true, category: 'general' }
+                ],
+                'goalDifferential': [
+                    { modelField: 'HKYgoalDifferentialPerGame', isPerGame: true, category: 'general' },
+                ],
+                'PIMDifferential': [
+                    { modelField: 'HKYpimDifferential', category: 'general' },
+                    { modelField: 'HKYpimDifferentialPerGame', isPerGame: true, category: 'general' }
+                ],
+                'penalties': [
+                    { modelField: 'HKYtotalPenalties', category: 'penalties' },
+                    { modelField: 'HKYpenaltiesPerGame', isPerGame: true, category: 'penalties' }
+                ],
+                'penaltyMinutes': [
+                    { modelField: 'HKYpenaltyMinutes', category: 'penalties' },
+                    { modelField: 'HKYpenaltyMinutesPerGame', isPerGame: true, category: 'penalties' }
+                ],
+                //------------------------------------BASEBALL STATS--------------------------------------------------------------
                 'strikeouts': [
-                    { modelField: 'strikeoutsTotal', category: 'batting' },
-                    { modelField: 'strikeoutsPitchingTotal', category: 'pitching' }
+                    { modelField: 'BSBbattingStrikeouts', category: 'batting' },
+                    { modelField: 'BSBpitcherStrikeouts', category: 'pitching' }
                 ],
-                'RBIs': [{ modelField: 'rBIsTotal', category: 'batting' }],
-                'hits': [{ modelField: 'hitsTotal', category: 'batting' }],
-                'stolenBases': [{ modelField: 'stolenBasesTotal', category: 'batting' }],
                 'walks': [
-                    { modelField: 'walksTotal', category: 'batting' },
-                    { modelField: 'walksPitchingTotal', category: 'pitching' }
+                    { modelField: 'BSBwalks', category: 'batting' },
+                    { modelField: 'BSBbattersWalked', category: 'pitching' }
                 ],
-                'runs': [{ modelField: 'runsTotal', category: 'batting' }],
-                'homeRuns': [{ modelField: 'homeRunsTotal', category: 'batting' }],
-                'totalBases': [{ modelField: 'totalBases', category: 'batting' }],
-                'extraBaseHits': [{ modelField: 'extraBaseHitsTotal', category: 'batting' }],
-                'avg': [{ modelField: 'battingAverageTotal', category: 'batting' }],
-                'slugAvg': [{ modelField: 'sluggingPercentage', category: 'batting' }],
-                'onBasePct': [{ modelField: 'onBasePercent', category: 'batting' }],
-                'OPS': [{ modelField: 'onBasePlusSlugging', category: 'batting' }],
-                'stolenBasePct': [{ modelField: 'stolenBasePct', category: 'batting' }],
-                'walkToStrikeoutRatio': [{ modelField: 'walkToStrikeoutRatio', category: 'batting' }],
-                'saves': [{ modelField: 'saves', category: 'pitching' }],
-                'qualityStarts': [{ modelField: 'qualityStarts', category: 'pitching' }],
-                'ERA': [{ modelField: 'earnedRunAverage', category: 'pitching' }],
-                'WHIP': [{ modelField: 'walksHitsPerInningPitched', category: 'pitching' }],
-                'groundToFlyRatio': [{ modelField: 'groundToFlyRatio', category: 'pitching' }],
-                'runSupportAvg': [{ modelField: 'runSupportAverage', category: 'pitching' }],
-                'opponentAvg': [{ modelField: 'oppBattingAverage', category: 'pitching' }],
-                'opponentSlugAvg': [{ modelField: 'oppSlugging', category: 'pitching' }],
-                'opponentOPS': [{ modelField: 'oppOPS', category: 'pitching' }],
-                'savePct': [{ modelField: 'savePct', category: 'pitching' }],
-                'strikeoutsPerNineInnings': [{ modelField: 'strikeoutPerNine', category: 'pitching' }],
-                'strikeoutToWalkRatio': [{ modelField: 'strikeoutToWalkRatioPitcher', category: 'pitching' }],
-                'doublePlays': [{ modelField: 'doublePlays', category: 'fielding' }],
-                'errors': [{ modelField: 'fieldingErrors', category: 'fielding' }],
-                'fieldingPct': [{ modelField: 'fieldingPercentage', category: 'fielding' }]
+                'RBIs': [{ modelField: 'BSBrunsBattedIn', category: 'batting' }],
+                'sacHits': [{ modelField: 'BSBsacrificeHits', category: 'batting' }],
+                'runs': [
+                    { modelField: 'BSBruns', category: 'batting' },
+                    { modelField: 'BSBrunsAllowed', category: 'pitching' }
+                ],
+                'homeRuns': [
+                    { modelField: 'BSBhomeRuns', category: 'batting' },
+                    { modelField: 'BSBhomeRunsAllowed', category: 'pitching' }
+                ],
+                'doubles': [{ modelField: 'BSBdoubles', category: 'batting' }],
+                'totalBases': [{ modelField: 'BSBtotalBases', category: 'batting' }],
+                'extraBaseHits': [{ modelField: 'BSBextraBaseHits', category: 'batting' }],
+                'avg': [{ modelField: 'BSBbattingAverage', category: 'batting' }],
+                'slugAvg': [{ modelField: 'BSBsluggingPercentage', category: 'batting' }],
+                'onBasePct': [{ modelField: 'BSBonBasePercentage', category: 'batting' }],
+                'OPS': [{ modelField: 'BSBonBasePlusSlugging', category: 'batting' }],
+                'groundToFlyRatio': [{ modelField: 'BSBgroundToFlyRatio', category: 'batting' }],
+                'atBatsPerHomeRun': [{ modelField: 'BSBatBatsPerHomeRun', category: 'batting' }],
+                'stolenBasePct': [{ modelField: 'BSBstolenBasePercentage', category: 'batting' }],
+                'walkToStrikeoutRatio': [{ modelField: 'BSBbatterWalkToStrikeoutRatio', category: 'batting' }],
+                'earnedRuns': [{ modelField: 'BSBearnedRuns', category: 'pitching' }],
+                'wins': [{ modelField: 'BSBwins', category: 'pitching' }],
+                'ERA': [{ modelField: 'BSBearnedRunAverage', category: 'pitching' }],
+                'WHIP': [{ modelField: 'BSBwalksHitsPerInningPitched', category: 'pitching' }],
+                'winPct': [{ modelField: 'BSBwinPct', category: 'pitching' }],
+                'caughtStealingPct': [{ modelField: 'BSBpitcherCaughtStealingPct', category: 'pitching' }],
+                'pitchesPerInning': [{ modelField: 'BSBpitchesPerInning', category: 'pitching' }],
+                'runSupportAvg': [{ modelField: 'BSBrunSupportAverage', category: 'pitching' }],
+                'opponentAvg': [{ modelField: 'BSBopponentBattingAverage', category: 'pitching' }],
+                'opponentSlugAvg': [{ modelField: 'BSBopponentSlugAverage', category: 'pitching' }],
+                'opponentOnBasePct': [{ modelField: 'BSBopponentOnBasePct', category: 'pitching' }],
+                'opponentOPS': [{ modelField: 'BSBopponentOnBasePlusSlugging', category: 'pitching' }],
+                'strikeoutsPerNineInnings': [{ modelField: 'BSBstrikeoutsPerNine', category: 'pitching' }],
+                'strikeoutToWalkRatio': [{ modelField: 'BSBpitcherStrikeoutToWalkRatio', category: 'pitching' }],
+                'doublePlays': [{ modelField: 'BSBdoublePlays', category: 'fielding' }],
+                'errors': [{ modelField: 'BSBerrors', category: 'fielding' }],
+                'passedBalls': [{ modelField: 'BSBpassedBalls', category: 'fielding' }],
+                'putouts': [{ modelField: 'BSBputouts', category: 'fielding' }],
+                'catcherCaughtStealing': [{ modelField: 'BSBcatcherCaughtStealing', category: 'fielding' }],
+                'catcherCaughtStealingPct': [{ modelField: 'BSBcatcherCaughtStealingPct', category: 'fielding' }],
+                'catcherStolenBasesAllowed': [{ modelField: 'BSBcatcherStolenBasesAllowed', category: 'fielding' }],
+                'fieldingPct': [{ modelField: 'BSBfieldingPercentage', category: 'fielding' }],
+                'rangeFactor': [{ modelField: 'BSBrangeFactor', category: 'fielding' }],
             }
 
 
@@ -434,119 +656,241 @@ const removePastGames = async (currentOdds) => {
                                 predictionCorrect = winner === 'away';
                             }
                             const getCommonStats = (team) => ({
+                                //------------------------------SHARED STATS-----------------------------------------------------------
                                 seasonWinLoss: team.seasonWinLoss,
                                 homeWinLoss: team.homeWinLoss,
                                 awayWinLoss: team.awayWinLoss,
                                 pointDiff: team.pointDiff,
-                                pointsPerGame: team.stats.pointsPerGame,
-                                totalPoints: team.stats.totalPoints,
-                                totalFirstDowns: team.stats.totalFirstDowns,
-                                rushingFirstDowns: team.stats.rushingFirstDowns,
-                                passingFirstDowns: team.stats.passingFirstDowns,
-                                thirdDownEfficiency: team.stats.thirdDownEfficiency,
-                                netPassingYardsPerGame: team.stats.netPassingYardsPerGame,
-                                interceptions: team.stats.interceptions,
-                                completionPercent: team.stats.completionPercent,
-                                rushingYards: team.stats.rushingYards,
-                                rushingYardsPerGame: team.stats.rushingYardsPerGame,
-                                yardsPerRushAttempt: team.stats.yardsPerRushAttempt,
-                                yardsPerGame: team.stats.yardsPerGame,
-                                fGgoodPct: team.stats.fGgoodPct,
-                                touchBackPercentage: team.stats.touchBackPercentage,
-                                totalPenyards: team.stats.totalPenyards,
-                                averagePenYardsPerGame: team.stats.averagePenYardsPerGame,
-                                giveaways: team.stats.giveaways,
-                                takeaways: team.stats.takeaways,
-                                turnoverDiff: team.stats.turnoverDiff,
-                                sacksTotal: team.stats.sacksTotal,
-                                sacksPerGame: team.stats.sacksPerGame,
-                                yardsLostPerSack: team.stats.yardsLostPerSack,
-                                passesDefended: team.stats.passesDefended,
-                                passesDefendedPerGame: team.stats.passesDefendedPerGame,
-                                tacklesforLoss: team.stats.tacklesforLoss,
-                                tacklesforLossPerGame: team.stats.tacklesforLossPerGame,
-                                strikeoutsTotal: team.stats.strikeoutsTotal,
-                                rBIsTotal: team.stats.rBIsTotal,
-                                hitsTotal: team.stats.hitsTotal,
-                                stolenBasesTotal: team.stats.stolenBasesTotal,
-                                walksTotal: team.stats.walksTotal,
-                                runsTotal: team.stats.runsTotal,
-                                homeRunsTotal: team.stats.homeRunsTotal,
-                                totalBases: team.stats.totalBases,
-                                extraBaseHitsTotal: team.stats.extraBaseHitsTotal,
-                                battingAverageTotal: team.stats.battingAverageTotal,
-                                sluggingPercentage: team.stats.sluggingPercentage,
-                                onBasePercent: team.stats.onBasePercent,
-                                onBasePlusSlugging: team.stats.onBasePlusSlugging,
-                                stolenBasePct: team.stats.stolenBasePct,
-                                walkToStrikeoutRatio: team.stats.walkToStrikeoutRatio,
-                                saves: team.stats.saves,
-                                strikeoutsPitchingTotal: team.stats.strikeoutsPitchingTotal,
-                                walksPitchingTotal: team.stats.walksPitchingTotal,
-                                qualityStarts: team.stats.qualityStarts,
-                                earnedRunAverage: team.stats.earnedRunAverage,
-                                walksHitsPerInningPitched: team.stats.walksHitsPerInningPitched,
-                                groundToFlyRatio: team.stats.groundToFlyRatio,
-                                runSupportAverage: team.stats.runSupportAverage,
-                                oppBattingAverage: team.stats.oppBattingAverage,
-                                oppSlugging: team.stats.oppSlugging,
-                                oppOPS: team.stats.oppOPS,
-                                savePct: team.stats.savePct,
-                                strikeoutPerNine: team.stats.strikeoutPerNine,
-                                strikeoutToWalkRatioPitcher: team.stats.strikeoutToWalkRatioPitcher,
-                                doublePlays: team.stats.doublePlays,
-                                fieldingErrors: team.stats.fieldingErrors,
-                                fieldingPercentage: team.stats.fieldingPercentage,
-                                ReboundsTotal: team.stats.ReboundsTotal,
-                                PointsTotal: team.stats.PointsTotal,
-                                pointsPergame: team.stats.pointsPergame,
-                                blocksTotal: team.stats.blocksTotal,
-                                blocksPerGame: team.stats.blocksPerGame,
-                                defensiveRebounds: team.stats.defensiveRebounds,
-                                defensiveReboundsperGame: team.stats.defensiveReboundsperGame,
-                                offensiveRebounds: team.stats.offensiveRebounds,
-                                offensiveReboundsperGame: team.stats.offensiveReboundsperGame,
-                                steals: team.stats.steals,
-                                stealsperGame: team.stats.stealsperGame,
-                                effectiveFieldGoalPct: team.stats.effectiveFieldGoalPct,
-                                fieldGoalMakesperAttempts: team.stats.fieldGoalMakesperAttempts,
-                                freeThrowsMadeperAttemps: team.stats.freeThrowsMadeperAttemps,
-                                freeThrowPct: team.stats.freeThrowPct,
-                                totalTurnovers: team.stats.totalTurnovers,
-                                averageTurnovers: team.stats.averageTurnovers,
-                                threePointPct: team.stats.threePointPct,
-                                trueShootingPct: team.stats.trueShootingPct,
-                                turnoverRatio: team.stats.turnoverRatio,
-                                assisttoTurnoverRatio: team.stats.assisttoTurnoverRatio,
-                                pointsinPaint: team.stats.pointsinPaint,
-                                pace: team.stats.pace,
-                                goals: team.stats.goals,
-                                goalsPerGame: team.stats.goalsPerGame,
-                                assists: team.stats.assists,
-                                assistsPerGame: team.stats.assistsPerGame,
-                                totalShotsTaken: team.stats.totalShotsTaken,
-                                shotsTakenPerGame: team.stats.shotsTakenPerGame,
-                                powerPlayGoals: team.stats.powerPlayGoals,
-                                powerPlayGoalsPerGame: team.stats.powerPlayGoalsPerGame,
-                                powerPlayPct: team.stats.powerPlayPct,
-                                shootingPct: team.stats.shootingPct,
-                                faceoffsWon: team.stats.faceoffsWon,
-                                faceoffsWonPerGame: team.stats.faceoffsWonPerGame,
-                                faceoffPercent: team.stats.faceoffPercent,
-                                giveaways: team.stats.giveaways,
-                                penaltyMinutes: team.stats.penaltyMinutes,
-                                penaltyMinutesPerGame: team.stats.penaltyMinutesPerGame,
-                                goalsAgainst: team.stats.goalsAgainst,
-                                goalsAgainstAverage: team.stats.goalsAgainstAverage,
-                                shotsAgainst: team.stats.shotsAgainst,
-                                shotsAgainstPerGame: team.stats.shotsAgainstPerGame,
-                                shotsBlocked: team.stats.shotsBlocked,
-                                shotsBlockedPerGame: team.stats.shotsBlockedPerGame,
-                                penaltyKillPct: team.stats.penaltyKillPct,
-                                totalSaves: team.stats.totalSaves,
-                                savePerGame: team.stats.savePerGame,
-                                savePct: team.stats.savePct,
-                                takeaways: team.stats.takeaways,
+
+                                USFBcompletionPercent: team.stats.USFBcompletionPercent,
+                                USFBcompletions: team.stats.USFBcompletions,
+                                USFBcompletionsPerGame: team.stats.USFBcompletionsPerGame,
+                                USFBnetPassingYards: team.stats.USFBnetPassingYards,
+                                USFBnetPassingYardsPerGame: team.stats.USFBnetPassingYardsPerGame,
+                                USFBpassingFirstDowns: team.stats.USFBpassingFirstDowns,
+                                USFBpassingTouchdowns: team.stats.USFBpassingTouchdowns,
+                                USFBpassingYards: team.stats.USFBpassingYards,
+                                USFBpassingYardsPerGame: team.stats.USFBpassingYardsPerGame,
+                                USFBpassingAttempts: team.stats.USFBpassingAttempts,
+                                USFBpassingAttemptsPerGame: team.stats.USFBpassingAttemptsPerGame,
+                                USFByardsPerPassAttempt: team.stats.USFByardsPerPassAttempt,
+                                USFBrushingAttempts: team.stats.USFBrushingAttempts,
+                                USFBrushingFirstDowns: team.stats.USFBrushingFirstDowns,
+                                USFBrushingTouchdowns: team.stats.USFBrushingTouchdowns,
+                                USFBrushingYards: team.stats.USFBrushingYards,
+                                USFBrushingYardsPerGame: team.stats.USFBrushingYardsPerGame,
+                                USFByardsPerRushAttempt: team.stats.USFByardsPerRushAttempt,
+                                USFBreceivingFirstDowns: team.stats.USFBreceivingFirstDowns,
+                                USFBreceivingTouchdowns: team.stats.USFBreceivingTouchdowns,
+                                USFBreceivingYards: team.stats.USFBreceivingYards,
+                                USFBreceivingYardsPerGame: team.stats.USFBreceivingYardsPerGame,
+                                USFBreceivingYardsPerReception: team.stats.USFBreceivingYardsPerReception,
+                                USFBreceivingYardsAfterCatch: team.stats.USFBreceivingYardsAfterCatch,
+                                USFBreceivingYardsAfterCatchPerGame: team.stats.USFBreceivingYardsAfterCatchPerGame,
+                                USFBtotalTouchdowns: team.stats.USFBtotalTouchdowns,
+                                USFBtouchdownsPerGame: team.stats.USFBtouchdownsPerGame,
+                                USFBtotalPoints: team.stats.USFBtotalPoints,
+                                USFBpointsPerGame: team.stats.USFBpointsPerGame,
+                                USFBtacklesforLoss: team.stats.USFBtacklesforLoss,
+                                USFBtacklesforLossPerGame: team.stats.USFBtacklesforLossPerGame,
+                                USFBinterceptions: team.stats.USFBinterceptions,
+                                USFByardsPerInterception: team.stats.USFByardsPerInterception,
+                                USFBsacksTotal: team.stats.USFBsacksTotal,
+                                USFBsacksPerGame: team.stats.USFBsacksPerGame,
+                                USFBsackYards: team.stats.USFBsackYards,
+                                USFBsackYardsPerGame: team.stats.USFBsackYardsPerGame,
+                                USFBstuffs: team.stats.USFBstuffs,
+                                USFBstuffsPerGame: team.stats.USFBstuffsPerGame,
+                                USFBstuffYards: team.stats.USFBstuffYards,
+                                USFBpassesDefended: team.stats.USFBpassesDefended,
+                                USFBpassesDefendedPerGame: team.stats.USFBpassesDefendedPerGame,
+                                USFBsafties: team.stats.USFBsafties,
+                                USFBaverageKickoffYards: team.stats.USFBaverageKickoffYards,
+                                USFBaverageKickoffYardsPerGame: team.stats.USFBaverageKickoffYardsPerGame,
+                                USFBextraPointAttempts: team.stats.USFBextraPointAttempts,
+                                USFBextraPointAttemptsPerGame: team.stats.USFBextraPointAttemptsPerGame,
+                                USFBextraPointsMade: team.stats.USFBextraPointsMade,
+                                USFBextraPointsMadePerGame: team.stats.USFBextraPointsMadePerGame,
+                                USFBextraPointPercent: team.stats.USFBextraPointPercent,
+                                USFBextraPointPercentPerGame: team.stats.USFBextraPointPercentPerGame,
+                                USFBfieldGoalAttempts: team.stats.USFBfieldGoalAttempts,
+                                USFBfieldGoalAttemptsPerGame: team.stats.USFBfieldGoalAttemptsPerGame,
+                                USFBfieldGoalsMade: team.stats.USFBfieldGoalsMade,
+                                USFBfieldGoalsMadePerGame: team.stats.USFBfieldGoalsMadePerGame,
+                                USFBfieldGoalPct: team.stats.USFBfieldGoalPct,
+                                USFBfieldGoalPercentPerGame: team.stats.USFBfieldGoalPercentPerGame,
+                                USFBtouchbacks: team.stats.USFBtouchbacks,
+                                USFBtouchbacksPerGame: team.stats.USFBtouchbacksPerGame,
+                                USFBtouchBackPercentage: team.stats.USFBtouchBackPercentage,
+                                USFBkickReturns: team.stats.USFBkickReturns,
+                                USFBkickReturnsPerGame: team.stats.USFBkickReturnsPerGame,
+                                USFBkickReturnYards: team.stats.USFBkickReturnYards,
+                                USFBkickReturnYardsPerGame: team.stats.USFBkickReturnYardsPerGame,
+                                USFBpuntReturns: team.stats.USFBpuntReturns,
+                                USFBpuntReturnsPerGame: team.stats.USFBpuntReturnsPerGame,
+                                USFBpuntReturnFairCatchPct: team.stats.USFBpuntReturnFairCatchPct,
+                                USFBpuntReturnYards: team.stats.USFBpuntReturnYards,
+                                USFBpuntReturnYardsPerGame: team.stats.USFBpuntReturnYardsPerGame,
+                                USFByardsPerReturn: team.stats.USFByardsPerReturn,
+                                USFBthirdDownEfficiency: team.stats.USFBthirdDownEfficiency,
+                                USFBtotalPenyards: team.stats.USFBtotalPenyards,
+                                USFBaveragePenYardsPerGame: team.stats.USFBaveragePenYardsPerGame,
+                                USFBgiveaways: team.stats.USFBgiveaways,
+                                USFBtakeaways: team.stats.USFBtakeaways,
+                                USFBturnoverDiff: team.stats.USFBturnoverDiff,
+                                USFBtotalFirstDowns: team.stats.USFBtotalFirstDowns,
+
+                                //------------------------------AMERICAN FOOTBALL STATS-----------------------------------------------------------
+                                BSBbattingStrikeouts: team.stats.BSBbattingStrikeouts,
+                                BSBrunsBattedIn: team.stats.BSBrunsBattedIn,
+                                BSBsacrificeHits: team.stats.BSBsacrificeHits,
+                                BSBHitsTotal: team.stats.BSBHitsTotal,
+                                BSBwalks: team.stats.BSBwalks,
+                                BSBruns: team.stats.BSBruns,
+                                BSBhomeRuns: team.stats.BSBhomeRuns,
+                                BSBdoubles: team.stats.BSBdoubles,
+                                BSBtotalBases: team.stats.BSBtotalBases,
+                                BSBextraBaseHits: team.stats.BSBextraBaseHits,
+                                BSBbattingAverage: team.stats.BSBbattingAverage,
+                                BSBsluggingPercentage: team.stats.BSBsluggingPercentage,
+                                BSBonBasePercentage: team.stats.BSBonBasePercentage,
+                                BSBonBasePlusSlugging: team.stats.BSBonBasePlusSlugging,
+                                BSBgroundToFlyRatio: team.stats.BSBgroundToFlyRatio,
+                                BSBatBatsPerHomeRun: team.stats.BSBatBatsPerHomeRun,
+                                BSBstolenBasePercentage: team.stats.BSBstolenBasePercentage,
+                                BSBbatterWalkToStrikeoutRatio: team.stats.BSBbatterWalkToStrikeoutRatio,
+                                BSBsaves: team.stats.BSBsaves,
+                                BSBpitcherStrikeouts: team.stats.BSBpitcherStrikeouts,
+                                BSBhitsGivenUp: team.stats.BSBhitsGivenUp,
+                                BSBearnedRuns: team.stats.BSBearnedRuns,
+                                BSBbattersWalked: team.stats.BSBbattersWalked,
+                                BSBrunsAllowed: team.stats.BSBrunsAllowed,
+                                BSBhomeRunsAllowed: team.stats.BSBhomeRunsAllowed,
+                                BSBwins: team.stats.BSBwins,
+                                BSBshutouts: team.stats.BSBshutouts,
+                                BSBearnedRunAverage: team.stats.BSBearnedRunAverage,
+                                BSBwalksHitsPerInningPitched: team.stats.BSBwalksHitsPerInningPitched,
+                                BSBwinPct: team.stats.BSBwinPct,
+                                BSBpitcherCaughtStealingPct: team.stats.BSBpitcherCaughtStealingPct,
+                                BSBpitchesPerInning: team.stats.BSBpitchesPerInning,
+                                BSBrunSupportAverage: team.stats.BSBrunSupportAverage,
+                                BSBopponentBattingAverage: team.stats.BSBopponentBattingAverage,
+                                BSBopponentSlugAverage: team.stats.BSBopponentSlugAverage,
+                                BSBopponentOnBasePct: team.stats.BSBopponentOnBasePct,
+                                BSBopponentOnBasePlusSlugging: team.stats.BSBopponentOnBasePlusSlugging,
+                                BSBsavePct: team.stats.BSBsavePct,
+                                BSBstrikeoutsPerNine: team.stats.BSBstrikeoutsPerNine,
+                                BSBpitcherStrikeoutToWalkRatio: team.stats.BSBpitcherStrikeoutToWalkRatio,
+                                BSBdoublePlays: team.stats.BSBdoublePlays,
+                                BSBerrors: team.stats.BSBerrors,
+                                BSBpassedBalls: team.stats.BSBpassedBalls,
+                                BSBassists: team.stats.BSBassists,
+                                BSBputouts: team.stats.BSBputouts,
+                                BSBcatcherCaughtStealing: team.stats.BSBcatcherCaughtStealing,
+                                BSBcatcherCaughtStealingPct: team.stats.BSBcatcherCaughtStealingPct,
+                                BSBcatcherStolenBasesAllowed: team.stats.BSBcatcherStolenBasesAllowed,
+                                BSBfieldingPercentage: team.stats.BSBfieldingPercentage,
+                                BSBrangeFactor: team.stats.BSBrangeFactor,
+
+                                //------------------------------BASKETBALL STATS-----------------------------------------------------------
+                                BSKBtotalPoints: team.stats.BSKBtotalPoints,
+                                BSKBpointsPerGame: team.stats.BSKBpointsPerGame,
+                                BSKBassists: team.stats.BSKBassists,
+                                BSKBassistsPerGame: team.stats.BSKBassistsPerGame,
+                                BSKBassistRatio: team.stats.BSKBassistRatio,
+                                BSKBeffectiveFgPercent: team.stats.BSKBeffectiveFgPercent,
+                                BSKBfieldGoalPercent: team.stats.BSKBfieldGoalPercent,
+                                BSKBfieldGoalsAttempted: team.stats.BSKBfieldGoalsAttempted,
+                                BSKBfieldGoalsMade: team.stats.BSKBfieldGoalsMade,
+                                BSKBfieldGoalsPerGame: team.stats.BSKBfieldGoalsPerGame,
+                                BSKBfreeThrowPercent: team.stats.BSKBfreeThrowPercent,
+                                BSKBfreeThrowsAttempted: team.stats.BSKBfreeThrowsAttempted,
+                                BSKBfreeThrowsMade: team.stats.BSKBfreeThrowsMade,
+                                BSKBfreeThrowsMadePerGame: team.stats.BSKBfreeThrowsMadePerGame,
+                                BSKBoffensiveRebounds: team.stats.BSKBoffensiveRebounds,
+                                BSKBoffensiveReboundsPerGame: team.stats.BSKBoffensiveReboundsPerGame,
+                                BSKBoffensiveReboundRate: team.stats.BSKBoffensiveReboundRate,
+                                BSKBoffensiveTurnovers: team.stats.BSKBoffensiveTurnovers,
+                                BSKBturnoversPerGame: team.stats.BSKBturnoversPerGame,
+                                BSKBturnoverRatio: team.stats.BSKBturnoverRatio,
+                                BSKBthreePointPct: team.stats.BSKBthreePointPct,
+                                BSKBthreePointsAttempted: team.stats.BSKBthreePointsAttempted,
+                                BSKBthreePointsMade: team.stats.BSKBthreePointsMade,
+                                BSKBtrueShootingPct: team.stats.BSKBtrueShootingPct,
+                                BSKBpace: team.stats.BSKBpace,
+                                BSKBpointsInPaint: team.stats.BSKBpointsInPaint,
+                                BSKBshootingEfficiency: team.stats.BSKBshootingEfficiency,
+                                BSKBscoringEfficiency: team.stats.BSKBscoringEfficiency,
+                                BSKBblocks: team.stats.BSKBblocks,
+                                BSKBblocksPerGame: team.stats.BSKBblocksPerGame,
+                                BSKBdefensiveRebounds: team.stats.BSKBdefensiveRebounds,
+                                BSKBdefensiveReboundsPerGame: team.stats.BSKBdefensiveReboundsPerGame,
+                                BSKBsteals: team.stats.BSKBsteals,
+                                BSKBstealsPerGame: team.stats.BSKBstealsPerGame,
+                                BSKBreboundRate: team.stats.BSKBreboundRate,
+                                BSKBreboundsPerGame: team.stats.BSKBreboundsPerGame,
+                                BSKBfoulsPerGame: team.stats.BSKBfoulsPerGame,
+                                BSKBteamAssistToTurnoverRatio: team.stats.BSKBteamAssistToTurnoverRatio,
+
+                                //------------------------------HOCKEY STATS-----------------------------------------------------------
+                                HKYgoals: team.stats.HKYgoals,
+                                HKYgoalsPerGame: team.stats.HKYgoalsPerGame,
+                                HKYassists: team.stats.HKYassists,
+                                HKYassistsPerGame: team.stats.HKYassistsPerGame,
+                                HKYshotsIn1st: team.stats.HKYshotsIn1st,
+                                HKYshotsIn1stPerGame: team.stats.HKYshotsIn1stPerGame,
+                                HKYshotsIn2nd: team.stats.HKYshotsIn2nd,
+                                HKYshotsIn2ndPerGame: team.stats.HKYshotsIn2ndPerGame,
+                                HKYshotsIn3rd: team.stats.HKYshotsIn3rd,
+                                HKYshotsIn3rdPerGame: team.stats.HKYshotsIn3rdPerGame,
+                                HKYtotalShots: team.stats.HKYtotalShots,
+                                HKYtotalShotsPerGame: team.stats.HKYtotalShotsPerGame,
+                                HKYshotsMissed: team.stats.HKYshotsMissed,
+                                HKYshotsMissedPerGame: team.stats.HKYshotsMissedPerGame,
+                                HKYppgGoals: team.stats.HKYppgGoals,
+                                HKYppgGoalsPerGame: team.stats.HKYppgGoalsPerGame,
+                                HKYppassists: team.stats.HKYppassists,
+                                HKYppassistsPerGame: team.stats.HKYppassistsPerGame,
+                                HKYpowerplayPct: team.stats.HKYpowerplayPct,
+                                HKYshortHandedGoals: team.stats.HKYshortHandedGoals,
+                                HKYshortHandedGoalsPerGame: team.stats.HKYshortHandedGoalsPerGame,
+                                HKYshootingPct: team.stats.HKYshootingPct,
+                                HKYfaceoffs: team.stats.HKYfaceoffs,
+                                HKYfaceoffsPerGame: team.stats.HKYfaceoffsPerGame,
+                                HKYfaceoffsWon: team.stats.HKYfaceoffsWon,
+                                HKYfaceoffsWonPerGame: team.stats.HKYfaceoffsWonPerGame,
+                                HKYfaceoffsLost: team.stats.HKYfaceoffsLost,
+                                HKYfaceoffsLostPerGame: team.stats.HKYfaceoffsLostPerGame,
+                                HKYfaceoffPct: team.stats.HKYfaceoffPct,
+                                HKYfaceoffPctPerGame: team.stats.HKYfaceoffPctPerGame,
+                                HKYgiveaways: team.stats.HKYgiveaways,
+                                HKYgoalsAgainst: team.stats.HKYgoalsAgainst,
+                                HKYgoalsAgainstPerGame: team.stats.HKYgoalsAgainstPerGame,
+                                HKYshotsAgainst: team.stats.HKYshotsAgainst,
+                                HKYshotsAgainstPerGame: team.stats.HKYshotsAgainstPerGame,
+                                HKYpenaltyKillPct: team.stats.HKYpenaltyKillPct,
+                                HKYpenaltyKillPctPerGame: team.stats.HKYpenaltyKillPctPerGame,
+                                HKYppGoalsAgainst: team.stats.HKYppGoalsAgainst,
+                                HKYppGoalsAgainstPerGame: team.stats.HKYppGoalsAgainstPerGame,
+                                HKYshutouts: team.stats.HKYshutouts,
+                                HKYsaves: team.stats.HKYsaves,
+                                HKYsavesPerGame: team.stats.HKYsavesPerGame,
+                                HKYsavePct: team.stats.HKYsavePct,
+                                HKYblockedShots: team.stats.HKYblockedShots,
+                                HKYblockedShotsPerGame: team.stats.HKYblockedShotsPerGame,
+                                HKYhits: team.stats.HKYhits,
+                                HKYhitsPerGame: team.stats.HKYhitsPerGame,
+                                HKYtakeaways: team.stats.HKYtakeaways,
+                                HKYtakeawaysPerGame: team.stats.HKYtakeawaysPerGame,
+                                HKYshotDifferential: team.stats.HKYshotDifferential,
+                                HKYshotDifferentialPerGame: team.stats.HKYshotDifferentialPerGame,
+                                HKYgoalDifferentialPerGame: team.stats.HKYgoalDifferentialPerGame,
+                                HKYpimDifferential: team.stats.HKYpimDifferential,
+                                HKYpimDifferentialPerGame: team.stats.HKYpimDifferentialPerGame,
+                                HKYtotalPenalties: team.stats.HKYtotalPenalties,
+                                HKYpenaltiesPerGame: team.stats.HKYpenaltiesPerGame,
+                                HKYpenaltyMinutes: team.stats.HKYpenaltyMinutes,
+                                HKYpenaltyMinutesPerGame: team.stats.HKYpenaltyMinutesPerGame,
                             });
                             const cleanStats = (stats) => {
                                 const cleanedStats = {};
@@ -574,7 +918,7 @@ const removePastGames = async (currentOdds) => {
                                     homeScore,
                                     awayScore,
                                     winner,
-                                    predictionCorrect,
+                                    predictionCorrect: predictionCorrect ? predictionCorrect : false,
                                     homeTeamStats: cleanStats(getCommonStats(homeTeam)),
                                     awayTeamStats: cleanStats(getCommonStats(awayTeam)),
                                 });
@@ -664,99 +1008,232 @@ function extractSportFeatures(homeStats, awayStats, league) {
                 getWinLoss(homeStats) - getWinLoss(awayStats),
                 getHomeAwayWinLoss(homeStats, 'homeWinLoss') - getHomeAwayWinLoss(awayStats, 'awayWinLoss'),
                 getStat(homeStats, 'pointDiff') - getStat(awayStats, 'pointDiff'),
-                getStat(homeStats, 'pointsPerGame') - getStat(awayStats, 'pointsPerGame'),
-                getStat(homeStats, 'totalPoints') - getStat(awayStats, 'totalPoints'),
-                getStat(homeStats, 'totalFirstDowns') - getStat(awayStats, 'totalFirstDowns'),
-                getStat(homeStats, 'rushingFirstDowns') - getStat(awayStats, 'rushingFirstDowns'),
-                getStat(homeStats, 'passingFirstDowns') - getStat(awayStats, 'passingFirstDowns'),
-                getStat(homeStats, 'thirdDownEfficiency') - getStat(awayStats, 'thirdDownEfficiency'),
-                getStat(homeStats, 'netPassingYardsPerGame') - getStat(awayStats, 'netPassingYardsPerGame'),
-                getStat(homeStats, 'interceptions') - getStat(awayStats, 'interceptions'),
-                getStat(homeStats, 'completionPercent') - getStat(awayStats, 'completionPercent'),
-                getStat(homeStats, 'rushingYards') - getStat(awayStats, 'rushingYards'),
-                getStat(homeStats, 'rushingYardsPerGame') - getStat(awayStats, 'rushingYardsPerGame'),
-                getStat(homeStats, 'yardsPerRushAttempt') - getStat(awayStats, 'yardsPerRushAttempt'),
-                getStat(homeStats, 'yardsPerGame') - getStat(awayStats, 'yardsPerGame'),
-                getStat(homeStats, 'fGgoodPct') - getStat(awayStats, 'fGgoodPct'),
-                getStat(homeStats, 'touchBackPercentage') - getStat(awayStats, 'touchBackPercentage'),
-                getStat(homeStats, 'totalPenyards') - getStat(awayStats, 'totalPenyards'),
-                getStat(homeStats, 'averagePenYardsPerGame') - getStat(awayStats, 'averagePenYardsPerGame'),
-                getStat(homeStats, 'giveaways') - getStat(awayStats, 'giveaways'),
-                getStat(homeStats, 'takeaways') - getStat(awayStats, 'takeaways'),
-                getStat(homeStats, 'turnoverDiff') - getStat(awayStats, 'turnoverDiff'),
-                getStat(homeStats, 'sacksTotal') - getStat(awayStats, 'sacksTotal'),
-                getStat(homeStats, 'sacksPerGame') - getStat(awayStats, 'sacksPerGame'),
-                getStat(homeStats, 'yardsLostPerSack') - getStat(awayStats, 'yardsLostPerSack'),
-                getStat(homeStats, 'passesDefended') - getStat(awayStats, 'passesDefended'),
-                getStat(homeStats, 'passesDefendedPerGame') - getStat(awayStats, 'passesDefendedPerGame'),
-                getStat(homeStats, 'tacklesforLoss') - getStat(awayStats, 'tacklesforLoss'),
-                getStat(homeStats, 'tacklesforLossPerGame') - getStat(awayStats, 'tacklesforLossPerGame'),
+                getStat(homeStats, 'USFBpointsPerGame') - getStat(awayStats, 'USFBpointsPerGame'),
+                getStat(homeStats, 'USFBtotalPoints') - getStat(awayStats, 'USFBtotalPoints'),
+                getStat(homeStats, 'USFBtotalTouchdowns') - getStat(awayStats, 'USFBtotalTouchdowns'),
+                getStat(homeStats, 'USFBtouchdownsPerGame') - getStat(awayStats, 'USFBtouchdownsPerGame'),
+                getStat(homeStats, 'USFBcompletionPercent') - getStat(awayStats, 'USFBcompletionPercent'),
+                getStat(homeStats, 'USFBcompletions') - getStat(awayStats, 'USFBcompletions'),
+                getStat(homeStats, 'USFBcompletionsPerGame') - getStat(awayStats, 'USFBcompletionsPerGame'),
+                getStat(homeStats, 'USFBnetPassingYards') - getStat(awayStats, 'USFBnetPassingYards'),
+                getStat(homeStats, 'USFBnetPassingYardsPerGame') - getStat(awayStats, 'USFBnetPassingYardsPerGame'),
+                getStat(homeStats, 'USFBpassingFirstDowns') - getStat(awayStats, 'USFBpassingFirstDowns'),
+                getStat(homeStats, 'USFBpassingTouchdowns') - getStat(awayStats, 'USFBpassingTouchdowns'),
+                getStat(homeStats, 'USFBpassingYards') - getStat(awayStats, 'USFBpassingYards'),
+                getStat(homeStats, 'USFBpassingYardsPerGame') - getStat(awayStats, 'USFBpassingYardsPerGame'),
+                getStat(homeStats, 'USFBpassingAttempts') - getStat(awayStats, 'USFBpassingAttempts'),
+                getStat(homeStats, 'USFBpassingAttemptsPerGame') - getStat(awayStats, 'USFBpassingAttemptsPerGame'),
+                getStat(homeStats, 'USFByardsPerPassAttempt') - getStat(awayStats, 'USFByardsPerPassAttempt'),
+                getStat(homeStats, 'USFBrushingAttempts') - getStat(awayStats, 'USFBrushingAttempts'),
+                getStat(homeStats, 'USFBrushingFirstDowns') - getStat(awayStats, 'USFBrushingFirstDowns'),
+                getStat(homeStats, 'USFBrushingTouchdowns') - getStat(awayStats, 'USFBrushingTouchdowns'),
+                getStat(homeStats, 'USFBrushingYards') - getStat(awayStats, 'USFBrushingYards'),
+                getStat(homeStats, 'USFBrushingYardsPerGame') - getStat(awayStats, 'USFBrushingYardsPerGame'),
+                getStat(homeStats, 'USFByardsPerRushAttempt') - getStat(awayStats, 'USFByardsPerRushAttempt'),
+                getStat(homeStats, 'USFBreceivingFirstDowns') - getStat(awayStats, 'USFBreceivingFirstDowns'),
+                getStat(homeStats, 'USFBreceivingTouchdowns') - getStat(awayStats, 'USFBreceivingTouchdowns'),
+                getStat(homeStats, 'USFBreceivingYards') - getStat(awayStats, 'USFBreceivingYards'),
+                getStat(homeStats, 'USFBreceivingYardsPerGame') - getStat(awayStats, 'USFBreceivingYardsPerGame'),
+                getStat(homeStats, 'USFBreceivingYardsPerReception') - getStat(awayStats, 'USFBreceivingYardsPerReception'),
+                getStat(homeStats, 'USFBreceivingYardsAfterCatch') - getStat(awayStats, 'USFBreceivingYardsAfterCatch'),
+                getStat(homeStats, 'USFBreceivingYardsAfterCatchPerGame') - getStat(awayStats, 'USFBreceivingYardsAfterCatchPerGame'),
+                getStat(homeStats, 'USFBtacklesforLoss') - getStat(awayStats, 'USFBtacklesforLoss'),
+                getStat(homeStats, 'USFBtacklesforLossPerGame') - getStat(awayStats, 'USFBtacklesforLossPerGame'),
+                getStat(homeStats, 'USFBinterceptions') - getStat(awayStats, 'USFBinterceptions'),
+                getStat(homeStats, 'USFByardsPerInterception') - getStat(awayStats, 'USFByardsPerInterception'),
+                getStat(homeStats, 'USFBsacksTotal') - getStat(awayStats, 'USFBsacksTotal'),
+                getStat(homeStats, 'USFBsacksPerGame') - getStat(awayStats, 'USFBsacksPerGame'),
+                getStat(homeStats, 'USFBsackYards') - getStat(awayStats, 'USFBsackYards'),
+                getStat(homeStats, 'USFBsackYardsPerGame') - getStat(awayStats, 'USFBsackYardsPerGame'),
+                getStat(homeStats, 'USFBstuffs') - getStat(awayStats, 'USFBstuffs'),
+                getStat(homeStats, 'USFBstuffsPerGame') - getStat(awayStats, 'USFBstuffsPerGame'),
+                getStat(homeStats, 'USFBstuffYards') - getStat(awayStats, 'USFBstuffYards'),
+                getStat(homeStats, 'USFBpassesDefended') - getStat(awayStats, 'USFBpassesDefended'),
+                getStat(homeStats, 'USFBpassesDefendedPerGame') - getStat(awayStats, 'USFBpassesDefendedPerGame'),
+                getStat(homeStats, 'USFBsafties') - getStat(awayStats, 'USFBsafties'),
+                getStat(homeStats, 'USFBaverageKickoffYards') - getStat(awayStats, 'USFBaverageKickoffYards'),
+                getStat(homeStats, 'USFBaverageKickoffYardsPerGame') - getStat(awayStats, 'USFBaverageKickoffYardsPerGame'),
+                getStat(homeStats, 'USFBextraPointAttempts') - getStat(awayStats, 'USFBextraPointAttempts'),
+                getStat(homeStats, 'USFBextraPointAttemptsPerGame') - getStat(awayStats, 'USFBextraPointAttemptsPerGame'),
+                getStat(homeStats, 'USFBextraPointsMade') - getStat(awayStats, 'USFBextraPointsMade'),
+                getStat(homeStats, 'USFBextraPointsMadePerGame') - getStat(awayStats, 'USFBextraPointsMadePerGame'),
+                getStat(homeStats, 'USFBextraPointPercent') - getStat(awayStats, 'USFBextraPointPercent'),
+                getStat(homeStats, 'USFBextraPointPercentPerGame') - getStat(awayStats, 'USFBextraPointPercentPerGame'),
+                getStat(homeStats, 'USFBfieldGoalAttempts') - getStat(awayStats, 'USFBfieldGoalAttempts'),
+                getStat(homeStats, 'USFBfieldGoalAttemptsPerGame') - getStat(awayStats, 'USFBfieldGoalAttemptsPerGame'),
+                getStat(homeStats, 'USFBfieldGoalsMade') - getStat(awayStats, 'USFBfieldGoalsMade'),
+                getStat(homeStats, 'USFBfieldGoalsMadePerGame') - getStat(awayStats, 'USFBfieldGoalsMadePerGame'),
+                getStat(homeStats, 'USFBfieldGoalPct') - getStat(awayStats, 'USFBfieldGoalPct'),
+                getStat(homeStats, 'USFBfieldGoalPercentPerGame') - getStat(awayStats, 'USFBfieldGoalPercentPerGame'),
+                getStat(homeStats, 'USFBtouchbacks') - getStat(awayStats, 'USFBtouchbacks'),
+                getStat(homeStats, 'USFBtouchbacksPerGame') - getStat(awayStats, 'USFBtouchbacksPerGame'),
+                getStat(homeStats, 'USFBtouchBackPercentage') - getStat(awayStats, 'USFBtouchBackPercentage'),
+                getStat(homeStats, 'USFBkickReturns') - getStat(awayStats, 'USFBkickReturns'),
+                getStat(homeStats, 'USFBkickReturnsPerGame') - getStat(awayStats, 'USFBkickReturnsPerGame'),
+                getStat(homeStats, 'USFBkickReturnYards') - getStat(awayStats, 'USFBkickReturnYards'),
+                getStat(homeStats, 'USFBkickReturnYardsPerGame') - getStat(awayStats, 'USFBkickReturnYardsPerGame'),
+                getStat(homeStats, 'USFBpuntReturns') - getStat(awayStats, 'USFBpuntReturns'),
+                getStat(homeStats, 'USFBpuntReturnsPerGame') - getStat(awayStats, 'USFBpuntReturnsPerGame'),
+                getStat(homeStats, 'USFBpuntReturnFairCatchPct') - getStat(awayStats, 'USFBpuntReturnFairCatchPct'),
+                getStat(homeStats, 'USFBpuntReturnYards') - getStat(awayStats, 'USFBpuntReturnYards'),
+                getStat(homeStats, 'USFBpuntReturnYardsPerGame') - getStat(awayStats, 'USFBpuntReturnYardsPerGame'),
+                getStat(homeStats, 'USFByardsPerReturn') - getStat(awayStats, 'USFByardsPerReturn'),
+                getStat(homeStats, 'USFBthirdDownEfficiency') - getStat(awayStats, 'USFBthirdDownEfficiency'),
+                getStat(homeStats, 'USFBtotalPenyards') - getStat(awayStats, 'USFBtotalPenyards'),
+                getStat(homeStats, 'USFBaveragePenYardsPerGame') - getStat(awayStats, 'USFBaveragePenYardsPerGame'),
+                getStat(homeStats, 'USFBgiveaways') - getStat(awayStats, 'USFBgiveaways'),
+                getStat(homeStats, 'USFBtakeaways') - getStat(awayStats, 'USFBtakeaways'),
+                getStat(homeStats, 'USFBturnoverDiff') - getStat(awayStats, 'USFBturnoverDiff'),
+                getStat(homeStats, 'USFBtotalFirstDowns') - getStat(awayStats, 'USFBtotalFirstDowns'),
+
             ];
         case 'americanfootball_ncaaf':
             return [
                 getWinLoss(homeStats) - getWinLoss(awayStats),
                 getHomeAwayWinLoss(homeStats, 'homeWinLoss') - getHomeAwayWinLoss(awayStats, 'awayWinLoss'),
                 getStat(homeStats, 'pointDiff') - getStat(awayStats, 'pointDiff'),
-                getStat(homeStats, 'pointsPerGame') - getStat(awayStats, 'pointsPerGame'),
-                getStat(homeStats, 'totalPoints') - getStat(awayStats, 'totalPoints'),
-                getStat(homeStats, 'totalFirstDowns') - getStat(awayStats, 'totalFirstDowns'),
-                getStat(homeStats, 'rushingFirstDowns') - getStat(awayStats, 'rushingFirstDowns'),
-                getStat(homeStats, 'passingFirstDowns') - getStat(awayStats, 'passingFirstDowns'),
-                getStat(homeStats, 'thirdDownEfficiency') - getStat(awayStats, 'thirdDownEfficiency'),
-                getStat(homeStats, 'netPassingYardsPerGame') - getStat(awayStats, 'netPassingYardsPerGame'),
-                getStat(homeStats, 'interceptions') - getStat(awayStats, 'interceptions'),
-                getStat(homeStats, 'completionPercent') - getStat(awayStats, 'completionPercent'),
-                getStat(homeStats, 'rushingYards') - getStat(awayStats, 'rushingYards'),
-                getStat(homeStats, 'rushingYardsPerGame') - getStat(awayStats, 'rushingYardsPerGame'),
-                getStat(homeStats, 'yardsPerRushAttempt') - getStat(awayStats, 'yardsPerRushAttempt'),
-                getStat(homeStats, 'yardsPerGame') - getStat(awayStats, 'yardsPerGame'),
-                getStat(homeStats, 'fGgoodPct') - getStat(awayStats, 'fGgoodPct'),
-                getStat(homeStats, 'touchBackPercentage') - getStat(awayStats, 'touchBackPercentage'),
-                getStat(homeStats, 'totalPenyards') - getStat(awayStats, 'totalPenyards'),
-                getStat(homeStats, 'averagePenYardsPerGame') - getStat(awayStats, 'averagePenYardsPerGame'),
-                getStat(homeStats, 'giveaways') - getStat(awayStats, 'giveaways'),
-                getStat(homeStats, 'takeaways') - getStat(awayStats, 'takeaways'),
-                getStat(homeStats, 'turnoverDiff') - getStat(awayStats, 'turnoverDiff'),
-                getStat(homeStats, 'sacksTotal') - getStat(awayStats, 'sacksTotal'),
-                getStat(homeStats, 'sacksPerGame') - getStat(awayStats, 'sacksPerGame'),
-                getStat(homeStats, 'yardsLostPerSack') - getStat(awayStats, 'yardsLostPerSack'),
-                getStat(homeStats, 'passesDefended') - getStat(awayStats, 'passesDefended'),
-                getStat(homeStats, 'passesDefendedPerGame') - getStat(awayStats, 'passesDefendedPerGame'),
-                getStat(homeStats, 'tacklesforLoss') - getStat(awayStats, 'tacklesforLoss'),
-                getStat(homeStats, 'tacklesforLossPerGame') - getStat(awayStats, 'tacklesforLossPerGame'),
+                getStat(homeStats, 'USFBpointsPerGame') - getStat(awayStats, 'USFBpointsPerGame'),
+                getStat(homeStats, 'USFBtotalPoints') - getStat(awayStats, 'USFBtotalPoints'),
+                getStat(homeStats, 'USFBtotalTouchdowns') - getStat(awayStats, 'USFBtotalTouchdowns'),
+                getStat(homeStats, 'USFBtouchdownsPerGame') - getStat(awayStats, 'USFBtouchdownsPerGame'),
+                getStat(homeStats, 'USFBcompletionPercent') - getStat(awayStats, 'USFBcompletionPercent'),
+                getStat(homeStats, 'USFBcompletions') - getStat(awayStats, 'USFBcompletions'),
+                getStat(homeStats, 'USFBcompletionsPerGame') - getStat(awayStats, 'USFBcompletionsPerGame'),
+                getStat(homeStats, 'USFBnetPassingYards') - getStat(awayStats, 'USFBnetPassingYards'),
+                getStat(homeStats, 'USFBnetPassingYardsPerGame') - getStat(awayStats, 'USFBnetPassingYardsPerGame'),
+                getStat(homeStats, 'USFBpassingFirstDowns') - getStat(awayStats, 'USFBpassingFirstDowns'),
+                getStat(homeStats, 'USFBpassingTouchdowns') - getStat(awayStats, 'USFBpassingTouchdowns'),
+                getStat(homeStats, 'USFBpassingYards') - getStat(awayStats, 'USFBpassingYards'),
+                getStat(homeStats, 'USFBpassingYardsPerGame') - getStat(awayStats, 'USFBpassingYardsPerGame'),
+                getStat(homeStats, 'USFBpassingAttempts') - getStat(awayStats, 'USFBpassingAttempts'),
+                getStat(homeStats, 'USFBpassingAttemptsPerGame') - getStat(awayStats, 'USFBpassingAttemptsPerGame'),
+                getStat(homeStats, 'USFByardsPerPassAttempt') - getStat(awayStats, 'USFByardsPerPassAttempt'),
+                getStat(homeStats, 'USFBrushingAttempts') - getStat(awayStats, 'USFBrushingAttempts'),
+                getStat(homeStats, 'USFBrushingFirstDowns') - getStat(awayStats, 'USFBrushingFirstDowns'),
+                getStat(homeStats, 'USFBrushingTouchdowns') - getStat(awayStats, 'USFBrushingTouchdowns'),
+                getStat(homeStats, 'USFBrushingYards') - getStat(awayStats, 'USFBrushingYards'),
+                getStat(homeStats, 'USFBrushingYardsPerGame') - getStat(awayStats, 'USFBrushingYardsPerGame'),
+                getStat(homeStats, 'USFByardsPerRushAttempt') - getStat(awayStats, 'USFByardsPerRushAttempt'),
+                getStat(homeStats, 'USFBreceivingFirstDowns') - getStat(awayStats, 'USFBreceivingFirstDowns'),
+                getStat(homeStats, 'USFBreceivingTouchdowns') - getStat(awayStats, 'USFBreceivingTouchdowns'),
+                getStat(homeStats, 'USFBreceivingYards') - getStat(awayStats, 'USFBreceivingYards'),
+                getStat(homeStats, 'USFBreceivingYardsPerGame') - getStat(awayStats, 'USFBreceivingYardsPerGame'),
+                getStat(homeStats, 'USFBreceivingYardsPerReception') - getStat(awayStats, 'USFBreceivingYardsPerReception'),
+                getStat(homeStats, 'USFBreceivingYardsAfterCatch') - getStat(awayStats, 'USFBreceivingYardsAfterCatch'),
+                getStat(homeStats, 'USFBreceivingYardsAfterCatchPerGame') - getStat(awayStats, 'USFBreceivingYardsAfterCatchPerGame'),
+                getStat(homeStats, 'USFBtacklesforLoss') - getStat(awayStats, 'USFBtacklesforLoss'),
+                getStat(homeStats, 'USFBtacklesforLossPerGame') - getStat(awayStats, 'USFBtacklesforLossPerGame'),
+                getStat(homeStats, 'USFBinterceptions') - getStat(awayStats, 'USFBinterceptions'),
+                getStat(homeStats, 'USFByardsPerInterception') - getStat(awayStats, 'USFByardsPerInterception'),
+                getStat(homeStats, 'USFBsacksTotal') - getStat(awayStats, 'USFBsacksTotal'),
+                getStat(homeStats, 'USFBsacksPerGame') - getStat(awayStats, 'USFBsacksPerGame'),
+                getStat(homeStats, 'USFBsackYards') - getStat(awayStats, 'USFBsackYards'),
+                getStat(homeStats, 'USFBsackYardsPerGame') - getStat(awayStats, 'USFBsackYardsPerGame'),
+                getStat(homeStats, 'USFBstuffs') - getStat(awayStats, 'USFBstuffs'),
+                getStat(homeStats, 'USFBstuffsPerGame') - getStat(awayStats, 'USFBstuffsPerGame'),
+                getStat(homeStats, 'USFBstuffYards') - getStat(awayStats, 'USFBstuffYards'),
+                getStat(homeStats, 'USFBpassesDefended') - getStat(awayStats, 'USFBpassesDefended'),
+                getStat(homeStats, 'USFBpassesDefendedPerGame') - getStat(awayStats, 'USFBpassesDefendedPerGame'),
+                getStat(homeStats, 'USFBsafties') - getStat(awayStats, 'USFBsafties'),
+                getStat(homeStats, 'USFBaverageKickoffYards') - getStat(awayStats, 'USFBaverageKickoffYards'),
+                getStat(homeStats, 'USFBaverageKickoffYardsPerGame') - getStat(awayStats, 'USFBaverageKickoffYardsPerGame'),
+                getStat(homeStats, 'USFBextraPointAttempts') - getStat(awayStats, 'USFBextraPointAttempts'),
+                getStat(homeStats, 'USFBextraPointAttemptsPerGame') - getStat(awayStats, 'USFBextraPointAttemptsPerGame'),
+                getStat(homeStats, 'USFBextraPointsMade') - getStat(awayStats, 'USFBextraPointsMade'),
+                getStat(homeStats, 'USFBextraPointsMadePerGame') - getStat(awayStats, 'USFBextraPointsMadePerGame'),
+                getStat(homeStats, 'USFBextraPointPercent') - getStat(awayStats, 'USFBextraPointPercent'),
+                getStat(homeStats, 'USFBextraPointPercentPerGame') - getStat(awayStats, 'USFBextraPointPercentPerGame'),
+                getStat(homeStats, 'USFBfieldGoalAttempts') - getStat(awayStats, 'USFBfieldGoalAttempts'),
+                getStat(homeStats, 'USFBfieldGoalAttemptsPerGame') - getStat(awayStats, 'USFBfieldGoalAttemptsPerGame'),
+                getStat(homeStats, 'USFBfieldGoalsMade') - getStat(awayStats, 'USFBfieldGoalsMade'),
+                getStat(homeStats, 'USFBfieldGoalsMadePerGame') - getStat(awayStats, 'USFBfieldGoalsMadePerGame'),
+                getStat(homeStats, 'USFBfieldGoalPct') - getStat(awayStats, 'USFBfieldGoalPct'),
+                getStat(homeStats, 'USFBfieldGoalPercentPerGame') - getStat(awayStats, 'USFBfieldGoalPercentPerGame'),
+                getStat(homeStats, 'USFBtouchbacks') - getStat(awayStats, 'USFBtouchbacks'),
+                getStat(homeStats, 'USFBtouchbacksPerGame') - getStat(awayStats, 'USFBtouchbacksPerGame'),
+                getStat(homeStats, 'USFBtouchBackPercentage') - getStat(awayStats, 'USFBtouchBackPercentage'),
+                getStat(homeStats, 'USFBkickReturns') - getStat(awayStats, 'USFBkickReturns'),
+                getStat(homeStats, 'USFBkickReturnsPerGame') - getStat(awayStats, 'USFBkickReturnsPerGame'),
+                getStat(homeStats, 'USFBkickReturnYards') - getStat(awayStats, 'USFBkickReturnYards'),
+                getStat(homeStats, 'USFBkickReturnYardsPerGame') - getStat(awayStats, 'USFBkickReturnYardsPerGame'),
+                getStat(homeStats, 'USFBpuntReturns') - getStat(awayStats, 'USFBpuntReturns'),
+                getStat(homeStats, 'USFBpuntReturnsPerGame') - getStat(awayStats, 'USFBpuntReturnsPerGame'),
+                getStat(homeStats, 'USFBpuntReturnFairCatchPct') - getStat(awayStats, 'USFBpuntReturnFairCatchPct'),
+                getStat(homeStats, 'USFBpuntReturnYards') - getStat(awayStats, 'USFBpuntReturnYards'),
+                getStat(homeStats, 'USFBpuntReturnYardsPerGame') - getStat(awayStats, 'USFBpuntReturnYardsPerGame'),
+                getStat(homeStats, 'USFByardsPerReturn') - getStat(awayStats, 'USFByardsPerReturn'),
+                getStat(homeStats, 'USFBthirdDownEfficiency') - getStat(awayStats, 'USFBthirdDownEfficiency'),
+                getStat(homeStats, 'USFBtotalPenyards') - getStat(awayStats, 'USFBtotalPenyards'),
+                getStat(homeStats, 'USFBaveragePenYardsPerGame') - getStat(awayStats, 'USFBaveragePenYardsPerGame'),
+                getStat(homeStats, 'USFBgiveaways') - getStat(awayStats, 'USFBgiveaways'),
+                getStat(homeStats, 'USFBtakeaways') - getStat(awayStats, 'USFBtakeaways'),
+                getStat(homeStats, 'USFBturnoverDiff') - getStat(awayStats, 'USFBturnoverDiff'),
+                getStat(homeStats, 'USFBtotalFirstDowns') - getStat(awayStats, 'USFBtotalFirstDowns'),
+
             ];
         case 'icehockey_nhl':
             return [
                 getWinLoss(homeStats) - getWinLoss(awayStats),
                 getHomeAwayWinLoss(homeStats, 'homeWinLoss') - getHomeAwayWinLoss(awayStats, 'awayWinLoss'),
                 getStat(homeStats, 'pointDiff') - getStat(awayStats, 'pointDiff'),
-                getStat(homeStats, 'goals') - getStat(awayStats, 'goals'),
-                getStat(homeStats, 'goalsPerGame') - getStat(awayStats, 'goalsPerGame'),
-                getStat(homeStats, 'assists') - getStat(awayStats, 'assists'),
-                getStat(homeStats, 'assistsPerGame') - getStat(awayStats, 'assistsPerGame'),
-                getStat(homeStats, 'totalShotsTaken') - getStat(awayStats, 'totalShotsTaken'),
-                getStat(homeStats, 'shotsTakenPerGame') - getStat(awayStats, 'shotsTakenPerGame'),
-                getStat(homeStats, 'powerPlayGoals') - getStat(awayStats, 'powerPlayGoals'),
-                getStat(homeStats, 'powerPlayGoalsPerGame') - getStat(awayStats, 'powerPlayGoalsPerGame'),
-                getStat(homeStats, 'powerPlayPct') - getStat(awayStats, 'powerPlayPct'),
-                getStat(homeStats, 'shootingPct') - getStat(awayStats, 'shootingPct'),
-                getStat(homeStats, 'faceoffsWon') - getStat(awayStats, 'faceoffsWon'),
-                getStat(homeStats, 'faceoffsWonPerGame') - getStat(awayStats, 'faceoffsWonPerGame'),
-                getStat(homeStats, 'faceoffPercent') - getStat(awayStats, 'faceoffPercent'),
-                getStat(homeStats, 'giveaways') - getStat(awayStats, 'giveaways'),
-                getStat(homeStats, 'penaltyMinutes') - getStat(awayStats, 'penaltyMinutes'),
-                getStat(homeStats, 'penaltyMinutesPerGame') - getStat(awayStats, 'penaltyMinutesPerGame'),
-                getStat(homeStats, 'goalsAgainst') - getStat(awayStats, 'goalsAgainst'),
-                getStat(homeStats, 'goalsAgainstAverage') - getStat(awayStats, 'goalsAgainstAverage'),
-                getStat(homeStats, 'shotsAgainst') - getStat(awayStats, 'shotsAgainst'),
-                getStat(homeStats, 'shotsAgainstPerGame') - getStat(awayStats, 'shotsAgainstPerGame'),
-                getStat(homeStats, 'shotsBlocked') - getStat(awayStats, 'shotsBlocked'),
-                getStat(homeStats, 'shotsBlockedPerGame') - getStat(awayStats, 'shotsBlockedPerGame'),
-                getStat(homeStats, 'penaltyKillPct') - getStat(awayStats, 'penaltyKillPct'),
-                getStat(homeStats, 'totalSaves') - getStat(awayStats, 'totalSaves'),
-                getStat(homeStats, 'savePerGame') - getStat(awayStats, 'savePerGame'),
-                getStat(homeStats, 'savePct') - getStat(awayStats, 'savePct'),
-                getStat(homeStats, 'takeaways') - getStat(awayStats, 'takeaways'),
+                getStat(homeStats, 'HKYgoals') - getStat(awayStats, 'HKYgoals'),
+                getStat(homeStats, 'HKYgoalsPerGame') - getStat(awayStats, 'HKYgoalsPerGame'),
+                getStat(homeStats, 'HKYassists') - getStat(awayStats, 'HKYassists'),
+                getStat(homeStats, 'HKYassistsPerGame') - getStat(awayStats, 'HKYassistsPerGame'),
+                getStat(homeStats, 'HKYshotsIn1st') - getStat(awayStats, 'HKYshotsIn1st'),
+                getStat(homeStats, 'HKYshotsIn1stPerGame') - getStat(awayStats, 'HKYshotsIn1stPerGame'),
+                getStat(homeStats, 'HKYshotsIn2nd') - getStat(awayStats, 'HKYshotsIn2nd'),
+                getStat(homeStats, 'HKYshotsIn2ndPerGame') - getStat(awayStats, 'HKYshotsIn2ndPerGame'),
+                getStat(homeStats, 'HKYshotsIn3rd') - getStat(awayStats, 'HKYshotsIn3rd'),
+                getStat(homeStats, 'HKYshotsIn3rdPerGame') - getStat(awayStats, 'HKYshotsIn3rdPerGame'),
+                getStat(homeStats, 'HKYtotalShots') - getStat(awayStats, 'HKYtotalShots'),
+                getStat(homeStats, 'HKYtotalShotsPerGame') - getStat(awayStats, 'HKYtotalShotsPerGame'),
+                getStat(homeStats, 'HKYshotsMissed') - getStat(awayStats, 'HKYshotsMissed'),
+                getStat(homeStats, 'HKYshotsMissedPerGame') - getStat(awayStats, 'HKYshotsMissedPerGame'),
+                getStat(homeStats, 'HKYppgGoals') - getStat(awayStats, 'HKYppgGoals'),
+                getStat(homeStats, 'HKYppgGoalsPerGame') - getStat(awayStats, 'HKYppgGoalsPerGame'),
+                getStat(homeStats, 'HKYppassists') - getStat(awayStats, 'HKYppassists'),
+                getStat(homeStats, 'HKYppassistsPerGame') - getStat(awayStats, 'HKYppassistsPerGame'),
+                getStat(homeStats, 'HKYpowerplayPct') - getStat(awayStats, 'HKYpowerplayPct'),
+                getStat(homeStats, 'HKYshortHandedGoals') - getStat(awayStats, 'HKYshortHandedGoals'),
+                getStat(homeStats, 'HKYshortHandedGoalsPerGame') - getStat(awayStats, 'HKYshortHandedGoalsPerGame'),
+                getStat(homeStats, 'HKYshootingPct') - getStat(awayStats, 'HKYshootingPct'),
+                getStat(homeStats, 'HKYfaceoffs') - getStat(awayStats, 'HKYfaceoffs'),
+                getStat(homeStats, 'HKYfaceoffsPerGame') - getStat(awayStats, 'HKYfaceoffsPerGame'),
+                getStat(homeStats, 'HKYfaceoffsWon') - getStat(awayStats, 'HKYfaceoffsWon'),
+                getStat(homeStats, 'HKYfaceoffsWonPerGame') - getStat(awayStats, 'HKYfaceoffsWonPerGame'),
+                getStat(homeStats, 'HKYfaceoffsLost') - getStat(awayStats, 'HKYfaceoffsLost'),
+                getStat(homeStats, 'HKYfaceoffsLostPerGame') - getStat(awayStats, 'HKYfaceoffsLostPerGame'),
+                getStat(homeStats, 'HKYfaceoffPct') - getStat(awayStats, 'HKYfaceoffPct'),
+                getStat(homeStats, 'HKYfaceoffPctPerGame') - getStat(awayStats, 'HKYfaceoffPctPerGame'),
+                getStat(homeStats, 'HKYgiveaways') - getStat(awayStats, 'HKYgiveaways'),
+                getStat(homeStats, 'HKYgoalsAgainst') - getStat(awayStats, 'HKYgoalsAgainst'),
+                getStat(homeStats, 'HKYgoalsAgainstPerGame') - getStat(awayStats, 'HKYgoalsAgainstPerGame'),
+                getStat(homeStats, 'HKYshotsAgainst') - getStat(awayStats, 'HKYshotsAgainst'),
+                getStat(homeStats, 'HKYshotsAgainstPerGame') - getStat(awayStats, 'HKYshotsAgainstPerGame'),
+                getStat(homeStats, 'HKYpenaltyKillPct') - getStat(awayStats, 'HKYpenaltyKillPct'),
+                getStat(homeStats, 'HKYpenaltyKillPctPerGame') - getStat(awayStats, 'HKYpenaltyKillPctPerGame'),
+                getStat(homeStats, 'HKYppGoalsAgainst') - getStat(awayStats, 'HKYppGoalsAgainst'),
+                getStat(homeStats, 'HKYppGoalsAgainstPerGame') - getStat(awayStats, 'HKYppGoalsAgainstPerGame'),
+                getStat(homeStats, 'HKYshutouts') - getStat(awayStats, 'HKYshutouts'),
+                getStat(homeStats, 'HKYsaves') - getStat(awayStats, 'HKYsaves'),
+                getStat(homeStats, 'HKYsavesPerGame') - getStat(awayStats, 'HKYsavesPerGame'),
+                getStat(homeStats, 'HKYsavePct') - getStat(awayStats, 'HKYsavePct'),
+                getStat(homeStats, 'HKYblockedShots') - getStat(awayStats, 'HKYblockedShots'),
+                getStat(homeStats, 'HKYblockedShotsPerGame') - getStat(awayStats, 'HKYblockedShotsPerGame'),
+                getStat(homeStats, 'HKYhits') - getStat(awayStats, 'HKYhits'),
+                getStat(homeStats, 'HKYhitsPerGame') - getStat(awayStats, 'HKYhitsPerGame'),
+                getStat(homeStats, 'HKYtakeaways') - getStat(awayStats, 'HKYtakeaways'),
+                getStat(homeStats, 'HKYtakeawaysPerGame') - getStat(awayStats, 'HKYtakeawaysPerGame'),
+                getStat(homeStats, 'HKYshotDifferential') - getStat(awayStats, 'HKYshotDifferential'),
+                getStat(homeStats, 'HKYshotDifferentialPerGame') - getStat(awayStats, 'HKYshotDifferentialPerGame'),
+                getStat(homeStats, 'HKYgoalDifferentialPerGame') - getStat(awayStats, 'HKYgoalDifferentialPerGame'),
+                getStat(homeStats, 'HKYpimDifferential') - getStat(awayStats, 'HKYpimDifferential'),
+                getStat(homeStats, 'HKYpimDifferentialPerGame') - getStat(awayStats, 'HKYpimDifferentialPerGame'),
+                getStat(homeStats, 'HKYtotalPenalties') - getStat(awayStats, 'HKYtotalPenalties'),
+                getStat(homeStats, 'HKYpenaltiesPerGame') - getStat(awayStats, 'HKYpenaltiesPerGame'),
+                getStat(homeStats, 'HKYpenaltyMinutes') - getStat(awayStats, 'HKYpenaltyMinutes'),
+                getStat(homeStats, 'HKYpenaltyMinutesPerGame') - getStat(awayStats, 'HKYpenaltyMinutesPerGame')
 
             ];
         case 'baseball_mlb':
@@ -764,118 +1241,188 @@ function extractSportFeatures(homeStats, awayStats, league) {
                 getWinLoss(homeStats) - getWinLoss(awayStats),
                 getHomeAwayWinLoss(homeStats, 'homeWinLoss') - getHomeAwayWinLoss(awayStats, 'awayWinLoss'),
                 getStat(homeStats, 'pointDiff') - getStat(awayStats, 'pointDiff'),
-                getStat(homeStats, 'strikeoutsTotal') - getStat(awayStats, 'strikeoutsTotal'),
-                getStat(homeStats, 'rBIsTotal') - getStat(awayStats, 'rBIsTotal'),
-                getStat(homeStats, 'hitsTotal') - getStat(awayStats, 'hitsTotal'),
-                getStat(homeStats, 'stolenBasesTotal') - getStat(awayStats, 'stolenBasesTotal'),
-                getStat(homeStats, 'walksTotal') - getStat(awayStats, 'walksTotal'),
-                getStat(homeStats, 'runsTotal') - getStat(awayStats, 'runsTotal'),
-                getStat(homeStats, 'homeRunsTotal') - getStat(awayStats, 'homeRunsTotal'),
-                getStat(homeStats, 'extraBaseHitsTotal') - getStat(awayStats, 'extraBaseHitsTotal'),
-                getStat(homeStats, 'battingAverageTotal') - getStat(awayStats, 'battingAverageTotal'),
-                getStat(homeStats, 'sluggingPercentage') - getStat(awayStats, 'sluggingPercentage'),
-                getStat(homeStats, 'onBasePercent') - getStat(awayStats, 'onBasePercent'),
-                getStat(homeStats, 'onBasePlusSlugging') - getStat(awayStats, 'onBasePlusSlugging'),
-                getStat(homeStats, 'stolenBasePct') - getStat(awayStats, 'stolenBasePct'),
-                getStat(homeStats, 'walkToStrikeoutRatio') - getStat(awayStats, 'walkToStrikeoutRatio'),
-                getStat(homeStats, 'saves') - getStat(awayStats, 'saves'),
-                getStat(homeStats, 'strikeoutsPitchingTotal') - getStat(awayStats, 'strikeoutsPitchingTotal'),
-                getStat(homeStats, 'walksPitchingTotal') - getStat(awayStats, 'walksPitchingTotal'),
-                getStat(homeStats, 'qualityStarts') - getStat(awayStats, 'qualityStarts'),
-                getStat(homeStats, 'earnedRunAverage') - getStat(awayStats, 'earnedRunAverage'),
-                getStat(homeStats, 'walksHitsPerInningPitched') - getStat(awayStats, 'walksHitsPerInningPitched'),
-                getStat(homeStats, 'groundToFlyRatio') - getStat(awayStats, 'groundToFlyRatio'),
-                getStat(homeStats, 'runSupportAverage') - getStat(awayStats, 'runSupportAverage'),
-                getStat(homeStats, 'oppBattingAverage') - getStat(awayStats, 'oppBattingAverage'),
-                getStat(homeStats, 'oppSlugging') - getStat(awayStats, 'oppSlugging'),
-                getStat(homeStats, 'oppOPS') - getStat(awayStats, 'oppOPS'),
-                getStat(homeStats, 'savePct') - getStat(awayStats, 'savePct'),
-                getStat(homeStats, 'strikeoutPerNine') - getStat(awayStats, 'strikeoutPerNine'),
-                getStat(homeStats, 'strikeoutToWalkRatioPitcher') - getStat(awayStats, 'strikeoutToWalkRatioPitcher'),
-                getStat(homeStats, 'doublePlays') - getStat(awayStats, 'doublePlays'),
-                getStat(homeStats, 'fieldingErrors') - getStat(awayStats, 'fieldingErrors'),
-                getStat(homeStats, 'fieldingPercentage') - getStat(awayStats, 'fieldingPercentage'),
+                getStat(homeStats, 'BSBbattingStrikeouts') - getStat(awayStats, 'BSBbattingStrikeouts'),
+                getStat(homeStats, 'BSBrunsBattedIn') - getStat(awayStats, 'BSBrunsBattedIn'),
+                getStat(homeStats, 'BSBsacrificeHits') - getStat(awayStats, 'BSBsacrificeHits'),
+                getStat(homeStats, 'BSBHitsTotal') - getStat(awayStats, 'BSBHitsTotal'),
+                getStat(homeStats, 'BSBwalks') - getStat(awayStats, 'BSBwalks'),
+                getStat(homeStats, 'BSBruns') - getStat(awayStats, 'BSBruns'),
+                getStat(homeStats, 'BSBhomeRuns') - getStat(awayStats, 'BSBhomeRuns'),
+                getStat(homeStats, 'BSBdoubles') - getStat(awayStats, 'BSBdoubles'),
+                getStat(homeStats, 'BSBtotalBases') - getStat(awayStats, 'BSBtotalBases'),
+                getStat(homeStats, 'BSBextraBaseHits') - getStat(awayStats, 'BSBextraBaseHits'),
+                getStat(homeStats, 'BSBbattingAverage') - getStat(awayStats, 'BSBbattingAverage'),
+                getStat(homeStats, 'BSBsluggingPercentage') - getStat(awayStats, 'BSBsluggingPercentage'),
+                getStat(homeStats, 'BSBonBasePercentage') - getStat(awayStats, 'BSBonBasePercentage'),
+                getStat(homeStats, 'BSBonBasePlusSlugging') - getStat(awayStats, 'BSBonBasePlusSlugging'),
+                getStat(homeStats, 'BSBgroundToFlyRatio') - getStat(awayStats, 'BSBgroundToFlyRatio'),
+                getStat(homeStats, 'BSBatBatsPerHomeRun') - getStat(awayStats, 'BSBatBatsPerHomeRun'),
+                getStat(homeStats, 'BSBstolenBasePercentage') - getStat(awayStats, 'BSBstolenBasePercentage'),
+                getStat(homeStats, 'BSBbatterWalkToStrikeoutRatio') - getStat(awayStats, 'BSBbatterWalkToStrikeoutRatio'),
+                getStat(homeStats, 'BSBsaves') - getStat(awayStats, 'BSBsaves'),
+                getStat(homeStats, 'BSBpitcherStrikeouts') - getStat(awayStats, 'BSBpitcherStrikeouts'),
+                getStat(homeStats, 'BSBhitsGivenUp') - getStat(awayStats, 'BSBhitsGivenUp'),
+                getStat(homeStats, 'BSBearnedRuns') - getStat(awayStats, 'BSBearnedRuns'),
+                getStat(homeStats, 'BSBbattersWalked') - getStat(awayStats, 'BSBbattersWalked'),
+                getStat(homeStats, 'BSBrunsAllowed') - getStat(awayStats, 'BSBrunsAllowed'),
+                getStat(homeStats, 'BSBhomeRunsAllowed') - getStat(awayStats, 'BSBhomeRunsAllowed'),
+                getStat(homeStats, 'BSBwins') - getStat(awayStats, 'BSBwins'),
+                getStat(homeStats, 'BSBshutouts') - getStat(awayStats, 'BSBshutouts'),
+                getStat(homeStats, 'BSBearnedRunAverage') - getStat(awayStats, 'BSBearnedRunAverage'),
+                getStat(homeStats, 'BSBwalksHitsPerInningPitched') - getStat(awayStats, 'BSBwalksHitsPerInningPitched'),
+                getStat(homeStats, 'BSBwinPct') - getStat(awayStats, 'BSBwinPct'),
+                getStat(homeStats, 'BSBpitcherCaughtStealingPct') - getStat(awayStats, 'BSBpitcherCaughtStealingPct'),
+                getStat(homeStats, 'BSBpitchesPerInning') - getStat(awayStats, 'BSBpitchesPerInning'),
+                getStat(homeStats, 'BSBrunSupportAverage') - getStat(awayStats, 'BSBrunSupportAverage'),
+                getStat(homeStats, 'BSBopponentBattingAverage') - getStat(awayStats, 'BSBopponentBattingAverage'),
+                getStat(homeStats, 'BSBopponentSlugAverage') - getStat(awayStats, 'BSBopponentSlugAverage'),
+                getStat(homeStats, 'BSBopponentOnBasePct') - getStat(awayStats, 'BSBopponentOnBasePct'),
+                getStat(homeStats, 'BSBopponentOnBasePlusSlugging') - getStat(awayStats, 'BSBopponentOnBasePlusSlugging'),
+                getStat(homeStats, 'BSBsavePct') - getStat(awayStats, 'BSBsavePct'),
+                getStat(homeStats, 'BSBstrikeoutsPerNine') - getStat(awayStats, 'BSBstrikeoutsPerNine'),
+                getStat(homeStats, 'BSBpitcherStrikeoutToWalkRatio') - getStat(awayStats, 'BSBpitcherStrikeoutToWalkRatio'),
+                getStat(homeStats, 'BSBdoublePlays') - getStat(awayStats, 'BSBdoublePlays'),
+                getStat(homeStats, 'BSBerrors') - getStat(awayStats, 'BSBerrors'),
+                getStat(homeStats, 'BSBpassedBalls') - getStat(awayStats, 'BSBpassedBalls'),
+                getStat(homeStats, 'BSBassists') - getStat(awayStats, 'BSBassists'),
+                getStat(homeStats, 'BSBputouts') - getStat(awayStats, 'BSBputouts'),
+                getStat(homeStats, 'BSBcatcherCaughtStealing') - getStat(awayStats, 'BSBcatcherCaughtStealing'),
+                getStat(homeStats, 'BSBcatcherCaughtStealingPct') - getStat(awayStats, 'BSBcatcherCaughtStealingPct'),
+                getStat(homeStats, 'BSBcatcherStolenBasesAllowed') - getStat(awayStats, 'BSBcatcherStolenBasesAllowed'),
+                getStat(homeStats, 'BSBfieldingPercentage') - getStat(awayStats, 'BSBfieldingPercentage'),
+                getStat(homeStats, 'BSBrangeFactor') - getStat(awayStats, 'BSBrangeFactor')
             ];
         case 'basketball_ncaab':
             return [
                 getWinLoss(homeStats) - getWinLoss(awayStats),
                 getHomeAwayWinLoss(homeStats, 'homeWinLoss') - getHomeAwayWinLoss(awayStats, 'awayWinLoss'),
                 getStat(homeStats, 'pointDiff') - getStat(awayStats, 'pointDiff'),
-                getStat(homeStats, 'ReboundsTotal') - getStat(awayStats, 'ReboundsTotal'),
-                getStat(homeStats, 'PointsTotal') - getStat(awayStats, 'PointsTotal'),
-                getStat(homeStats, 'pointsPergame') - getStat(awayStats, 'pointsPergame'),
-                getStat(homeStats, 'blocksTotal') - getStat(awayStats, 'blocksTotal'),
-                getStat(homeStats, 'blocksPerGame') - getStat(awayStats, 'blocksPerGame'),
-                getStat(homeStats, 'defensiveRebounds') - getStat(awayStats, 'defensiveRebounds'),
-                getStat(homeStats, 'defensiveReboundsperGame') - getStat(awayStats, 'defensiveReboundsperGame'),
-                getStat(homeStats, 'offensiveRebounds') - getStat(awayStats, 'offensiveRebounds'),
-                getStat(homeStats, 'offensiveReboundsperGame') - getStat(awayStats, 'offensiveReboundsperGame'),
-                getStat(homeStats, 'steals') - getStat(awayStats, 'steals'),
-                getStat(homeStats, 'stealsperGame') - getStat(awayStats, 'stealsperGame'),
-                getStat(homeStats, 'effectiveFieldGoalPct') - getStat(awayStats, 'effectiveFieldGoalPct'),
-                getStat(homeStats, 'freeThrowPct') - getStat(awayStats, 'freeThrowPct'),
-                getStat(homeStats, 'totalTurnovers') - getStat(awayStats, 'totalTurnovers'),
-                getStat(homeStats, 'averageTurnovers') - getStat(awayStats, 'averageTurnovers'),
-                getStat(homeStats, 'threePointPct') - getStat(awayStats, 'threePointPct'),
-                getStat(homeStats, 'trueShootingPct') - getStat(awayStats, 'trueShootingPct'),
-                getStat(homeStats, 'turnoverRatio') - getStat(awayStats, 'turnoverRatio'),
-                getStat(homeStats, 'assisttoTurnoverRatio') - getStat(awayStats, 'assisttoTurnoverRatio'),
-                getStat(homeStats, 'pointsinPaint') - getStat(awayStats, 'pointsinPaint'),
-                getStat(homeStats, 'pace') - getStat(awayStats, 'pace'),
+                getStat(homeStats, 'BSKBtotalPoints') - getStat(awayStats, 'BSKBtotalPoints'),
+                getStat(homeStats, 'BSKBpointsPerGame') - getStat(awayStats, 'BSKBpointsPerGame'),
+                getStat(homeStats, 'BSKBassists') - getStat(awayStats, 'BSKBassists'),
+                getStat(homeStats, 'BSKBassistsPerGame') - getStat(awayStats, 'BSKBassistsPerGame'),
+                getStat(homeStats, 'BSKBassistRatio') - getStat(awayStats, 'BSKBassistRatio'),
+                getStat(homeStats, 'BSKBeffectiveFgPercent') - getStat(awayStats, 'BSKBeffectiveFgPercent'),
+                getStat(homeStats, 'BSKBfieldGoalPercent') - getStat(awayStats, 'BSKBfieldGoalPercent'),
+                getStat(homeStats, 'BSKBfieldGoalsAttempted') - getStat(awayStats, 'BSKBfieldGoalsAttempted'),
+                getStat(homeStats, 'BSKBfieldGoalsMade') - getStat(awayStats, 'BSKBfieldGoalsMade'),
+                getStat(homeStats, 'BSKBfieldGoalsPerGame') - getStat(awayStats, 'BSKBfieldGoalsPerGame'),
+                getStat(homeStats, 'BSKBfreeThrowPercent') - getStat(awayStats, 'BSKBfreeThrowPercent'),
+                getStat(homeStats, 'BSKBfreeThrowsAttempted') - getStat(awayStats, 'BSKBfreeThrowsAttempted'),
+                getStat(homeStats, 'BSKBfreeThrowsMade') - getStat(awayStats, 'BSKBfreeThrowsMade'),
+                getStat(homeStats, 'BSKBfreeThrowsMadePerGame') - getStat(awayStats, 'BSKBfreeThrowsMadePerGame'),
+                getStat(homeStats, 'BSKBoffensiveRebounds') - getStat(awayStats, 'BSKBoffensiveRebounds'),
+                getStat(homeStats, 'BSKBoffensiveReboundsPerGame') - getStat(awayStats, 'BSKBoffensiveReboundsPerGame'),
+                getStat(homeStats, 'BSKBoffensiveReboundRate') - getStat(awayStats, 'BSKBoffensiveReboundRate'),
+                getStat(homeStats, 'BSKBoffensiveTurnovers') - getStat(awayStats, 'BSKBoffensiveTurnovers'),
+                getStat(homeStats, 'BSKBturnoversPerGame') - getStat(awayStats, 'BSKBturnoversPerGame'),
+                getStat(homeStats, 'BSKBturnoverRatio') - getStat(awayStats, 'BSKBturnoverRatio'),
+                getStat(homeStats, 'BSKBthreePointPct') - getStat(awayStats, 'BSKBthreePointPct'),
+                getStat(homeStats, 'BSKBthreePointsAttempted') - getStat(awayStats, 'BSKBthreePointsAttempted'),
+                getStat(homeStats, 'BSKBthreePointsMade') - getStat(awayStats, 'BSKBthreePointsMade'),
+                getStat(homeStats, 'BSKBtrueShootingPct') - getStat(awayStats, 'BSKBtrueShootingPct'),
+                getStat(homeStats, 'BSKBpace') - getStat(awayStats, 'BSKBpace'),
+                getStat(homeStats, 'BSKBpointsInPaint') - getStat(awayStats, 'BSKBpointsInPaint'),
+                getStat(homeStats, 'BSKBshootingEfficiency') - getStat(awayStats, 'BSKBshootingEfficiency'),
+                getStat(homeStats, 'BSKBscoringEfficiency') - getStat(awayStats, 'BSKBscoringEfficiency'),
+                getStat(homeStats, 'BSKBblocks') - getStat(awayStats, 'BSKBblocks'),
+                getStat(homeStats, 'BSKBblocksPerGame') - getStat(awayStats, 'BSKBblocksPerGame'),
+                getStat(homeStats, 'BSKBdefensiveRebounds') - getStat(awayStats, 'BSKBdefensiveRebounds'),
+                getStat(homeStats, 'BSKBdefensiveReboundsPerGame') - getStat(awayStats, 'BSKBdefensiveReboundsPerGame'),
+                getStat(homeStats, 'BSKBsteals') - getStat(awayStats, 'BSKBsteals'),
+                getStat(homeStats, 'BSKBstealsPerGame') - getStat(awayStats, 'BSKBstealsPerGame'),
+                getStat(homeStats, 'BSKBreboundRate') - getStat(awayStats, 'BSKBreboundRate'),
+                getStat(homeStats, 'BSKBreboundsPerGame') - getStat(awayStats, 'BSKBreboundsPerGame'),
+                getStat(homeStats, 'BSKBfoulsPerGame') - getStat(awayStats, 'BSKBfoulsPerGame'),
+                getStat(homeStats, 'BSKBteamAssistToTurnoverRatio') - getStat(awayStats, 'BSKBteamAssistToTurnoverRatio')
             ];
         case 'basketball_wncaab':
             return [
                 getWinLoss(homeStats) - getWinLoss(awayStats),
                 getHomeAwayWinLoss(homeStats, 'homeWinLoss') - getHomeAwayWinLoss(awayStats, 'awayWinLoss'),
                 getStat(homeStats, 'pointDiff') - getStat(awayStats, 'pointDiff'),
-                getStat(homeStats, 'ReboundsTotal') - getStat(awayStats, 'ReboundsTotal'),
-                getStat(homeStats, 'PointsTotal') - getStat(awayStats, 'PointsTotal'),
-                getStat(homeStats, 'pointsPergame') - getStat(awayStats, 'pointsPergame'),
-                getStat(homeStats, 'blocksTotal') - getStat(awayStats, 'blocksTotal'),
-                getStat(homeStats, 'blocksPerGame') - getStat(awayStats, 'blocksPerGame'),
-                getStat(homeStats, 'defensiveRebounds') - getStat(awayStats, 'defensiveRebounds'),
-                getStat(homeStats, 'defensiveReboundsperGame') - getStat(awayStats, 'defensiveReboundsperGame'),
-                getStat(homeStats, 'offensiveRebounds') - getStat(awayStats, 'offensiveRebounds'),
-                getStat(homeStats, 'offensiveReboundsperGame') - getStat(awayStats, 'offensiveReboundsperGame'),
-                getStat(homeStats, 'steals') - getStat(awayStats, 'steals'),
-                getStat(homeStats, 'stealsperGame') - getStat(awayStats, 'stealsperGame'),
-                getStat(homeStats, 'effectiveFieldGoalPct') - getStat(awayStats, 'effectiveFieldGoalPct'),
-                getStat(homeStats, 'freeThrowPct') - getStat(awayStats, 'freeThrowPct'),
-                getStat(homeStats, 'totalTurnovers') - getStat(awayStats, 'totalTurnovers'),
-                getStat(homeStats, 'averageTurnovers') - getStat(awayStats, 'averageTurnovers'),
-                getStat(homeStats, 'threePointPct') - getStat(awayStats, 'threePointPct'),
-                getStat(homeStats, 'trueShootingPct') - getStat(awayStats, 'trueShootingPct'),
-                getStat(homeStats, 'turnoverRatio') - getStat(awayStats, 'turnoverRatio'),
-                getStat(homeStats, 'assisttoTurnoverRatio') - getStat(awayStats, 'assisttoTurnoverRatio'),
-                getStat(homeStats, 'pointsinPaint') - getStat(awayStats, 'pointsinPaint'),
-                getStat(homeStats, 'pace') - getStat(awayStats, 'pace'),
+                getStat(homeStats, 'BSKBtotalPoints') - getStat(awayStats, 'BSKBtotalPoints'),
+                getStat(homeStats, 'BSKBpointsPerGame') - getStat(awayStats, 'BSKBpointsPerGame'),
+                getStat(homeStats, 'BSKBassists') - getStat(awayStats, 'BSKBassists'),
+                getStat(homeStats, 'BSKBassistsPerGame') - getStat(awayStats, 'BSKBassistsPerGame'),
+                getStat(homeStats, 'BSKBassistRatio') - getStat(awayStats, 'BSKBassistRatio'),
+                getStat(homeStats, 'BSKBeffectiveFgPercent') - getStat(awayStats, 'BSKBeffectiveFgPercent'),
+                getStat(homeStats, 'BSKBfieldGoalPercent') - getStat(awayStats, 'BSKBfieldGoalPercent'),
+                getStat(homeStats, 'BSKBfieldGoalsAttempted') - getStat(awayStats, 'BSKBfieldGoalsAttempted'),
+                getStat(homeStats, 'BSKBfieldGoalsMade') - getStat(awayStats, 'BSKBfieldGoalsMade'),
+                getStat(homeStats, 'BSKBfieldGoalsPerGame') - getStat(awayStats, 'BSKBfieldGoalsPerGame'),
+                getStat(homeStats, 'BSKBfreeThrowPercent') - getStat(awayStats, 'BSKBfreeThrowPercent'),
+                getStat(homeStats, 'BSKBfreeThrowsAttempted') - getStat(awayStats, 'BSKBfreeThrowsAttempted'),
+                getStat(homeStats, 'BSKBfreeThrowsMade') - getStat(awayStats, 'BSKBfreeThrowsMade'),
+                getStat(homeStats, 'BSKBfreeThrowsMadePerGame') - getStat(awayStats, 'BSKBfreeThrowsMadePerGame'),
+                getStat(homeStats, 'BSKBoffensiveRebounds') - getStat(awayStats, 'BSKBoffensiveRebounds'),
+                getStat(homeStats, 'BSKBoffensiveReboundsPerGame') - getStat(awayStats, 'BSKBoffensiveReboundsPerGame'),
+                getStat(homeStats, 'BSKBoffensiveReboundRate') - getStat(awayStats, 'BSKBoffensiveReboundRate'),
+                getStat(homeStats, 'BSKBoffensiveTurnovers') - getStat(awayStats, 'BSKBoffensiveTurnovers'),
+                getStat(homeStats, 'BSKBturnoversPerGame') - getStat(awayStats, 'BSKBturnoversPerGame'),
+                getStat(homeStats, 'BSKBturnoverRatio') - getStat(awayStats, 'BSKBturnoverRatio'),
+                getStat(homeStats, 'BSKBthreePointPct') - getStat(awayStats, 'BSKBthreePointPct'),
+                getStat(homeStats, 'BSKBthreePointsAttempted') - getStat(awayStats, 'BSKBthreePointsAttempted'),
+                getStat(homeStats, 'BSKBthreePointsMade') - getStat(awayStats, 'BSKBthreePointsMade'),
+                getStat(homeStats, 'BSKBtrueShootingPct') - getStat(awayStats, 'BSKBtrueShootingPct'),
+                getStat(homeStats, 'BSKBpace') - getStat(awayStats, 'BSKBpace'),
+                getStat(homeStats, 'BSKBpointsInPaint') - getStat(awayStats, 'BSKBpointsInPaint'),
+                getStat(homeStats, 'BSKBshootingEfficiency') - getStat(awayStats, 'BSKBshootingEfficiency'),
+                getStat(homeStats, 'BSKBscoringEfficiency') - getStat(awayStats, 'BSKBscoringEfficiency'),
+                getStat(homeStats, 'BSKBblocks') - getStat(awayStats, 'BSKBblocks'),
+                getStat(homeStats, 'BSKBblocksPerGame') - getStat(awayStats, 'BSKBblocksPerGame'),
+                getStat(homeStats, 'BSKBdefensiveRebounds') - getStat(awayStats, 'BSKBdefensiveRebounds'),
+                getStat(homeStats, 'BSKBdefensiveReboundsPerGame') - getStat(awayStats, 'BSKBdefensiveReboundsPerGame'),
+                getStat(homeStats, 'BSKBsteals') - getStat(awayStats, 'BSKBsteals'),
+                getStat(homeStats, 'BSKBstealsPerGame') - getStat(awayStats, 'BSKBstealsPerGame'),
+                getStat(homeStats, 'BSKBreboundRate') - getStat(awayStats, 'BSKBreboundRate'),
+                getStat(homeStats, 'BSKBreboundsPerGame') - getStat(awayStats, 'BSKBreboundsPerGame'),
+                getStat(homeStats, 'BSKBfoulsPerGame') - getStat(awayStats, 'BSKBfoulsPerGame'),
+                getStat(homeStats, 'BSKBteamAssistToTurnoverRatio') - getStat(awayStats, 'BSKBteamAssistToTurnoverRatio'),
             ];
         case 'basketball_nba':
             return [
                 getWinLoss(homeStats) - getWinLoss(awayStats),
                 getHomeAwayWinLoss(homeStats, 'homeWinLoss') - getHomeAwayWinLoss(awayStats, 'awayWinLoss'),
                 getStat(homeStats, 'pointDiff') - getStat(awayStats, 'pointDiff'),
-                getStat(homeStats, 'ReboundsTotal') - getStat(awayStats, 'ReboundsTotal'),
-                getStat(homeStats, 'PointsTotal') - getStat(awayStats, 'PointsTotal'),
-                getStat(homeStats, 'pointsPergame') - getStat(awayStats, 'pointsPergame'),
-                getStat(homeStats, 'blocksTotal') - getStat(awayStats, 'blocksTotal'),
-                getStat(homeStats, 'blocksPerGame') - getStat(awayStats, 'blocksPerGame'),
-                getStat(homeStats, 'defensiveRebounds') - getStat(awayStats, 'defensiveRebounds'),
-                getStat(homeStats, 'defensiveReboundsperGame') - getStat(awayStats, 'defensiveReboundsperGame'),
-                getStat(homeStats, 'offensiveRebounds') - getStat(awayStats, 'offensiveRebounds'),
-                getStat(homeStats, 'offensiveReboundsperGame') - getStat(awayStats, 'offensiveReboundsperGame'),
-                getStat(homeStats, 'steals') - getStat(awayStats, 'steals'),
-                getStat(homeStats, 'stealsperGame') - getStat(awayStats, 'stealsperGame'),
-                getStat(homeStats, 'effectiveFieldGoalPct') - getStat(awayStats, 'effectiveFieldGoalPct'),
-                getStat(homeStats, 'freeThrowPct') - getStat(awayStats, 'freeThrowPct'),
-                getStat(homeStats, 'totalTurnovers') - getStat(awayStats, 'totalTurnovers'),
-                getStat(homeStats, 'averageTurnovers') - getStat(awayStats, 'averageTurnovers'),
-                getStat(homeStats, 'threePointPct') - getStat(awayStats, 'threePointPct'),
-                getStat(homeStats, 'trueShootingPct') - getStat(awayStats, 'trueShootingPct'),
-                getStat(homeStats, 'turnoverRatio') - getStat(awayStats, 'turnoverRatio'),
-                getStat(homeStats, 'assisttoTurnoverRatio') - getStat(awayStats, 'assisttoTurnoverRatio'),
-                getStat(homeStats, 'pointsinPaint') - getStat(awayStats, 'pointsinPaint'),
-                getStat(homeStats, 'pace') - getStat(awayStats, 'pace'),
+                getStat(homeStats, 'BSKBtotalPoints') - getStat(awayStats, 'BSKBtotalPoints'),
+                getStat(homeStats, 'BSKBpointsPerGame') - getStat(awayStats, 'BSKBpointsPerGame'),
+                getStat(homeStats, 'BSKBassists') - getStat(awayStats, 'BSKBassists'),
+                getStat(homeStats, 'BSKBassistsPerGame') - getStat(awayStats, 'BSKBassistsPerGame'),
+                getStat(homeStats, 'BSKBassistRatio') - getStat(awayStats, 'BSKBassistRatio'),
+                getStat(homeStats, 'BSKBeffectiveFgPercent') - getStat(awayStats, 'BSKBeffectiveFgPercent'),
+                getStat(homeStats, 'BSKBfieldGoalPercent') - getStat(awayStats, 'BSKBfieldGoalPercent'),
+                getStat(homeStats, 'BSKBfieldGoalsAttempted') - getStat(awayStats, 'BSKBfieldGoalsAttempted'),
+                getStat(homeStats, 'BSKBfieldGoalsMade') - getStat(awayStats, 'BSKBfieldGoalsMade'),
+                getStat(homeStats, 'BSKBfieldGoalsPerGame') - getStat(awayStats, 'BSKBfieldGoalsPerGame'),
+                getStat(homeStats, 'BSKBfreeThrowPercent') - getStat(awayStats, 'BSKBfreeThrowPercent'),
+                getStat(homeStats, 'BSKBfreeThrowsAttempted') - getStat(awayStats, 'BSKBfreeThrowsAttempted'),
+                getStat(homeStats, 'BSKBfreeThrowsMade') - getStat(awayStats, 'BSKBfreeThrowsMade'),
+                getStat(homeStats, 'BSKBfreeThrowsMadePerGame') - getStat(awayStats, 'BSKBfreeThrowsMadePerGame'),
+                getStat(homeStats, 'BSKBoffensiveRebounds') - getStat(awayStats, 'BSKBoffensiveRebounds'),
+                getStat(homeStats, 'BSKBoffensiveReboundsPerGame') - getStat(awayStats, 'BSKBoffensiveReboundsPerGame'),
+                getStat(homeStats, 'BSKBoffensiveReboundRate') - getStat(awayStats, 'BSKBoffensiveReboundRate'),
+                getStat(homeStats, 'BSKBoffensiveTurnovers') - getStat(awayStats, 'BSKBoffensiveTurnovers'),
+                getStat(homeStats, 'BSKBturnoversPerGame') - getStat(awayStats, 'BSKBturnoversPerGame'),
+                getStat(homeStats, 'BSKBturnoverRatio') - getStat(awayStats, 'BSKBturnoverRatio'),
+                getStat(homeStats, 'BSKBthreePointPct') - getStat(awayStats, 'BSKBthreePointPct'),
+                getStat(homeStats, 'BSKBthreePointsAttempted') - getStat(awayStats, 'BSKBthreePointsAttempted'),
+                getStat(homeStats, 'BSKBthreePointsMade') - getStat(awayStats, 'BSKBthreePointsMade'),
+                getStat(homeStats, 'BSKBtrueShootingPct') - getStat(awayStats, 'BSKBtrueShootingPct'),
+                getStat(homeStats, 'BSKBpace') - getStat(awayStats, 'BSKBpace'),
+                getStat(homeStats, 'BSKBpointsInPaint') - getStat(awayStats, 'BSKBpointsInPaint'),
+                getStat(homeStats, 'BSKBshootingEfficiency') - getStat(awayStats, 'BSKBshootingEfficiency'),
+                getStat(homeStats, 'BSKBscoringEfficiency') - getStat(awayStats, 'BSKBscoringEfficiency'),
+                getStat(homeStats, 'BSKBblocks') - getStat(awayStats, 'BSKBblocks'),
+                getStat(homeStats, 'BSKBblocksPerGame') - getStat(awayStats, 'BSKBblocksPerGame'),
+                getStat(homeStats, 'BSKBdefensiveRebounds') - getStat(awayStats, 'BSKBdefensiveRebounds'),
+                getStat(homeStats, 'BSKBdefensiveReboundsPerGame') - getStat(awayStats, 'BSKBdefensiveReboundsPerGame'),
+                getStat(homeStats, 'BSKBsteals') - getStat(awayStats, 'BSKBsteals'),
+                getStat(homeStats, 'BSKBstealsPerGame') - getStat(awayStats, 'BSKBstealsPerGame'),
+                getStat(homeStats, 'BSKBreboundRate') - getStat(awayStats, 'BSKBreboundRate'),
+                getStat(homeStats, 'BSKBreboundsPerGame') - getStat(awayStats, 'BSKBreboundsPerGame'),
+                getStat(homeStats, 'BSKBfoulsPerGame') - getStat(awayStats, 'BSKBfoulsPerGame'),
+                getStat(homeStats, 'BSKBteamAssistToTurnoverRatio') - getStat(awayStats, 'BSKBteamAssistToTurnoverRatio')
             ];
         default:
             return [];
@@ -1136,149 +1683,161 @@ function adjustnflStats(homeTeam, awayTeam, homeIndex, awayIndex) {
     homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += nflWeights[0] : awayIndex += nflWeights[0];
     homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += nflWeights[1] : awayIndex += nflWeights[1];
     homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += nflWeights[2] : awayIndex += nflWeights[2];
-    let nflWeightIndex = 3
+    
+    let nflWeightIndex = 3;
     const reverseComparisonStats = ['totalPenyards', 'averagePenYardsPerGame', 'interceptions', 'giveaways'];
+
     // Loop through homeTeam.stats to compare each stat
     for (const stat in homeTeam.stats) {
         if (homeTeam.stats.hasOwnProperty(stat)) {
             const homeStat = homeTeam.stats[stat];
             const awayStat = awayTeam.stats[stat];
 
-            // Check if the stat is one that requires reversed comparison
+            // Check if the stat requires reversed comparison
             if (reverseComparisonStats.includes(stat)) {
-                // For reversed comparison, check if homeStat is less than or equal to awayStat
-                if (homeStat <= awayStat) {
-                    homeIndex += nflWeights[nflWeightIndex];
-                } else {
-                    awayIndex += nflWeights[nflWeightIndex];
+                if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
+                    if (homeStat <= awayStat) {
+                        homeIndex += nflWeights[nflWeightIndex];
+                    } else {
+                        awayIndex += nflWeights[nflWeightIndex];
+                    }
+                    nflWeightIndex++;
                 }
             } else {
-                // For all other stats, check if homeStat is greater than or equal to awayStat
-                if (homeStat >= awayStat) {
-                    homeIndex += nflWeights[nflWeightIndex];
-                } else {
-                    awayIndex += nflWeights[nflWeightIndex];
+                if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
+                    if (homeStat >= awayStat) {
+                        homeIndex += nflWeights[nflWeightIndex];
+                    } else {
+                        awayIndex += nflWeights[nflWeightIndex];
+                    }
+                    nflWeightIndex++;
                 }
             }
         }
-        nflWeightIndex++
     }
 
     return { homeIndex, awayIndex };
 }
+
 function adjustncaafStats(homeTeam, awayTeam, homeIndex, awayIndex) {
     homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += ncaafWeights[0] : awayIndex += ncaafWeights[0];
     homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += ncaafWeights[1] : awayIndex += ncaafWeights[1];
     homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += ncaafWeights[2] : awayIndex += ncaafWeights[2];
-    let ncaafWeightIndex = 3
+    
+    let ncaafWeightIndex = 3;
     const reverseComparisonStats = ['totalPenyards', 'averagePenYardsPerGame', 'interceptions', 'giveaways'];
+
     // Loop through homeTeam.stats to compare each stat
     for (const stat in homeTeam.stats) {
         if (homeTeam.stats.hasOwnProperty(stat)) {
             const homeStat = homeTeam.stats[stat];
             const awayStat = awayTeam.stats[stat];
 
-            // Check if the stat is one that requires reversed comparison
+            // Check if the stat requires reversed comparison
             if (reverseComparisonStats.includes(stat)) {
-                // For reversed comparison, check if homeStat is less than or equal to awayStat
-                if (homeStat <= awayStat) {
-                    homeIndex += ncaafWeights[ncaafWeightIndex];
-                } else {
-                    awayIndex += ncaafWeights[ncaafWeightIndex];
+                if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
+                    if (homeStat <= awayStat) {
+                        homeIndex += ncaafWeights[ncaafWeightIndex];
+                    } else {
+                        awayIndex += ncaafWeights[ncaafWeightIndex];
+                    }
+                    ncaafWeightIndex++;
                 }
             } else {
-                // For all other stats, check if homeStat is greater than or equal to awayStat
-                if (homeStat >= awayStat) {
-                    homeIndex += ncaafWeights[ncaafWeightIndex];
-                } else {
-                    awayIndex += ncaafWeights[ncaafWeightIndex];
+                if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
+                    if (homeStat >= awayStat) {
+                        homeIndex += ncaafWeights[ncaafWeightIndex];
+                    } else {
+                        awayIndex += ncaafWeights[ncaafWeightIndex];
+                    }
+                    ncaafWeightIndex++;
                 }
             }
         }
-        ncaafWeightIndex++
     }
+
     return { homeIndex, awayIndex };
 }
+
 // Helper function to adjust indexes for hockey games
 function adjustnhlStats(homeTeam, awayTeam, homeIndex, awayIndex) {
     homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += nhlWeights[0] : awayIndex += nhlWeights[0];
     homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += nhlWeights[1] : awayIndex += nhlWeights[1];
     homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += nhlWeights[2] : awayIndex += nhlWeights[2];
-    let nhlWeightIndex = 3
-    const reverseComparisonStats = ['totalPenyards', 'goalsAgainstAverage', 'shotsAgainst', 'shotsAgainstPerGame', 'giveaways'];
-    // Loop through homeTeam.stats to goalsAgainst each stat
+    
+    let nhlWeightIndex = 3;
+    const reverseComparisonStats = [];
+
+    // Loop through homeTeam.stats to compare each stat
     for (const stat in homeTeam.stats) {
         if (homeTeam.stats.hasOwnProperty(stat)) {
             const homeStat = homeTeam.stats[stat];
             const awayStat = awayTeam.stats[stat];
 
-            // Check if the stat is one that requires reversed comparison
+            // Check if the stat requires reversed comparison
             if (reverseComparisonStats.includes(stat)) {
-                // For reversed comparison, check if homeStat is less than or equal to awayStat
-                if (homeStat <= awayStat) {
-                    homeIndex += nhlWeights[nhlWeightIndex];
-                } else {
-                    awayIndex += nhlWeights[nhlWeightIndex];
+                if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
+                    if (homeStat <= awayStat) {
+                        homeIndex += nhlWeights[nhlWeightIndex];
+                    } else {
+                        awayIndex += nhlWeights[nhlWeightIndex];
+                    }
+                    nhlWeightIndex++;
                 }
             } else {
-                // For all other stats, check if homeStat is greater than or equal to awayStat
-                if (homeStat >= awayStat) {
-                    homeIndex += nhlWeights[nhlWeightIndex];
-                } else {
-                    awayIndex += nhlWeights[nhlWeightIndex];
+                if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
+                    if (homeStat >= awayStat) {
+                        homeIndex += nhlWeights[nhlWeightIndex];
+                    } else {
+                        awayIndex += nhlWeights[nhlWeightIndex];
+                    }
+                    nhlWeightIndex++;
                 }
             }
         }
-        nhlWeightIndex++
     }
-
 
     return { homeIndex, awayIndex };
 }
+
 // Helper function to adjust indexes for basketball games
 function adjustnbaStats(homeTeam, awayTeam, homeIndex, awayIndex) {
     homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += nbaWeights[0] : awayIndex += nbaWeights[0];
     homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += nbaWeights[1] : awayIndex += nbaWeights[1];
     homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += nbaWeights[2] : awayIndex += nbaWeights[2];
     let nbaWeightIndex = 3
-    const reverseComparisonStats = ['averageTurnovers', 'totalTurnovers'];
+    const reverseComparisonStats = [];
     // Loop through homeTeam.stats to goalsAgainst each stat
 
     for (const stat in homeTeam.stats) {
-        if (stat === 'fieldGoalMakesPerAttempts' || stat === 'freeThrowsMadePerAttempts') {
+        if (homeTeam.stats.hasOwnProperty(stat)) {
+            const homeStat = homeTeam.stats[stat];
+            const awayStat = awayTeam.stats[stat];
 
-        } else {
-            if (homeTeam.stats.hasOwnProperty(stat)) {
-                const homeStat = homeTeam.stats[stat];
-                const awayStat = awayTeam.stats[stat];
-
-                // Check if the stat is one that requires reversed comparison
-                if (reverseComparisonStats.includes(stat)) {
-                    // For reversed comparison, check if homeStat is less than or equal to awayStat
-                    if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
-                        if (homeStat <= awayStat) {
-                            homeIndex += nbaWeights[nbaWeightIndex];
-                        } else {
-                            awayIndex += nbaWeights[nbaWeightIndex];
-                        }
-                        nbaWeightIndex++
+            // Check if the stat is one that requires reversed comparison
+            if (reverseComparisonStats.includes(stat)) {
+                // For reversed comparison, check if homeStat is less than or equal to awayStat
+                if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
+                    if (homeStat <= awayStat) {
+                        homeIndex += nbaWeights[nbaWeightIndex];
+                    } else {
+                        awayIndex += nbaWeights[nbaWeightIndex];
                     }
-
-                } else {
-                    if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
-                        if (homeStat >= awayStat) {
-                            homeIndex += nbaWeights[nbaWeightIndex];
-                        } else {
-                            awayIndex += nbaWeights[nbaWeightIndex];
-                        }
-                        nbaWeightIndex++
-                    }
-                    // For all other stats, check if homeStat is greater than or equal to awayStat
-
+                    nbaWeightIndex++
                 }
 
-            }
+            } else {
+                if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
+                    if (homeStat >= awayStat) {
+                        homeIndex += nbaWeights[nbaWeightIndex];
+                    } else {
+                        awayIndex += nbaWeights[nbaWeightIndex];
+                    }
+                    nbaWeightIndex++
+                }
+                // For all other stats, check if homeStat is greater than or equal to awayStat
 
+            }
         }
 
     }
@@ -1291,129 +1850,122 @@ function adjustmlbStats(homeTeam, awayTeam, homeIndex, awayIndex) {
     homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += mlbWeights[0] : awayIndex += mlbWeights[0];
     homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += mlbWeights[1] : awayIndex += mlbWeights[1];
     homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += mlbWeights[2] : awayIndex += mlbWeights[2];
-    let mlbWeightIndex = 3
+    
+    let mlbWeightIndex = 3;
     const reverseComparisonStats = ['fieldingErrors', 'oppOPS', 'oppSlugging', 'oppBattingAverage', 'walksHitsPerInningPitched', 'earnedRunAverage', 'walksPitchingTotal'];
-    // Loop through homeTeam.stats to goalsAgainst each stat
+
+    // Loop through homeTeam.stats to compare each stat
     for (const stat in homeTeam.stats) {
         if (homeTeam.stats.hasOwnProperty(stat)) {
             const homeStat = homeTeam.stats[stat];
             const awayStat = awayTeam.stats[stat];
 
-            // Check if the stat is one that requires reversed comparison
+            // Check if the stat requires reversed comparison
             if (reverseComparisonStats.includes(stat)) {
-                // For reversed comparison, check if homeStat is less than or equal to awayStat
-                if (homeStat <= awayStat) {
-                    homeIndex += mlbWeights[mlbWeightIndex];
-                } else {
-                    awayIndex += mlbWeights[mlbWeightIndex];
+                if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
+                    if (homeStat <= awayStat) {
+                        homeIndex += mlbWeights[mlbWeightIndex];
+                    } else {
+                        awayIndex += mlbWeights[mlbWeightIndex];
+                    }
+                    mlbWeightIndex++;
                 }
             } else {
-                // For all other stats, check if homeStat is greater than or equal to awayStat
-                if (homeStat >= awayStat) {
-                    homeIndex += mlbWeights[mlbWeightIndex];
-                } else {
-                    awayIndex += mlbWeights[mlbWeightIndex];
+                if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
+                    if (homeStat >= awayStat) {
+                        homeIndex += mlbWeights[mlbWeightIndex];
+                    } else {
+                        awayIndex += mlbWeights[mlbWeightIndex];
+                    }
+                    mlbWeightIndex++;
                 }
             }
         }
-        mlbWeightIndex++
     }
 
     return { homeIndex, awayIndex };
 }
+
 function adjustncaamStats(homeTeam, awayTeam, homeIndex, awayIndex) {
-
     homeTeam?.seasonWinLoss?.split("-")[0] >= awayTeam?.seasonWinLoss?.split("-")[0] ? homeIndex += ncaamWeights[0] : awayIndex += ncaamWeights[0];
-    homeTeam?.homeWinLoss?.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += ncaamWeights[1] : awayIndex += ncaamWeights[1];
+    homeTeam?.homeWinLoss?.split("-")[0] >= awayTeam?.awayWinLoss.split("-")[0] ? homeIndex += ncaamWeights[1] : awayIndex += ncaamWeights[1];
     homeTeam?.pointDiff >= awayTeam?.pointDiff ? homeIndex += ncaamWeights[2] : awayIndex += ncaamWeights[2];
-    let ncaamWeightIndex = 3
-    const reverseComparisonStats = ['averageTurnovers', 'totalTurnovers'];
-    // Loop through homeTeam.stats to goalsAgainst each stat
+    
+    let ncaamWeightIndex = 3;
+    const reverseComparisonStats = [];
+
+    // Loop through homeTeam.stats to compare each stat
     for (const stat in homeTeam.stats) {
-        if (stat === 'fieldGoalMakesPerAttempts' || stat === 'freeThrowsMadePerAttempts') {
+        if (homeTeam.stats.hasOwnProperty(stat)) {
+            const homeStat = homeTeam.stats[stat];
+            const awayStat = awayTeam.stats[stat];
 
-        } else {
-            if (homeTeam.stats.hasOwnProperty(stat)) {
-                const homeStat = homeTeam.stats[stat];
-                const awayStat = awayTeam.stats[stat];
-
-                // Check if the stat is one that requires reversed comparison
-                if (reverseComparisonStats.includes(stat)) {
-                    // For reversed comparison, check if homeStat is less than or equal to awayStat
-                    if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
-                        if (homeStat <= awayStat) {
-                            homeIndex += ncaamWeights[ncaamWeightIndex];
-                        } else {
-                            awayIndex += ncaamWeights[ncaamWeightIndex];
-                        }
-                        ncaamWeightIndex++
+            // Check if the stat requires reversed comparison
+            if (reverseComparisonStats.includes(stat)) {
+                if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
+                    if (homeStat <= awayStat) {
+                        homeIndex += ncaamWeights[ncaamWeightIndex];
+                    } else {
+                        awayIndex += ncaamWeights[ncaamWeightIndex];
                     }
-
-                } else {
-                    if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
-                        if (homeStat >= awayStat) {
-                            homeIndex += ncaamWeights[ncaamWeightIndex];
-                        } else {
-                            awayIndex += ncaamWeights[ncaamWeightIndex];
-                        }
-                        ncaamWeightIndex++
-                    }
-
+                    ncaamWeightIndex++;
                 }
-
+            } else {
+                if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
+                    if (homeStat >= awayStat) {
+                        homeIndex += ncaamWeights[ncaamWeightIndex];
+                    } else {
+                        awayIndex += ncaamWeights[ncaamWeightIndex];
+                    }
+                    ncaamWeightIndex++;
+                }
             }
         }
-
     }
 
     return { homeIndex, awayIndex };
 }
+
 function adjustwncaabStats(homeTeam, awayTeam, homeIndex, awayIndex) {
-    homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += ncaawWeights[0] : awayIndex += ncaawWeights[0];
-    homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += ncaawWeights[1] : awayIndex += ncaawWeights[1];
-    homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += ncaawWeights[2] : awayIndex += ncaawWeights[2];
-    let ncaawWeightIndex = 3
-    const reverseComparisonStats = ['averageTurnovers', 'totalTurnovers'];
-    // Loop through homeTeam.stats to goalsAgainst each stat
+    homeTeam?.seasonWinLoss?.split("-")[0] >= awayTeam?.seasonWinLoss?.split("-")[0] ? homeIndex += ncaawWeights[0] : awayIndex += ncaawWeights[0];
+    homeTeam?.homeWinLoss?.split("-")[0] >= awayTeam?.awayWinLoss.split("-")[0] ? homeIndex += ncaawWeights[1] : awayIndex += ncaawWeights[1];
+    homeTeam?.pointDiff >= awayTeam?.pointDiff ? homeIndex += ncaawWeights[2] : awayIndex += ncaawWeights[2];
+    
+    let ncaawWeightIndex = 3;
+    const reverseComparisonStats = [];
+
+    // Loop through homeTeam.stats to compare each stat
     for (const stat in homeTeam.stats) {
-        if (stat === 'fieldGoalMakesPerAttempts' || stat === 'freeThrowsMadePerAttempts') {
+        if (homeTeam.stats.hasOwnProperty(stat)) {
+            const homeStat = homeTeam.stats[stat];
+            const awayStat = awayTeam.stats[stat];
 
-        } else {
-            if (homeTeam.stats.hasOwnProperty(stat)) {
-                const homeStat = homeTeam.stats[stat];
-                const awayStat = awayTeam.stats[stat];
-
-                // Check if the stat is one that requires reversed comparison
-                if (reverseComparisonStats.includes(stat)) {
-                    // For reversed comparison, check if homeStat is less than or equal to awayStat
-                    if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
-                        if (homeStat <= awayStat) {
-                            homeIndex += ncaawWeights[ncaawWeightIndex];
-                        } else {
-                            awayIndex += ncaawWeights[ncaawWeightIndex];
-                        }
-                        ncaawWeightIndex++
+            // Check if the stat requires reversed comparison
+            if (reverseComparisonStats.includes(stat)) {
+                if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
+                    if (homeStat <= awayStat) {
+                        homeIndex += ncaawWeights[ncaawWeightIndex];
+                    } else {
+                        awayIndex += ncaawWeights[ncaawWeightIndex];
                     }
-
-                } else {
-                    if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
-                        if (homeStat >= awayStat) {
-                            homeIndex += ncaawWeights[ncaawWeightIndex];
-                        } else {
-                            awayIndex += ncaawWeights[ncaawWeightIndex];
-                        }
-                        ncaawWeightIndex++
-                    }
-
+                    ncaawWeightIndex++;
                 }
-
+            } else {
+                if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
+                    if (homeStat >= awayStat) {
+                        homeIndex += ncaawWeights[ncaawWeightIndex];
+                    } else {
+                        awayIndex += ncaawWeights[ncaawWeightIndex];
+                    }
+                    ncaawWeightIndex++;
+                }
             }
         }
-
     }
 
     return { homeIndex, awayIndex };
 }
+
 const indexAdjuster = (currentOdds, sport) => {
     currentOdds.map(async (game, index) => {
         // Check if the game is in the future
@@ -1512,119 +2064,241 @@ const indexAdjuster = (currentOdds, sport) => {
                 }
             }
             const getCommonStats = (team) => ({
+                //------------------------------SHARED STATS-----------------------------------------------------------
                 seasonWinLoss: team.seasonWinLoss,
                 homeWinLoss: team.homeWinLoss,
                 awayWinLoss: team.awayWinLoss,
                 pointDiff: team.pointDiff,
-                pointsPerGame: team.stats.pointsPerGame,
-                totalPoints: team.stats.totalPoints,
-                totalFirstDowns: team.stats.totalFirstDowns,
-                rushingFirstDowns: team.stats.rushingFirstDowns,
-                passingFirstDowns: team.stats.passingFirstDowns,
-                thirdDownEfficiency: team.stats.thirdDownEfficiency,
-                netPassingYardsPerGame: team.stats.netPassingYardsPerGame,
-                interceptions: team.stats.interceptions,
-                completionPercent: team.stats.completionPercent,
-                rushingYards: team.stats.rushingYards,
-                rushingYardsPerGame: team.stats.rushingYardsPerGame,
-                yardsPerRushAttempt: team.stats.yardsPerRushAttempt,
-                yardsPerGame: team.stats.yardsPerGame,
-                fGgoodPct: team.stats.fGgoodPct,
-                touchBackPercentage: team.stats.touchBackPercentage,
-                totalPenyards: team.stats.totalPenyards,
-                averagePenYardsPerGame: team.stats.averagePenYardsPerGame,
-                giveaways: team.stats.giveaways,
-                takeaways: team.stats.takeaways,
-                turnoverDiff: team.stats.turnoverDiff,
-                sacksTotal: team.stats.sacksTotal,
-                sacksPerGame: team.stats.sacksPerGame,
-                yardsLostPerSack: team.stats.yardsLostPerSack,
-                passesDefended: team.stats.passesDefended,
-                passesDefendedPerGame: team.stats.passesDefendedPerGame,
-                tacklesforLoss: team.stats.tacklesforLoss,
-                tacklesforLossPerGame: team.stats.tacklesforLossPerGame,
-                strikeoutsTotal: team.stats.strikeoutsTotal,
-                rBIsTotal: team.stats.rBIsTotal,
-                hitsTotal: team.stats.hitsTotal,
-                stolenBasesTotal: team.stats.stolenBasesTotal,
-                walksTotal: team.stats.walksTotal,
-                runsTotal: team.stats.runsTotal,
-                homeRunsTotal: team.stats.homeRunsTotal,
-                totalBases: team.stats.totalBases,
-                extraBaseHitsTotal: team.stats.extraBaseHitsTotal,
-                battingAverageTotal: team.stats.battingAverageTotal,
-                sluggingPercentage: team.stats.sluggingPercentage,
-                onBasePercent: team.stats.onBasePercent,
-                onBasePlusSlugging: team.stats.onBasePlusSlugging,
-                stolenBasePct: team.stats.stolenBasePct,
-                walkToStrikeoutRatio: team.stats.walkToStrikeoutRatio,
-                saves: team.stats.saves,
-                strikeoutsPitchingTotal: team.stats.strikeoutsPitchingTotal,
-                walksPitchingTotal: team.stats.walksPitchingTotal,
-                qualityStarts: team.stats.qualityStarts,
-                earnedRunAverage: team.stats.earnedRunAverage,
-                walksHitsPerInningPitched: team.stats.walksHitsPerInningPitched,
-                groundToFlyRatio: team.stats.groundToFlyRatio,
-                runSupportAverage: team.stats.runSupportAverage,
-                oppBattingAverage: team.stats.oppBattingAverage,
-                oppSlugging: team.stats.oppSlugging,
-                oppOPS: team.stats.oppOPS,
-                savePct: team.stats.savePct,
-                strikeoutPerNine: team.stats.strikeoutPerNine,
-                strikeoutToWalkRatioPitcher: team.stats.strikeoutToWalkRatioPitcher,
-                doublePlays: team.stats.doublePlays,
-                fieldingErrors: team.stats.fieldingErrors,
-                fieldingPercentage: team.stats.fieldingPercentage,
-                ReboundsTotal: team.stats.ReboundsTotal,
-                PointsTotal: team.stats.PointsTotal,
-                pointsPergame: team.stats.pointsPergame,
-                blocksTotal: team.stats.blocksTotal,
-                blocksPerGame: team.stats.blocksPerGame,
-                defensiveRebounds: team.stats.defensiveRebounds,
-                defensiveReboundsperGame: team.stats.defensiveReboundsperGame,
-                offensiveRebounds: team.stats.offensiveRebounds,
-                offensiveReboundsperGame: team.stats.offensiveReboundsperGame,
-                steals: team.stats.steals,
-                stealsperGame: team.stats.stealsperGame,
-                effectiveFieldGoalPct: team.stats.effectiveFieldGoalPct,
-                fieldGoalMakesperAttempts: team.stats.fieldGoalMakesperAttempts,
-                freeThrowsMadeperAttemps: team.stats.freeThrowsMadeperAttemps,
-                freeThrowPct: team.stats.freeThrowPct,
-                totalTurnovers: team.stats.totalTurnovers,
-                averageTurnovers: team.stats.averageTurnovers,
-                threePointPct: team.stats.threePointPct,
-                trueShootingPct: team.stats.trueShootingPct,
-                turnoverRatio: team.stats.turnoverRatio,
-                assisttoTurnoverRatio: team.stats.assisttoTurnoverRatio,
-                pointsinPaint: team.stats.pointsinPaint,
-                pace: team.stats.pace,
-                goals: team.stats.goals,
-                goalsPerGame: team.stats.goalsPerGame,
-                assists: team.stats.assists,
-                assistsPerGame: team.stats.assistsPerGame,
-                totalShotsTaken: team.stats.totalShotsTaken,
-                shotsTakenPerGame: team.stats.shotsTakenPerGame,
-                powerPlayGoals: team.stats.powerPlayGoals,
-                powerPlayGoalsPerGame: team.stats.powerPlayGoalsPerGame,
-                powerPlayPct: team.stats.powerPlayPct,
-                shootingPct: team.stats.shootingPct,
-                faceoffsWon: team.stats.faceoffsWon,
-                faceoffsWonPerGame: team.stats.faceoffsWonPerGame,
-                faceoffPercent: team.stats.faceoffPercent,
-                giveaways: team.stats.giveaways,
-                penaltyMinutes: team.stats.penaltyMinutes,
-                penaltyMinutesPerGame: team.stats.penaltyMinutesPerGame,
-                goalsAgainst: team.stats.goalsAgainst,
-                goalsAgainstAverage: team.stats.goalsAgainstAverage,
-                shotsAgainst: team.stats.shotsAgainst,
-                shotsAgainstPerGame: team.stats.shotsAgainstPerGame,
-                shotsBlocked: team.stats.shotsBlocked,
-                shotsBlockedPerGame: team.stats.shotsBlockedPerGame,
-                penaltyKillPct: team.stats.penaltyKillPct,
-                totalSaves: team.stats.totalSaves,
-                savePerGame: team.stats.savePerGame,
-                savePct: team.stats.savePct,
-                takeaways: team.stats.takeaways,
+
+                USFBcompletionPercent: team.stats.USFBcompletionPercent,
+                USFBcompletions: team.stats.USFBcompletions,
+                USFBcompletionsPerGame: team.stats.USFBcompletionsPerGame,
+                USFBnetPassingYards: team.stats.USFBnetPassingYards,
+                USFBnetPassingYardsPerGame: team.stats.USFBnetPassingYardsPerGame,
+                USFBpassingFirstDowns: team.stats.USFBpassingFirstDowns,
+                USFBpassingTouchdowns: team.stats.USFBpassingTouchdowns,
+                USFBpassingYards: team.stats.USFBpassingYards,
+                USFBpassingYardsPerGame: team.stats.USFBpassingYardsPerGame,
+                USFBpassingAttempts: team.stats.USFBpassingAttempts,
+                USFBpassingAttemptsPerGame: team.stats.USFBpassingAttemptsPerGame,
+                USFByardsPerPassAttempt: team.stats.USFByardsPerPassAttempt,
+                USFBrushingAttempts: team.stats.USFBrushingAttempts,
+                USFBrushingFirstDowns: team.stats.USFBrushingFirstDowns,
+                USFBrushingTouchdowns: team.stats.USFBrushingTouchdowns,
+                USFBrushingYards: team.stats.USFBrushingYards,
+                USFBrushingYardsPerGame: team.stats.USFBrushingYardsPerGame,
+                USFByardsPerRushAttempt: team.stats.USFByardsPerRushAttempt,
+                USFBreceivingFirstDowns: team.stats.USFBreceivingFirstDowns,
+                USFBreceivingTouchdowns: team.stats.USFBreceivingTouchdowns,
+                USFBreceivingYards: team.stats.USFBreceivingYards,
+                USFBreceivingYardsPerGame: team.stats.USFBreceivingYardsPerGame,
+                USFBreceivingYardsPerReception: team.stats.USFBreceivingYardsPerReception,
+                USFBreceivingYardsAfterCatch: team.stats.USFBreceivingYardsAfterCatch,
+                USFBreceivingYardsAfterCatchPerGame: team.stats.USFBreceivingYardsAfterCatchPerGame,
+                USFBtotalTouchdowns: team.stats.USFBtotalTouchdowns,
+                USFBtouchdownsPerGame: team.stats.USFBtouchdownsPerGame,
+                USFBtotalPoints: team.stats.USFBtotalPoints,
+                USFBpointsPerGame: team.stats.USFBpointsPerGame,
+                USFBtacklesforLoss: team.stats.USFBtacklesforLoss,
+                USFBtacklesforLossPerGame: team.stats.USFBtacklesforLossPerGame,
+                USFBinterceptions: team.stats.USFBinterceptions,
+                USFByardsPerInterception: team.stats.USFByardsPerInterception,
+                USFBsacksTotal: team.stats.USFBsacksTotal,
+                USFBsacksPerGame: team.stats.USFBsacksPerGame,
+                USFBsackYards: team.stats.USFBsackYards,
+                USFBsackYardsPerGame: team.stats.USFBsackYardsPerGame,
+                USFBstuffs: team.stats.USFBstuffs,
+                USFBstuffsPerGame: team.stats.USFBstuffsPerGame,
+                USFBstuffYards: team.stats.USFBstuffYards,
+                USFBpassesDefended: team.stats.USFBpassesDefended,
+                USFBpassesDefendedPerGame: team.stats.USFBpassesDefendedPerGame,
+                USFBsafties: team.stats.USFBsafties,
+                USFBaverageKickoffYards: team.stats.USFBaverageKickoffYards,
+                USFBaverageKickoffYardsPerGame: team.stats.USFBaverageKickoffYardsPerGame,
+                USFBextraPointAttempts: team.stats.USFBextraPointAttempts,
+                USFBextraPointAttemptsPerGame: team.stats.USFBextraPointAttemptsPerGame,
+                USFBextraPointsMade: team.stats.USFBextraPointsMade,
+                USFBextraPointsMadePerGame: team.stats.USFBextraPointsMadePerGame,
+                USFBextraPointPercent: team.stats.USFBextraPointPercent,
+                USFBextraPointPercentPerGame: team.stats.USFBextraPointPercentPerGame,
+                USFBfieldGoalAttempts: team.stats.USFBfieldGoalAttempts,
+                USFBfieldGoalAttemptsPerGame: team.stats.USFBfieldGoalAttemptsPerGame,
+                USFBfieldGoalsMade: team.stats.USFBfieldGoalsMade,
+                USFBfieldGoalsMadePerGame: team.stats.USFBfieldGoalsMadePerGame,
+                USFBfieldGoalPct: team.stats.USFBfieldGoalPct,
+                USFBfieldGoalPercentPerGame: team.stats.USFBfieldGoalPercentPerGame,
+                USFBtouchbacks: team.stats.USFBtouchbacks,
+                USFBtouchbacksPerGame: team.stats.USFBtouchbacksPerGame,
+                USFBtouchBackPercentage: team.stats.USFBtouchBackPercentage,
+                USFBkickReturns: team.stats.USFBkickReturns,
+                USFBkickReturnsPerGame: team.stats.USFBkickReturnsPerGame,
+                USFBkickReturnYards: team.stats.USFBkickReturnYards,
+                USFBkickReturnYardsPerGame: team.stats.USFBkickReturnYardsPerGame,
+                USFBpuntReturns: team.stats.USFBpuntReturns,
+                USFBpuntReturnsPerGame: team.stats.USFBpuntReturnsPerGame,
+                USFBpuntReturnFairCatchPct: team.stats.USFBpuntReturnFairCatchPct,
+                USFBpuntReturnYards: team.stats.USFBpuntReturnYards,
+                USFBpuntReturnYardsPerGame: team.stats.USFBpuntReturnYardsPerGame,
+                USFByardsPerReturn: team.stats.USFByardsPerReturn,
+                USFBthirdDownEfficiency: team.stats.USFBthirdDownEfficiency,
+                USFBtotalPenyards: team.stats.USFBtotalPenyards,
+                USFBaveragePenYardsPerGame: team.stats.USFBaveragePenYardsPerGame,
+                USFBgiveaways: team.stats.USFBgiveaways,
+                USFBtakeaways: team.stats.USFBtakeaways,
+                USFBturnoverDiff: team.stats.USFBturnoverDiff,
+                USFBtotalFirstDowns: team.stats.USFBtotalFirstDowns,
+
+                //------------------------------AMERICAN FOOTBALL STATS-----------------------------------------------------------
+                BSBbattingStrikeouts: team.stats.BSBbattingStrikeouts,
+                BSBrunsBattedIn: team.stats.BSBrunsBattedIn,
+                BSBsacrificeHits: team.stats.BSBsacrificeHits,
+                BSBHitsTotal: team.stats.BSBHitsTotal,
+                BSBwalks: team.stats.BSBwalks,
+                BSBruns: team.stats.BSBruns,
+                BSBhomeRuns: team.stats.BSBhomeRuns,
+                BSBdoubles: team.stats.BSBdoubles,
+                BSBtotalBases: team.stats.BSBtotalBases,
+                BSBextraBaseHits: team.stats.BSBextraBaseHits,
+                BSBbattingAverage: team.stats.BSBbattingAverage,
+                BSBsluggingPercentage: team.stats.BSBsluggingPercentage,
+                BSBonBasePercentage: team.stats.BSBonBasePercentage,
+                BSBonBasePlusSlugging: team.stats.BSBonBasePlusSlugging,
+                BSBgroundToFlyRatio: team.stats.BSBgroundToFlyRatio,
+                BSBatBatsPerHomeRun: team.stats.BSBatBatsPerHomeRun,
+                BSBstolenBasePercentage: team.stats.BSBstolenBasePercentage,
+                BSBbatterWalkToStrikeoutRatio: team.stats.BSBbatterWalkToStrikeoutRatio,
+                BSBsaves: team.stats.BSBsaves,
+                BSBpitcherStrikeouts: team.stats.BSBpitcherStrikeouts,
+                BSBhitsGivenUp: team.stats.BSBhitsGivenUp,
+                BSBearnedRuns: team.stats.BSBearnedRuns,
+                BSBbattersWalked: team.stats.BSBbattersWalked,
+                BSBrunsAllowed: team.stats.BSBrunsAllowed,
+                BSBhomeRunsAllowed: team.stats.BSBhomeRunsAllowed,
+                BSBwins: team.stats.BSBwins,
+                BSBshutouts: team.stats.BSBshutouts,
+                BSBearnedRunAverage: team.stats.BSBearnedRunAverage,
+                BSBwalksHitsPerInningPitched: team.stats.BSBwalksHitsPerInningPitched,
+                BSBwinPct: team.stats.BSBwinPct,
+                BSBpitcherCaughtStealingPct: team.stats.BSBpitcherCaughtStealingPct,
+                BSBpitchesPerInning: team.stats.BSBpitchesPerInning,
+                BSBrunSupportAverage: team.stats.BSBrunSupportAverage,
+                BSBopponentBattingAverage: team.stats.BSBopponentBattingAverage,
+                BSBopponentSlugAverage: team.stats.BSBopponentSlugAverage,
+                BSBopponentOnBasePct: team.stats.BSBopponentOnBasePct,
+                BSBopponentOnBasePlusSlugging: team.stats.BSBopponentOnBasePlusSlugging,
+                BSBsavePct: team.stats.BSBsavePct,
+                BSBstrikeoutsPerNine: team.stats.BSBstrikeoutsPerNine,
+                BSBpitcherStrikeoutToWalkRatio: team.stats.BSBpitcherStrikeoutToWalkRatio,
+                BSBdoublePlays: team.stats.BSBdoublePlays,
+                BSBerrors: team.stats.BSBerrors,
+                BSBpassedBalls: team.stats.BSBpassedBalls,
+                BSBassists: team.stats.BSBassists,
+                BSBputouts: team.stats.BSBputouts,
+                BSBcatcherCaughtStealing: team.stats.BSBcatcherCaughtStealing,
+                BSBcatcherCaughtStealingPct: team.stats.BSBcatcherCaughtStealingPct,
+                BSBcatcherStolenBasesAllowed: team.stats.BSBcatcherStolenBasesAllowed,
+                BSBfieldingPercentage: team.stats.BSBfieldingPercentage,
+                BSBrangeFactor: team.stats.BSBrangeFactor,
+
+                //------------------------------BASKETBALL STATS-----------------------------------------------------------
+                BSKBtotalPoints: team.stats.BSKBtotalPoints,
+                BSKBpointsPerGame: team.stats.BSKBpointsPerGame,
+                BSKBassists: team.stats.BSKBassists,
+                BSKBassistsPerGame: team.stats.BSKBassistsPerGame,
+                BSKBassistRatio: team.stats.BSKBassistRatio,
+                BSKBeffectiveFgPercent: team.stats.BSKBeffectiveFgPercent,
+                BSKBfieldGoalPercent: team.stats.BSKBfieldGoalPercent,
+                BSKBfieldGoalsAttempted: team.stats.BSKBfieldGoalsAttempted,
+                BSKBfieldGoalsMade: team.stats.BSKBfieldGoalsMade,
+                BSKBfieldGoalsPerGame: team.stats.BSKBfieldGoalsPerGame,
+                BSKBfreeThrowPercent: team.stats.BSKBfreeThrowPercent,
+                BSKBfreeThrowsAttempted: team.stats.BSKBfreeThrowsAttempted,
+                BSKBfreeThrowsMade: team.stats.BSKBfreeThrowsMade,
+                BSKBfreeThrowsMadePerGame: team.stats.BSKBfreeThrowsMadePerGame,
+                BSKBoffensiveRebounds: team.stats.BSKBoffensiveRebounds,
+                BSKBoffensiveReboundsPerGame: team.stats.BSKBoffensiveReboundsPerGame,
+                BSKBoffensiveReboundRate: team.stats.BSKBoffensiveReboundRate,
+                BSKBoffensiveTurnovers: team.stats.BSKBoffensiveTurnovers,
+                BSKBturnoversPerGame: team.stats.BSKBturnoversPerGame,
+                BSKBturnoverRatio: team.stats.BSKBturnoverRatio,
+                BSKBthreePointPct: team.stats.BSKBthreePointPct,
+                BSKBthreePointsAttempted: team.stats.BSKBthreePointsAttempted,
+                BSKBthreePointsMade: team.stats.BSKBthreePointsMade,
+                BSKBtrueShootingPct: team.stats.BSKBtrueShootingPct,
+                BSKBpace: team.stats.BSKBpace,
+                BSKBpointsInPaint: team.stats.BSKBpointsInPaint,
+                BSKBshootingEfficiency: team.stats.BSKBshootingEfficiency,
+                BSKBscoringEfficiency: team.stats.BSKBscoringEfficiency,
+                BSKBblocks: team.stats.BSKBblocks,
+                BSKBblocksPerGame: team.stats.BSKBblocksPerGame,
+                BSKBdefensiveRebounds: team.stats.BSKBdefensiveRebounds,
+                BSKBdefensiveReboundsPerGame: team.stats.BSKBdefensiveReboundsPerGame,
+                BSKBsteals: team.stats.BSKBsteals,
+                BSKBstealsPerGame: team.stats.BSKBstealsPerGame,
+                BSKBreboundRate: team.stats.BSKBreboundRate,
+                BSKBreboundsPerGame: team.stats.BSKBreboundsPerGame,
+                BSKBfoulsPerGame: team.stats.BSKBfoulsPerGame,
+                BSKBteamAssistToTurnoverRatio: team.stats.BSKBteamAssistToTurnoverRatio,
+
+                //------------------------------HOCKEY STATS-----------------------------------------------------------
+                HKYgoals: team.stats.HKYgoals,
+                HKYgoalsPerGame: team.stats.HKYgoalsPerGame,
+                HKYassists: team.stats.HKYassists,
+                HKYassistsPerGame: team.stats.HKYassistsPerGame,
+                HKYshotsIn1st: team.stats.HKYshotsIn1st,
+                HKYshotsIn1stPerGame: team.stats.HKYshotsIn1stPerGame,
+                HKYshotsIn2nd: team.stats.HKYshotsIn2nd,
+                HKYshotsIn2ndPerGame: team.stats.HKYshotsIn2ndPerGame,
+                HKYshotsIn3rd: team.stats.HKYshotsIn3rd,
+                HKYshotsIn3rdPerGame: team.stats.HKYshotsIn3rdPerGame,
+                HKYtotalShots: team.stats.HKYtotalShots,
+                HKYtotalShotsPerGame: team.stats.HKYtotalShotsPerGame,
+                HKYshotsMissed: team.stats.HKYshotsMissed,
+                HKYshotsMissedPerGame: team.stats.HKYshotsMissedPerGame,
+                HKYppgGoals: team.stats.HKYppgGoals,
+                HKYppgGoalsPerGame: team.stats.HKYppgGoalsPerGame,
+                HKYppassists: team.stats.HKYppassists,
+                HKYppassistsPerGame: team.stats.HKYppassistsPerGame,
+                HKYpowerplayPct: team.stats.HKYpowerplayPct,
+                HKYshortHandedGoals: team.stats.HKYshortHandedGoals,
+                HKYshortHandedGoalsPerGame: team.stats.HKYshortHandedGoalsPerGame,
+                HKYshootingPct: team.stats.HKYshootingPct,
+                HKYfaceoffs: team.stats.HKYfaceoffs,
+                HKYfaceoffsPerGame: team.stats.HKYfaceoffsPerGame,
+                HKYfaceoffsWon: team.stats.HKYfaceoffsWon,
+                HKYfaceoffsWonPerGame: team.stats.HKYfaceoffsWonPerGame,
+                HKYfaceoffsLost: team.stats.HKYfaceoffsLost,
+                HKYfaceoffsLostPerGame: team.stats.HKYfaceoffsLostPerGame,
+                HKYfaceoffPct: team.stats.HKYfaceoffPct,
+                HKYfaceoffPctPerGame: team.stats.HKYfaceoffPctPerGame,
+                HKYgiveaways: team.stats.HKYgiveaways,
+                HKYgoalsAgainst: team.stats.HKYgoalsAgainst,
+                HKYgoalsAgainstPerGame: team.stats.HKYgoalsAgainstPerGame,
+                HKYshotsAgainst: team.stats.HKYshotsAgainst,
+                HKYshotsAgainstPerGame: team.stats.HKYshotsAgainstPerGame,
+                HKYpenaltyKillPct: team.stats.HKYpenaltyKillPct,
+                HKYpenaltyKillPctPerGame: team.stats.HKYpenaltyKillPctPerGame,
+                HKYppGoalsAgainst: team.stats.HKYppGoalsAgainst,
+                HKYppGoalsAgainstPerGame: team.stats.HKYppGoalsAgainstPerGame,
+                HKYshutouts: team.stats.HKYshutouts,
+                HKYsaves: team.stats.HKYsaves,
+                HKYsavesPerGame: team.stats.HKYsavesPerGame,
+                HKYsavePct: team.stats.HKYsavePct,
+                HKYblockedShots: team.stats.HKYblockedShots,
+                HKYblockedShotsPerGame: team.stats.HKYblockedShotsPerGame,
+                HKYhits: team.stats.HKYhits,
+                HKYhitsPerGame: team.stats.HKYhitsPerGame,
+                HKYtakeaways: team.stats.HKYtakeaways,
+                HKYtakeawaysPerGame: team.stats.HKYtakeawaysPerGame,
+                HKYshotDifferential: team.stats.HKYshotDifferential,
+                HKYshotDifferentialPerGame: team.stats.HKYshotDifferentialPerGame,
+                HKYgoalDifferentialPerGame: team.stats.HKYgoalDifferentialPerGame,
+                HKYpimDifferential: team.stats.HKYpimDifferential,
+                HKYpimDifferentialPerGame: team.stats.HKYpimDifferentialPerGame,
+                HKYtotalPenalties: team.stats.HKYtotalPenalties,
+                HKYpenaltiesPerGame: team.stats.HKYpenaltiesPerGame,
+                HKYpenaltyMinutes: team.stats.HKYpenaltyMinutes,
+                HKYpenaltyMinutesPerGame: team.stats.HKYpenaltyMinutesPerGame,
             });
             const cleanStats = (stats) => {
                 const cleanedStats = {};
@@ -1766,10 +2440,10 @@ const oddsSeed = async () => {
                                         let scheduleResponse = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${scheduleSport}/${team.league}/teams/${team.espnID}/schedule`);
                                         let scheduleJSON = await scheduleResponse.json();
 
-  
+
                                         // Loop through events in the team's schedule
                                         for (let SBevent of scheduleJSON.events) {
- 
+
                                             // Check if the event matches the current event's date
                                             if (moment(SBevent.date).isSame(moment(event.commence_time), 'hour')) {
 
@@ -1806,33 +2480,85 @@ const oddsSeed = async () => {
                             homeWinLoss: team.homeWinLoss,
                             awayWinLoss: team.awayWinLoss,
                             pointDiff: team.pointDiff,
-                            pointsPerGame: team.stats.pointsPerGame,
-                            totalPoints: team.stats.totalPoints,
-                            totalFirstDowns: team.stats.totalFirstDowns,
-                            rushingFirstDowns: team.stats.rushingFirstDowns,
-                            passingFirstDowns: team.stats.passingFirstDowns,
-                            thirdDownEfficiency: team.stats.thirdDownEfficiency,
-                            netPassingYardsPerGame: team.stats.netPassingYardsPerGame,
-                            interceptions: team.stats.interceptions,
-                            completionPercent: team.stats.completionPercent,
-                            rushingYards: team.stats.rushingYards,
-                            rushingYardsPerGame: team.stats.rushingYardsPerGame,
-                            yardsPerRushAttempt: team.stats.yardsPerRushAttempt,
-                            yardsPerGame: team.stats.yardsPerGame,
-                            fGgoodPct: team.stats.fGgoodPct,
-                            touchBackPercentage: team.stats.touchBackPercentage,
-                            totalPenyards: team.stats.totalPenyards,
-                            averagePenYardsPerGame: team.stats.averagePenYardsPerGame,
-                            giveaways: team.stats.giveaways,
-                            takeaways: team.stats.takeaways,
-                            turnoverDiff: team.stats.turnoverDiff,
-                            sacksTotal: team.stats.sacksTotal,
-                            sacksPerGame: team.stats.sacksPerGame,
-                            yardsLostPerSack: team.stats.yardsLostPerSack,
-                            passesDefended: team.stats.passesDefended,
-                            passesDefendedPerGame: team.stats.passesDefendedPerGame,
-                            tacklesforLoss: team.stats.tacklesforLoss,
-                            tacklesforLossPerGame: team.stats.tacklesforLossPerGame,
+                            //------------------------------SHARED STATS-----------------------------------------------------------
+                            USFBcompletionPercent: team.stats.USFBcompletionPercent,
+                            USFBcompletions: team.stats.USFBcompletions,
+                            USFBcompletionsPerGame: team.stats.USFBcompletionsPerGame,
+                            USFBnetPassingYards: team.stats.USFBnetPassingYards,
+                            USFBnetPassingYardsPerGame: team.stats.USFBnetPassingYardsPerGame,
+                            USFBpassingFirstDowns: team.stats.USFBpassingFirstDowns,
+                            USFBpassingTouchdowns: team.stats.USFBpassingTouchdowns,
+                            USFBpassingYards: team.stats.USFBpassingYards,
+                            USFBpassingYardsPerGame: team.stats.USFBpassingYardsPerGame,
+                            USFBpassingAttempts: team.stats.USFBpassingAttempts,
+                            USFBpassingAttemptsPerGame: team.stats.USFBpassingAttemptsPerGame,
+                            USFByardsPerPassAttempt: team.stats.USFByardsPerPassAttempt,
+                            USFBrushingAttempts: team.stats.USFBrushingAttempts,
+                            USFBrushingFirstDowns: team.stats.USFBrushingFirstDowns,
+                            USFBrushingTouchdowns: team.stats.USFBrushingTouchdowns,
+                            USFBrushingYards: team.stats.USFBrushingYards,
+                            USFBrushingYardsPerGame: team.stats.USFBrushingYardsPerGame,
+                            USFByardsPerRushAttempt: team.stats.USFByardsPerRushAttempt,
+                            USFBreceivingFirstDowns: team.stats.USFBreceivingFirstDowns,
+                            USFBreceivingTouchdowns: team.stats.USFBreceivingTouchdowns,
+                            USFBreceivingYards: team.stats.USFBreceivingYards,
+                            USFBreceivingYardsPerGame: team.stats.USFBreceivingYardsPerGame,
+                            USFBreceivingYardsPerReception: team.stats.USFBreceivingYardsPerReception,
+                            USFBreceivingYardsAfterCatch: team.stats.USFBreceivingYardsAfterCatch,
+                            USFBreceivingYardsAfterCatchPerGame: team.stats.USFBreceivingYardsAfterCatchPerGame,
+                            USFBtotalTouchdowns: team.stats.USFBtotalTouchdowns,
+                            USFBtouchdownsPerGame: team.stats.USFBtouchdownsPerGame,
+                            USFBtotalPoints: team.stats.USFBtotalPoints,
+                            USFBpointsPerGame: team.stats.USFBpointsPerGame,
+                            USFBtacklesforLoss: team.stats.USFBtacklesforLoss,
+                            USFBtacklesforLossPerGame: team.stats.USFBtacklesforLossPerGame,
+                            USFBinterceptions: team.stats.USFBpoUSFBinterceptionsintsPerGame,
+                            USFByardsPerInterception: team.stats.USFByardsPerInterception,
+                            USFBsacksTotal: team.stats.USFBsacksTotal,
+                            USFBsacksPerGame: team.stats.USFBsacksPerGame,
+                            USFBsackYards: team.stats.USFBsackYards,
+                            USFBsackYardsPerGame: team.stats.USFBsackYardsPerGame,
+                            USFBstuffs: team.stats.USFBstuffs,
+                            USFBstuffsPerGame: team.stats.USFBstuffsPerGame,
+                            USFBstuffYards: team.stats.USFBstuffYards,
+                            USFBpassesDefended: team.stats.USFBpassesDefended,
+                            USFBpassesDefendedPerGame: team.stats.USFBpassesDefendedPerGame,
+                            USFBsafties: team.stats.USFBsafties,
+                            USFBaverageKickoffYards: team.stats.USFBaverageKickoffYards,
+                            USFBaverageKickoffYardsPerGame: team.stats.USFBaverageKickoffYardsPerGame,
+                            USFBextraPointAttempts: team.stats.USFBextraPointAttempts,
+                            USFBextraPointAttemptsPerGame: team.stats.USFBextraPointAttemptsPerGame,
+                            USFBextraPointsMade: team.stats.USFBextraPointsMade,
+                            USFBextraPointsMadePerGame: team.stats.USFBextraPointsMadePerGame,
+                            USFBextraPointPercent: team.stats.USFBextraPointPercent,
+                            USFBextraPointPercentPerGame: team.stats.USFBpoiUSFBextraPointPercentPerGamentsPerGame,
+                            USFBfieldGoalAttempts: team.stats.USFBpoiUSFBfieldGoalAttemptsntsPerGame,
+                            USFBfieldGoalAttemptsPerGame: team.stats.USFBfieldGoalAttemptsPerGame,
+                            USFBfieldGoalsMade: team.stats.USFBfieldGoalsMade,
+                            USFBfieldGoalsMadePerGame: team.stats.USFBfieldGoalsMadePerGame,
+                            USFBfieldGoalPct: team.stats.USFBfieldGoalPct,
+                            USFBfieldGoalPercentPerGame: team.stats.USFBfieldGoalPercentPerGame,
+                            USFBtouchbacks: team.stats.USFBtouchbacks,
+                            USFBtouchbacksPerGame: team.stats.USFBtouchbacksPerGame,
+                            USFBtouchBackPercentage: team.stats.USFBtouchBackPercentage,
+                            USFBkickReturns: team.stats.USFBkickReturns,
+                            USFBkickReturnsPerGame: team.stats.USFBkickReturnsPerGame,
+                            USFBkickReturnYards: team.stats.USFBkickReturnYards,
+                            USFBkickReturnYardsPerGame: team.stats.USFBkickReturnYardsPerGame,
+                            USFBpuntReturns: team.stats.USFBpuntReturns,
+                            USFBpuntReturnsPerGame: team.stats.USFBpuntReturnsPerGame,
+                            USFBpuntReturnFairCatchPct: team.stats.USFBpuntReturnFairCatchPct,
+                            USFBpuntReturnYards: team.stats.USFBpuntReturnYards,
+                            USFBpuntReturnYardsPerGame: team.stats.USFBpuntReturnYardsPerGame,
+                            USFByardsPerReturn: team.stats.USFByardsPerReturn,
+                            USFBthirdDownEfficiency: team.stats.USFBthirdDownEfficiency,
+                            USFBtotalPenyards: team.stats.USFBtotalPenyards,
+                            USFBaveragePenYardsPerGame: team.stats.USFBaveragePenYardsPerGame,
+                            USFBgiveaways: team.stats.USFBgiveaways,
+                            USFBtakeaways: team.stats.USFBtakeaways,
+                            USFBturnoverDiff: team.stats.USFBturnoverDiff,
+                            USFBtotalFirstDowns: team.stats.USFBtotalFirstDowns,
+                            //------------------------------AMERICAN FOOTBALL STATS-----------------------------------------------------------
                             strikeoutsTotal: team.stats.strikeoutsTotal,
                             rBIsTotal: team.stats.rBIsTotal,
                             hitsTotal: team.stats.hitsTotal,
@@ -2020,7 +2746,7 @@ const dataSeed = async () => {
 
     async function trainSportModel(sport, gameData) {
         currentOdds = await Odds.find({ sport_key: sport.name }) //USE THIS TO POPULATE UPCOMING GAME ODDS
-        if (gameData.length < 5) {
+        if (gameData.length === 0) {
             // Handle the case where there is no data for this sport
             console.log(`No data available for ${sport.league}. Skipping model training.`);
             // You could also add logic to handle this case more gracefully, 

@@ -48,134 +48,256 @@ const BaseballTeamSchema = new Schema({
         required: false
     },
     stats: {
-        strikeoutsTotal: {
+        BSBbattingStrikeouts: {
             type: Number,
-            required: false
+            required: false,
+            category: 'batting'
         },
-        rBIsTotal: {
+        BSBrunsBattedIn: {
             type: Number,
-            required: false
+            required: false,
+            category: 'batting'
         },
-        hitsTotal: {
+        BSBsacrificeHits: {
             type: Number,
-            required: false
+            required: false,
+            category: 'batting'
         },
-        stolenBasesTotal: {
+        BSBHitsTotal: {
             type: Number,
-            required: false
+            required: false,
+            category: 'batting'
         },
-        walksTotal: {
+        BSBwalks: {
             type: Number,
-            required: false
+            required: false,
+            category: 'batting'
         },
-        runsTotal: {
+        BSBruns: {
             type: Number,
-            required: false
+            required: false,
+            category: 'batting'
         },
-        homeRunsTotal: {
+        BSBhomeRuns: {
             type: Number,
-            required: false
+            required: false,
+            category: 'batting'
         },
-        totalBases: {
+        BSBdoubles: {
             type: Number,
-            required: false
+            required: false,
+            category: 'batting'
         },
-        extraBaseHitsTotal: {
+        BSBtotalBases: {
             type: Number,
-            required: false
+            required: false,
+            category: 'batting'
         },
-        battingAverageTotal: {
+        BSBextraBaseHits: {
             type: Number,
-            required: false
+            required: false,
+            category: 'batting'
         },
-        sluggingPercentage: {
+        BSBbattingAverage: {
             type: Number,
-            required: false
+            required: false,
+            category: 'batting'
         },
-        onBasePercent: {
+        BSBsluggingPercentage: {
             type: Number,
-            required: false
+            required: false,
+            category: 'batting'
         },
-        onBasePlusSlugging: {
+        BSBonBasePercentage: {
             type: Number,
-            required: false
+            required: false,
+            category: 'batting'
         },
-        stolenBasePct: {
+        BSBonBasePlusSlugging: {
             type: Number,
-            required: false
+            required: false,
+            category: 'batting'
         },
-        walkToStrikeoutRatio: {
+        BSBgroundToFlyRatio: {
             type: Number,
-            required: false
+            required: false,
+            category: 'batting'
         },
-        saves: {
+        BSBatBatsPerHomeRun: {
             type: Number,
-            required: false
+            required: false,
+            category: 'batting'
         },
-        strikeoutsPitchingTotal: {
+        BSBstolenBasePercentage: {
             type: Number,
-            required: false
+            required: false,
+            category: 'batting'
         },
-        walksPitchingTotal: {
+        BSBbatterWalkToStrikeoutRatio: {
             type: Number,
-            required: false
+            required: false,
+            category: 'batting'
         },
-        qualityStarts: {
+        BSBsaves: {
             type: Number,
-            required: false
+            required: false,
+            category: 'pitching'
         },
-        earnedRunAverage: {
+        BSBpitcherStrikeouts: {
             type: Number,
-            required: false
+            required: false,
+            category: 'pitching'
         },
-        walksHitsPerInningPitched: {
+        BSBhitsGivenUp: {
             type: Number,
-            required: false
+            required: false,
+            category: 'pitching'
         },
-        groundToFlyRatio: {
+        BSBearnedRuns: {
             type: Number,
-            required: false
+            required: false,
+            category: 'pitching'
         },
-        runSupportAverage: {
+        BSBbattersWalked: {
             type: Number,
-            required: false
+            required: false,
+            category: 'pitching'
         },
-        oppBattingAverage: {
+        BSBrunsAllowed: {
             type: Number,
-            required: false
+            required: false,
+            category: 'pitching'
         },
-        oppSlugging: {
+        BSBhomeRunsAllowed: {
             type: Number,
-            required: false
+            required: false,
+            category: 'pitching'
         },
-        oppOPS: {
+        BSBwins: {
             type: Number,
-            required: false
+            required: false,
+            category: 'pitching'
         },
-        savePct: {
+        BSBshutouts: {
             type: Number,
-            required: false
+            required: false,
+            category: 'pitching'
         },
-        strikeoutPerNine: {
+        BSBearnedRunAverage: {
             type: Number,
-            required: false
+            required: false,
+            category: 'pitching'
         },
-        strikeoutToWalkRatioPitcher: {
+        BSBwalksHitsPerInningPitched: {
             type: Number,
-            required: false
+            required: false,
+            category: 'pitching'
         },
-        doublePlays: {
+        BSBwinPct: {
             type: Number,
-            required: false
+            required: false,
+            category: 'pitching'
         },
-        fieldingErrors: {
+        BSBpitcherCaughtStealingPct: {
             type: Number,
-            required: false
+            required: false,
+            category: 'pitching'
         },
-        fieldingPercentage: {
+        BSBpitchesPerInning: {
             type: Number,
-            required: false
+            required: false,
+            category: 'pitching'
         },
+        BSBrunSupportAverage: {
+            type: Number,
+            required: false,
+            category: 'pitching'
+        },
+        BSBopponentBattingAverage: {
+            type: Number,
+            required: false,
+            category: 'pitching'
+        },
+        BSBopponentSlugAverage: {
+            type: Number,
+            required: false,
+            category: 'pitching'
+        },
+        BSBopponentOnBasePct: {
+            type: Number,
+            required: false,
+            category: 'pitching'
+        },
+        BSBopponentOnBasePlusSlugging: {
+            type: Number,
+            required: false,
+            category: 'pitching'
+        },
+        BSBsavePct: {
+            type: Number,
+            required: false,
+            category: 'pitching'
+        },
+        BSBstrikeoutsPerNine: {
+            type: Number,
+            required: false,
+            category: 'pitching'
+        },
+        BSBpitcherStrikeoutToWalkRatio: {
+            type: Number,
+            required: false,
+            category: 'pitching'
+        },
+        BSBdoublePlays: {
+            type: Number,
+            required: false,
+            category: 'fielding'
+        },
+        BSBerrors: {
+            type: Number,
+            required: false,
+            category: 'fielding'
+        },
+        BSBpassedBalls: {
+            type: Number,
+            required: false,
+            category: 'fielding'
+        },
+        BSBassists: {
+            type: Number,
+            required: false,
+            category: 'fielding'
+        },
+        BSBputouts: {
+            type: Number,
+            required: false,
+            category: 'fielding'
+        },
+        BSBcatcherCaughtStealing: {
+            type: Number,
+            required: false,
+            category: 'fielding'
+        },
+        BSBcatcherCaughtStealingPct: {
+            type: Number,
+            required: false,
+            category: 'fielding'
+        },
+        BSBcatcherStolenBasesAllowed: {
+            type: Number,
+            required: false,
+            category: 'fielding'
+        },
+        BSBfieldingPercentage: {
+            type: Number,
+            required: false,
+            category: 'fielding'
+        },
+        BSBrangeFactor: {
+            type: Number,
+            required: false,
+            category: 'fielding'
+        }
     }
     
 })

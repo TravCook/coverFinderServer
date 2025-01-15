@@ -48,113 +48,295 @@ const HockeyTeamSchema = new Schema({
         required: false
     },
     stats: {
-        goals: {
+        HKYgoals: {
             type: Number,
-            required: false
+            required: false,
+            category: 'offensive'
         },
-        goalsPerGame: {
+        HKYgoalsPerGame: {
             type: Number,
-            required: false
+            required: false,
+            category: 'offensive'
         },
-        assists: {
+        HKYassists: {
             type: Number,
-            required: false
+            required: false,
+            category: 'offensive'
         },
-        assistsPerGame: {
+        HKYassistsPerGame: {
             type: Number,
-            required: false
+            required: false,
+            category: 'offensive'
         },
-        totalShotsTaken: {
+        HKYshotsIn1st: {
             type: Number,
-            required: false
+            required: false,
+            category: 'offensive'
         },
-        shotsTakenPerGame: {
+        HKYshotsIn1stPerGame: {
             type: Number,
-            required: false
+            required: false,
+            category: 'offensive'
         },
-        powerPlayGoals: {
+        HKYshotsIn2nd: {
             type: Number,
-            required: false
+            required: false,
+            category: 'offensive'
         },
-        powerPlayGoalsPerGame: {
+        HKYshotsIn2ndPerGame: {
             type: Number,
-            required: false
+            required: false,
+            category: 'offensive'
         },
-        powerPlayPct: {
+        HKYshotsIn3rd: {
             type: Number,
-            required: false
+            required: false,
+            category: 'offensive'
         },
-        shootingPct: {
+        HKYshotsIn3rdPerGame: {
             type: Number,
-            required: false
+            required: false,
+            category: 'offensive'
         },
-        faceoffsWon: {
+        HKYtotalShots: {
             type: Number,
-            required: false
+            required: false,
+            category: 'offensive'
         },
-        faceoffsWonPerGame: {
+        HKYtotalShotsPerGame: {
             type: Number,
-            required: false
+            required: false,
+            category: 'offensive'
         },
-        faceoffPercent: {
+        HKYshotsMissed: {
             type: Number,
-            required: false
+            required: false,
+            category: 'offensive'
         },
-        giveaways: {
+        HKYshotsMissedPerGame: {
             type: Number,
-            required: false
+            required: false,
+            category: 'offensive'
         },
-        penaltyMinutes: {
+        HKYppgGoals: {
             type: Number,
-            required: false
+            required: false,
+            category: 'offensive'
         },
-        penaltyMinutesPerGame: {
+        HKYppgGoalsPerGame: {
             type: Number,
-            required: false
+            required: false,
+            category: 'offensive'
         },
-        goalsAgainst: {
+        HKYppassists: {
             type: Number,
-            required: false
+            required: false,
+            category: 'offensive'
         },
-        goalsAgainstAverage: {
+        HKYppassistsPerGame: {
             type: Number,
-            required: false
+            required: false,
+            category: 'offensive'
         },
-        shotsAgainst: {
+        HKYpowerplayPct: {
             type: Number,
-            required: false
+            required: false,
+            category: 'offensive'
         },
-        shotsAgainstPerGame: {
+        HKYshortHandedGoals: {
             type: Number,
-            required: false
+            required: false,
+            category: 'offensive'
         },
-        shotsBlocked: {
+        HKYshortHandedGoalsPerGame: {
             type: Number,
-            required: false
+            required: false,
+            category: 'offensive'
         },
-        shotsBlockedPerGame: {
+        HKYshootingPct: {
             type: Number,
-            required: false
+            required: false,
+            category: 'offensive'
         },
-        penaltyKillPct: {
+        HKYfaceoffs: {
             type: Number,
-            required: false
+            required: false,
+            category: 'offensive'
         },
-        totalSaves: {
+        HKYfaceoffsPerGame: {
             type: Number,
-            required: false
+            required: false,
+            category: 'offensive'
         },
-        savePerGame: {
+        HKYfaceoffsWon: {
             type: Number,
-            required: false
+            required: false,
+            category: 'offensive'
         },
-        savePct: {
+        HKYfaceoffsWonPerGame: {
             type: Number,
-            required: false
+            required: false,
+            category: 'offensive'
         },
-        takeaways: {
+        HKYfaceoffsLost: {
             type: Number,
-            required: false
+            required: false,
+            category: 'offensive'
+        },
+        HKYfaceoffsLostPerGame: {
+            type: Number,
+            required: false,
+            category: 'offensive'
+        },
+        HKYfaceoffPct: {
+            type: Number,
+            required: false,
+            category: 'offensive'
+        },
+        HKYfaceoffPctPerGame: {
+            type: Number,
+            required: false,
+            category: 'offensive'
+        },
+        HKYgiveaways: {
+            type: Number,
+            required: false,
+            category: 'offensive'
+        },
+        HKYgoalsAgainst: {
+            type: Number,
+            required: false,
+            category: 'defensive'
+        },
+        HKYgoalsAgainstPerGame: {
+            type: Number,
+            required: false,
+            category: 'defensive'
+        },
+        HKYshotsAgainst: {
+            type: Number,
+            required: false,
+            category: 'defensive'
+        },
+        HKYshotsAgainstPerGame: {
+            type: Number,
+            required: false,
+            category: 'defensive'
+        },
+        HKYpenaltyKillPct: {
+            type: Number,
+            required: false,
+            category: 'defensive'
+        },
+        HKYpenaltyKillPctPerGame: {
+            type: Number,
+            required: false,
+            category: 'defensive'
+        },
+        HKYppGoalsAgainst: {
+            type: Number,
+            required: false,
+            category: 'defensive'
+        },
+        HKYppGoalsAgainstPerGame: {
+            type: Number,
+            required: false,
+            category: 'defensive'
+        },
+        HKYshutouts: {
+            type: Number,
+            required: false,
+            category: 'defensive'
+        },
+        HKYsaves: {
+            type: Number,
+            required: false,
+            category: 'defensive'
+        },
+        HKYsavesPerGame: {
+            type: Number,
+            required: false,
+            category: 'defensive'
+        },
+        HKYsavePct: {
+            type: Number,
+            required: false,
+            category: 'defensive'
+        },
+        HKYblockedShots: {
+            type: Number,
+            required: false,
+            category: 'defensive'
+        },
+        HKYblockedShotsPerGame: {
+            type: Number,
+            required: false,
+            category: 'defensive'
+        },
+        HKYhits: {
+            type: Number,
+            required: false,
+            category: 'defensive'
+        },
+        HKYhitsPerGame: {
+            type: Number,
+            required: false,
+            category: 'defensive'
+        },
+        HKYtakeaways: {
+            type: Number,
+            required: false,
+            category: 'defensive'
+        },
+        HKYtakeawaysPerGame: {
+            type: Number,
+            required: false,
+            category: 'defensive'
+        },
+        HKYshotDifferential: {
+            type: Number,
+            required: false,
+            category: 'general'
+        },
+        HKYshotDifferentialPerGame: {
+            type: Number,
+            required: false,
+            category: 'general'
+        },
+        HKYgoalDifferentialPerGame: {
+            type: Number,
+            required: false,
+            category: 'general'
+        },
+        HKYpimDifferential: {
+            type: Number,
+            required: false,
+            category: 'general'
+        },
+        HKYpimDifferentialPerGame: {
+            type: Number,
+            required: false,
+            category: 'general'
+        },
+        HKYtotalPenalties: {
+            type: Number,
+            required: false,
+            category: 'penalties'
+        },
+        HKYpenaltiesPerGame: {
+            type: Number,
+            required: false,
+            category: 'penalties'
+        },
+        HKYpenaltyMinutes: {
+            type: Number,
+            required: false,
+            category: 'penalties'
+        },
+        HKYpenaltyMinutesPerGame: {
+            type: Number,
+            required: false,
+            category: 'penalties'
         }
     }
     
