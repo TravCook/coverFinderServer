@@ -2335,7 +2335,9 @@ const normalizeTeamName = (teamName, league) => {
         "Loyola (Chi) Ramblers": "Loyola Chicago Ramblers",
         "IUPUI Jaguars": "IU Indianapolis Jaguars",
         "Fort Wayne Mastodons": "Purdue Fort Wayne Mastodons",
-        "Boston Univ. Terriers": "Boston University Terriers"
+        "Boston Univ. Terriers": "Boston University Terriers",
+        "Army Knights": "Army Black Knights",
+        "Gardner-Webb Bulldogs": "Gardner-Webb Runnin' Bulldogs"
     }
 
 
