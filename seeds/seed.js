@@ -127,16 +127,16 @@ const retrieveTeamsandStats = async () => {
                     { modelField: 'USFBrushingYardsPerGame', isPerGame: true, category: 'rushing' }
                 ],
                 'yardsPerRushAttempt': [{ modelField: 'USFByardsPerRushAttempt', category: 'rushing' }],
-                'receivingFirstDowns': [{ modelField: 'USFBreceivingFirstDowns', category: 'recieving' }],
-                'receivingTouchdowns': [{ modelField: 'USFBreceivingTouchdowns', category: 'recieving' }],
+                'receivingFirstDowns': [{ modelField: 'USFBreceivingFirstDowns', category: 'receiving' }],
+                'receivingTouchdowns': [{ modelField: 'USFBreceivingTouchdowns', category: 'receiving' }],
                 'receivingYards': [
-                    { modelField: 'USFBreceivingYards', category: 'recieving' },
-                    { modelField: 'USFBreceivingYardsPerGame', category: 'recieving' }
+                    { modelField: 'USFBreceivingYards', category: 'receiving' },
+                    { modelField: 'USFBreceivingYardsPerGame', category: 'receiving' }
                 ],
-                'yardsPerReception': [{ modelField: 'USFBreceivingYardsPerReception', category: 'recieving' }],
+                'yardsPerReception': [{ modelField: 'USFBreceivingYardsPerReception', category: 'receiving' }],
                 'receivingYardsAfterCatch': [
-                    { modelField: 'USFBreceivingYardsAfterCatch', category: 'recieving' },
-                    { modelField: 'USFBreceivingYardsAfterCatchPerGame', category: 'recieving' }
+                    { modelField: 'USFBreceivingYardsAfterCatch', category: 'receiving' },
+                    { modelField: 'USFBreceivingYardsAfterCatchPerGame', category: 'receiving' }
                 ],
                 'totalTouchdowns': [
                     { modelField: 'USFBtotalTouchdowns', category: 'scoring' },
