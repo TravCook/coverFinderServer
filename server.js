@@ -86,7 +86,7 @@ io.on('connection', async (socket) => {
         sport_title: 1, 
         sport:1, 
         bookmakers: 1}).sort({ commence_time: 1, winPercent: 1 }), // Sorting in database
-      PastGameOdds.find({}, {commence_time: 1, 
+      PastGameOdds.find({homeTeamIndex: { $ne: "$awayTeamIndex" }}, {commence_time: 1, 
         home_team: 1, 
         homeTeamIndex: 1, 
         homeScore: 1, 
