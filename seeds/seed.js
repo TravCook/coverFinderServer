@@ -127,20 +127,20 @@ const retrieveTeamsandStats = async () => {
                     { modelField: 'USFBrushingYardsPerGame', isPerGame: true, category: 'rushing' }
                 ],
                 'yardsPerRushAttempt': [{ modelField: 'USFByardsPerRushAttempt', category: 'rushing' }],
-                'receivingFirstDowns': [{ modelField: 'USFBreceivingFirstDowns', category: 'rushing' }],
-                'receivingTouchdowns': [{ modelField: 'USFBreceivingTouchdowns', category: 'rushing' }],
+                'receivingFirstDowns': [{ modelField: 'USFBreceivingFirstDowns', category: 'recieving' }],
+                'receivingTouchdowns': [{ modelField: 'USFBreceivingTouchdowns', category: 'recieving' }],
                 'receivingYards': [
-                    { modelField: 'USFBreceivingYards', category: 'rushing' },
-                    { modelField: 'USFBreceivingYardsPerGame', category: 'rushing' }
+                    { modelField: 'USFBreceivingYards', category: 'recieving' },
+                    { modelField: 'USFBreceivingYardsPerGame', category: 'recieving' }
                 ],
-                'yardsPerReception': [{ modelField: 'USFBreceivingYardsPerReception', category: 'rushing' }],
+                'yardsPerReception': [{ modelField: 'USFBreceivingYardsPerReception', category: 'recieving' }],
                 'receivingYardsAfterCatch': [
-                    { modelField: 'USFBreceivingYardsAfterCatch', category: 'rushing' },
-                    { modelField: 'USFBreceivingYardsAfterCatchPerGame', category: 'rushing' }
+                    { modelField: 'USFBreceivingYardsAfterCatch', category: 'recieving' },
+                    { modelField: 'USFBreceivingYardsAfterCatchPerGame', category: 'recieving' }
                 ],
                 'totalTouchdowns': [
-                    { modelField: 'USFBtotalTouchdowns', category: 'rushing' },
-                    { modelField: 'USFBtouchdownsPerGame', category: 'rushing' }
+                    { modelField: 'USFBtotalTouchdowns', category: 'scoring' },
+                    { modelField: 'USFBtouchdownsPerGame', category: 'scoring' }
                 ],
                 'totalPoints': [{ modelField: 'USFBtotalPoints', category: 'scoring' }],
                 'totalPointsPerGame': [{ modelField: 'USFBpointsPerGame', category: 'scoring' }],
