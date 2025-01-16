@@ -140,7 +140,7 @@ const retrieveTeamsandStats = async () => {
                 ],
                 'totalTouchdowns': [
                     { modelField: 'USFBtotalTouchdowns', category: 'scoring' },
-                    { modelField: 'USFBtouchdownsPerGame', category: 'scoring' }
+                    { modelField: 'USFBtouchdownsPerGame', isPerGame: true, category: 'scoring' }
                 ],
                 'totalPoints': [{ modelField: 'USFBtotalPoints', category: 'scoring' }],
                 'totalPointsPerGame': [{ modelField: 'USFBpointsPerGame', category: 'scoring' }],
