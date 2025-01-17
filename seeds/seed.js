@@ -2371,6 +2371,10 @@ const normalizeTeamName = (teamName, league) => {
     if(league === 'basketball_wncaab'){
         if(teamName === 'Penn State Nittany Lions'){
             teamName === 'Penn State Lady Lions'
+        }else if(teamName === 'Georgia Bulldogs'){
+            teamName = 'Georgia Lady Bulldogs'
+        }else if(teamName === 'Tennessee Volunteers'){
+            teamName = 'Tennessee Lady Volunteers'
         }
     }
 
