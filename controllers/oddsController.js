@@ -67,7 +67,18 @@ module.exports = {
 
     async getQuickOdds(req, res) {
         try {
-            const odds = await Odds.findOne({id: req.params.id});
+            let odds = await Odds.findOne({ id: req.params.id });
+            
+            // If no odds are found, search in pastGameOdds
+            if (!odds) {
+                odds = await pastGameOdds.findOne({ id: req.params.id });
+            }
+    
+            // If still no odds are found, return a 404 error
+            if (!odds) {
+                return res.status(404).json({ message: 'Game odds not found' });
+            }
+    
             return res.json(odds);
         } catch (err) {
             return res.status(500).json({ message: err.message });
