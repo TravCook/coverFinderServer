@@ -71,7 +71,7 @@ module.exports = {
             
             // If no odds are found, search in pastGameOdds
             if (!odds) {
-                odds = await pastGameOdds.findOne({ id: req.params.id });
+                odds = await PastGameOdds.findOne({ id: req.params.id });
             }
     
             // If still no odds are found, return a 404 error
