@@ -111,8 +111,8 @@ const retrieveTeamsandStats = async () => {
                 'passingFirstDowns': [{ modelField: 'USFBpassingFirstDowns', category: 'passing' }],
                 'passingTouchdowns': [{ modelField: 'USFBpassingTouchdowns', category: 'passing' }],
                 'passingYards': [
-                    { USFBpassingYards: 'USFBnetPassingYards', category: 'passing' },
-                    { USFBpassingYardsPerGame: 'USFBnetPassingYardsPerGame', isPerGame: true, category: 'passing' }
+                    { USFBpassingYards: 'USFBPassingYards', category: 'passing' },
+                    { USFBpassingYardsPerGame: 'USFBPassingYardsPerGame', isPerGame: true, category: 'passing' }
                 ],
                 'passingAttempts': [
                     { modelField: 'USFBpassingAttempts', category: 'passing' },
