@@ -169,31 +169,31 @@ const retrieveTeamsandStats = async () => {
                 ],
                 'safeties': [{ modelField: 'USFBsafties', category: 'defensive' }],
                 'avgKickoffYards': [
-                    { modelField: 'USFBaverageKickoffYards', category: 'defensive' },
+                    { modelField: 'USFBaverageKickoffYards', category: 'kicking' },
                     { modelField: 'USFBaverageKickoffYardsPerGame', isPerGame: true, category: 'kicking' }
                 ],
                 'extraPointAttempts': [
-                    { modelField: 'USFBextraPointAttempts', category: 'defensive' },
+                    { modelField: 'USFBextraPointAttempts', category: 'kicking' },
                     { modelField: 'USFBextraPointAttemptsPerGame', isPerGame: true, category: 'kicking' }
                 ],
                 'extraPointsMade': [
-                    { modelField: 'USFBextraPointsMade', category: 'defensive' },
+                    { modelField: 'USFBextraPointsMade', category: 'kicking' },
                     { modelField: 'USFBextraPointsMadePerGame', isPerGame: true, category: 'kicking' }
                 ],
                 'extraPointPct': [
-                    { modelField: 'USFBextraPointPercent', category: 'defensive' },
+                    { modelField: 'USFBextraPointPercent', category: 'kicking' },
                     { modelField: 'USFBextraPointPercentPerGame', isPerGame: true, category: 'kicking' }
                 ],
                 'fieldGoalAttempts': [
-                    { modelField: 'USFBfieldGoalAttempts', category: 'defensive' },
+                    { modelField: 'USFBfieldGoalAttempts', category: 'kicking' },
                     { modelField: 'USFBfieldGoalAttemptsPerGame', isPerGame: true, category: 'kicking' }
                 ],
                 'fieldGoalsMade': [
-                    { modelField: 'USFBfieldGoalsMade', category: 'defensive' },
+                    { modelField: 'USFBfieldGoalsMade', category: 'kicking' },
                     { modelField: 'USFBfieldGoalsMadePerGame', isPerGame: true, category: 'kicking' }
                 ],
                 'fieldGoalPct': [
-                    { modelField: 'USFBfieldGoalPct', category: 'defensive' },
+                    { modelField: 'USFBfieldGoalPct', category: 'kicking' },
                     { modelField: 'USFBfieldGoalPercentPerGame', isPerGame: true, category: 'kicking' }
                 ],
                 'touchbacks': [
