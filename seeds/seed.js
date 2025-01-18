@@ -2817,7 +2817,7 @@ const oddsSeed = async () => {
                     }
                 })
             })
-            const dataSize = Buffer.byteLength(JSON.stringify({data}), 'utf8'); // Get data size in bytes
+            const dataSize = Buffer.byteLength({data}, 'utf8'); // Get data size in bytes
             console.log(`retrieveStats Data size for DB: ${dataSize / 1024} KB`);  // Convert to KB or MB if 
             console.info('Odds Seeding complete! 🌱');
         } catch (err) {

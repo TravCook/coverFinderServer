@@ -36,7 +36,7 @@ async function getCachedOdds(cacheKey, query, filterDays = 30) {
             // Apply filter
             odds = filterOddsByCommenceTime(odds, filterDays);
             // Store in cache for 1 minute (to avoid querying DB repeatedly)
-            myCache.set(cacheKey, JSON.stringify(odds), 60);
+            myCache.set(cacheKey, JSON.stringify(odds), 2700);
         } catch (err) {
             throw new Error('Error fetching odds: ' + err.message);
         }
@@ -49,61 +49,68 @@ async function getCachedOdds(cacheKey, query, filterDays = 30) {
 module.exports = {
     async getAllOdds(req, res) {
         try {
-            let odds = await Odds.find({}, {
-                commence_time: 1,
-                home_team: 1,
-                homeTeamIndex: 1,
-                homeScore: 1,
-                away_team: 1,
-                awayTeamIndex: 1,
-                awayScore: 1,
-                winPercent: 1,
-                homeTeamlogo: 1,
-                awayTeamlogo: 1,
-                winner: 1,
-                predictionCorrect: 1,
-                id: 1,
-                sport_key: 1,
-                sport_title: 1,
-                sport: 1,
-                bookmakers: 1
-            }).sort({ commence_time: 1, winPercent: 1 })
-            let pastGames = await PastGameOdds.find({}, {
-                commence_time: 1,
-                home_team: 1,
-                homeTeamIndex: 1,
-                homeScore: 1,
-                away_team: 1,
-                awayTeamIndex: 1,
-                awayScore: 1,
-                winPercent: 1,
-                homeTeamlogo: 1,
-                awayTeamlogo: 1,
-                winner: 1,
-                predictionCorrect: 1,
-                id: 1,
-                sport_key: 1,
-                sport_title: 1,
-                sport: 1,
-                bookmakers: 1
-            }).sort({ commence_time: -1, winPercent: 1 }) // Sorting in database
-
-            const [footballTeams, basketballTeams, baseballTeams, hockeyTeams] = await Promise.all([UsaFootballTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }),
-            BasketballTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }),
-            BaseballTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }),
-            HockeyTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 })])
-
-            let data = {
-                odds: odds,
-                pastGameOdds: pastGames,
-                teams: {
-                    football: footballTeams,
-                    basketball: basketballTeams,
-                    baseball: baseballTeams,
-                    hockey: hockeyTeams
+            let data = myCache.get('fullData'); // Check cache first
+            if(data === undefined){
+                let odds = await Odds.find({}, {
+                    commence_time: 1,
+                    home_team: 1,
+                    homeTeamIndex: 1,
+                    homeScore: 1,
+                    away_team: 1,
+                    awayTeamIndex: 1,
+                    awayScore: 1,
+                    winPercent: 1,
+                    homeTeamlogo: 1,
+                    awayTeamlogo: 1,
+                    winner: 1,
+                    predictionCorrect: 1,
+                    id: 1,
+                    sport_key: 1,
+                    sport_title: 1,
+                    sport: 1,
+                    bookmakers: 1
+                }).sort({ commence_time: 1, winPercent: 1 })
+                let pastGames = await PastGameOdds.find({}, {
+                    commence_time: 1,
+                    home_team: 1,
+                    homeTeamIndex: 1,
+                    homeScore: 1,
+                    away_team: 1,
+                    awayTeamIndex: 1,
+                    awayScore: 1,
+                    winPercent: 1,
+                    homeTeamlogo: 1,
+                    awayTeamlogo: 1,
+                    winner: 1,
+                    predictionCorrect: 1,
+                    id: 1,
+                    sport_key: 1,
+                    sport_title: 1,
+                    sport: 1,
+                    bookmakers: 1
+                }).sort({ commence_time: -1, winPercent: 1 }) // Sorting in database
+    
+                const [footballTeams, basketballTeams, baseballTeams, hockeyTeams] = await Promise.all([UsaFootballTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }),
+                BasketballTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }),
+                BaseballTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }),
+                HockeyTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 })])
+    
+                data = {
+                    odds: odds,
+                    pastGameOdds: pastGames,
+                    teams: {
+                        football: footballTeams,
+                        basketball: basketballTeams,
+                        baseball: baseballTeams,
+                        hockey: hockeyTeams
+                    }
                 }
+                myCache.set('fullData', JSON.stringify(data), 60);
+                // Sort data by commence_time and winPercent
+            }else{
+                data = JSON.parse(data)
             }
-            // Sort data by commence_time and winPercent
+
             return res.json(data)
         } catch (err) {
             return res.status(500).json({ message: err.message });
