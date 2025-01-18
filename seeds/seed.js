@@ -547,7 +547,7 @@ const retrieveTeamsandStats = async () => {
         };
         fetchAllTeamData(sports[i], teams, sports[i].statYear)
     }
-    
+
     console.log(`Finished TEAM SEEDING @ ${moment().format('HH:mm:ss')}`)
 }
 
@@ -1684,7 +1684,7 @@ function adjustnflStats(homeTeam, awayTeam, homeIndex, awayIndex) {
     homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += nflWeights[0] : awayIndex += nflWeights[0];
     homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += nflWeights[1] : awayIndex += nflWeights[1];
     homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += nflWeights[2] : awayIndex += nflWeights[2];
-    
+
     let nflWeightIndex = 3;
     const reverseComparisonStats = ['totalPenyards', 'averagePenYardsPerGame', 'interceptions', 'giveaways'];
 
@@ -1724,7 +1724,7 @@ function adjustncaafStats(homeTeam, awayTeam, homeIndex, awayIndex) {
     homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += ncaafWeights[0] : awayIndex += ncaafWeights[0];
     homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += ncaafWeights[1] : awayIndex += ncaafWeights[1];
     homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += ncaafWeights[2] : awayIndex += ncaafWeights[2];
-    
+
     let ncaafWeightIndex = 3;
     const reverseComparisonStats = ['totalPenyards', 'averagePenYardsPerGame', 'interceptions', 'giveaways'];
 
@@ -1765,7 +1765,7 @@ function adjustnhlStats(homeTeam, awayTeam, homeIndex, awayIndex) {
     homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += nhlWeights[0] : awayIndex += nhlWeights[0];
     homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += nhlWeights[1] : awayIndex += nhlWeights[1];
     homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += nhlWeights[2] : awayIndex += nhlWeights[2];
-    
+
     let nhlWeightIndex = 3;
     const reverseComparisonStats = [];
 
@@ -1851,7 +1851,7 @@ function adjustmlbStats(homeTeam, awayTeam, homeIndex, awayIndex) {
     homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += mlbWeights[0] : awayIndex += mlbWeights[0];
     homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += mlbWeights[1] : awayIndex += mlbWeights[1];
     homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += mlbWeights[2] : awayIndex += mlbWeights[2];
-    
+
     let mlbWeightIndex = 3;
     const reverseComparisonStats = ['fieldingErrors', 'oppOPS', 'oppSlugging', 'oppBattingAverage', 'walksHitsPerInningPitched', 'earnedRunAverage', 'walksPitchingTotal'];
 
@@ -1891,7 +1891,7 @@ function adjustncaamStats(homeTeam, awayTeam, homeIndex, awayIndex) {
     homeTeam?.seasonWinLoss?.split("-")[0] >= awayTeam?.seasonWinLoss?.split("-")[0] ? homeIndex += ncaamWeights[0] : awayIndex += ncaamWeights[0];
     homeTeam?.homeWinLoss?.split("-")[0] >= awayTeam?.awayWinLoss.split("-")[0] ? homeIndex += ncaamWeights[1] : awayIndex += ncaamWeights[1];
     homeTeam?.pointDiff >= awayTeam?.pointDiff ? homeIndex += ncaamWeights[2] : awayIndex += ncaamWeights[2];
-    
+
     let ncaamWeightIndex = 3;
     const reverseComparisonStats = [];
 
@@ -1931,7 +1931,7 @@ function adjustwncaabStats(homeTeam, awayTeam, homeIndex, awayIndex) {
     homeTeam?.seasonWinLoss?.split("-")[0] >= awayTeam?.seasonWinLoss?.split("-")[0] ? homeIndex += ncaawWeights[0] : awayIndex += ncaawWeights[0];
     homeTeam?.homeWinLoss?.split("-")[0] >= awayTeam?.awayWinLoss.split("-")[0] ? homeIndex += ncaawWeights[1] : awayIndex += ncaawWeights[1];
     homeTeam?.pointDiff >= awayTeam?.pointDiff ? homeIndex += ncaawWeights[2] : awayIndex += ncaawWeights[2];
-    
+
     let ncaawWeightIndex = 3;
     const reverseComparisonStats = [];
 
@@ -2326,7 +2326,7 @@ const indexAdjuster = (currentOdds, sport) => {
                 });
             }
         }
-    }); 
+    });
 }
 const normalizeTeamName = (teamName, league) => {
 
@@ -2382,12 +2382,12 @@ const normalizeTeamName = (teamName, league) => {
         teamName = knownTeamNames[teamName];
     }
 
-    if(league === 'basketball_wncaab'){
-        if(teamName === 'Penn State Nittany Lions'){
+    if (league === 'basketball_wncaab') {
+        if (teamName === 'Penn State Nittany Lions') {
             teamName === 'Penn State Lady Lions'
-        }else if(teamName === 'Georgia Bulldogs'){
+        } else if (teamName === 'Georgia Bulldogs') {
             teamName = 'Georgia Lady Bulldogs'
-        }else if(teamName === 'Tennessee Volunteers'){
+        } else if (teamName === 'Tennessee Volunteers') {
             teamName = 'Tennessee Lady Volunteers'
         }
     }
@@ -2525,7 +2525,7 @@ const oddsSeed = async () => {
                             homeWinLoss: team.homeWinLoss,
                             awayWinLoss: team.awayWinLoss,
                             pointDiff: team.pointDiff,
-            
+
                             USFBcompletionPercent: team.stats.USFBcompletionPercent,
                             USFBcompletions: team.stats.USFBcompletions,
                             USFBcompletionsPerGame: team.stats.USFBcompletionsPerGame,
@@ -2603,7 +2603,7 @@ const oddsSeed = async () => {
                             USFBtakeaways: team.stats.USFBtakeaways,
                             USFBturnoverDiff: team.stats.USFBturnoverDiff,
                             USFBtotalFirstDowns: team.stats.USFBtotalFirstDowns,
-            
+
                             //------------------------------AMERICAN FOOTBALL STATS-----------------------------------------------------------
                             BSBbattingStrikeouts: team.stats.BSBbattingStrikeouts,
                             BSBrunsBattedIn: team.stats.BSBrunsBattedIn,
@@ -2655,7 +2655,7 @@ const oddsSeed = async () => {
                             BSBcatcherStolenBasesAllowed: team.stats.BSBcatcherStolenBasesAllowed,
                             BSBfieldingPercentage: team.stats.BSBfieldingPercentage,
                             BSBrangeFactor: team.stats.BSBrangeFactor,
-            
+
                             //------------------------------BASKETBALL STATS-----------------------------------------------------------
                             BSKBtotalPoints: team.stats.BSKBtotalPoints,
                             BSKBpointsPerGame: team.stats.BSKBpointsPerGame,
@@ -2695,7 +2695,7 @@ const oddsSeed = async () => {
                             BSKBreboundsPerGame: team.stats.BSKBreboundsPerGame,
                             BSKBfoulsPerGame: team.stats.BSKBfoulsPerGame,
                             BSKBteamAssistToTurnoverRatio: team.stats.BSKBteamAssistToTurnoverRatio,
-            
+
                             //------------------------------HOCKEY STATS-----------------------------------------------------------
                             HKYgoals: team.stats.HKYgoals,
                             HKYgoalsPerGame: team.stats.HKYgoalsPerGame,
@@ -2817,8 +2817,7 @@ const oddsSeed = async () => {
                     }
                 })
             })
-            const dataSize = Buffer.byteLength({data}, 'utf8'); // Get data size in bytes
-            console.log(`retrieveStats Data size for DB: ${dataSize / 1024} KB`);  // Convert to KB or MB if 
+
             console.info('Odds Seeding complete! 🌱');
         } catch (err) {
             if (err) throw (err)
@@ -2831,7 +2830,7 @@ const removeSeed = async () => {
 
     currentOdds = await Odds.find();
     pastOdds = await PastGameOdds.find()
-    
+
 
     await emitToClients('gameUpdate', currentOdds.sort((a, b) => {
         const timeA = new Date(a.commence_time).getTime();  // Round to the start of the minute
