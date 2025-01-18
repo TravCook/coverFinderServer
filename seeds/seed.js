@@ -481,8 +481,6 @@ const retrieveTeamsandStats = async () => {
             }).filter(operation => operation !== null);
 
             if (bulkOps.length > 0) {
-                const dataSize = Buffer.byteLength(JSON.stringify({bulkOps}), 'utf8'); // Get data size in bytes
-                console.log(`retrieveStats Data size for DB: ${dataSize / 1024} KB`);  // Convert to KB or MB if 
                 await TeamModel.bulkWrite(bulkOps);
             }
         };
@@ -1668,16 +1666,16 @@ const predictions = async (sportOdds, ff, model) => {
         const predictions = await model.predict(ffTensor);
         // Convert tensor to an array of predicted probabilities
         const probabilities = await predictions.array();  // This resolves the tensor to an array
-        // sportOdds.forEach(async (game, index) => {
-        //     if (!game.awayTeamStats && !game.homeTeamStats) {
+        sportOdds.forEach(async (game, index) => {
+            if (!game.awayTeamStats && !game.homeTeamStats) {
 
-        //     } else {
-        //         const predictedWinPercent = probabilities[index][0]; // Get the probability for the current game
-        //         // Update the game with the predicted win percentage
-        //         await Odds.findOneAndUpdate({ id: game.id }, { winPercent: predictedWinPercent });
-        //     }
+            } else {
+                const predictedWinPercent = probabilities[index][0]; // Get the probability for the current game
+                // Update the game with the predicted win percentage
+                await Odds.findOneAndUpdate({ id: game.id }, { winPercent: predictedWinPercent });
+            }
 
-        // });
+        });
     }
 }
 //DETERMINE H2H INDEXES FOR EVERY GAME IN ODDS
@@ -2328,9 +2326,7 @@ const indexAdjuster = (currentOdds, sport) => {
                 });
             }
         }
-    });
-    const dataSize = Buffer.byteLength(JSON.stringify({currentOdds}), 'utf8'); // Get data size in bytes
-    console.log(`currentOdds Data size for DB: ${dataSize / 1024} KB`);  // Convert to KB or MB if 
+    }); 
 }
 const normalizeTeamName = (teamName, league) => {
 
@@ -2360,6 +2356,19 @@ const normalizeTeamName = (teamName, league) => {
         "UMKC Kangaroos": "Kansas City Roos",
         "Cal Baptist Lancers": "California Baptist Lancers",
         "CSU Fullerton Titans": "Cal State Fullerton Titans",
+        "LIU Sharks": "Long Island University Sharks",
+        "Nicholls State Colonels": "Nicholls Colonels",
+        "Texas A&M-Commerce Lions": "East Texas A&M Lions",
+        "Prairie View Panthers": "Prairie View A&M Panthers",
+        "St. Thomas (MN) Tommies": "St. Thomas-Minnesota Tommies",
+        "CSU Bakersfield Roadrunners": "Cal State Bakersfield Roadrunners",
+        "Loyola (MD) Greyhounds": "Loyola Maryland Greyhounds",
+        "American Eagles": "American University Eagles",
+        "Central Connecticut State Blue Devils": "Central Connecticut Blue Devils",
+        "Grambling State Tigers": "Grambling Tigers",
+        "Miss Valley State Delta Devils": "Mississippi Valley State Delta Devils",
+        "Texas A&M-CC Islanders": "Texas A&M-Corpus Christi Islanders",
+
     }
 
 
@@ -2808,6 +2817,8 @@ const oddsSeed = async () => {
                     }
                 })
             })
+            const dataSize = Buffer.byteLength(JSON.stringify({data}), 'utf8'); // Get data size in bytes
+            console.log(`retrieveStats Data size for DB: ${dataSize / 1024} KB`);  // Convert to KB or MB if 
             console.info('Odds Seeding complete! 🌱');
         } catch (err) {
             if (err) throw (err)
