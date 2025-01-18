@@ -481,6 +481,8 @@ const retrieveTeamsandStats = async () => {
             }).filter(operation => operation !== null);
 
             if (bulkOps.length > 0) {
+                const dataSize = Buffer.byteLength(JSON.stringify({bulkOps}), 'utf8'); // Get data size in bytes
+                console.log(`retrieveStats Data size for DB: ${dataSize / 1024} KB`);  // Convert to KB or MB if 
                 await TeamModel.bulkWrite(bulkOps);
             }
         };
@@ -547,6 +549,7 @@ const retrieveTeamsandStats = async () => {
         };
         fetchAllTeamData(sports[i], teams, sports[i].statYear)
     }
+    
     console.log(`Finished TEAM SEEDING @ ${moment().format('HH:mm:ss')}`)
 }
 
@@ -2326,6 +2329,8 @@ const indexAdjuster = (currentOdds, sport) => {
             }
         }
     });
+    const dataSize = Buffer.byteLength(JSON.stringify({currentOdds}), 'utf8'); // Get data size in bytes
+    console.log(`currentOdds Data size for DB: ${dataSize / 1024} KB`);  // Convert to KB or MB if 
 }
 const normalizeTeamName = (teamName, league) => {
 
@@ -2815,6 +2820,7 @@ const removeSeed = async () => {
 
     currentOdds = await Odds.find();
     pastOdds = await PastGameOdds.find()
+    
 
     await emitToClients('gameUpdate', currentOdds.sort((a, b) => {
         const timeA = new Date(a.commence_time).getTime();  // Round to the start of the minute
@@ -2836,6 +2842,7 @@ const removeSeed = async () => {
             return timeA < timeB ? 1 : -1;  // Sort by commence_time otherwise
         }
     }));
+
 }
 const dataSeed = async () => {
 

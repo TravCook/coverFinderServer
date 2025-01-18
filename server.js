@@ -43,12 +43,12 @@ const cronJobs = [
     timezone,
   },
   {
-    cronTime: '0 0 */2 * * *', // every 15 minutes
+    cronTime: '0 0 */1 * * *', // every 1 hour
     onTick: dataSeed.dataSeed,
     timezone,
   },
   // {
-  //   cronTime: '0 */2 * * * *', //every 30 seconds
+  //   cronTime: '*/45 * * * * *', //every 45 seconds
   //   onTick: dataSeed.removeSeed,
   //   timezone
   // },
@@ -64,74 +64,74 @@ cronJobs.forEach(({ cronTime, onTick, timezone }) => {
   cronJob.start();
 });
 
-// // Socket.IO connection event
-// io.on('connection', async (socket) => {
-//   console.log(`a user connected @ ${moment().format('HH:mm:ss')}`);
+// Socket.IO connection event
+io.on('connection', async (socket) => {
+  console.log(`a user connected @ ${moment().format('HH:mm:ss')}`);
 
-//     const [currentOdds, pastOdds, footballTeams, basketballTeams, baseballTeams, hockeyTeams] = await Promise.all([
-//       Odds.find({}, {commence_time: 1, 
-//         home_team: 1, 
-//         homeTeamIndex: 1, 
-//         homeScore: 1, 
-//         away_team: 1, 
-//         awayTeamIndex: 1, 
-//         awayScore: 1, 
-//         winPercent: 1, 
-//         homeTeamlogo: 1, 
-//         awayTeamlogo: 1, 
-//         winner: 1, 
-//         predictionCorrect: 1, 
-//         id: 1, 
-//         sport_key:1, 
-//         sport_title: 1, 
-//         sport:1, 
-//         bookmakers: 1}).sort({ commence_time: 1, winPercent: 1 }), // Sorting in database
-//       PastGameOdds.find({}, {commence_time: 1, 
-//         home_team: 1, 
-//         homeTeamIndex: 1, 
-//         homeScore: 1, 
-//         away_team: 1, 
-//         awayTeamIndex: 1, 
-//         awayScore: 1, 
-//         winPercent: 1, 
-//         homeTeamlogo: 1, 
-//         awayTeamlogo: 1, 
-//         winner: 1, 
-//         predictionCorrect: 1, 
-//         id: 1, 
-//         sport_key:1, 
-//         sport_title: 1, 
-//         sport:1, 
-//         bookmakers: 1}).sort({ commence_time: -1, winPercent: 1 }), // Sorting in database
-//       UsaFootballTeam.find({},  {  teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }),
-//       BasketballTeam.find({},  {  teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }),
-//       BaseballTeam.find({},  {  teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }),
-//       HockeyTeam.find({},  {  teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 })
-//     ]);
+  //   const [currentOdds, pastOdds, footballTeams, basketballTeams, baseballTeams, hockeyTeams] = await Promise.all([
+  //     Odds.find({}, {commence_time: 1, 
+  //       home_team: 1, 
+  //       homeTeamIndex: 1, 
+  //       homeScore: 1, 
+  //       away_team: 1, 
+  //       awayTeamIndex: 1, 
+  //       awayScore: 1, 
+  //       winPercent: 1, 
+  //       homeTeamlogo: 1, 
+  //       awayTeamlogo: 1, 
+  //       winner: 1, 
+  //       predictionCorrect: 1, 
+  //       id: 1, 
+  //       sport_key:1, 
+  //       sport_title: 1, 
+  //       sport:1, 
+  //       bookmakers: 1}).sort({ commence_time: 1, winPercent: 1 }), // Sorting in database
+  //     PastGameOdds.find({}, {commence_time: 1, 
+  //       home_team: 1, 
+  //       homeTeamIndex: 1, 
+  //       homeScore: 1, 
+  //       away_team: 1, 
+  //       awayTeamIndex: 1, 
+  //       awayScore: 1, 
+  //       winPercent: 1, 
+  //       homeTeamlogo: 1, 
+  //       awayTeamlogo: 1, 
+  //       winner: 1, 
+  //       predictionCorrect: 1, 
+  //       id: 1, 
+  //       sport_key:1, 
+  //       sport_title: 1, 
+  //       sport:1, 
+  //       bookmakers: 1}).sort({ commence_time: -1, winPercent: 1 }), // Sorting in database
+  //     UsaFootballTeam.find({},  {  teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }),
+  //     BasketballTeam.find({},  {  teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }),
+  //     BaseballTeam.find({},  {  teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }),
+  //     HockeyTeam.find({},  {  teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 })
+  //   ]);
 
-//     let allTeams = {
-//         football: footballTeams,
-//         basketball: basketballTeams,
-//         baseball: baseballTeams,
-//         hockey: hockeyTeams
-//     };
+  //   let allTeams = {
+  //       football: footballTeams,
+  //       basketball: basketballTeams,
+  //       baseball: baseballTeams,
+  //       hockey: hockeyTeams
+  //   };
 
  
-//     console.log(`retrieved data @ ${moment().format('HH:mm:ss')}`);
-//    emitToClients('teamUpdate', allTeams);
+  //   console.log(`retrieved data @ ${moment().format('HH:mm:ss')}`);
+  //  emitToClients('teamUpdate', allTeams);
 
-//    emitToClients('gameUpdate', currentOdds);
-//    emitToClients('pastGameUpdate', pastOdds);
+  //  emitToClients('gameUpdate', currentOdds);
+  //  emitToClients('pastGameUpdate', pastOdds);
 
-//    const dataSize = Buffer.byteLength(JSON.stringify({allTeams, currentOdds, pastOdds}), 'utf8'); // Get data size in bytes
-//    console.log(`Data size sent: ${dataSize / 1024} KB`);  // Convert to KB or MB if 
-//   console.log(`sent data @ ${moment().format('HH:mm:ss')}`);
+  //  const dataSize = Buffer.byteLength(JSON.stringify({allTeams, currentOdds, pastOdds}), 'utf8'); // Get data size in bytes
+  //  console.log(`Data size sent: ${dataSize / 1024} KB`);  // Convert to KB or MB if 
+  console.log(`sent data @ ${moment().format('HH:mm:ss')}`);
   
-//   // Handle disconnect event
-//   socket.on('disconnect', () => {
-//     console.log('User disconnected');
-//   });
-// });
+  // Handle disconnect event
+  socket.on('disconnect', () => {
+    console.log('User disconnected');
+  });
+});
 
 // Start the server
 db.once('open', () => {

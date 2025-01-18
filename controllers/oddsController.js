@@ -15,22 +15,22 @@ async function getCachedOdds(cacheKey, query, filterDays = 30) {
         try {
             // Fetch from database if not in cache
             odds = await Odds.find(query, {
-                commence_time: 1, 
-                home_team: 1, 
-                homeTeamIndex: 1, 
-                homeScore: 1, 
-                away_team: 1, 
-                awayTeamIndex: 1, 
-                awayScore: 1, 
-                winPercent: 1, 
-                homeTeamlogo: 1, 
-                awayTeamlogo: 1, 
-                winner: 1, 
-                predictionCorrect: 1, 
-                id: 1, 
-                sport_key:1, 
-                sport_title: 1, 
-                sport:1, 
+                commence_time: 1,
+                home_team: 1,
+                homeTeamIndex: 1,
+                homeScore: 1,
+                away_team: 1,
+                awayTeamIndex: 1,
+                awayScore: 1,
+                winPercent: 1,
+                homeTeamlogo: 1,
+                awayTeamlogo: 1,
+                winner: 1,
+                predictionCorrect: 1,
+                id: 1,
+                sport_key: 1,
+                sport_title: 1,
+                sport: 1,
                 bookmakers: 1
             });
             // Apply filter
@@ -49,17 +49,62 @@ async function getCachedOdds(cacheKey, query, filterDays = 30) {
 module.exports = {
     async getAllOdds(req, res) {
         try {
-            let odds = await getCachedOdds('allOdds', {});
-            // Sort data by commence_time and winPercent
-            return res.json(odds.sort((a, b) => {
-                const timeA = moment.utc(a.commence_time).startOf('minute');
-                const timeB = moment.utc(b.commence_time).startOf('minute');
-                if (timeA.isSame(timeB)) {
-                    return a.winPercent - b.winPercent;
-                } else {
-                    return timeA.isBefore(timeB) ? -1 : 1;
+            let odds = await Odds.find({}, {
+                commence_time: 1,
+                home_team: 1,
+                homeTeamIndex: 1,
+                homeScore: 1,
+                away_team: 1,
+                awayTeamIndex: 1,
+                awayScore: 1,
+                winPercent: 1,
+                homeTeamlogo: 1,
+                awayTeamlogo: 1,
+                winner: 1,
+                predictionCorrect: 1,
+                id: 1,
+                sport_key: 1,
+                sport_title: 1,
+                sport: 1,
+                bookmakers: 1
+            }).sort({ commence_time: 1, winPercent: 1 })
+            let pastGames = await PastGameOdds.find({}, {
+                commence_time: 1,
+                home_team: 1,
+                homeTeamIndex: 1,
+                homeScore: 1,
+                away_team: 1,
+                awayTeamIndex: 1,
+                awayScore: 1,
+                winPercent: 1,
+                homeTeamlogo: 1,
+                awayTeamlogo: 1,
+                winner: 1,
+                predictionCorrect: 1,
+                id: 1,
+                sport_key: 1,
+                sport_title: 1,
+                sport: 1,
+                bookmakers: 1
+            }).sort({ commence_time: -1, winPercent: 1 }) // Sorting in database
+
+            const [footballTeams, basketballTeams, baseballTeams, hockeyTeams] = await Promise.all([UsaFootballTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }),
+            BasketballTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }),
+            BaseballTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }),
+            HockeyTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 })])
+
+            let data = {
+                odds: odds,
+                pastGameOdds: pastGames,
+                teams: {
+                    football: footballTeams,
+                    basketball: basketballTeams,
+                    baseball: baseballTeams,
+                    hockey: hockeyTeams
                 }
-            }));
+            }
+            // Sort data by commence_time and winPercent
+            return res.json(data)
         } catch (err) {
             return res.status(500).json({ message: err.message });
         }
@@ -68,17 +113,17 @@ module.exports = {
     async getQuickOdds(req, res) {
         try {
             let odds = await Odds.findOne({ id: req.params.id });
-            
+
             // If no odds are found, search in pastGameOdds
             if (!odds) {
                 odds = await PastGameOdds.findOne({ id: req.params.id });
             }
-    
+
             // If still no odds are found, return a 404 error
             if (!odds) {
                 return res.status(404).json({ message: 'Game odds not found' });
             }
-    
+
             return res.json(odds);
         } catch (err) {
             return res.status(500).json({ message: err.message });
@@ -97,22 +142,22 @@ module.exports = {
     async getPastGames(req, res) {
         try {
             const pastGames = await PastGameOdds.find({}, {
-                commence_time: 1, 
-                home_team: 1, 
-                homeTeamIndex: 1, 
-                homeScore: 1, 
-                away_team: 1, 
-                awayTeamIndex: 1, 
-                awayScore: 1, 
-                winPercent: 1, 
-                homeTeamlogo: 1, 
-                awayTeamlogo: 1, 
-                winner: 1, 
-                predictionCorrect: 1, 
-                id: 1, 
-                sport_key:1, 
-                sport_title: 1, 
-                sport:1, 
+                commence_time: 1,
+                home_team: 1,
+                homeTeamIndex: 1,
+                homeScore: 1,
+                away_team: 1,
+                awayTeamIndex: 1,
+                awayScore: 1,
+                winPercent: 1,
+                homeTeamlogo: 1,
+                awayTeamlogo: 1,
+                winner: 1,
+                predictionCorrect: 1,
+                id: 1,
+                sport_key: 1,
+                sport_title: 1,
+                sport: 1,
                 bookmakers: 1
             });
             return res.json(pastGames);
