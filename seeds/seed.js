@@ -2475,6 +2475,7 @@ const oddsSeed = async () => {
                                 'sport_key': 'americanfootball_ncaaf',
                                 'espnDisplayName': event.away_team
                             });
+                            scheduleSport = 'football'
                         } else if (event.sport_key === 'basketball_nba' ) {
                             homeTeam = await BasketballTeam.findOne({
                                 'league': 'nba',
