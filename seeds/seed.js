@@ -630,7 +630,7 @@ const removePastGames = async (currentOdds) => {
                     for (let event of homeTeamSchedJSON.events) {
 
                         // Check if the event matches the current game's date
-                        if (moment(event.date).isSame(moment(game.commence_time), 'hour')) {
+                        if (event.name === `${awayTeam.espnDisplayName} at ${homeTeam.espnDisplayName}` && moment(event.date).isSame(moment(game.commence_time), 'day')) {
                             if (event.competitions[0].status.type.completed === true) {
 
                                 // Determine the scores and winner
@@ -2454,73 +2454,66 @@ const oddsSeed = async () => {
                         let homeTeam
                         let awayTeam
                         let scheduleSport
-                        let homeTeamList = [];
-                        let awayTeamList = [];
 
                         // Fetch team data based on sport
-                        if (event.sport_key === 'americanfootball_nfl' || event.sport_key === 'americanfootball_ncaaf') {
-                            homeTeamList = await UsaFootballTeam.find({ 'espnDisplayName': normalizedHomeTeam });
-                            awayTeamList = await UsaFootballTeam.find({ 'espnDisplayName': normalizedAwayTeam });
+                        if (event.sport_key === 'americanfootball_nfl' ) {
+                            homeTeam = await UsaFootballTeam.findOne({
+                                'sport_key': 'americanfootball_nfl',
+                                'espnDisplayName': game.home_team
+                            });
+                            awayTeam = await UsaFootballTeam.findOne({
+                                'sport_key': 'americanfootball_nfl',
+                                'espnDisplayName': game.away_team
+                            });
                             scheduleSport = 'football'
-                        } else if (event.sport_key === 'basketball_nba' || event.sport_key === 'basketball_ncaab' || event.sport_key === 'basketball_wncaab') {
-                            homeTeamList = await BasketballTeam.find({ 'espnDisplayName': normalizedHomeTeam });
-                            awayTeamList = await BasketballTeam.find({ 'espnDisplayName': normalizedAwayTeam });
+                        }else if (event.sport_key === 'americanfootball_ncaaf') {
+                            homeTeam = await UsaFootballTeam.findOne({
+                                'sport_key': 'americanfootball_ncaaf',
+                                'espnDisplayName': game.home_team
+                            });
+                            awayTeam = await UsaFootballTeam.findOne({
+                                'sport_key': 'americanfootball_ncaaf',
+                                'espnDisplayName': game.away_team
+                            });
+                        } else if (event.sport_key === 'basketball_nba' ) {
+                            homeTeam = await BasketballTeam.findOne({
+                                'league': 'nba',
+                                'espnDisplayName': game.home_team
+                            });
+                            awayTeam = await BasketballTeam.findOne({
+                                'league': 'nba',
+                                'espnDisplayName': game.away_team
+                            });
                             scheduleSport = 'basketball'
+                        }else if (event.sport_key === 'basketball_ncaab') {
+                            homeTeam = await BasketballTeam.findOne({
+                                'league': 'mens-college-basketball',
+                                'espnDisplayName': game.home_team
+                            });
+                            awayTeam = await BasketballTeam.findOne({
+                                'league': 'mens-college-basketball',
+                                'espnDisplayName': game.away_team
+                            });
+                            scheduleSport = 'baseball'
+                        }else if (event.sport_key === 'basketball_wncaab') {
+                            homeTeam = await BasketballTeam.findOne({
+                                'league': 'womens-college-basketball',
+                                'espnDisplayName': game.home_team
+                            });
+                            awayTeam = await BasketballTeam.findOne({
+                                'league': 'womens-college-basketball',
+                                'espnDisplayName': game.away_team
+                            });
+                            scheduleSport = 'baseball'
                         } else if (event.sport_key === 'baseball_mlb') {
-                            homeTeamList = await BaseballTeam.find({ 'espnDisplayName': normalizedHomeTeam });
-                            awayTeamList = await BaseballTeam.find({ 'espnDisplayName': normalizedAwayTeam });
+                            homeTeam = await BaseballTeam.findOne({ 'espnDisplayName': game.home_team });
+                            awayTeam = await BaseballTeam.findOne({ 'espnDisplayName': game.away_team });
                             scheduleSport = 'baseball'
                         } else if (event.sport_key === 'icehockey_nhl') {
-                            homeTeamList = await HockeyTeam.find({ 'espnDisplayName': normalizedHomeTeam });
-                            awayTeamList = await HockeyTeam.find({ 'espnDisplayName': normalizedAwayTeam });
+                            homeTeam = await HockeyTeam.findOne({ 'espnDisplayName': game.home_team });
+                            awayTeam = await HockeyTeam.findOne({ 'espnDisplayName': game.away_team });
                             scheduleSport = 'hockey'
                         }
-
-                        // Function to find a team based on schedule date
-                        async function findTeamSchedule(teamList, teamType) {
-                            if (teamList.length > 1) {
-                                // Loop through teams if there are multiple
-                                for (let idx = 0; idx < teamList.length; idx++) {
-                                    let team = teamList[idx];
-                                    try {
-                                        // Fetch team schedule from ESPN API
-                                        let scheduleResponse = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${scheduleSport}/${team.league}/teams/${team.espnID}/schedule`);
-                                        let scheduleJSON = await scheduleResponse.json();
-
-
-                                        // Loop through events in the team's schedule
-                                        for (let SBevent of scheduleJSON.events) {
-
-                                            // Check if the event matches the current event's date
-                                            if (moment(SBevent.date).isSame(moment(event.commence_time), 'hour')) {
-
-                                                if (teamType === 'home') {
-                                                    homeTeam = teamList[idx];
-                                                } else if (teamType === 'away') {
-                                                    awayTeam = teamList[idx];
-                                                }
-                                            }
-                                        }
-                                    } catch (error) {
-                                        console.error(`Error fetching schedule for https://site.api.espn.com/apis/site/v2/sports/${scheduleSport}/${team.league}/teams/${team.espnID}/schedule :`, error);
-                                    }
-                                }
-                            } else if (teamList.length === 1) {
-                                // If only one team is found, assign it directly
-                                if (teamType === 'home') {
-                                    homeTeam = teamList[0];
-                                } else if (teamType === 'away') {
-                                    awayTeam = teamList[0];
-                                }
-                            } else if (teamList.length === 0) {
-                                console.log(event.id)
-
-                            }
-                        }
-
-                        // Call the function to check home and away teams
-                        await findTeamSchedule(homeTeamList, 'home');
-                        await findTeamSchedule(awayTeamList, 'away');
 
                         const getCommonStats = (team) => ({
                             //------------------------------SHARED STATS-----------------------------------------------------------
