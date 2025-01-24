@@ -37,21 +37,21 @@ app.use(routes);
 // Cron job configurations
 const timezone = 'America/Denver';
 const cronJobs = [
-  // {
-  //   cronTime: '0 0 */8 * * *', // every 8 hours  .093MB
-  //   onTick: dataSeed.oddsSeed,
-  //   timezone,
-  // },
-  // {
-  //   cronTime: '0 0 */1 * * *', // every 1 hour 6.5 mb
-  //   onTick: dataSeed.dataSeed,
-  //   timezone,
-  // },
   {
-    cronTime: '*/45 * * * * *', //every 45 seconds 1.2 mb
-    onTick: dataSeed.removeSeed,
-    timezone
+    cronTime: '0 0 */8 * * *', // every 8 hours  .093MB
+    onTick: dataSeed.oddsSeed,
+    timezone,
   },
+  {
+    cronTime: '0 0 */1 * * *', // every 1 hour 6.5 mb
+    onTick: dataSeed.dataSeed,
+    timezone,
+  },
+  // {
+  //   cronTime: '*/45 * * * * *', //every 45 seconds 1.2 mb
+  //   onTick: dataSeed.removeSeed,
+  //   timezone
+  // },
   // {
   //   cronTime: '* * * * */3 *', //every quarter
   //   onTick: dataSeed.espnSeed,
