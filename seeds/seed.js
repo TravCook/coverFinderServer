@@ -2430,7 +2430,7 @@ const oddsSeed = async () => {
         }
         return false;
     }).map((sport) =>
-        axios.get(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_TCDEV}&regions=us&oddsFormat=american&markets=h2h`)
+        axios.get(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.TCDEV}&regions=us&oddsFormat=american&markets=h2h`)
     )).then(async (data) => {
         try {
             data.map(async (item) => {
@@ -2459,59 +2459,59 @@ const oddsSeed = async () => {
                         if (event.sport_key === 'americanfootball_nfl' ) {
                             homeTeam = await UsaFootballTeam.findOne({
                                 'sport_key': 'americanfootball_nfl',
-                                'espnDisplayName': game.home_team
+                                'espnDisplayName': event.home_team
                             });
                             awayTeam = await UsaFootballTeam.findOne({
                                 'sport_key': 'americanfootball_nfl',
-                                'espnDisplayName': game.away_team
+                                'espnDisplayName': event.away_team
                             });
                             scheduleSport = 'football'
                         }else if (event.sport_key === 'americanfootball_ncaaf') {
                             homeTeam = await UsaFootballTeam.findOne({
                                 'sport_key': 'americanfootball_ncaaf',
-                                'espnDisplayName': game.home_team
+                                'espnDisplayName': event.home_team
                             });
                             awayTeam = await UsaFootballTeam.findOne({
                                 'sport_key': 'americanfootball_ncaaf',
-                                'espnDisplayName': game.away_team
+                                'espnDisplayName': event.away_team
                             });
                         } else if (event.sport_key === 'basketball_nba' ) {
                             homeTeam = await BasketballTeam.findOne({
                                 'league': 'nba',
-                                'espnDisplayName': game.home_team
+                                'espnDisplayName': event.home_team
                             });
                             awayTeam = await BasketballTeam.findOne({
                                 'league': 'nba',
-                                'espnDisplayName': game.away_team
+                                'espnDisplayName': event.away_team
                             });
                             scheduleSport = 'basketball'
                         }else if (event.sport_key === 'basketball_ncaab') {
                             homeTeam = await BasketballTeam.findOne({
                                 'league': 'mens-college-basketball',
-                                'espnDisplayName': game.home_team
+                                'espnDisplayName': event.home_team
                             });
                             awayTeam = await BasketballTeam.findOne({
                                 'league': 'mens-college-basketball',
-                                'espnDisplayName': game.away_team
+                                'espnDisplayName': event.away_team
                             });
-                            scheduleSport = 'baseball'
+                            scheduleSport = 'basketball'
                         }else if (event.sport_key === 'basketball_wncaab') {
                             homeTeam = await BasketballTeam.findOne({
                                 'league': 'womens-college-basketball',
-                                'espnDisplayName': game.home_team
+                                'espnDisplayName': event.home_team
                             });
                             awayTeam = await BasketballTeam.findOne({
                                 'league': 'womens-college-basketball',
-                                'espnDisplayName': game.away_team
+                                'espnDisplayName': event.away_team
                             });
-                            scheduleSport = 'baseball'
+                            scheduleSport = 'basketball'
                         } else if (event.sport_key === 'baseball_mlb') {
-                            homeTeam = await BaseballTeam.findOne({ 'espnDisplayName': game.home_team });
-                            awayTeam = await BaseballTeam.findOne({ 'espnDisplayName': game.away_team });
+                            homeTeam = await BaseballTeam.findOne({ 'espnDisplayName': event.home_team });
+                            awayTeam = await BaseballTeam.findOne({ 'espnDisplayName': event.away_team });
                             scheduleSport = 'baseball'
                         } else if (event.sport_key === 'icehockey_nhl') {
-                            homeTeam = await HockeyTeam.findOne({ 'espnDisplayName': game.home_team });
-                            awayTeam = await HockeyTeam.findOne({ 'espnDisplayName': game.away_team });
+                            homeTeam = await HockeyTeam.findOne({ 'espnDisplayName': event.home_team });
+                            awayTeam = await HockeyTeam.findOne({ 'espnDisplayName': event.away_team });
                             scheduleSport = 'hockey'
                         }
 
@@ -2796,8 +2796,8 @@ const oddsSeed = async () => {
                             } else {
                                 // Create a new odds entry with normalized team names and sport type
                                 await Odds.create({
-                                    homeTeamIndex: oddExist.homeTeamIndex ? oddExist.homeTeamIndex : 0,
-                                    awayTeamIndex: oddExist.awayTeamIndex ? oddExist.awayTeamIndex : 0,
+                                    homeTeamIndex: 0,
+                                    awayTeamIndex: 0,
                                     ...event,
                                     homeTeamStats: homeTeam ? cleanStats(getCommonStats(homeTeam)) : 'no stat data',
                                     awayTeamStats: awayTeam ? cleanStats(getCommonStats(awayTeam)) : 'no stat data',
