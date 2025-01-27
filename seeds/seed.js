@@ -59,11 +59,11 @@ const retrieveTeamsandStats = async () => {
                                 team.pointDiff = stat.value;
                             }
                         });
-                        team.seasonWinLoss = item.displayValue;
+                        team.seasonWinLoss = item.displayValue.replace(/, \d+ PTS$/, ''); // Remove ", X PTS" where X is any number
                     } else if (item.name === 'Home') {
-                        team.homeWinLoss = item.displayValue;
+                        team.homeWinLoss = item.displayValue.replace(/, \d+ PTS$/, ''); // Same here
                     } else if (item.name === 'Road' || item.name === 'Away') {
-                        team.awayWinLoss = item.displayValue;
+                        team.awayWinLoss = item.displayValue.replace(/, \d+ PTS$/, ''); // Same here
                     }
                 });
             } catch (err) {
@@ -630,7 +630,7 @@ const removePastGames = async (currentOdds) => {
                     for (let event of homeTeamSchedJSON.events) {
 
                         // Check if the event matches the current game's date
-                        if (event.name === `${awayTeam.espnDisplayName} at ${homeTeam.espnDisplayName}` && moment(event.date).isSame(moment(game.commence_time), 'day')) {
+                        if ((event.name === `${awayTeam.espnDisplayName} at ${homeTeam.espnDisplayName}` || event.shortName === `${awayTeam.abbreviation} @ ${homeTeam.abbreviation}`) && moment(event.date).isSame(moment(game.commence_time), 'day')) {
                             if (event.competitions[0].status.type.completed === true) {
 
                                 // Determine the scores and winner
@@ -2367,6 +2367,7 @@ const normalizeTeamName = (teamName, league) => {
         "Grambling State Tigers": "Grambling Tigers",
         "Miss Valley State Delta Devils": "Mississippi Valley State Delta Devils",
         "Texas A&M-CC Islanders": "Texas A&M-Corpus Christi Islanders",
+        "Maryland-Eastern Shore Hawks": "Maryland Eastern Shore Hawks"
 
     }
 
