@@ -551,81 +551,283 @@ const retrieveTeamsandStats = async () => {
 
     console.log(`Finished TEAM SEEDING @ ${moment().format('HH:mm:ss')}`)
 }
+const getCommonStats = (team) => ({
+    //------------------------------SHARED STATS-----------------------------------------------------------
+    seasonWinLoss: team.seasonWinLoss,
+    homeWinLoss: team.homeWinLoss,
+    awayWinLoss: team.awayWinLoss,
+    pointDiff: team.pointDiff,
 
+    USFBcompletionPercent: team.stats.USFBcompletionPercent,
+    USFBcompletions: team.stats.USFBcompletions,
+    USFBcompletionsPerGame: team.stats.USFBcompletionsPerGame,
+    USFBnetPassingYards: team.stats.USFBnetPassingYards,
+    USFBnetPassingYardsPerGame: team.stats.USFBnetPassingYardsPerGame,
+    USFBpassingFirstDowns: team.stats.USFBpassingFirstDowns,
+    USFBpassingTouchdowns: team.stats.USFBpassingTouchdowns,
+    USFBpassingYards: team.stats.USFBpassingYards,
+    USFBpassingYardsPerGame: team.stats.USFBpassingYardsPerGame,
+    USFBpassingAttempts: team.stats.USFBpassingAttempts,
+    USFBpassingAttemptsPerGame: team.stats.USFBpassingAttemptsPerGame,
+    USFByardsPerPassAttempt: team.stats.USFByardsPerPassAttempt,
+    USFBrushingAttempts: team.stats.USFBrushingAttempts,
+    USFBrushingFirstDowns: team.stats.USFBrushingFirstDowns,
+    USFBrushingTouchdowns: team.stats.USFBrushingTouchdowns,
+    USFBrushingYards: team.stats.USFBrushingYards,
+    USFBrushingYardsPerGame: team.stats.USFBrushingYardsPerGame,
+    USFByardsPerRushAttempt: team.stats.USFByardsPerRushAttempt,
+    USFBreceivingFirstDowns: team.stats.USFBreceivingFirstDowns,
+    USFBreceivingTouchdowns: team.stats.USFBreceivingTouchdowns,
+    USFBreceivingYards: team.stats.USFBreceivingYards,
+    USFBreceivingYardsPerGame: team.stats.USFBreceivingYardsPerGame,
+    USFBreceivingYardsPerReception: team.stats.USFBreceivingYardsPerReception,
+    USFBreceivingYardsAfterCatch: team.stats.USFBreceivingYardsAfterCatch,
+    USFBreceivingYardsAfterCatchPerGame: team.stats.USFBreceivingYardsAfterCatchPerGame,
+    USFBtotalTouchdowns: team.stats.USFBtotalTouchdowns,
+    USFBtouchdownsPerGame: team.stats.USFBtouchdownsPerGame,
+    USFBtotalPoints: team.stats.USFBtotalPoints,
+    USFBpointsPerGame: team.stats.USFBpointsPerGame,
+    USFBtacklesforLoss: team.stats.USFBtacklesforLoss,
+    USFBtacklesforLossPerGame: team.stats.USFBtacklesforLossPerGame,
+    USFBinterceptions: team.stats.USFBinterceptions,
+    USFByardsPerInterception: team.stats.USFByardsPerInterception,
+    USFBsacksTotal: team.stats.USFBsacksTotal,
+    USFBsacksPerGame: team.stats.USFBsacksPerGame,
+    USFBsackYards: team.stats.USFBsackYards,
+    USFBsackYardsPerGame: team.stats.USFBsackYardsPerGame,
+    USFBstuffs: team.stats.USFBstuffs,
+    USFBstuffsPerGame: team.stats.USFBstuffsPerGame,
+    USFBstuffYards: team.stats.USFBstuffYards,
+    USFBpassesDefended: team.stats.USFBpassesDefended,
+    USFBpassesDefendedPerGame: team.stats.USFBpassesDefendedPerGame,
+    USFBsafties: team.stats.USFBsafties,
+    USFBaverageKickoffYards: team.stats.USFBaverageKickoffYards,
+    USFBaverageKickoffYardsPerGame: team.stats.USFBaverageKickoffYardsPerGame,
+    USFBextraPointAttempts: team.stats.USFBextraPointAttempts,
+    USFBextraPointAttemptsPerGame: team.stats.USFBextraPointAttemptsPerGame,
+    USFBextraPointsMade: team.stats.USFBextraPointsMade,
+    USFBextraPointsMadePerGame: team.stats.USFBextraPointsMadePerGame,
+    USFBextraPointPercent: team.stats.USFBextraPointPercent,
+    USFBextraPointPercentPerGame: team.stats.USFBextraPointPercentPerGame,
+    USFBfieldGoalAttempts: team.stats.USFBfieldGoalAttempts,
+    USFBfieldGoalAttemptsPerGame: team.stats.USFBfieldGoalAttemptsPerGame,
+    USFBfieldGoalsMade: team.stats.USFBfieldGoalsMade,
+    USFBfieldGoalsMadePerGame: team.stats.USFBfieldGoalsMadePerGame,
+    USFBfieldGoalPct: team.stats.USFBfieldGoalPct,
+    USFBfieldGoalPercentPerGame: team.stats.USFBfieldGoalPercentPerGame,
+    USFBtouchbacks: team.stats.USFBtouchbacks,
+    USFBtouchbacksPerGame: team.stats.USFBtouchbacksPerGame,
+    USFBtouchBackPercentage: team.stats.USFBtouchBackPercentage,
+    USFBkickReturns: team.stats.USFBkickReturns,
+    USFBkickReturnsPerGame: team.stats.USFBkickReturnsPerGame,
+    USFBkickReturnYards: team.stats.USFBkickReturnYards,
+    USFBkickReturnYardsPerGame: team.stats.USFBkickReturnYardsPerGame,
+    USFBpuntReturns: team.stats.USFBpuntReturns,
+    USFBpuntReturnsPerGame: team.stats.USFBpuntReturnsPerGame,
+    USFBpuntReturnFairCatchPct: team.stats.USFBpuntReturnFairCatchPct,
+    USFBpuntReturnYards: team.stats.USFBpuntReturnYards,
+    USFBpuntReturnYardsPerGame: team.stats.USFBpuntReturnYardsPerGame,
+    USFByardsPerReturn: team.stats.USFByardsPerReturn,
+    USFBthirdDownEfficiency: team.stats.USFBthirdDownEfficiency,
+    USFBtotalPenyards: team.stats.USFBtotalPenyards,
+    USFBaveragePenYardsPerGame: team.stats.USFBaveragePenYardsPerGame,
+    USFBgiveaways: team.stats.USFBgiveaways,
+    USFBtakeaways: team.stats.USFBtakeaways,
+    USFBturnoverDiff: team.stats.USFBturnoverDiff,
+    USFBtotalFirstDowns: team.stats.USFBtotalFirstDowns,
+
+    //------------------------------AMERICAN FOOTBALL STATS-----------------------------------------------------------
+    BSBbattingStrikeouts: team.stats.BSBbattingStrikeouts,
+    BSBrunsBattedIn: team.stats.BSBrunsBattedIn,
+    BSBsacrificeHits: team.stats.BSBsacrificeHits,
+    BSBHitsTotal: team.stats.BSBHitsTotal,
+    BSBwalks: team.stats.BSBwalks,
+    BSBruns: team.stats.BSBruns,
+    BSBhomeRuns: team.stats.BSBhomeRuns,
+    BSBdoubles: team.stats.BSBdoubles,
+    BSBtotalBases: team.stats.BSBtotalBases,
+    BSBextraBaseHits: team.stats.BSBextraBaseHits,
+    BSBbattingAverage: team.stats.BSBbattingAverage,
+    BSBsluggingPercentage: team.stats.BSBsluggingPercentage,
+    BSBonBasePercentage: team.stats.BSBonBasePercentage,
+    BSBonBasePlusSlugging: team.stats.BSBonBasePlusSlugging,
+    BSBgroundToFlyRatio: team.stats.BSBgroundToFlyRatio,
+    BSBatBatsPerHomeRun: team.stats.BSBatBatsPerHomeRun,
+    BSBstolenBasePercentage: team.stats.BSBstolenBasePercentage,
+    BSBbatterWalkToStrikeoutRatio: team.stats.BSBbatterWalkToStrikeoutRatio,
+    BSBsaves: team.stats.BSBsaves,
+    BSBpitcherStrikeouts: team.stats.BSBpitcherStrikeouts,
+    BSBhitsGivenUp: team.stats.BSBhitsGivenUp,
+    BSBearnedRuns: team.stats.BSBearnedRuns,
+    BSBbattersWalked: team.stats.BSBbattersWalked,
+    BSBrunsAllowed: team.stats.BSBrunsAllowed,
+    BSBhomeRunsAllowed: team.stats.BSBhomeRunsAllowed,
+    BSBwins: team.stats.BSBwins,
+    BSBshutouts: team.stats.BSBshutouts,
+    BSBearnedRunAverage: team.stats.BSBearnedRunAverage,
+    BSBwalksHitsPerInningPitched: team.stats.BSBwalksHitsPerInningPitched,
+    BSBwinPct: team.stats.BSBwinPct,
+    BSBpitcherCaughtStealingPct: team.stats.BSBpitcherCaughtStealingPct,
+    BSBpitchesPerInning: team.stats.BSBpitchesPerInning,
+    BSBrunSupportAverage: team.stats.BSBrunSupportAverage,
+    BSBopponentBattingAverage: team.stats.BSBopponentBattingAverage,
+    BSBopponentSlugAverage: team.stats.BSBopponentSlugAverage,
+    BSBopponentOnBasePct: team.stats.BSBopponentOnBasePct,
+    BSBopponentOnBasePlusSlugging: team.stats.BSBopponentOnBasePlusSlugging,
+    BSBsavePct: team.stats.BSBsavePct,
+    BSBstrikeoutsPerNine: team.stats.BSBstrikeoutsPerNine,
+    BSBpitcherStrikeoutToWalkRatio: team.stats.BSBpitcherStrikeoutToWalkRatio,
+    BSBdoublePlays: team.stats.BSBdoublePlays,
+    BSBerrors: team.stats.BSBerrors,
+    BSBpassedBalls: team.stats.BSBpassedBalls,
+    BSBassists: team.stats.BSBassists,
+    BSBputouts: team.stats.BSBputouts,
+    BSBcatcherCaughtStealing: team.stats.BSBcatcherCaughtStealing,
+    BSBcatcherCaughtStealingPct: team.stats.BSBcatcherCaughtStealingPct,
+    BSBcatcherStolenBasesAllowed: team.stats.BSBcatcherStolenBasesAllowed,
+    BSBfieldingPercentage: team.stats.BSBfieldingPercentage,
+    BSBrangeFactor: team.stats.BSBrangeFactor,
+
+    //------------------------------BASKETBALL STATS-----------------------------------------------------------
+    BSKBtotalPoints: team.stats.BSKBtotalPoints,
+    BSKBpointsPerGame: team.stats.BSKBpointsPerGame,
+    BSKBassists: team.stats.BSKBassists,
+    BSKBassistsPerGame: team.stats.BSKBassistsPerGame,
+    BSKBassistRatio: team.stats.BSKBassistRatio,
+    BSKBeffectiveFgPercent: team.stats.BSKBeffectiveFgPercent,
+    BSKBfieldGoalPercent: team.stats.BSKBfieldGoalPercent,
+    BSKBfieldGoalsAttempted: team.stats.BSKBfieldGoalsAttempted,
+    BSKBfieldGoalsMade: team.stats.BSKBfieldGoalsMade,
+    BSKBfieldGoalsPerGame: team.stats.BSKBfieldGoalsPerGame,
+    BSKBfreeThrowPercent: team.stats.BSKBfreeThrowPercent,
+    BSKBfreeThrowsAttempted: team.stats.BSKBfreeThrowsAttempted,
+    BSKBfreeThrowsMade: team.stats.BSKBfreeThrowsMade,
+    BSKBfreeThrowsMadePerGame: team.stats.BSKBfreeThrowsMadePerGame,
+    BSKBoffensiveRebounds: team.stats.BSKBoffensiveRebounds,
+    BSKBoffensiveReboundsPerGame: team.stats.BSKBoffensiveReboundsPerGame,
+    BSKBoffensiveReboundRate: team.stats.BSKBoffensiveReboundRate,
+    BSKBoffensiveTurnovers: team.stats.BSKBoffensiveTurnovers,
+    BSKBturnoversPerGame: team.stats.BSKBturnoversPerGame,
+    BSKBturnoverRatio: team.stats.BSKBturnoverRatio,
+    BSKBthreePointPct: team.stats.BSKBthreePointPct,
+    BSKBthreePointsAttempted: team.stats.BSKBthreePointsAttempted,
+    BSKBthreePointsMade: team.stats.BSKBthreePointsMade,
+    BSKBtrueShootingPct: team.stats.BSKBtrueShootingPct,
+    BSKBpace: team.stats.BSKBpace,
+    BSKBpointsInPaint: team.stats.BSKBpointsInPaint,
+    BSKBshootingEfficiency: team.stats.BSKBshootingEfficiency,
+    BSKBscoringEfficiency: team.stats.BSKBscoringEfficiency,
+    BSKBblocks: team.stats.BSKBblocks,
+    BSKBblocksPerGame: team.stats.BSKBblocksPerGame,
+    BSKBdefensiveRebounds: team.stats.BSKBdefensiveRebounds,
+    BSKBdefensiveReboundsPerGame: team.stats.BSKBdefensiveReboundsPerGame,
+    BSKBsteals: team.stats.BSKBsteals,
+    BSKBstealsPerGame: team.stats.BSKBstealsPerGame,
+    BSKBreboundRate: team.stats.BSKBreboundRate,
+    BSKBreboundsPerGame: team.stats.BSKBreboundsPerGame,
+    BSKBfoulsPerGame: team.stats.BSKBfoulsPerGame,
+    BSKBteamAssistToTurnoverRatio: team.stats.BSKBteamAssistToTurnoverRatio,
+
+    //------------------------------HOCKEY STATS-----------------------------------------------------------
+    HKYgoals: team.stats.HKYgoals,
+    HKYgoalsPerGame: team.stats.HKYgoalsPerGame,
+    HKYassists: team.stats.HKYassists,
+    HKYassistsPerGame: team.stats.HKYassistsPerGame,
+    HKYshotsIn1st: team.stats.HKYshotsIn1st,
+    HKYshotsIn1stPerGame: team.stats.HKYshotsIn1stPerGame,
+    HKYshotsIn2nd: team.stats.HKYshotsIn2nd,
+    HKYshotsIn2ndPerGame: team.stats.HKYshotsIn2ndPerGame,
+    HKYshotsIn3rd: team.stats.HKYshotsIn3rd,
+    HKYshotsIn3rdPerGame: team.stats.HKYshotsIn3rdPerGame,
+    HKYtotalShots: team.stats.HKYtotalShots,
+    HKYtotalShotsPerGame: team.stats.HKYtotalShotsPerGame,
+    HKYshotsMissed: team.stats.HKYshotsMissed,
+    HKYshotsMissedPerGame: team.stats.HKYshotsMissedPerGame,
+    HKYppgGoals: team.stats.HKYppgGoals,
+    HKYppgGoalsPerGame: team.stats.HKYppgGoalsPerGame,
+    HKYppassists: team.stats.HKYppassists,
+    HKYppassistsPerGame: team.stats.HKYppassistsPerGame,
+    HKYpowerplayPct: team.stats.HKYpowerplayPct,
+    HKYshortHandedGoals: team.stats.HKYshortHandedGoals,
+    HKYshortHandedGoalsPerGame: team.stats.HKYshortHandedGoalsPerGame,
+    HKYshootingPct: team.stats.HKYshootingPct,
+    HKYfaceoffs: team.stats.HKYfaceoffs,
+    HKYfaceoffsPerGame: team.stats.HKYfaceoffsPerGame,
+    HKYfaceoffsWon: team.stats.HKYfaceoffsWon,
+    HKYfaceoffsWonPerGame: team.stats.HKYfaceoffsWonPerGame,
+    HKYfaceoffsLost: team.stats.HKYfaceoffsLost,
+    HKYfaceoffsLostPerGame: team.stats.HKYfaceoffsLostPerGame,
+    HKYfaceoffPct: team.stats.HKYfaceoffPct,
+    HKYfaceoffPctPerGame: team.stats.HKYfaceoffPctPerGame,
+    HKYgiveaways: team.stats.HKYgiveaways,
+    HKYgoalsAgainst: team.stats.HKYgoalsAgainst,
+    HKYgoalsAgainstPerGame: team.stats.HKYgoalsAgainstPerGame,
+    HKYshotsAgainst: team.stats.HKYshotsAgainst,
+    HKYshotsAgainstPerGame: team.stats.HKYshotsAgainstPerGame,
+    HKYpenaltyKillPct: team.stats.HKYpenaltyKillPct,
+    HKYpenaltyKillPctPerGame: team.stats.HKYpenaltyKillPctPerGame,
+    HKYppGoalsAgainst: team.stats.HKYppGoalsAgainst,
+    HKYppGoalsAgainstPerGame: team.stats.HKYppGoalsAgainstPerGame,
+    HKYshutouts: team.stats.HKYshutouts,
+    HKYsaves: team.stats.HKYsaves,
+    HKYsavesPerGame: team.stats.HKYsavesPerGame,
+    HKYsavePct: team.stats.HKYsavePct,
+    HKYblockedShots: team.stats.HKYblockedShots,
+    HKYblockedShotsPerGame: team.stats.HKYblockedShotsPerGame,
+    HKYhits: team.stats.HKYhits,
+    HKYhitsPerGame: team.stats.HKYhitsPerGame,
+    HKYtakeaways: team.stats.HKYtakeaways,
+    HKYtakeawaysPerGame: team.stats.HKYtakeawaysPerGame,
+    HKYshotDifferential: team.stats.HKYshotDifferential,
+    HKYshotDifferentialPerGame: team.stats.HKYshotDifferentialPerGame,
+    HKYgoalDifferentialPerGame: team.stats.HKYgoalDifferentialPerGame,
+    HKYpimDifferential: team.stats.HKYpimDifferential,
+    HKYpimDifferentialPerGame: team.stats.HKYpimDifferentialPerGame,
+    HKYtotalPenalties: team.stats.HKYtotalPenalties,
+    HKYpenaltiesPerGame: team.stats.HKYpenaltiesPerGame,
+    HKYpenaltyMinutes: team.stats.HKYpenaltyMinutes,
+    HKYpenaltyMinutesPerGame: team.stats.HKYpenaltyMinutesPerGame,
+});
+const cleanStats = (stats) => {
+    const cleanedStats = {};
+
+    for (const key in stats) {
+        if (stats[key] !== null && stats[key] !== undefined) {
+            cleanedStats[key] = stats[key];
+        }
+    }
+
+    return cleanedStats;
+};
 const removePastGames = async (currentOdds) => {
     for (let game of currentOdds) {
+
         // Check if the game is in the past based on commence_time
         if (moment(game.commence_time).local().isBefore(moment().local())) {
             let { _id, ...newGame } = game._doc;
-            let homeScore, awayScore, predictionCorrect, winner, timeRemaining;
-            let homeTeam
-            let awayTeam
-
+            const teamNames = [game.home_team, game.away_team];
+            let teams;
             if (game.sport === 'football') {
-                if (game.sport_key === 'americanfootball_nfl') {
-                    homeTeam = await UsaFootballTeam.findOne({
-                        'sport_key': 'americanfootball_nfl',
-                        'espnDisplayName': game.home_team
-                    });
-                    awayTeam = await UsaFootballTeam.findOne({
-                        'sport_key': 'americanfootball_nfl',
-                        'espnDisplayName': game.away_team
-                    });
-                } else if (game.sport_key === 'americanfootball_ncaaf') {
-                    homeTeam = await UsaFootballTeam.findOne({
-                        'sport_key': 'americanfootball_ncaaf',
-                        'espnDisplayName': game.home_team
-                    });
-                    awayTeam = await UsaFootballTeam.findOne({
-                        'sport_key': 'americanfootball_ncaaf',
-                        'espnDisplayName': game.away_team
-                    });
-                }
-                homeTeam = await UsaFootballTeam.findOne({ 'espnDisplayName': game.home_team });
-                awayTeam = await UsaFootballTeam.findOne({ 'espnDisplayName': game.away_team });
+                // Example of football teams query
+                teams = await UsaFootballTeam.find({ 'espnDisplayName': { $in: teamNames } });
             } else if (game.sport === 'baseball') {
-                homeTeam = await BaseballTeam.findOne({ 'espnDisplayName': game.home_team });
-                awayTeam = await BaseballTeam.findOne({ 'espnDisplayName': game.away_team });
+                teams = await BaseballTeam.find({ 'espnDisplayName': { $in: teamNames } });
             } else if (game.sport === 'basketball') {
-                if (game.sport_key === 'basketball_nba') {
-                    homeTeam = await BasketballTeam.findOne({
-                        'league': 'nba',
-                        'espnDisplayName': game.home_team
-                    });
-                    awayTeam = await BasketballTeam.findOne({
-                        'league': 'nba',
-                        'espnDisplayName': game.away_team
-                    });
-                } else if (game.sport_key === 'basketball_ncaab') {
-                    homeTeam = await BasketballTeam.findOne({
-                        'league': 'mens-college-basketball',
-                        'espnDisplayName': game.home_team
-                    });
-                    awayTeam = await BasketballTeam.findOne({
-                        'league': 'mens-college-basketball',
-                        'espnDisplayName': game.away_team
-                    });
-                } else if (game.sport_key === 'basketball_wncaab') {
-                    homeTeam = await BasketballTeam.findOne({
-                        'league': 'womens-college-basketball',
-                        'espnDisplayName': game.home_team
-                    });
-                    awayTeam = await BasketballTeam.findOne({
-                        'league': 'womens-college-basketball',
-                        'espnDisplayName': game.away_team
-                    });
-                }
+                teams = await BasketballTeam.find({ 'espnDisplayName': { $in: teamNames } });
             } else if (game.sport === 'hockey') {
-                homeTeam = await HockeyTeam.findOne({ 'espnDisplayName': game.home_team });
-                awayTeam = await HockeyTeam.findOne({ 'espnDisplayName': game.away_team });
+                teams = await HockeyTeam.find({ 'espnDisplayName': { $in: teamNames } });
             }
 
+            let homeTeam = teams.find(team => team.espnDisplayName === game.home_team);
+            let awayTeam = teams.find(team => team.espnDisplayName === game.away_team);
 
 
-            if (homeTeam) {
+            const controller = new AbortController();  // Create the AbortController
+            const signal = controller.signal;          // Get the signal from the controller
+            if (homeTeam && awayTeam) {
                 try {
                     // Fetch home team schedule from ESPN API
-                    let homeTeamSchedule = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${game.sport}/${homeTeam.league}/teams/${homeTeam.espnID}/schedule`);
+                    let homeTeamSchedule = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${game.sport}/${homeTeam.league}/teams/${homeTeam.espnID}/schedule`, { signal }, timeout = 10000);
                     let homeTeamSchedJSON = await homeTeamSchedule.json();
                     // Loop through events in the home team schedule
                     for (let event of homeTeamSchedJSON.events) {
@@ -633,7 +835,7 @@ const removePastGames = async (currentOdds) => {
                         // Check if the event matches the current game's date
                         if ((event.name === `${awayTeam.espnDisplayName} at ${homeTeam.espnDisplayName}` || event.shortName === `${awayTeam.abbreviation} @ ${homeTeam.abbreviation}`) && moment(event.date).isSame(moment(game.commence_time), 'day')) {
                             if (event.competitions[0].status.type.completed === true) {
-
+                                let homeScore, awayScore, predictionCorrect, winner
                                 // Determine the scores and winner
                                 event.competitions[0].competitors.forEach((team) => {
                                     if (team.homeAway === 'home') {
@@ -652,283 +854,49 @@ const removePastGames = async (currentOdds) => {
                                 } else if (game.awayTeamIndex > game.homeTeamIndex) {
                                     predictionCorrect = winner === 'away';
                                 }
-                                const getCommonStats = (team) => ({
-                                    //------------------------------SHARED STATS-----------------------------------------------------------
-                                    seasonWinLoss: team.seasonWinLoss,
-                                    homeWinLoss: team.homeWinLoss,
-                                    awayWinLoss: team.awayWinLoss,
-                                    pointDiff: team.pointDiff,
 
-                                    USFBcompletionPercent: team.stats.USFBcompletionPercent,
-                                    USFBcompletions: team.stats.USFBcompletions,
-                                    USFBcompletionsPerGame: team.stats.USFBcompletionsPerGame,
-                                    USFBnetPassingYards: team.stats.USFBnetPassingYards,
-                                    USFBnetPassingYardsPerGame: team.stats.USFBnetPassingYardsPerGame,
-                                    USFBpassingFirstDowns: team.stats.USFBpassingFirstDowns,
-                                    USFBpassingTouchdowns: team.stats.USFBpassingTouchdowns,
-                                    USFBpassingYards: team.stats.USFBpassingYards,
-                                    USFBpassingYardsPerGame: team.stats.USFBpassingYardsPerGame,
-                                    USFBpassingAttempts: team.stats.USFBpassingAttempts,
-                                    USFBpassingAttemptsPerGame: team.stats.USFBpassingAttemptsPerGame,
-                                    USFByardsPerPassAttempt: team.stats.USFByardsPerPassAttempt,
-                                    USFBrushingAttempts: team.stats.USFBrushingAttempts,
-                                    USFBrushingFirstDowns: team.stats.USFBrushingFirstDowns,
-                                    USFBrushingTouchdowns: team.stats.USFBrushingTouchdowns,
-                                    USFBrushingYards: team.stats.USFBrushingYards,
-                                    USFBrushingYardsPerGame: team.stats.USFBrushingYardsPerGame,
-                                    USFByardsPerRushAttempt: team.stats.USFByardsPerRushAttempt,
-                                    USFBreceivingFirstDowns: team.stats.USFBreceivingFirstDowns,
-                                    USFBreceivingTouchdowns: team.stats.USFBreceivingTouchdowns,
-                                    USFBreceivingYards: team.stats.USFBreceivingYards,
-                                    USFBreceivingYardsPerGame: team.stats.USFBreceivingYardsPerGame,
-                                    USFBreceivingYardsPerReception: team.stats.USFBreceivingYardsPerReception,
-                                    USFBreceivingYardsAfterCatch: team.stats.USFBreceivingYardsAfterCatch,
-                                    USFBreceivingYardsAfterCatchPerGame: team.stats.USFBreceivingYardsAfterCatchPerGame,
-                                    USFBtotalTouchdowns: team.stats.USFBtotalTouchdowns,
-                                    USFBtouchdownsPerGame: team.stats.USFBtouchdownsPerGame,
-                                    USFBtotalPoints: team.stats.USFBtotalPoints,
-                                    USFBpointsPerGame: team.stats.USFBpointsPerGame,
-                                    USFBtacklesforLoss: team.stats.USFBtacklesforLoss,
-                                    USFBtacklesforLossPerGame: team.stats.USFBtacklesforLossPerGame,
-                                    USFBinterceptions: team.stats.USFBinterceptions,
-                                    USFByardsPerInterception: team.stats.USFByardsPerInterception,
-                                    USFBsacksTotal: team.stats.USFBsacksTotal,
-                                    USFBsacksPerGame: team.stats.USFBsacksPerGame,
-                                    USFBsackYards: team.stats.USFBsackYards,
-                                    USFBsackYardsPerGame: team.stats.USFBsackYardsPerGame,
-                                    USFBstuffs: team.stats.USFBstuffs,
-                                    USFBstuffsPerGame: team.stats.USFBstuffsPerGame,
-                                    USFBstuffYards: team.stats.USFBstuffYards,
-                                    USFBpassesDefended: team.stats.USFBpassesDefended,
-                                    USFBpassesDefendedPerGame: team.stats.USFBpassesDefendedPerGame,
-                                    USFBsafties: team.stats.USFBsafties,
-                                    USFBaverageKickoffYards: team.stats.USFBaverageKickoffYards,
-                                    USFBaverageKickoffYardsPerGame: team.stats.USFBaverageKickoffYardsPerGame,
-                                    USFBextraPointAttempts: team.stats.USFBextraPointAttempts,
-                                    USFBextraPointAttemptsPerGame: team.stats.USFBextraPointAttemptsPerGame,
-                                    USFBextraPointsMade: team.stats.USFBextraPointsMade,
-                                    USFBextraPointsMadePerGame: team.stats.USFBextraPointsMadePerGame,
-                                    USFBextraPointPercent: team.stats.USFBextraPointPercent,
-                                    USFBextraPointPercentPerGame: team.stats.USFBextraPointPercentPerGame,
-                                    USFBfieldGoalAttempts: team.stats.USFBfieldGoalAttempts,
-                                    USFBfieldGoalAttemptsPerGame: team.stats.USFBfieldGoalAttemptsPerGame,
-                                    USFBfieldGoalsMade: team.stats.USFBfieldGoalsMade,
-                                    USFBfieldGoalsMadePerGame: team.stats.USFBfieldGoalsMadePerGame,
-                                    USFBfieldGoalPct: team.stats.USFBfieldGoalPct,
-                                    USFBfieldGoalPercentPerGame: team.stats.USFBfieldGoalPercentPerGame,
-                                    USFBtouchbacks: team.stats.USFBtouchbacks,
-                                    USFBtouchbacksPerGame: team.stats.USFBtouchbacksPerGame,
-                                    USFBtouchBackPercentage: team.stats.USFBtouchBackPercentage,
-                                    USFBkickReturns: team.stats.USFBkickReturns,
-                                    USFBkickReturnsPerGame: team.stats.USFBkickReturnsPerGame,
-                                    USFBkickReturnYards: team.stats.USFBkickReturnYards,
-                                    USFBkickReturnYardsPerGame: team.stats.USFBkickReturnYardsPerGame,
-                                    USFBpuntReturns: team.stats.USFBpuntReturns,
-                                    USFBpuntReturnsPerGame: team.stats.USFBpuntReturnsPerGame,
-                                    USFBpuntReturnFairCatchPct: team.stats.USFBpuntReturnFairCatchPct,
-                                    USFBpuntReturnYards: team.stats.USFBpuntReturnYards,
-                                    USFBpuntReturnYardsPerGame: team.stats.USFBpuntReturnYardsPerGame,
-                                    USFByardsPerReturn: team.stats.USFByardsPerReturn,
-                                    USFBthirdDownEfficiency: team.stats.USFBthirdDownEfficiency,
-                                    USFBtotalPenyards: team.stats.USFBtotalPenyards,
-                                    USFBaveragePenYardsPerGame: team.stats.USFBaveragePenYardsPerGame,
-                                    USFBgiveaways: team.stats.USFBgiveaways,
-                                    USFBtakeaways: team.stats.USFBtakeaways,
-                                    USFBturnoverDiff: team.stats.USFBturnoverDiff,
-                                    USFBtotalFirstDowns: team.stats.USFBtotalFirstDowns,
-
-                                    //------------------------------AMERICAN FOOTBALL STATS-----------------------------------------------------------
-                                    BSBbattingStrikeouts: team.stats.BSBbattingStrikeouts,
-                                    BSBrunsBattedIn: team.stats.BSBrunsBattedIn,
-                                    BSBsacrificeHits: team.stats.BSBsacrificeHits,
-                                    BSBHitsTotal: team.stats.BSBHitsTotal,
-                                    BSBwalks: team.stats.BSBwalks,
-                                    BSBruns: team.stats.BSBruns,
-                                    BSBhomeRuns: team.stats.BSBhomeRuns,
-                                    BSBdoubles: team.stats.BSBdoubles,
-                                    BSBtotalBases: team.stats.BSBtotalBases,
-                                    BSBextraBaseHits: team.stats.BSBextraBaseHits,
-                                    BSBbattingAverage: team.stats.BSBbattingAverage,
-                                    BSBsluggingPercentage: team.stats.BSBsluggingPercentage,
-                                    BSBonBasePercentage: team.stats.BSBonBasePercentage,
-                                    BSBonBasePlusSlugging: team.stats.BSBonBasePlusSlugging,
-                                    BSBgroundToFlyRatio: team.stats.BSBgroundToFlyRatio,
-                                    BSBatBatsPerHomeRun: team.stats.BSBatBatsPerHomeRun,
-                                    BSBstolenBasePercentage: team.stats.BSBstolenBasePercentage,
-                                    BSBbatterWalkToStrikeoutRatio: team.stats.BSBbatterWalkToStrikeoutRatio,
-                                    BSBsaves: team.stats.BSBsaves,
-                                    BSBpitcherStrikeouts: team.stats.BSBpitcherStrikeouts,
-                                    BSBhitsGivenUp: team.stats.BSBhitsGivenUp,
-                                    BSBearnedRuns: team.stats.BSBearnedRuns,
-                                    BSBbattersWalked: team.stats.BSBbattersWalked,
-                                    BSBrunsAllowed: team.stats.BSBrunsAllowed,
-                                    BSBhomeRunsAllowed: team.stats.BSBhomeRunsAllowed,
-                                    BSBwins: team.stats.BSBwins,
-                                    BSBshutouts: team.stats.BSBshutouts,
-                                    BSBearnedRunAverage: team.stats.BSBearnedRunAverage,
-                                    BSBwalksHitsPerInningPitched: team.stats.BSBwalksHitsPerInningPitched,
-                                    BSBwinPct: team.stats.BSBwinPct,
-                                    BSBpitcherCaughtStealingPct: team.stats.BSBpitcherCaughtStealingPct,
-                                    BSBpitchesPerInning: team.stats.BSBpitchesPerInning,
-                                    BSBrunSupportAverage: team.stats.BSBrunSupportAverage,
-                                    BSBopponentBattingAverage: team.stats.BSBopponentBattingAverage,
-                                    BSBopponentSlugAverage: team.stats.BSBopponentSlugAverage,
-                                    BSBopponentOnBasePct: team.stats.BSBopponentOnBasePct,
-                                    BSBopponentOnBasePlusSlugging: team.stats.BSBopponentOnBasePlusSlugging,
-                                    BSBsavePct: team.stats.BSBsavePct,
-                                    BSBstrikeoutsPerNine: team.stats.BSBstrikeoutsPerNine,
-                                    BSBpitcherStrikeoutToWalkRatio: team.stats.BSBpitcherStrikeoutToWalkRatio,
-                                    BSBdoublePlays: team.stats.BSBdoublePlays,
-                                    BSBerrors: team.stats.BSBerrors,
-                                    BSBpassedBalls: team.stats.BSBpassedBalls,
-                                    BSBassists: team.stats.BSBassists,
-                                    BSBputouts: team.stats.BSBputouts,
-                                    BSBcatcherCaughtStealing: team.stats.BSBcatcherCaughtStealing,
-                                    BSBcatcherCaughtStealingPct: team.stats.BSBcatcherCaughtStealingPct,
-                                    BSBcatcherStolenBasesAllowed: team.stats.BSBcatcherStolenBasesAllowed,
-                                    BSBfieldingPercentage: team.stats.BSBfieldingPercentage,
-                                    BSBrangeFactor: team.stats.BSBrangeFactor,
-
-                                    //------------------------------BASKETBALL STATS-----------------------------------------------------------
-                                    BSKBtotalPoints: team.stats.BSKBtotalPoints,
-                                    BSKBpointsPerGame: team.stats.BSKBpointsPerGame,
-                                    BSKBassists: team.stats.BSKBassists,
-                                    BSKBassistsPerGame: team.stats.BSKBassistsPerGame,
-                                    BSKBassistRatio: team.stats.BSKBassistRatio,
-                                    BSKBeffectiveFgPercent: team.stats.BSKBeffectiveFgPercent,
-                                    BSKBfieldGoalPercent: team.stats.BSKBfieldGoalPercent,
-                                    BSKBfieldGoalsAttempted: team.stats.BSKBfieldGoalsAttempted,
-                                    BSKBfieldGoalsMade: team.stats.BSKBfieldGoalsMade,
-                                    BSKBfieldGoalsPerGame: team.stats.BSKBfieldGoalsPerGame,
-                                    BSKBfreeThrowPercent: team.stats.BSKBfreeThrowPercent,
-                                    BSKBfreeThrowsAttempted: team.stats.BSKBfreeThrowsAttempted,
-                                    BSKBfreeThrowsMade: team.stats.BSKBfreeThrowsMade,
-                                    BSKBfreeThrowsMadePerGame: team.stats.BSKBfreeThrowsMadePerGame,
-                                    BSKBoffensiveRebounds: team.stats.BSKBoffensiveRebounds,
-                                    BSKBoffensiveReboundsPerGame: team.stats.BSKBoffensiveReboundsPerGame,
-                                    BSKBoffensiveReboundRate: team.stats.BSKBoffensiveReboundRate,
-                                    BSKBoffensiveTurnovers: team.stats.BSKBoffensiveTurnovers,
-                                    BSKBturnoversPerGame: team.stats.BSKBturnoversPerGame,
-                                    BSKBturnoverRatio: team.stats.BSKBturnoverRatio,
-                                    BSKBthreePointPct: team.stats.BSKBthreePointPct,
-                                    BSKBthreePointsAttempted: team.stats.BSKBthreePointsAttempted,
-                                    BSKBthreePointsMade: team.stats.BSKBthreePointsMade,
-                                    BSKBtrueShootingPct: team.stats.BSKBtrueShootingPct,
-                                    BSKBpace: team.stats.BSKBpace,
-                                    BSKBpointsInPaint: team.stats.BSKBpointsInPaint,
-                                    BSKBshootingEfficiency: team.stats.BSKBshootingEfficiency,
-                                    BSKBscoringEfficiency: team.stats.BSKBscoringEfficiency,
-                                    BSKBblocks: team.stats.BSKBblocks,
-                                    BSKBblocksPerGame: team.stats.BSKBblocksPerGame,
-                                    BSKBdefensiveRebounds: team.stats.BSKBdefensiveRebounds,
-                                    BSKBdefensiveReboundsPerGame: team.stats.BSKBdefensiveReboundsPerGame,
-                                    BSKBsteals: team.stats.BSKBsteals,
-                                    BSKBstealsPerGame: team.stats.BSKBstealsPerGame,
-                                    BSKBreboundRate: team.stats.BSKBreboundRate,
-                                    BSKBreboundsPerGame: team.stats.BSKBreboundsPerGame,
-                                    BSKBfoulsPerGame: team.stats.BSKBfoulsPerGame,
-                                    BSKBteamAssistToTurnoverRatio: team.stats.BSKBteamAssistToTurnoverRatio,
-
-                                    //------------------------------HOCKEY STATS-----------------------------------------------------------
-                                    HKYgoals: team.stats.HKYgoals,
-                                    HKYgoalsPerGame: team.stats.HKYgoalsPerGame,
-                                    HKYassists: team.stats.HKYassists,
-                                    HKYassistsPerGame: team.stats.HKYassistsPerGame,
-                                    HKYshotsIn1st: team.stats.HKYshotsIn1st,
-                                    HKYshotsIn1stPerGame: team.stats.HKYshotsIn1stPerGame,
-                                    HKYshotsIn2nd: team.stats.HKYshotsIn2nd,
-                                    HKYshotsIn2ndPerGame: team.stats.HKYshotsIn2ndPerGame,
-                                    HKYshotsIn3rd: team.stats.HKYshotsIn3rd,
-                                    HKYshotsIn3rdPerGame: team.stats.HKYshotsIn3rdPerGame,
-                                    HKYtotalShots: team.stats.HKYtotalShots,
-                                    HKYtotalShotsPerGame: team.stats.HKYtotalShotsPerGame,
-                                    HKYshotsMissed: team.stats.HKYshotsMissed,
-                                    HKYshotsMissedPerGame: team.stats.HKYshotsMissedPerGame,
-                                    HKYppgGoals: team.stats.HKYppgGoals,
-                                    HKYppgGoalsPerGame: team.stats.HKYppgGoalsPerGame,
-                                    HKYppassists: team.stats.HKYppassists,
-                                    HKYppassistsPerGame: team.stats.HKYppassistsPerGame,
-                                    HKYpowerplayPct: team.stats.HKYpowerplayPct,
-                                    HKYshortHandedGoals: team.stats.HKYshortHandedGoals,
-                                    HKYshortHandedGoalsPerGame: team.stats.HKYshortHandedGoalsPerGame,
-                                    HKYshootingPct: team.stats.HKYshootingPct,
-                                    HKYfaceoffs: team.stats.HKYfaceoffs,
-                                    HKYfaceoffsPerGame: team.stats.HKYfaceoffsPerGame,
-                                    HKYfaceoffsWon: team.stats.HKYfaceoffsWon,
-                                    HKYfaceoffsWonPerGame: team.stats.HKYfaceoffsWonPerGame,
-                                    HKYfaceoffsLost: team.stats.HKYfaceoffsLost,
-                                    HKYfaceoffsLostPerGame: team.stats.HKYfaceoffsLostPerGame,
-                                    HKYfaceoffPct: team.stats.HKYfaceoffPct,
-                                    HKYfaceoffPctPerGame: team.stats.HKYfaceoffPctPerGame,
-                                    HKYgiveaways: team.stats.HKYgiveaways,
-                                    HKYgoalsAgainst: team.stats.HKYgoalsAgainst,
-                                    HKYgoalsAgainstPerGame: team.stats.HKYgoalsAgainstPerGame,
-                                    HKYshotsAgainst: team.stats.HKYshotsAgainst,
-                                    HKYshotsAgainstPerGame: team.stats.HKYshotsAgainstPerGame,
-                                    HKYpenaltyKillPct: team.stats.HKYpenaltyKillPct,
-                                    HKYpenaltyKillPctPerGame: team.stats.HKYpenaltyKillPctPerGame,
-                                    HKYppGoalsAgainst: team.stats.HKYppGoalsAgainst,
-                                    HKYppGoalsAgainstPerGame: team.stats.HKYppGoalsAgainstPerGame,
-                                    HKYshutouts: team.stats.HKYshutouts,
-                                    HKYsaves: team.stats.HKYsaves,
-                                    HKYsavesPerGame: team.stats.HKYsavesPerGame,
-                                    HKYsavePct: team.stats.HKYsavePct,
-                                    HKYblockedShots: team.stats.HKYblockedShots,
-                                    HKYblockedShotsPerGame: team.stats.HKYblockedShotsPerGame,
-                                    HKYhits: team.stats.HKYhits,
-                                    HKYhitsPerGame: team.stats.HKYhitsPerGame,
-                                    HKYtakeaways: team.stats.HKYtakeaways,
-                                    HKYtakeawaysPerGame: team.stats.HKYtakeawaysPerGame,
-                                    HKYshotDifferential: team.stats.HKYshotDifferential,
-                                    HKYshotDifferentialPerGame: team.stats.HKYshotDifferentialPerGame,
-                                    HKYgoalDifferentialPerGame: team.stats.HKYgoalDifferentialPerGame,
-                                    HKYpimDifferential: team.stats.HKYpimDifferential,
-                                    HKYpimDifferentialPerGame: team.stats.HKYpimDifferentialPerGame,
-                                    HKYtotalPenalties: team.stats.HKYtotalPenalties,
-                                    HKYpenaltiesPerGame: team.stats.HKYpenaltiesPerGame,
-                                    HKYpenaltyMinutes: team.stats.HKYpenaltyMinutes,
-                                    HKYpenaltyMinutesPerGame: team.stats.HKYpenaltyMinutesPerGame,
-                                });
-                                const cleanStats = (stats) => {
-                                    const cleanedStats = {};
-
-                                    for (const key in stats) {
-                                        if (stats[key] !== null && stats[key] !== undefined) {
-                                            cleanedStats[key] = stats[key];
-                                        }
-                                    }
-
-                                    return cleanedStats;
-                                };
-                                // Save the past game to the PastGameOdds collection
-                                // Check if the game already exists in the PastGameOdds collection
-                                const existingGame = await PastGameOdds.findOne({
-                                    home_team: game.home_team,
-                                    away_team: game.away_team,
+                                let existingGame = await PastGameOdds.findOne({
+                                    home_team: homeTeam.espnDisplayName,
+                                    away_team: awayTeam.espnDisplayName,
                                     commence_time: game.commence_time
                                 });
-
+                                // Save the past game to the PastGameOdds collection
+                                // Check if the game already exists in the PastGameOdds collection
                                 if (!existingGame) {
-                                    // If no existing record, create a new entry
-                                    await PastGameOdds.create({
-                                        ...newGame,
-                                        homeScore,
-                                        awayScore,
-                                        winner,
-                                        predictionCorrect: predictionCorrect ? predictionCorrect : false,
-                                        homeTeamStats: cleanStats(getCommonStats(homeTeam)),
-                                        awayTeamStats: cleanStats(getCommonStats(awayTeam)),
-                                    });
+                                    try {
+                                        // Create a new record
+                                        await PastGameOdds.create({
+                                            ...newGame,
+                                            homeScore,
+                                            awayScore,
+                                            winner,
+                                            predictionCorrect: predictionCorrect ? predictionCorrect : false,
+                                            homeTeamStats: cleanStats(getCommonStats(homeTeam)),
+                                            awayTeamStats: cleanStats(getCommonStats(awayTeam)),
+                                        });
 
+                                        // Delete the game from the Odds collection
+                                        let deletedGame = await Odds.findOneAndDelete({ _id: game._doc._id });
+                                        if (deletedGame) {
+                                            console.log(`deleted game: ${deletedGame.home_team} vs ${deletedGame.away_team}`);
+                                            deletedGame = null;  // Nullify reference after use
+                                        }
+                                    } catch (error) {
+                                        console.error("Error during database operation", error);
+                                    }
+                                } else {
+                                    console.log('Game already exists in PastGameOdds');
                                     // Delete the game from the Odds collection
                                     let deletedGame = await Odds.findOneAndDelete({ _id: game._doc._id });
                                     if (deletedGame) {
                                         console.log(`deleted game: ${deletedGame.home_team} vs ${deletedGame.away_team}`);
                                     }
-                                } else {
-                                    console.log('Game already exists in PastGameOdds');
+                                    deletedGame = null
                                 }
+
+                                existingGame = null
                             } else if (event.competitions[0].status.type.description === 'In Progress' || event.competitions[0].status.type.description === 'Halftime' || event.competitions[0].status.type.description === 'End of Period') {
+                                let timeRemaining, homeScore, awayScore
                                 let currentScoreboard = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${game.sport}/${homeTeam.league}/scoreboard`)
                                 let scoreboardJSON = await currentScoreboard.json()
                                 for (let SBevent of scoreboardJSON.events) {
@@ -965,16 +933,21 @@ const removePastGames = async (currentOdds) => {
                                 if (deletedGame) {
                                     console.log(`deleted game: ${deletedGame.home_team} vs ${deletedGame.away_team}`);
                                 }
+                                deletedGame = null
                             }
                         }
                     }
                 } catch (err) {
                     console.log(game.id)
                     console.log(err); // Log any errors encountered during the API call or processing
+                    controller.abort();
                 }
             } else {
                 console.log(game.id)
             }
+
+            homeTeam = null
+            awayTeam = null
 
         }
     }
@@ -2469,7 +2442,7 @@ const oddsSeed = async () => {
         }
         return false;
     }).map((sport) =>
-        axios.get(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_TCDEV}&regions=us&oddsFormat=american&markets=h2h`)
+        axios.get(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_TRAVM}&regions=us&oddsFormat=american&markets=h2h`)
     )).then(async (data) => {
         try {
             data.map(async (item) => {
@@ -2863,39 +2836,30 @@ const oddsSeed = async () => {
     })
 }
 const removeSeed = async () => {
-    currentOdds = await Odds.find();
+    // console.log(process.memoryUsage());
+    const currentYear = new Date().getFullYear();
+    const startOfYear = `${currentYear}-01-01T00:00:00`;  // YYYY-MM-DDTHH:mm:ss format
+    const startOfNextYear = `${currentYear + 1}-01-01T00:00:00`; // YYYY-MM-DDTHH:mm:ss format
+    let currentOdds = await Odds.find();
     await removePastGames(currentOdds)
 
-    currentOdds = await Odds.find();
-    pastOdds = await PastGameOdds.find()
+    currentOdds = await Odds.find().sort({ commence_time: 1, winPercent: 1 });
+    pastOdds = await PastGameOdds.find({
+        commence_time: { $gte: startOfYear, $lt: startOfNextYear }
+    }).sort({ commence_time: -1, winPercent: 1 });
 
 
-    await emitToClients('gameUpdate', currentOdds.sort((a, b) => {
-        const timeA = new Date(a.commence_time).getTime();  // Round to the start of the minute
-        const timeB = new Date(b.commence_time).getTime();  // Round to the start of the minute
 
-        if (timeA === timeB) {
-            return a.winPercent - b.winPercent;  // Sort by winPercent if times are the same
-        } else {
-            return timeA < timeB ? -1 : 1;  // Sort by commence_time otherwise
-        }
-    }));
-    await emitToClients('pastGameUpdate', pastOdds.sort((a, b) => {
-        const timeA = new Date(a.commence_time).getTime();  // Round to the start of the minute
-        const timeB = new Date(b.commence_time).getTime();  // Round to the start of the minute
-
-        if (timeA === timeB) {
-            return a.winPercent - b.winPercent;  // Sort by winPercent if times are the same
-        } else {
-            return timeA < timeB ? 1 : -1;  // Sort by commence_time otherwise
-        }
-    }));
+    await emitToClients('gameUpdate', currentOdds);
+    await emitToClients('pastGameUpdate', pastOdds);
+    currentOdds = null
+    pastOdds = null
 
 }
 const dataSeed = async () => {
 
     console.log("DB CONNECTED ------------------------------------------------- STARTING SEED")
-    // await retrieveTeamsandStats()
+    await retrieveTeamsandStats()
     // DETERMINE TEAMS
 
     // CLEANED AND FORMATTED
@@ -2949,8 +2913,23 @@ const dataSeed = async () => {
 
     }
     for (sport = 0; sport < sports.length; sport++) {
-        const pastGames = await PastGameOdds.find({ sport_key: sports[sport].name })
-        await trainSportModel(sports[sport], pastGames)
+        const currentDate = new Date();
+        const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11, so we add 1 to make it 1-12
+        // Assuming the sport object is already defined
+        if (sports[sport].multiYear) {
+            // Multi-year sports (e.g., NFL, NBA, NHL, etc.)
+            if ((currentMonth >= sports[sport].startMonth && currentMonth <= 12) || (currentMonth >= 1 && currentMonth <= sports[sport].endMonth)) {
+                const pastGames = await PastGameOdds.find({ sport_key: sports[sport].name })
+                await trainSportModel(sports[sport], pastGames)
+            }
+        } else {
+            // Single-year sports (e.g., MLB)
+            if (currentMonth >= sports[sport].startMonth && currentMonth <= sports[sport].endMonth) {
+                const pastGames = await PastGameOdds.find({ sport_key: sports[sport].name })
+                await trainSportModel(sports[sport], pastGames)
+            }
+        }
+
         console.log(`${sports[sport].name} ML DONE @ ${moment().format('HH:mm:ss')}`)
     }
     // americanfootball_nfl:    11 sec
@@ -2962,7 +2941,7 @@ const dataSeed = async () => {
     // basketball_wncaab:        9 min
 
     console.log(`FINISHED TRAINING MODEL @ ${moment().format('HH:mm:ss')}`)
-
+    currentOdds = await Odds.find()
     currentOdds.map(async (game) => {
         try {
             // Loop over all bookmakers
@@ -3612,10 +3591,10 @@ const pastGameStatsPoC = async () => {
                 // Process each event from the team's schedule
                 if (oldTeamSchedJSON !== undefined) {
                     for (const event of oldTeamSchedJSON.events) {
-                        if(event.competitions[0].competitors[0].score && event.competitions[0].competitors[1].score){
-                          upcomingGames.push(event);  
+                        if (event.competitions[0].competitors[0].score && event.competitions[0].competitors[1].score) {
+                            upcomingGames.push(event);
                         }
-                        
+
                     }
                 }
             }
@@ -3660,7 +3639,7 @@ const pastGameStatsPoC = async () => {
                                                     if (statMap[stat.name]) {
                                                         for (const statInfo of statMap[stat.name]) {
                                                             const statKey = statInfo.modelField;
-                                                            if(category.name === statInfo.category){
+                                                            if (category.name === statInfo.category) {
                                                                 if (statInfo.isPerGame || statInfo.isDisplayValue) {
                                                                     homeTeam.stats[statKey] = stat.value === null || stat.value === undefined ? 0 : stat.value;
                                                                 } else {
@@ -3701,7 +3680,7 @@ const pastGameStatsPoC = async () => {
                                                         for (const statInfo of statMap[stat.name]) {
                                                             const statKey = statInfo.modelField;
                                                             // Accumulate stats for the away team
-                                                            if(category.name === statInfo.category){
+                                                            if (category.name === statInfo.category) {
                                                                 if (statInfo.isPerGame || statInfo.isDisplayValue) {
                                                                     awayTeam.stats[statKey] = stat.value === null || stat.value === undefined ? 0 : stat.value;
                                                                 } else {
@@ -3747,7 +3726,7 @@ const pastGameStatsPoC = async () => {
                                 homeTeam.stats.pointDiff = (homeTeam.stats.pointDiff || 0) + (homeScore - awayScore); // Update point difference for home
                             }
 
-                            if(event.id === "401423177"){
+                            if (event.id === "401423177") {
                                 console.log({
                                     id: event.id,
                                     sport_key: sport.name,

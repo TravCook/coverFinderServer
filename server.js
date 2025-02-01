@@ -43,12 +43,12 @@ const cronJobs = [
     timezone,
   },
   {
-    cronTime: '0 */45 * * * *', // every 40 min 6.5 mb
+    cronTime: '0 */50 * * * *', // every 40 min 6.5 mb
     onTick: dataSeed.dataSeed,
     timezone,
   },
   {
-    cronTime: '*/45 * * * * *', //every 45 seconds 1.2 mb
+    cronTime: '0 */1 * * * *', //every 1 minute 1.2 mb
     onTick: dataSeed.removeSeed,
     timezone
   },
@@ -59,80 +59,103 @@ const cronJobs = [
   // }
 ];
 
+// Create an object to track the running status of each cron job by its cronTime (or a unique ID)
+let jobStatuses = {};
+
 cronJobs.forEach(({ cronTime, onTick, timezone }) => {
-  const cronJob = new CronJob(cronTime, onTick, null, true, timezone);
+  const cronJob = new CronJob(cronTime, async () => {
+    // Check if the job is already running by checking the jobStatuses object
+    if (jobStatuses[cronTime]) {
+      console.log(`Job for ${cronTime} is already running, skipping this interval.`);
+      return; // Exit early if the job is already running
+    }
+
+    try {
+      // Set the flag to indicate the job is running for this specific cronTime
+      jobStatuses[cronTime] = true;
+
+      // Run the actual job logic
+      await onTick(); // This will be your removeSeed function or any other job
+    } catch (error) {
+      console.error(`Error during cron job for ${cronTime}:`, error);
+    } finally {
+      // Reset the flag for this specific cronTime to allow it to run again in the future
+      jobStatuses[cronTime] = false;
+    }
+  }, null, true, timezone);
+
   cronJob.start();
 });
 
-// Socket.IO connection event
-io.on('connection', async (socket) => {
-  console.log(`a user connected @ ${moment().format('HH:mm:ss')}`);
+// // Socket.IO connection event
+// io.on('connection', async (socket) => {
+//   console.log(`a user connected @ ${moment().format('HH:mm:ss')}`);
 
-  //1.2mb
-  //   const [currentOdds, pastOdds, footballTeams, basketballTeams, baseballTeams, hockeyTeams] = await Promise.all([
-  //     Odds.find({}, {commence_time: 1, 
-  //       home_team: 1, 
-  //       homeTeamIndex: 1, 
-  //       homeScore: 1, 
-  //       away_team: 1, 
-  //       awayTeamIndex: 1, 
-  //       awayScore: 1, 
-  //       winPercent: 1, 
-  //       homeTeamlogo: 1, 
-  //       awayTeamlogo: 1, 
-  //       winner: 1, 
-  //       predictionCorrect: 1, 
-  //       id: 1, 
-  //       sport_key:1, 
-  //       sport_title: 1, 
-  //       sport:1, 
-  //       bookmakers: 1}).sort({ commence_time: 1, winPercent: 1 }), // Sorting in database
-  //     PastGameOdds.find({}, {commence_time: 1, 
-  //       home_team: 1, 
-  //       homeTeamIndex: 1, 
-  //       homeScore: 1, 
-  //       away_team: 1, 
-  //       awayTeamIndex: 1, 
-  //       awayScore: 1, 
-  //       winPercent: 1, 
-  //       homeTeamlogo: 1, 
-  //       awayTeamlogo: 1, 
-  //       winner: 1, 
-  //       predictionCorrect: 1, 
-  //       id: 1, 
-  //       sport_key:1, 
-  //       sport_title: 1, 
-  //       sport:1, 
-  //       bookmakers: 1}).sort({ commence_time: -1, winPercent: 1 }), // Sorting in database
-  //     UsaFootballTeam.find({},  {  teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }),
-  //     BasketballTeam.find({},  {  teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }),
-  //     BaseballTeam.find({},  {  teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }),
-  //     HockeyTeam.find({},  {  teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 })
-  //   ]);
+//   //1.2mb
+//   //   const [currentOdds, pastOdds, footballTeams, basketballTeams, baseballTeams, hockeyTeams] = await Promise.all([
+//   //     Odds.find({}, {commence_time: 1, 
+//   //       home_team: 1, 
+//   //       homeTeamIndex: 1, 
+//   //       homeScore: 1, 
+//   //       away_team: 1, 
+//   //       awayTeamIndex: 1, 
+//   //       awayScore: 1, 
+//   //       winPercent: 1, 
+//   //       homeTeamlogo: 1, 
+//   //       awayTeamlogo: 1, 
+//   //       winner: 1, 
+//   //       predictionCorrect: 1, 
+//   //       id: 1, 
+//   //       sport_key:1, 
+//   //       sport_title: 1, 
+//   //       sport:1, 
+//   //       bookmakers: 1}).sort({ commence_time: 1, winPercent: 1 }), // Sorting in database
+//   //     PastGameOdds.find({}, {commence_time: 1, 
+//   //       home_team: 1, 
+//   //       homeTeamIndex: 1, 
+//   //       homeScore: 1, 
+//   //       away_team: 1, 
+//   //       awayTeamIndex: 1, 
+//   //       awayScore: 1, 
+//   //       winPercent: 1, 
+//   //       homeTeamlogo: 1, 
+//   //       awayTeamlogo: 1, 
+//   //       winner: 1, 
+//   //       predictionCorrect: 1, 
+//   //       id: 1, 
+//   //       sport_key:1, 
+//   //       sport_title: 1, 
+//   //       sport:1, 
+//   //       bookmakers: 1}).sort({ commence_time: -1, winPercent: 1 }), // Sorting in database
+//   //     UsaFootballTeam.find({},  {  teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }),
+//   //     BasketballTeam.find({},  {  teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }),
+//   //     BaseballTeam.find({},  {  teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }),
+//   //     HockeyTeam.find({},  {  teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 })
+//   //   ]);
 
-  //   let allTeams = {
-  //       football: footballTeams,
-  //       basketball: basketballTeams,
-  //       baseball: baseballTeams,
-  //       hockey: hockeyTeams
-  //   };
+//   //   let allTeams = {
+//   //       football: footballTeams,
+//   //       basketball: basketballTeams,
+//   //       baseball: baseballTeams,
+//   //       hockey: hockeyTeams
+//   //   };
 
- 
-  //   console.log(`retrieved data @ ${moment().format('HH:mm:ss')}`);
-  //  emitToClients('teamUpdate', allTeams);
 
-  //  emitToClients('gameUpdate', currentOdds);
-  //  emitToClients('pastGameUpdate', pastOdds);
+//   //   console.log(`retrieved data @ ${moment().format('HH:mm:ss')}`);
+//   //  emitToClients('teamUpdate', allTeams);
 
-  //  const dataSize = Buffer.byteLength(JSON.stringify({allTeams, currentOdds, pastOdds}), 'utf8'); // Get data size in bytes
-  //  console.log(`Data size sent: ${dataSize / 1024} KB`);  // Convert to KB or MB if 
-  console.log(`sent data @ ${moment().format('HH:mm:ss')}`);
-  
-  // Handle disconnect event
-  socket.on('disconnect', () => {
-    console.log('User disconnected');
-  });
-});
+//   //  emitToClients('gameUpdate', currentOdds);
+//   //  emitToClients('pastGameUpdate', pastOdds);
+
+//   //  const dataSize = Buffer.byteLength(JSON.stringify({allTeams, currentOdds, pastOdds}), 'utf8'); // Get data size in bytes
+//   //  console.log(`Data size sent: ${dataSize / 1024} KB`);  // Convert to KB or MB if 
+//   console.log(`sent data @ ${moment().format('HH:mm:ss')}`);
+
+//   // Handle disconnect event
+//   socket.on('disconnect', () => {
+//     console.log('User disconnected');
+//   });
+// });
 
 // Start the server
 db.once('open', () => {
@@ -147,4 +170,4 @@ server.listen(PORT, '0.0.0.0', () => {
 
 
 
-module.exports = io ;
+module.exports = io;

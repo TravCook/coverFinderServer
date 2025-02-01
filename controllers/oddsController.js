@@ -99,6 +99,7 @@ module.exports = {
                     const currentYear = new Date().getFullYear();
                     return gameDate.getFullYear() === currentYear;
                   })
+                  console.log(pastFilteredGames.length)
                 data = {
                     odds: odds,
                     pastGameOdds: pastFilteredGames,
