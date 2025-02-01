@@ -94,10 +94,14 @@ module.exports = {
                 BasketballTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }),
                 BaseballTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }),
                 HockeyTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 })])
-    
+                let pastFilteredGames = pastGames.filter((game) => {
+                    const gameDate = new Date(game.commence_time);
+                    const currentYear = new Date().getFullYear();
+                    return gameDate.getFullYear() === currentYear;
+                  })
                 data = {
                     odds: odds,
-                    pastGameOdds: pastGames,
+                    pastGameOdds: pastFilteredGames,
                     teams: {
                         football: footballTeams,
                         basketball: basketballTeams,

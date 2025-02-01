@@ -15,7 +15,7 @@ const moment = require('moment')
 
 // Initialize the app and create a port
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3002;
 
 // Set up body parsing, static, and route middleware
 app.use(cors({ origin: '*' }));
@@ -43,15 +43,15 @@ const cronJobs = [
     timezone,
   },
   {
-    cronTime: '0 */40 * * * *', // every 1 hour 6.5 mb
+    cronTime: '0 */45 * * * *', // every 40 min 6.5 mb
     onTick: dataSeed.dataSeed,
     timezone,
   },
-  // {
-  //   cronTime: '*/45 * * * * *', //every 45 seconds 1.2 mb
-  //   onTick: dataSeed.removeSeed,
-  //   timezone
-  // },
+  {
+    cronTime: '*/45 * * * * *', //every 45 seconds 1.2 mb
+    onTick: dataSeed.removeSeed,
+    timezone
+  },
   // {
   //   cronTime: '* * * * */3 *', //every quarter
   //   onTick: dataSeed.espnSeed,
