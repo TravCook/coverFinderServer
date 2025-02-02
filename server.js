@@ -38,12 +38,12 @@ app.use(routes);
 const timezone = 'America/Denver';
 const cronJobs = [
   {
-    cronTime: '0 8,14,21 * * *', // Runs at 8:00 AM, 2:00 PM, and 9:00 PM
+    cronTime: '0 0 8,14,21 * * *', // Runs at 8:00 AM, 2:00 PM, and 9:00 PM
     onTick: dataSeed.oddsSeed,
     timezone,
   },
   {
-    cronTime: '0 */50 * * * *', // every 40 min 6.5 mb
+    cronTime: '0 15 8,14,21 * * *', // Runs 15 min after the odds cron job
     onTick: dataSeed.dataSeed,
     timezone,
   },
