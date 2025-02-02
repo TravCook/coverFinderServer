@@ -50,7 +50,19 @@ module.exports = {
     async getAllOdds(req, res) {
         try {
             let data = myCache.get('fullData'); // Check cache first
-            if(data === undefined){
+            if (data === undefined) {
+                const currentYear = new Date().getFullYear();
+                const startOfYear = `${currentYear}-01-01T00:00:00`;  // YYYY-MM-DDTHH:mm:ss format
+                const startOfNextYear = `${currentYear + 1}-01-01T00:00:00`; // YYYY-MM-DDTHH:mm:ss format
+
+                // Get current date and calculate the date 7 days ago
+                const currentDate = new Date();
+                const sevenDaysAgo = new Date(currentDate);
+                sevenDaysAgo.setDate(currentDate.getDate() - 7); // Subtract 7 days
+
+                // Format the dates to match your query format
+                const startOfWeek = sevenDaysAgo.toISOString(); // This gives you the date 7 days ago in ISO format
+
                 let odds = await Odds.find({}, {
                     commence_time: 1,
                     home_team: 1,
@@ -70,39 +82,18 @@ module.exports = {
                     sport: 1,
                     bookmakers: 1
                 }).sort({ commence_time: 1, winPercent: 1 })
-                let pastGames = await PastGameOdds.find({}, {
-                    commence_time: 1,
-                    home_team: 1,
-                    homeTeamIndex: 1,
-                    homeScore: 1,
-                    away_team: 1,
-                    awayTeamIndex: 1,
-                    awayScore: 1,
-                    winPercent: 1,
-                    homeTeamlogo: 1,
-                    awayTeamlogo: 1,
-                    winner: 1,
-                    predictionCorrect: 1,
-                    id: 1,
-                    sport_key: 1,
-                    sport_title: 1,
-                    sport: 1,
-                    bookmakers: 1
-                }).sort({ commence_time: -1, winPercent: 1 }) // Sorting in database
-    
+                let pastGames = await PastGameOdds.find({
+                    commence_time: { $gte: startOfWeek, $lt: currentDate.toISOString() }
+                }).sort({ commence_time: -1, winPercent: 1 });
+
                 const [footballTeams, basketballTeams, baseballTeams, hockeyTeams] = await Promise.all([UsaFootballTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }),
                 BasketballTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }),
                 BaseballTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }),
                 HockeyTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 })])
-                let pastFilteredGames = pastGames.filter((game) => {
-                    const gameDate = new Date(game.commence_time);
-                    const currentYear = new Date().getFullYear();
-                    return gameDate.getFullYear() === currentYear;
-                  })
-                  console.log(pastFilteredGames.length)
+
                 data = {
                     odds: odds,
-                    pastGameOdds: pastFilteredGames,
+                    pastGameOdds: pastGames,
                     teams: {
                         football: footballTeams,
                         basketball: basketballTeams,
@@ -110,15 +101,13 @@ module.exports = {
                         hockey: hockeyTeams
                     }
                 }
-
-                const dataSize = Buffer.byteLength(JSON.stringify(data), 'utf8');
-                console.log(`Data size sent: ${dataSize / 1024} KB`);
                 myCache.set('fullData', JSON.stringify(data), 60);
                 // Sort data by commence_time and winPercent
-            }else{
+            } else {
                 data = JSON.parse(data)
             }
-
+            const dataSize = Buffer.byteLength(JSON.stringify(data), 'utf8');
+            console.log(`Data size sent: ${dataSize / 1024} KB controller`);
             return res.json(data)
         } catch (err) {
             return res.status(500).json({ message: err.message });
