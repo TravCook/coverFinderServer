@@ -2906,6 +2906,24 @@ const removeSeed = async () => {
     
     let pastOdds = await PastGameOdds.find({
         commence_time: { $gte: startOfWeek, $lt: currentDate.toISOString() }
+    }, {
+        commence_time: 1,
+        home_team: 1,
+        homeTeamIndex: 1,
+        homeScore: 1,
+        away_team: 1,
+        awayTeamIndex: 1,
+        awayScore: 1,
+        winPercent: 1,
+        homeTeamlogo: 1,
+        awayTeamlogo: 1,
+        winner: 1,
+        predictionCorrect: 1,
+        id: 1,
+        sport_key: 1,
+        sport_title: 1,
+        sport: 1,
+        bookmakers: 1
     }).sort({ commence_time: -1, winPercent: 1 });
     
 
