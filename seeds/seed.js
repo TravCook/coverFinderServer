@@ -805,21 +805,65 @@ const removePastGames = async (currentOdds) => {
         // Check if the game is in the past based on commence_time
         if (moment(game.commence_time).local().isBefore(moment().local())) {
             let { _id, ...newGame } = game._doc;
-            const teamNames = [game.home_team, game.away_team];
-            let teams;
-            if (game.sport === 'football') {
-                // Example of football teams query
-                teams = await UsaFootballTeam.find({ 'espnDisplayName': { $in: teamNames } });
-            } else if (game.sport === 'baseball') {
-                teams = await BaseballTeam.find({ 'espnDisplayName': { $in: teamNames } });
-            } else if (game.sport === 'basketball') {
-                teams = await BasketballTeam.find({ 'espnDisplayName': { $in: teamNames } });
-            } else if (game.sport === 'hockey') {
-                teams = await HockeyTeam.find({ 'espnDisplayName': { $in: teamNames } });
-            }
 
-            let homeTeam = teams.find(team => team.espnDisplayName === game.home_team);
-            let awayTeam = teams.find(team => team.espnDisplayName === game.away_team);
+            if (game.sport === 'football') {
+                if (game.sport_key === 'americanfootball_nfl') {
+                    homeTeam = await UsaFootballTeam.findOne({
+                        'sport_key': 'americanfootball_nfl',
+                        'espnDisplayName': game.home_team
+                    });
+                    awayTeam = await UsaFootballTeam.findOne({
+                        'sport_key': 'americanfootball_nfl',
+                        'espnDisplayName': game.away_team
+                    });
+                } else if (game.sport_key === 'americanfootball_ncaaf') {
+                    homeTeam = await UsaFootballTeam.findOne({
+                        'sport_key': 'americanfootball_ncaaf',
+                        'espnDisplayName': game.home_team
+                    });
+                    awayTeam = await UsaFootballTeam.findOne({
+                        'sport_key': 'americanfootball_ncaaf',
+                        'espnDisplayName': game.away_team
+                    });
+                }
+                homeTeam = await UsaFootballTeam.findOne({ 'espnDisplayName': game.home_team });
+                awayTeam = await UsaFootballTeam.findOne({ 'espnDisplayName': game.away_team });
+            } else if (game.sport === 'baseball') {
+                homeTeam = await BaseballTeam.findOne({ 'espnDisplayName': game.home_team });
+                awayTeam = await BaseballTeam.findOne({ 'espnDisplayName': game.away_team });
+            } else if (game.sport === 'basketball') {
+                if (game.sport_key === 'basketball_nba') {
+                    homeTeam = await BasketballTeam.findOne({
+                        'league': 'nba',
+                        'espnDisplayName': game.home_team
+                    });
+                    awayTeam = await BasketballTeam.findOne({
+                        'league': 'nba',
+                        'espnDisplayName': game.away_team
+                    });
+                } else if (game.sport_key === 'basketball_ncaab') {
+                    homeTeam = await BasketballTeam.findOne({
+                        'league': 'mens-college-basketball',
+                        'espnDisplayName': game.home_team
+                    });
+                    awayTeam = await BasketballTeam.findOne({
+                        'league': 'mens-college-basketball',
+                        'espnDisplayName': game.away_team
+                    });
+                } else if (game.sport_key === 'basketball_wncaab') {
+                    homeTeam = await BasketballTeam.findOne({
+                        'league': 'womens-college-basketball',
+                        'espnDisplayName': game.home_team
+                    });
+                    awayTeam = await BasketballTeam.findOne({
+                        'league': 'womens-college-basketball',
+                        'espnDisplayName': game.away_team
+                    });
+                }
+            } else if (game.sport === 'hockey') {
+                homeTeam = await HockeyTeam.findOne({ 'espnDisplayName': game.home_team });
+                awayTeam = await HockeyTeam.findOne({ 'espnDisplayName': game.away_team });
+            }
 
 
             const controller = new AbortController();  // Create the AbortController
@@ -2442,7 +2486,7 @@ const oddsSeed = async () => {
         }
         return false;
     }).map((sport) =>
-        axios.get(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_TRAVM}&regions=us&oddsFormat=american&markets=h2h`)
+        axios.get(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_TCDEV}&regions=us&oddsFormat=american&markets=h2h`)
     )).then(async (data) => {
         try {
             data.map(async (item) => {
