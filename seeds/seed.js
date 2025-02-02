@@ -460,6 +460,9 @@ const retrieveTeamsandStats = async () => {
         };
 
         const upsertTeamsInBulk = async (teams, sport) => {
+            const dataSize = Buffer.byteLength(JSON.stringify(teams), 'utf8');
+            console.log(`Data size sent: ${dataSize / 1024} KB ${moment().format('HH:mm:ss')} upsertTeamsInBulk`);
+
             const bulkOps = teams.map(team => {
                 // Create a new object without the _id field
                 const { _id, ...teamWithoutId } = team;
@@ -2488,6 +2491,8 @@ const oddsSeed = async () => {
     }).map((sport) =>
         axios.get(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_TCDEV}&regions=us&oddsFormat=american&markets=h2h`)
     )).then(async (data) => {
+        const dataSize = Buffer.byteLength(JSON.stringify(data), 'utf8');
+        console.log(`Data size sent: ${dataSize / 1024} KB ${moment().format('HH:mm:ss')} oddsSeed`);
         try {
             data.map(async (item) => {
                 item.data.map(async (event) => {
@@ -2884,16 +2889,31 @@ const removeSeed = async () => {
     const currentYear = new Date().getFullYear();
     const startOfYear = `${currentYear}-01-01T00:00:00`;  // YYYY-MM-DDTHH:mm:ss format
     const startOfNextYear = `${currentYear + 1}-01-01T00:00:00`; // YYYY-MM-DDTHH:mm:ss format
+    
+    // Get current date and calculate the date 7 days ago
+    const currentDate = new Date();
+    const sevenDaysAgo = new Date(currentDate);
+    sevenDaysAgo.setDate(currentDate.getDate() - 7); // Subtract 7 days
+    
+    // Format the dates to match your query format
+    const startOfWeek = sevenDaysAgo.toISOString(); // This gives you the date 7 days ago in ISO format
+    
+    // Fetch current odds and past odds within the last week
     let currentOdds = await Odds.find();
-    await removePastGames(currentOdds)
-
+    await removePastGames(currentOdds);
+    
     currentOdds = await Odds.find().sort({ commence_time: 1, winPercent: 1 });
-    pastOdds = await PastGameOdds.find({
-        commence_time: { $gte: startOfYear, $lt: startOfNextYear }
+    
+    let pastOdds = await PastGameOdds.find({
+        commence_time: { $gte: startOfWeek, $lt: currentDate.toISOString() }
     }).sort({ commence_time: -1, winPercent: 1 });
+    
 
 
-
+    const currentData = Buffer.byteLength(JSON.stringify(currentOdds), 'utf8');
+    console.log(`Data size sent: ${currentData / 1024} KB ${moment().format('HH:mm:ss')} removeSeed current`);
+    const pastData = Buffer.byteLength(JSON.stringify(pastOdds), 'utf8');
+    console.log(`Data size sent: ${pastData / 1024} KB ${moment().format('HH:mm:ss')} removeSeed past`);
     await emitToClients('gameUpdate', currentOdds);
     await emitToClients('pastGameUpdate', pastOdds);
     currentOdds = null
@@ -2986,6 +3006,9 @@ const dataSeed = async () => {
 
     console.log(`FINISHED TRAINING MODEL @ ${moment().format('HH:mm:ss')}`)
     currentOdds = await Odds.find()
+    const dataSize = Buffer.byteLength(JSON.stringify(currentOdds), 'utf8');
+    console.log(`Data size sent: ${dataSize / 1024} KB ${moment().format('HH:mm:ss')} dataSeed`);
+
     currentOdds.map(async (game) => {
         try {
             // Loop over all bookmakers

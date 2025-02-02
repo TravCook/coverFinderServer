@@ -110,6 +110,9 @@ module.exports = {
                         hockey: hockeyTeams
                     }
                 }
+
+                const dataSize = Buffer.byteLength(JSON.stringify(data), 'utf8');
+                console.log(`Data size sent: ${dataSize / 1024} KB`);
                 myCache.set('fullData', JSON.stringify(data), 60);
                 // Sort data by commence_time and winPercent
             }else{
