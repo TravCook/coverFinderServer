@@ -2491,10 +2491,11 @@ const oddsSeed = async () => {
     }).map((sport) =>
         axios.get(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_TCDEV}&regions=us&oddsFormat=american&markets=h2h`)
     )).then(async (data) => {
-        const dataSize = Buffer.byteLength(JSON.stringify(data), 'utf8');
-        console.log(`Data size sent: ${dataSize / 1024} KB ${moment().format('HH:mm:ss')} oddsSeed`);
         try {
+
             data.map(async (item) => {
+                const dataSize = Buffer.byteLength(JSON.stringify(item.data), 'utf8');
+                console.log(`Data size sent: ${dataSize / 1024} KB ${moment().format('HH:mm:ss')} oddsSeed`);
                 item.data.map(async (event) => {
                     if (moment().isBefore(moment(event.commence_time))) {
 
@@ -3881,7 +3882,7 @@ const pastGameStatsPoC = async () => {
 
 
 }
-// oddsSeed()
+oddsSeed()
 // dataSeed()
 // pastGameStatsPoC()
 
