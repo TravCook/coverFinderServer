@@ -48,7 +48,7 @@ const cronJobs = [
     timezone,
   },
   {
-    cronTime: '0 */1 * * * *', //every 1 minute 1.2 mb
+    cronTime: '30 */5 * * * *', //every 1 minute 1.2 mb
     onTick: dataSeed.removeSeed,
     timezone
   },

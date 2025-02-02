@@ -460,9 +460,6 @@ const retrieveTeamsandStats = async () => {
         };
 
         const upsertTeamsInBulk = async (teams, sport) => {
-            const dataSize = Buffer.byteLength(JSON.stringify(teams), 'utf8');
-            console.log(`Data size sent: ${dataSize / 1024} KB ${moment().format('HH:mm:ss')} upsertTeamsInBulk`);
-
             const bulkOps = teams.map(team => {
                 // Create a new object without the _id field
                 const { _id, ...teamWithoutId } = team;
@@ -2903,28 +2900,10 @@ const removeSeed = async () => {
     let currentOdds = await Odds.find();
     await removePastGames(currentOdds);
     
-    currentOdds = await Odds.find().sort({ commence_time: 1, winPercent: 1 });
+    currentOdds = await Odds.find({}).sort({ commence_time: 1, winPercent: 1 });
     
     let pastOdds = await PastGameOdds.find({
         commence_time: { $gte: startOfWeek, $lt: currentDate.toISOString() }
-    }, {
-        commence_time: 1,
-        home_team: 1,
-        homeTeamIndex: 1,
-        homeScore: 1,
-        away_team: 1,
-        awayTeamIndex: 1,
-        awayScore: 1,
-        winPercent: 1,
-        homeTeamlogo: 1,
-        awayTeamlogo: 1,
-        winner: 1,
-        predictionCorrect: 1,
-        id: 1,
-        sport_key: 1,
-        sport_title: 1,
-        sport: 1,
-        bookmakers: 1
     }).sort({ commence_time: -1, winPercent: 1 });
     
 
