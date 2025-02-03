@@ -460,6 +460,7 @@ const retrieveTeamsandStats = async () => {
         };
 
         const upsertTeamsInBulk = async (teams, sport) => {
+
             const bulkOps = teams.map(team => {
                 // Create a new object without the _id field
                 const { _id, ...teamWithoutId } = team;
