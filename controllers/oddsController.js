@@ -54,6 +54,7 @@ module.exports = {
                 const currentYear = new Date().getFullYear();
                 const startOfYear = `${currentYear}-01-01T00:00:00`;  // YYYY-MM-DDTHH:mm:ss format
                 const startOfNextYear = `${currentYear + 1}-01-01T00:00:00`; // YYYY-MM-DDTHH:mm:ss format
+                const startOfLastYear = `${currentYear - 1}-01-01T00:00:00`; // YYYY-MM-DDTHH:mm:ss format
 
                 // Get current date and calculate the date 7 days ago
                 const currentDate = new Date();
@@ -145,25 +146,21 @@ module.exports = {
 
     async getPastGames(req, res) {
         try {
-            const pastGames = await PastGameOdds.find({}, {
-                commence_time: 1,
-                home_team: 1,
-                homeTeamIndex: 1,
-                homeScore: 1,
-                away_team: 1,
-                awayTeamIndex: 1,
-                awayScore: 1,
-                winPercent: 1,
-                homeTeamlogo: 1,
-                awayTeamlogo: 1,
-                winner: 1,
-                predictionCorrect: 1,
-                id: 1,
-                sport_key: 1,
-                sport_title: 1,
-                sport: 1,
-                bookmakers: 1
-            });
+            const currentYear = new Date().getFullYear();
+            const startOfYear = `${currentYear}-01-01T00:00:00`;  // YYYY-MM-DDTHH:mm:ss format
+            const startOfNextYear = `${currentYear + 1}-01-01T00:00:00`; // YYYY-MM-DDTHH:mm:ss format
+            const startOfLastYear = `${currentYear - 1}-01-01T00:00:00`; // YYYY-MM-DDTHH:mm:ss format
+
+            // Get current date and calculate the date 7 days ago
+            const currentDate = new Date();
+            const sevenDaysAgo = new Date(currentDate);
+            sevenDaysAgo.setDate(currentDate.getDate() - 7); // Subtract 7 days
+
+            // Format the dates to match your query format
+            const startOfWeek = sevenDaysAgo.toISOString(); // This gives you the date 7 days ago in ISO format
+            let pastGames = await PastGameOdds.find({
+                commence_time: { $gte: startOfLastYear, $lt: currentDate.toISOString() }
+            }).sort({ commence_time: -1, winPercent: 1 });
             return res.json(pastGames);
         } catch (err) {
             return res.status(500).json({ message: err.message });

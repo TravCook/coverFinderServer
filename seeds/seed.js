@@ -2893,6 +2893,9 @@ const removeSeed = async () => {
     const currentDate = new Date();
     const sevenDaysAgo = new Date(currentDate);
     sevenDaysAgo.setDate(currentDate.getDate() - 7); // Subtract 7 days
+
+    const yesterday = new Date(currentDate)
+    yesterday.setDate(currentDate.getDate() - 1) 
     
     // Format the dates to match your query format
     const startOfWeek = sevenDaysAgo.toISOString(); // This gives you the date 7 days ago in ISO format
@@ -2904,7 +2907,7 @@ const removeSeed = async () => {
     currentOdds = await Odds.find({}).sort({ commence_time: 1, winPercent: 1 });
     
     let pastOdds = await PastGameOdds.find({
-        commence_time: { $gte: startOfWeek, $lt: currentDate.toISOString() }
+        commence_time: { $gte: yesterday.toISOString(), $lt: currentDate.toISOString() }
     }).sort({ commence_time: -1, winPercent: 1 });
     
 
