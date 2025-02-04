@@ -43,7 +43,7 @@ const cronJobs = [
     timezone,
   },
   {
-    cronTime: '0 15 8,14,21 * * *', // Runs 15 min after the odds cron job
+    cronTime: '0 5 8,14,21 * * *', // Runs 15 min after the odds cron job
     onTick: dataSeed.dataSeed,
     timezone,
   },

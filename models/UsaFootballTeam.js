@@ -434,7 +434,64 @@ const UsaFootballTeamSchema = new Schema({
             required: false,
             category: 'miscellaneous'
         },
-    }
+    },
+    lastFiveGames: [
+        {
+            id: {
+                type: String,
+                required: false,
+                trim: true
+            },
+            commence_time: {
+                type: String,
+                required: false
+            },
+            home_team: {
+                type: String,
+                required: false,
+            },
+            away_team: {
+                type: String,
+                required: false,
+            } ,
+            homeTeamIndex: {
+                type: Number,
+                required: false
+            } ,
+            awayTeamIndex: {
+                type: Number,
+                required: false
+            } ,
+            homeTeamLogo: {
+                type: String,
+                required: false,
+            } ,
+            awayTeamLogo: {
+                type: String,
+                required: false,
+            } ,
+            homeTeamAbbr: {
+                type: String,
+                required: false
+            } ,
+            awayTeamAbbr: {
+                type: String,
+                required: false
+            } ,
+            homeScore: {
+                type: Number,
+                required: false
+            } ,
+            awayScore: {
+                type: Number,
+                required: false
+            } ,
+            winner: {
+                type: String,
+                required: false
+            } ,
+        },
+    ]
 })
 
 const UsaFootballTeam = mongoose.model('UsaFootballTeam', UsaFootballTeamSchema)

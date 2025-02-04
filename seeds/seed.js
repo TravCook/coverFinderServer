@@ -506,6 +506,33 @@ const retrieveTeamsandStats = async () => {
                             }
                         }
                     }
+                    let pastTeamGames = await PastGameOdds.find({
+                        $or: [
+                          { home_team: team.espnDisplayName },
+                          { away_team: team.espnDisplayName }
+                        ]
+                      }).sort({ commence_time: -1, winPercent: 1 })
+
+                    pastTeamGames.map((game, idx) => {
+                        if(idx <= 4){
+                            team.lastFiveGames[idx] = {
+                                id: game.id,
+                                commence_time: game.commence_time,
+                                home_team: game.home_team,
+                                away_team:  game.away_team,
+                                homeTeamIndex:  game.homeTeamIndex,
+                                awayTeamIndex:  game.awayTeamIndex,
+                                homeTeamLogo:  game.homeTeamLogo,
+                                awayTeamLogo:  game.awayTeamLogo,
+                                homeTeamAbbr:  game.homeTeamAbbr,
+                                awayTeamAbbr:  game.awayTeamAbbr,
+                                homeScore:  game.homeScore,
+                                awayScore:  game.awayScore,
+                                winner:  game.winner,
+                            }
+                        }
+                        
+                    })
                     return team;  // Return the updated team
                 } catch (error) {
                     console.log(`Error fetching data for team ${team.espnID}:`, error);
@@ -550,7 +577,7 @@ const retrieveTeamsandStats = async () => {
         fetchAllTeamData(sports[i], teams, sports[i].statYear)
     }
 
-    console.log(`Finished TEAM SEEDING @ ${moment().format('HH:mm:ss')}`)
+ 
 }
 const getCommonStats = (team) => ({
     //------------------------------SHARED STATS-----------------------------------------------------------
@@ -2927,7 +2954,7 @@ const dataSeed = async () => {
     console.log("DB CONNECTED ------------------------------------------------- STARTING SEED")
     await retrieveTeamsandStats()
     // DETERMINE TEAMS
-
+    console.log(`Finished TEAM SEEDING @ ${moment().format('HH:mm:ss')}`)
     // CLEANED AND FORMATTED
     let currentOdds
 
