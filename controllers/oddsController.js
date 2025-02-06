@@ -61,6 +61,9 @@ module.exports = {
                 const sevenDaysAgo = new Date(currentDate);
                 sevenDaysAgo.setDate(currentDate.getDate() - 7); // Subtract 7 days
 
+                const yesterday = new Date(currentDate)
+                yesterday.setDate(currentDate.getDate() - 1) 
+
                 // Format the dates to match your query format
                 const startOfWeek = sevenDaysAgo.toISOString(); // This gives you the date 7 days ago in ISO format
 
@@ -83,18 +86,14 @@ module.exports = {
                     sport: 1,
                     bookmakers: 1
                 }).sort({ commence_time: 1, winPercent: 1 })
-                let pastGames = await PastGameOdds.find({
-                    commence_time: { $gte: startOfWeek, $lt: currentDate.toISOString() }
-                }).sort({ commence_time: -1, winPercent: 1 });
 
-                const [footballTeams, basketballTeams, baseballTeams, hockeyTeams] = await Promise.all([UsaFootballTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }),
-                BasketballTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }),
-                BaseballTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 }),
-                HockeyTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1 })])
+                const [footballTeams, basketballTeams, baseballTeams, hockeyTeams] = await Promise.all([UsaFootballTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1, lastFiveGames: 1 }),
+                BasketballTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1, lastFiveGames: 1 }),
+                BaseballTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1, lastFiveGames: 1 }),
+                HockeyTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1, lastFiveGames: 1 })])
 
                 data = {
                     odds: odds,
-                    pastGameOdds: pastGames,
                     teams: {
                         football: footballTeams,
                         basketball: basketballTeams,
@@ -108,7 +107,7 @@ module.exports = {
                 data = JSON.parse(data)
             }
             const dataSize = Buffer.byteLength(JSON.stringify(data), 'utf8');
-            console.log(`Data size sent: ${dataSize / 1024} KB controller`);
+            console.log(`Data size sent: ${dataSize / 1024} KB upcomingGames`);
             return res.json(data)
         } catch (err) {
             return res.status(500).json({ message: err.message });
@@ -156,12 +155,26 @@ module.exports = {
             const sevenDaysAgo = new Date(currentDate);
             sevenDaysAgo.setDate(currentDate.getDate() - 7); // Subtract 7 days
 
+            const oneMonthAgo = new Date(currentDate)
+            oneMonthAgo.setDate(currentDate.getDate() - 31)
+
             // Format the dates to match your query format
             const startOfWeek = sevenDaysAgo.toISOString(); // This gives you the date 7 days ago in ISO format
             let pastGames = await PastGameOdds.find({
-                commence_time: { $gte: startOfLastYear, $lt: currentDate.toISOString() }
+                commence_time: { $gte: oneMonthAgo.toISOString(), $lt: currentDate.toISOString() }
             }).sort({ commence_time: -1, winPercent: 1 });
-            return res.json(pastGames);
+            const [footballTeams, basketballTeams, baseballTeams, hockeyTeams] = await Promise.all([UsaFootballTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1, lastFiveGames: 1 }),
+                BasketballTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1, lastFiveGames: 1 }),
+                BaseballTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1, lastFiveGames: 1 }),
+                HockeyTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1, lastFiveGames: 1 })])
+
+                data = {
+                    pastGames: pastGames
+                }
+
+            const dataSize = Buffer.byteLength(JSON.stringify(data), 'utf8');
+            console.log(`Data size sent: ${dataSize / 1024} KB pastGames`);
+            return res.json(data);
         } catch (err) {
             return res.status(500).json({ message: err.message });
         }

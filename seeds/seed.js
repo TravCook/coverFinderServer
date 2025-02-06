@@ -497,7 +497,7 @@ const retrieveTeamsandStats = async () => {
                     updateTeamRecord(team, teamRecordJson);
 
                     // Fetch team stats
-                    const teamStatResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/${sport.espnSport}/leagues/${sport.league}/seasons/${statYear}/types/2/teams/${team.espnID}/statistics?lang=en&region=us`);
+                    const teamStatResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/${sport.espnSport}/leagues/${sport.league}/seasons/${statYear}/types/2/teams/${team.espnID}/statistics?lang=en&region=us`, {signal: AbortSignal.timeout(10000)});
                     const teamStatJson = await teamStatResponse.json();
                     if (teamStatJson.splits) {
                         for (const category of teamStatJson.splits.categories) {
@@ -512,7 +512,7 @@ const retrieveTeamsandStats = async () => {
                           { away_team: team.espnDisplayName }
                         ]
                       }).sort({ commence_time: -1, winPercent: 1 })
-
+                    team.lastFiveGames = []
                     pastTeamGames.map((game, idx) => {
                         if(idx <= 4){
                             team.lastFiveGames[idx] = {
