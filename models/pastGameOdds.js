@@ -108,6 +108,10 @@ const pastGameOddsSchema = new Schema({
         type: Number,
         required: false
     },
+    predictionStrength: {
+        type: Number,
+        required: false
+    },
     predictionCorrect: {
         type: Boolean,
         required: true

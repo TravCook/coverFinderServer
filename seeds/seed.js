@@ -18,6 +18,7 @@ let ncaamWeights = []
 let ncaawWeights = []
 
 const retrieveTeamsandStats = async () => {
+
     for (let i = 0; i < sports.length; i++) {
         let TeamModel;
         switch (sports[i].espnSport) {
@@ -488,6 +489,7 @@ const retrieveTeamsandStats = async () => {
         };
 
         const fetchAllTeamData = async (sport, teams, statYear) => {
+
             const fetchTeamData = async (team, sport) => {
                 try {
                     // Fetch team record
@@ -497,7 +499,7 @@ const retrieveTeamsandStats = async () => {
                     updateTeamRecord(team, teamRecordJson);
 
                     // Fetch team stats
-                    const teamStatResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/${sport.espnSport}/leagues/${sport.league}/seasons/${statYear}/types/2/teams/${team.espnID}/statistics?lang=en&region=us`, {signal: AbortSignal.timeout(10000)});
+                    const teamStatResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/${sport.espnSport}/leagues/${sport.league}/seasons/${statYear}/types/2/teams/${team.espnID}/statistics?lang=en&region=us`, { signal: AbortSignal.timeout(10000) });
                     const teamStatJson = await teamStatResponse.json();
                     if (teamStatJson.splits) {
                         for (const category of teamStatJson.splits.categories) {
@@ -508,30 +510,33 @@ const retrieveTeamsandStats = async () => {
                     }
                     let pastTeamGames = await PastGameOdds.find({
                         $or: [
-                          { home_team: team.espnDisplayName },
-                          { away_team: team.espnDisplayName }
+                            { home_team: team.espnDisplayName },
+                            { away_team: team.espnDisplayName }
                         ]
-                      }).sort({ commence_time: -1, winPercent: 1 })
+                    }).sort({ commence_time: -1, winPercent: 1 })
                     team.lastFiveGames = []
+
+
+
                     pastTeamGames.map((game, idx) => {
-                        if(idx <= 4){
+                        if (idx <= 4) {
                             team.lastFiveGames[idx] = {
                                 id: game.id,
                                 commence_time: game.commence_time,
                                 home_team: game.home_team,
-                                away_team:  game.away_team,
-                                homeTeamIndex:  game.homeTeamIndex,
-                                awayTeamIndex:  game.awayTeamIndex,
-                                homeTeamLogo:  game.homeTeamLogo,
-                                awayTeamLogo:  game.awayTeamLogo,
-                                homeTeamAbbr:  game.homeTeamAbbr,
-                                awayTeamAbbr:  game.awayTeamAbbr,
-                                homeScore:  game.homeScore,
-                                awayScore:  game.awayScore,
-                                winner:  game.winner,
+                                away_team: game.away_team,
+                                homeTeamIndex: game.homeTeamIndex,
+                                awayTeamIndex: game.awayTeamIndex,
+                                homeTeamLogo: game.homeTeamLogo,
+                                awayTeamLogo: game.awayTeamLogo,
+                                homeTeamAbbr: game.homeTeamAbbr,
+                                awayTeamAbbr: game.awayTeamAbbr,
+                                homeScore: game.homeScore,
+                                awayScore: game.awayScore,
+                                winner: game.winner,
                             }
                         }
-                        
+
                     })
                     return team;  // Return the updated team
                 } catch (error) {
@@ -577,7 +582,7 @@ const retrieveTeamsandStats = async () => {
         fetchAllTeamData(sports[i], teams, sports[i].statYear)
     }
 
- 
+
 }
 const getCommonStats = (team) => ({
     //------------------------------SHARED STATS-----------------------------------------------------------
@@ -1574,7 +1579,7 @@ const sports = [
         multiYear: true,
         statYear: getDynamicStatYear(9, 2, new Date()), // NFL starts in 2024 but extends into 2025, so statYear = 2024
         prevstatYear: getDynamicStatYear(9, 2, new Date()), // NHL also uses the same logic for prevstatYear
-        decayFactor: 0.95
+        decayFactor: 0.45
     },
     {
         name: "americanfootball_ncaaf",
@@ -1585,7 +1590,7 @@ const sports = [
         multiYear: true,
         statYear: getDynamicStatYear(9, 1, new Date()), // NCAA Football starts in 2024 but ends in 2025, so statYear = 2024
         prevstatYear: getDynamicStatYear(9, 1, new Date()), // NHL also uses the same logic for prevstatYear
-        decayFactor: 0.90
+        decayFactor: 0.3
     },
     {
         name: "basketball_nba",
@@ -1596,7 +1601,7 @@ const sports = [
         multiYear: true,
         statYear: getDynamicStatYear(10, 4, new Date()), // NBA starts in 2024 but extends into 2025, so statYear = 2025
         prevstatYear: getDynamicStatYear(10, 4, new Date()), // NHL also uses the same logic for prevstatYear
-        decayFactor: 0.85
+        decayFactor: 0.2
     },
     {
         name: "icehockey_nhl",
@@ -1607,7 +1612,7 @@ const sports = [
         multiYear: true,
         statYear: getDynamicStatYear(10, 4, new Date()), // NHL starts in 2024 but extends into 2025, so statYear = 2025
         prevstatYear: getDynamicStatYear(10, 4, new Date()), // NHL also uses the same logic for prevstatYear
-        decayFactor: 0.85
+        decayFactor: 0.075
     },
     {
         name: "baseball_mlb",
@@ -1618,7 +1623,7 @@ const sports = [
         multiYear: false,
         statYear: getDynamicStatYear(3, 10, new Date()), // MLB starts in 2024 but ends in 2024, so statYear = 2024
         prevstatYear: getDynamicStatYear(3, 10, new Date()), // NHL also uses the same logic for prevstatYear
-        decayFactor: 0.75
+        decayFactor: 0.025
     },
     {
         name: "basketball_ncaab",
@@ -1629,7 +1634,7 @@ const sports = [
         multiYear: true,
         statYear: getDynamicStatYear(11, 4, new Date()), // NCAA Basketball starts in 2024 but ends in 2025, so statYear = 2025
         prevstatYear: getDynamicStatYear(11, 4, new Date()), // NHL also uses the same logic for prevstatYear
-        decayFactor: 0.85
+        decayFactor: 0.2
     },
     {
         name: "basketball_wncaab",
@@ -1640,7 +1645,7 @@ const sports = [
         multiYear: true,
         statYear: getDynamicStatYear(11, 4, new Date()), // Same as men's college basketball
         prevstatYear: getDynamicStatYear(11, 4, new Date()), // NHL also uses the same logic for prevstatYear
-        decayFactor: 0.85
+        decayFactor: 0.2
     },
 ]
 // Example of checking for NaN or infinite values
@@ -1654,12 +1659,26 @@ const checkNaNValues = (data, game) => {
     });
 };
 const mlModelTraining = async (gameData, xs, ys, sport) => {
+    const decayCalc = (daysAgo, lambda) => {
+        return 1 / (1 + lambda * daysAgo);
+    };
+
+    const currentDate = new Date();
     gameData.forEach(game => {
         const homeStats = game.homeTeamStats;
         const awayStats = game.awayTeamStats;
 
         // Extract features based on sport
-        const features = extractSportFeatures(homeStats, awayStats, sport.name);
+        let features = extractSportFeatures(homeStats, awayStats, sport.name);
+
+        // Calculate days since the game was played
+        const gameDate = new Date(game.commence_time); // assuming game.date is in a valid format
+        const daysAgo = Math.floor((currentDate - gameDate) / (1000 * 60 * 60 * 24)); // in days
+        // // Apply the decay to the stat differences (assuming the features include stat differences)
+        const decayWeight = decayCalc(daysAgo, sport.decayFactor);  // get the decay weight based on daysAgo
+
+        // // Apply decay to each feature if relevant
+        features = features.map(feature => feature * decayWeight);
 
         // Set label to 1 if home team wins, 0 if away team wins
         const correctPrediction = game.winner = 'home' ? 1 : 0;
@@ -1753,7 +1772,7 @@ const predictions = async (sportOdds, ff, model) => {
             } else {
                 const predictedWinPercent = probabilities[index][0]; // Get the probability for the current game
                 // Update the game with the predicted win percentage
-                await Odds.findOneAndUpdate({ id: game.id }, { winPercent: predictedWinPercent != NaN ? predictedWinPercent : 0 });
+                await Odds.findOneAndUpdate({ id: game.id }, { predictionStrength: predictedWinPercent != NaN ? predictedWinPercent : 0 });
             }
 
         });
@@ -2048,7 +2067,7 @@ function adjustwncaabStats(homeTeam, awayTeam, homeIndex, awayIndex) {
     return { homeIndex, awayIndex };
 }
 
-const indexAdjuster = (currentOdds, sport) => {
+const indexAdjuster = (currentOdds, sport, allPastGames) => {
     currentOdds.map(async (game, index) => {
         // Check if the game is in the future
         if (moment().isBefore(moment(game.commence_time))) {
@@ -2392,6 +2411,51 @@ const indexAdjuster = (currentOdds, sport) => {
 
                 return cleanedStats;
             };
+            function calculateWinrate(games, sport, homeTeam, awayTeam) {
+
+                // Step 1: Filter games where predictionCorrect is true
+                const usableGames = games.filter(game => (game.homeTeamIndex > 0 && game.awayTeamIndex > 0));
+
+                // Step 2: Filter games that match the sport league
+                const leagueGames = usableGames.filter(game => game.sport_key === sport.name);
+
+                // Step 3: Filter games where the home_team matches the team
+                const homeTeamGames = usableGames.filter(game => game.home_team === homeTeam || game.away_team === homeTeam);
+
+                // Step 4: Filter games where the away_team matches the team
+                const awayTeamGames = usableGames.filter(game => game.home_team === awayTeam || game.away_team === awayTeam);
+
+                // Step 5: Calculate winrate for each scenario
+                const totalGames = usableGames.length;
+                const totalPredictionCorrect = usableGames.filter(game => game.predictionCorrect === true).length
+                const totalLeagueGames = leagueGames.length;
+                const totalHomeTeamGames = homeTeamGames.length;
+                const totalAwayTeamGames = awayTeamGames.length;
+
+                // Function to calculate winrate percentage
+                const calculatePercentage = (part, total) => total > 0 ? (part / total) * 100 : 0;
+
+                const winrate = {
+                    allPredictionCorrect: calculatePercentage(totalPredictionCorrect, totalGames),
+                    leaguePredictionCorrect: calculatePercentage(leagueGames.filter(game => game.predictionCorrect === true).length, totalLeagueGames),
+                    homeTeamPredictionCorrect: calculatePercentage(homeTeamGames.filter(game => game.predictionCorrect === true).length, totalHomeTeamGames),
+                    awayTeamPredictionCorrect: calculatePercentage(awayTeamGames.filter(game => game.predictionCorrect === true).length, totalAwayTeamGames),
+                };
+
+                return winrate;
+            }
+
+            // Call the function
+            const winrate = calculateWinrate(allPastGames, sport, game.home_team, game.away_team);
+            // Get all the values of the object
+            const values = Object.values(winrate);
+
+            // Calculate the sum of the values
+            const sum = values.reduce((acc, curr) => acc + curr, 0);
+
+            // Calculate the average
+            const average = sum / values.length;
+
             // Update the Odds database with the calculated indices
             if (sport.name === game.sport_key) {
                 await Odds.findOneAndUpdate({ 'id': game.id }, {
@@ -2402,7 +2466,8 @@ const indexAdjuster = (currentOdds, sport) => {
                     homeTeamlogo: homeTeam ? homeTeam.logo : 'no logo data',
                     awayTeamlogo: awayTeam ? awayTeam.logo : 'no logo data',
                     homeTeamAbbr: homeTeam?.abbreviation,
-                    awayTeamAbbr: awayTeam?.abbreviation
+                    awayTeamAbbr: awayTeam?.abbreviation,
+                    winPercent: average
                 });
             }
         }
@@ -2491,7 +2556,148 @@ const normalizeTeamName = (teamName, league) => {
 
 
 
+const dataSeed = async () => {
 
+    console.log("DB CONNECTED ------------------------------------------------- STARTING SEED")
+    await retrieveTeamsandStats()
+    // DETERMINE TEAMS
+    console.log(`Finished TEAM SEEDING @ ${moment().format('HH:mm:ss')}`)
+    // CLEANED AND FORMATTED
+    let currentOdds
+    let allPastGames = await PastGameOdds.find({})
+    async function trainSportModel(sport, gameData) {
+        currentOdds = await Odds.find({ sport_key: sport.name }) //USE THIS TO POPULATE UPCOMING GAME ODDS
+        if (gameData.length === 0) {
+            // Handle the case where there is no data for this sport
+            console.log(`No data available for ${sport.league}. Skipping model training.`);
+            // You could also add logic to handle this case more gracefully, 
+            // such as logging the missing sport and providing a default model.
+            return;
+        }
+        // Function to convert the game data into tensors
+        const xs = []; // Features
+        const ys = []; // Labels
+        // Helper function to safely extract stats with fallback
+
+        const { model, xsTensor, ysTensor } = await mlModelTraining(gameData, xs, ys, sport)
+
+
+
+        // After model is trained and evaluated, integrate the weight extraction
+        const evaluation = model.evaluate(xsTensor, ysTensor);
+        const loss = evaluation[0].arraySync();
+        const accuracy = evaluation[1].arraySync();
+
+        if (accuracy < 1 || loss > 1) {
+            console.log(`${sport.name} Model Loss:`, loss);
+            console.log(`${sport.name} Model Accuracy:`, accuracy);
+        } else {
+            let ff = []
+            let sportOdds = await Odds.find({ sport_key: sport.name })
+            predictions(sportOdds, ff, model)
+        }
+
+        // Handle the weights extraction after training
+        await handleSportWeights(model, sport);
+
+        // Example of accessing the weights (e.g., after training)
+        // Now you can access the weights for each sport like this:
+
+
+        indexAdjuster(currentOdds, sport, allPastGames)
+
+
+
+
+
+
+    }
+    for (sport = 0; sport < sports.length; sport++) {
+        const currentDate = new Date();
+        const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11, so we add 1 to make it 1-12
+        // Assuming the sport object is already defined
+        if (sports[sport].multiYear) {
+            // Multi-year sports (e.g., NFL, NBA, NHL, etc.)
+            if ((currentMonth >= sports[sport].startMonth && currentMonth <= 12) || (currentMonth >= 1 && currentMonth <= sports[sport].endMonth)) {
+                const pastGames = await PastGameOdds.find({ sport_key: sports[sport].name })
+                await trainSportModel(sports[sport], pastGames)
+            }
+        } else {
+            // Single-year sports (e.g., MLB)
+            if (currentMonth >= sports[sport].startMonth && currentMonth <= sports[sport].endMonth) {
+                const pastGames = await PastGameOdds.find({ sport_key: sports[sport].name })
+                await trainSportModel(sports[sport], pastGames)
+            }
+        }
+
+        console.log(`${sports[sport].name} ML DONE @ ${moment().format('HH:mm:ss')}`)
+    }
+    // americanfootball_nfl:    11 sec
+    // americanfootball_ncaaf:  4 min
+    // basketball_nba:          2 min
+    // icehockey_nhl:           3 min
+    // baseball_mlb:            5 min
+    // basketball_ncaab:        12 min
+    // basketball_wncaab:        9 min
+
+    console.log(`FINISHED TRAINING MODEL @ ${moment().format('HH:mm:ss')}`)
+    currentOdds = await Odds.find()
+    const dataSize = Buffer.byteLength(JSON.stringify(currentOdds), 'utf8');
+    console.log(`Data size sent: ${dataSize / 1024} KB ${moment().format('HH:mm:ss')} dataSeed`);
+
+    currentOdds.map(async (game) => {
+        try {
+            // Loop over all bookmakers
+            await Promise.all(game.bookmakers.map(async (bookmaker) => {
+                // Loop over all markets for each bookmaker
+                await Promise.all(bookmaker.markets.map(async (market) => {
+                    // Loop over all outcomes for each market
+                    await Promise.all(market.outcomes.map(async (outcome) => {
+                        // Perform the update using arrayFilters to target the correct outcome
+                        if (outcome.price < 0) {
+                            await Odds.findOneAndUpdate(
+                                { 'id': game.id }, // Filter by game id
+                                {
+                                    $set: {
+                                        'bookmakers.$[bookmaker].markets.$[market].outcomes.$[outcome].impliedProb': Math.abs(outcome.price) / (Math.abs(outcome.price) + 100)
+                                    }
+                                },
+                                {
+                                    arrayFilters: [
+                                        { 'bookmaker.key': bookmaker.key }, // Match bookmaker by key
+                                        { 'market.key': market.key }, // Match market by key
+                                        { 'outcome._id': outcome._id } // Match outcome by its _id
+                                    ]
+                                }
+                            );
+                        } else {
+                            await Odds.findOneAndUpdate(
+                                { 'id': game.id }, // Filter by game id
+                                {
+                                    $set: {
+                                        'bookmakers.$[bookmaker].markets.$[market].outcomes.$[outcome].impliedProb': 100 / (outcome.price + 100)
+                                    }
+                                },
+                                {
+                                    arrayFilters: [
+                                        { 'bookmaker.key': bookmaker.key }, // Match bookmaker by key
+                                        { 'market.key': market.key }, // Match market by key
+                                        { 'outcome._id': outcome._id } // Match outcome by its _id
+                                    ]
+                                }
+                            );
+                        }
+                    }));
+                }));
+            }));
+        } catch (error) {
+            console.error('Error updating outcomes:', error);
+        }
+    })
+    console.log(`FINISHED CALCULATING IMPLIED PROBABILITY @ ${moment().format('HH:mm:ss')}`) //CLEANED AND FORMATTED
+    // Fetch current odds and iterate over them using async loop
+    console.info(`Full Seeding complete! 🌱 @ ${moment().format('HH:mm:ss')}`);
+}
 
 
 const oddsSeed = async () => {
@@ -2861,6 +3067,7 @@ const oddsSeed = async () => {
                             }))
                         }));
 
+
                         if (!event.sport_key) {
                             console.error(`sportType is undefined for event: ${event.id}`);
                         } else {
@@ -2909,34 +3116,37 @@ const oddsSeed = async () => {
             if (err) throw (err)
         }
     })
+    dataSeed()
+    console.info(`Full Seeding complete! 🌱 @ ${moment().format('HH:mm:ss')}`);
+
 }
 const removeSeed = async () => {
     // console.log(process.memoryUsage());
     const currentYear = new Date().getFullYear();
     const startOfYear = `${currentYear}-01-01T00:00:00`;  // YYYY-MM-DDTHH:mm:ss format
     const startOfNextYear = `${currentYear + 1}-01-01T00:00:00`; // YYYY-MM-DDTHH:mm:ss format
-    
+
     // Get current date and calculate the date 7 days ago
     const currentDate = new Date();
     const sevenDaysAgo = new Date(currentDate);
     sevenDaysAgo.setDate(currentDate.getDate() - 7); // Subtract 7 days
 
     const yesterday = new Date(currentDate)
-    yesterday.setDate(currentDate.getDate() - 1) 
-    
+    yesterday.setDate(currentDate.getDate() - 1)
+
     // Format the dates to match your query format
     const startOfWeek = sevenDaysAgo.toISOString(); // This gives you the date 7 days ago in ISO format
-    
+
     // Fetch current odds and past odds within the last week
     let currentOdds = await Odds.find();
     await removePastGames(currentOdds);
-    
+
     currentOdds = await Odds.find({}).sort({ commence_time: 1, winPercent: 1 });
-    
+
     let pastOdds = await PastGameOdds.find({
         commence_time: { $gte: yesterday.toISOString(), $lt: currentDate.toISOString() }
     }).sort({ commence_time: -1, winPercent: 1 });
-    
+
 
 
     const currentData = Buffer.byteLength(JSON.stringify(currentOdds), 'utf8');
@@ -2949,148 +3159,7 @@ const removeSeed = async () => {
     pastOdds = null
 
 }
-const dataSeed = async () => {
 
-    console.log("DB CONNECTED ------------------------------------------------- STARTING SEED")
-    await retrieveTeamsandStats()
-    // DETERMINE TEAMS
-    console.log(`Finished TEAM SEEDING @ ${moment().format('HH:mm:ss')}`)
-    // CLEANED AND FORMATTED
-    let currentOdds
-
-    async function trainSportModel(sport, gameData) {
-        currentOdds = await Odds.find({ sport_key: sport.name }) //USE THIS TO POPULATE UPCOMING GAME ODDS
-        if (gameData.length === 0) {
-            // Handle the case where there is no data for this sport
-            console.log(`No data available for ${sport.league}. Skipping model training.`);
-            // You could also add logic to handle this case more gracefully, 
-            // such as logging the missing sport and providing a default model.
-            return;
-        }
-        // Function to convert the game data into tensors
-        const xs = []; // Features
-        const ys = []; // Labels
-        // Helper function to safely extract stats with fallback
-
-        const { model, xsTensor, ysTensor } = await mlModelTraining(gameData, xs, ys, sport)
-
-
-
-        // After model is trained and evaluated, integrate the weight extraction
-        const evaluation = model.evaluate(xsTensor, ysTensor);
-        const loss = evaluation[0].arraySync();
-        const accuracy = evaluation[1].arraySync();
-
-        if (accuracy < 1 || loss > 1) {
-            console.log(`${sport.name} Model Loss:`, loss);
-            console.log(`${sport.name} Model Accuracy:`, accuracy);
-        } else {
-            let ff = []
-            let sportOdds = await Odds.find({ sport_key: sport.name })
-            predictions(sportOdds, ff, model)
-        }
-
-        // Handle the weights extraction after training
-        await handleSportWeights(model, sport);
-
-        // Example of accessing the weights (e.g., after training)
-        // Now you can access the weights for each sport like this:
-
-
-        indexAdjuster(currentOdds, sport)
-
-
-
-
-
-
-    }
-    for (sport = 0; sport < sports.length; sport++) {
-        const currentDate = new Date();
-        const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11, so we add 1 to make it 1-12
-        // Assuming the sport object is already defined
-        if (sports[sport].multiYear) {
-            // Multi-year sports (e.g., NFL, NBA, NHL, etc.)
-            if ((currentMonth >= sports[sport].startMonth && currentMonth <= 12) || (currentMonth >= 1 && currentMonth <= sports[sport].endMonth)) {
-                const pastGames = await PastGameOdds.find({ sport_key: sports[sport].name })
-                await trainSportModel(sports[sport], pastGames)
-            }
-        } else {
-            // Single-year sports (e.g., MLB)
-            if (currentMonth >= sports[sport].startMonth && currentMonth <= sports[sport].endMonth) {
-                const pastGames = await PastGameOdds.find({ sport_key: sports[sport].name })
-                await trainSportModel(sports[sport], pastGames)
-            }
-        }
-
-        console.log(`${sports[sport].name} ML DONE @ ${moment().format('HH:mm:ss')}`)
-    }
-    // americanfootball_nfl:    11 sec
-    // americanfootball_ncaaf:  4 min
-    // basketball_nba:          2 min
-    // icehockey_nhl:           3 min
-    // baseball_mlb:            5 min
-    // basketball_ncaab:        12 min
-    // basketball_wncaab:        9 min
-
-    console.log(`FINISHED TRAINING MODEL @ ${moment().format('HH:mm:ss')}`)
-    currentOdds = await Odds.find()
-    const dataSize = Buffer.byteLength(JSON.stringify(currentOdds), 'utf8');
-    console.log(`Data size sent: ${dataSize / 1024} KB ${moment().format('HH:mm:ss')} dataSeed`);
-
-    currentOdds.map(async (game) => {
-        try {
-            // Loop over all bookmakers
-            await Promise.all(game.bookmakers.map(async (bookmaker) => {
-                // Loop over all markets for each bookmaker
-                await Promise.all(bookmaker.markets.map(async (market) => {
-                    // Loop over all outcomes for each market
-                    await Promise.all(market.outcomes.map(async (outcome) => {
-                        // Perform the update using arrayFilters to target the correct outcome
-                        if (outcome.price < 0) {
-                            await Odds.findOneAndUpdate(
-                                { 'id': game.id }, // Filter by game id
-                                {
-                                    $set: {
-                                        'bookmakers.$[bookmaker].markets.$[market].outcomes.$[outcome].impliedProb': Math.abs(outcome.price) / (Math.abs(outcome.price) + 100)
-                                    }
-                                },
-                                {
-                                    arrayFilters: [
-                                        { 'bookmaker.key': bookmaker.key }, // Match bookmaker by key
-                                        { 'market.key': market.key }, // Match market by key
-                                        { 'outcome._id': outcome._id } // Match outcome by its _id
-                                    ]
-                                }
-                            );
-                        } else {
-                            await Odds.findOneAndUpdate(
-                                { 'id': game.id }, // Filter by game id
-                                {
-                                    $set: {
-                                        'bookmakers.$[bookmaker].markets.$[market].outcomes.$[outcome].impliedProb': 100 / (outcome.price + 100)
-                                    }
-                                },
-                                {
-                                    arrayFilters: [
-                                        { 'bookmaker.key': bookmaker.key }, // Match bookmaker by key
-                                        { 'market.key': market.key }, // Match market by key
-                                        { 'outcome._id': outcome._id } // Match outcome by its _id
-                                    ]
-                                }
-                            );
-                        }
-                    }));
-                }));
-            }));
-        } catch (error) {
-            console.error('Error updating outcomes:', error);
-        }
-    })
-    console.log(`FINISHED CALCULATING IMPLIED PROBABILITY @ ${moment().format('HH:mm:ss')}`) //CLEANED AND FORMATTED
-    // Fetch current odds and iterate over them using async loop
-    console.info(`Full Seeding complete! 🌱 @ ${moment().format('HH:mm:ss')}`);
-}
 const espnSeed = async () => {
     const fetchTeamData = async (teamID, sport) => {
         const response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport.espnSport}/${sport.league}/teams/${teamID}`);

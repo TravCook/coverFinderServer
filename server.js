@@ -42,11 +42,11 @@ const cronJobs = [
     onTick: dataSeed.oddsSeed,
     timezone,
   },
-  {
-    cronTime: '0 5 8,14,21 * * *', // Runs 15 min after the odds cron job
-    onTick: dataSeed.dataSeed,
-    timezone,
-  },
+  // {
+  //   cronTime: '0 5 8,14,21 * * *', // Runs 5 min after the odds cron job
+  //   onTick: dataSeed.dataSeed,
+  //   timezone,
+  // },
   {
     cronTime: '0 */5 * * * *', //every 5 minutes 1.2 mb
     onTick: dataSeed.removeSeed,

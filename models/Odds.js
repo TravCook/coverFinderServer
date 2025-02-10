@@ -88,6 +88,10 @@ const oddsSchema = new Schema({
         type: Number,
         required: false
     },
+    predictionStrength: {
+        type: Number,
+        required: false
+    },
     homeScore: {
         type: Number,
         required: false

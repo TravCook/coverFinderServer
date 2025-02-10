@@ -84,7 +84,8 @@ module.exports = {
                     sport_key: 1,
                     sport_title: 1,
                     sport: 1,
-                    bookmakers: 1
+                    bookmakers: 1,
+                    predictionStrength: 1,
                 }).sort({ commence_time: 1, winPercent: 1 })
 
                 const [footballTeams, basketballTeams, baseballTeams, hockeyTeams] = await Promise.all([UsaFootballTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1, lastFiveGames: 1 }),
