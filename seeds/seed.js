@@ -2636,7 +2636,7 @@ const normalizeTeamName = (teamName, league) => {
 const dataSeed = async () => {
 
     console.log("DB CONNECTED ------------------------------------------------- STARTING SEED")
-    // await retrieveTeamsandStats()
+    await retrieveTeamsandStats()
     // DETERMINE TEAMS
     console.log(`Finished TEAM SEEDING @ ${moment().format('HH:mm:ss')}`)
     // CLEANED AND FORMATTED
@@ -2785,7 +2785,7 @@ const oddsSeed = async () => {
         }
         return false;
     }).map((sport) =>
-        axios.get(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_TRAVM}&regions=us&oddsFormat=american&markets=h2h`)
+        axios.get(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_TCDEV}&regions=us&oddsFormat=american&markets=h2h`)
     )).then(async (data) => {
         try {
 
@@ -4029,7 +4029,7 @@ const pastGameStatsPoC = async () => {
 
 
 // oddsSeed()
-// dataSeed()
+dataSeed()
 // pastGameStatsPoC()
 
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed }
