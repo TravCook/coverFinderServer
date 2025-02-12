@@ -4029,7 +4029,7 @@ const pastGameStatsPoC = async () => {
 
 
 // oddsSeed()
-dataSeed()
+// dataSeed()
 // pastGameStatsPoC()
 
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed }
