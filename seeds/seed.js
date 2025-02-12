@@ -4028,7 +4028,7 @@ const pastGameStatsPoC = async () => {
 }
 
 
-oddsSeed()
+// oddsSeed()
 // dataSeed()
 // pastGameStatsPoC()
 
