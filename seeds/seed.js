@@ -6,6 +6,7 @@ const fs = require('fs')
 const tf = require('@tensorflow/tfjs-node');
 const { emitToClients } = require('../socketManager');
 const pastGameOdds = require('../models/pastGameOdds');
+const statsMinMax = require('./sampledGlobalStats.json')
 
 // Suppress TensorFlow.js logging
 process.env.TF_CPP_MIN_LOG_LEVEL = '3'; // Suppress logs
@@ -1052,429 +1053,439 @@ const getHomeAwayWinLoss = (stats, type) => {
     }
     return 0;
 };
+// Function to normalize a stat using the min-max scaling
+function normalizeStat(statName, value) {
+    const minMaxValues = statsMinMax[statName];
+    if (!minMaxValues) {
+        console.warn(`No min/max values found for stat: ${statName}`);
+        return value; // If no min/max values, return original value (or handle differently)
+    }
+    const { min, max } = minMaxValues;
+    // Avoid division by zero
+    if (max === min) return 0;
+    return (value - min) / (max - min); // Apply Min-Max Normalization
+}
 // Feature extraction per sport
 function extractSportFeatures(homeStats, awayStats, league) {
     switch (league) {
         case 'americanfootball_nfl':
             return [
-                getWinLoss(homeStats) - getWinLoss(awayStats),
-                getHomeAwayWinLoss(homeStats, 'homeWinLoss') - getHomeAwayWinLoss(awayStats, 'awayWinLoss'),
-                getStat(homeStats, 'pointDiff') - getStat(awayStats, 'pointDiff'),
-                getStat(homeStats, 'USFBpointsPerGame') - getStat(awayStats, 'USFBpointsPerGame'),
-                getStat(homeStats, 'USFBtotalPoints') - getStat(awayStats, 'USFBtotalPoints'),
-                getStat(homeStats, 'USFBtotalTouchdowns') - getStat(awayStats, 'USFBtotalTouchdowns'),
-                getStat(homeStats, 'USFBtouchdownsPerGame') - getStat(awayStats, 'USFBtouchdownsPerGame'),
-                getStat(homeStats, 'USFBcompletionPercent') - getStat(awayStats, 'USFBcompletionPercent'),
-                getStat(homeStats, 'USFBcompletions') - getStat(awayStats, 'USFBcompletions'),
-                getStat(homeStats, 'USFBcompletionsPerGame') - getStat(awayStats, 'USFBcompletionsPerGame'),
-                getStat(homeStats, 'USFBnetPassingYards') - getStat(awayStats, 'USFBnetPassingYards'),
-                getStat(homeStats, 'USFBnetPassingYardsPerGame') - getStat(awayStats, 'USFBnetPassingYardsPerGame'),
-                getStat(homeStats, 'USFBpassingFirstDowns') - getStat(awayStats, 'USFBpassingFirstDowns'),
-                getStat(homeStats, 'USFBpassingTouchdowns') - getStat(awayStats, 'USFBpassingTouchdowns'),
-                getStat(homeStats, 'USFBpassingYards') - getStat(awayStats, 'USFBpassingYards'),
-                getStat(homeStats, 'USFBpassingYardsPerGame') - getStat(awayStats, 'USFBpassingYardsPerGame'),
-                getStat(homeStats, 'USFBpassingAttempts') - getStat(awayStats, 'USFBpassingAttempts'),
-                getStat(homeStats, 'USFBpassingAttemptsPerGame') - getStat(awayStats, 'USFBpassingAttemptsPerGame'),
-                getStat(homeStats, 'USFByardsPerPassAttempt') - getStat(awayStats, 'USFByardsPerPassAttempt'),
-                getStat(homeStats, 'USFBrushingAttempts') - getStat(awayStats, 'USFBrushingAttempts'),
-                getStat(homeStats, 'USFBrushingFirstDowns') - getStat(awayStats, 'USFBrushingFirstDowns'),
-                getStat(homeStats, 'USFBrushingTouchdowns') - getStat(awayStats, 'USFBrushingTouchdowns'),
-                getStat(homeStats, 'USFBrushingYards') - getStat(awayStats, 'USFBrushingYards'),
-                getStat(homeStats, 'USFBrushingYardsPerGame') - getStat(awayStats, 'USFBrushingYardsPerGame'),
-                getStat(homeStats, 'USFByardsPerRushAttempt') - getStat(awayStats, 'USFByardsPerRushAttempt'),
-                getStat(homeStats, 'USFBreceivingFirstDowns') - getStat(awayStats, 'USFBreceivingFirstDowns'),
-                getStat(homeStats, 'USFBreceivingTouchdowns') - getStat(awayStats, 'USFBreceivingTouchdowns'),
-                getStat(homeStats, 'USFBreceivingYards') - getStat(awayStats, 'USFBreceivingYards'),
-                getStat(homeStats, 'USFBreceivingYardsPerGame') - getStat(awayStats, 'USFBreceivingYardsPerGame'),
-                getStat(homeStats, 'USFBreceivingYardsPerReception') - getStat(awayStats, 'USFBreceivingYardsPerReception'),
-                getStat(homeStats, 'USFBreceivingYardsAfterCatch') - getStat(awayStats, 'USFBreceivingYardsAfterCatch'),
-                getStat(homeStats, 'USFBreceivingYardsAfterCatchPerGame') - getStat(awayStats, 'USFBreceivingYardsAfterCatchPerGame'),
-                getStat(homeStats, 'USFBtacklesforLoss') - getStat(awayStats, 'USFBtacklesforLoss'),
-                getStat(homeStats, 'USFBtacklesforLossPerGame') - getStat(awayStats, 'USFBtacklesforLossPerGame'),
-                getStat(homeStats, 'USFBinterceptions') - getStat(awayStats, 'USFBinterceptions'),
-                getStat(homeStats, 'USFByardsPerInterception') - getStat(awayStats, 'USFByardsPerInterception'),
-                getStat(homeStats, 'USFBsacksTotal') - getStat(awayStats, 'USFBsacksTotal'),
-                getStat(homeStats, 'USFBsacksPerGame') - getStat(awayStats, 'USFBsacksPerGame'),
-                getStat(homeStats, 'USFBsackYards') - getStat(awayStats, 'USFBsackYards'),
-                getStat(homeStats, 'USFBsackYardsPerGame') - getStat(awayStats, 'USFBsackYardsPerGame'),
-                getStat(homeStats, 'USFBstuffs') - getStat(awayStats, 'USFBstuffs'),
-                getStat(homeStats, 'USFBstuffsPerGame') - getStat(awayStats, 'USFBstuffsPerGame'),
-                getStat(homeStats, 'USFBstuffYards') - getStat(awayStats, 'USFBstuffYards'),
-                getStat(homeStats, 'USFBpassesDefended') - getStat(awayStats, 'USFBpassesDefended'),
-                getStat(homeStats, 'USFBpassesDefendedPerGame') - getStat(awayStats, 'USFBpassesDefendedPerGame'),
-                getStat(homeStats, 'USFBsafties') - getStat(awayStats, 'USFBsafties'),
-                getStat(homeStats, 'USFBaverageKickoffYards') - getStat(awayStats, 'USFBaverageKickoffYards'),
-                getStat(homeStats, 'USFBaverageKickoffYardsPerGame') - getStat(awayStats, 'USFBaverageKickoffYardsPerGame'),
-                getStat(homeStats, 'USFBextraPointAttempts') - getStat(awayStats, 'USFBextraPointAttempts'),
-                getStat(homeStats, 'USFBextraPointAttemptsPerGame') - getStat(awayStats, 'USFBextraPointAttemptsPerGame'),
-                getStat(homeStats, 'USFBextraPointsMade') - getStat(awayStats, 'USFBextraPointsMade'),
-                getStat(homeStats, 'USFBextraPointsMadePerGame') - getStat(awayStats, 'USFBextraPointsMadePerGame'),
-                getStat(homeStats, 'USFBextraPointPercent') - getStat(awayStats, 'USFBextraPointPercent'),
-                getStat(homeStats, 'USFBextraPointPercentPerGame') - getStat(awayStats, 'USFBextraPointPercentPerGame'),
-                getStat(homeStats, 'USFBfieldGoalAttempts') - getStat(awayStats, 'USFBfieldGoalAttempts'),
-                getStat(homeStats, 'USFBfieldGoalAttemptsPerGame') - getStat(awayStats, 'USFBfieldGoalAttemptsPerGame'),
-                getStat(homeStats, 'USFBfieldGoalsMade') - getStat(awayStats, 'USFBfieldGoalsMade'),
-                getStat(homeStats, 'USFBfieldGoalsMadePerGame') - getStat(awayStats, 'USFBfieldGoalsMadePerGame'),
-                getStat(homeStats, 'USFBfieldGoalPct') - getStat(awayStats, 'USFBfieldGoalPct'),
-                getStat(homeStats, 'USFBfieldGoalPercentPerGame') - getStat(awayStats, 'USFBfieldGoalPercentPerGame'),
-                getStat(homeStats, 'USFBtouchbacks') - getStat(awayStats, 'USFBtouchbacks'),
-                getStat(homeStats, 'USFBtouchbacksPerGame') - getStat(awayStats, 'USFBtouchbacksPerGame'),
-                getStat(homeStats, 'USFBtouchBackPercentage') - getStat(awayStats, 'USFBtouchBackPercentage'),
-                getStat(homeStats, 'USFBkickReturns') - getStat(awayStats, 'USFBkickReturns'),
-                getStat(homeStats, 'USFBkickReturnsPerGame') - getStat(awayStats, 'USFBkickReturnsPerGame'),
-                getStat(homeStats, 'USFBkickReturnYards') - getStat(awayStats, 'USFBkickReturnYards'),
-                getStat(homeStats, 'USFBkickReturnYardsPerGame') - getStat(awayStats, 'USFBkickReturnYardsPerGame'),
-                getStat(homeStats, 'USFBpuntReturns') - getStat(awayStats, 'USFBpuntReturns'),
-                getStat(homeStats, 'USFBpuntReturnsPerGame') - getStat(awayStats, 'USFBpuntReturnsPerGame'),
-                getStat(homeStats, 'USFBpuntReturnFairCatchPct') - getStat(awayStats, 'USFBpuntReturnFairCatchPct'),
-                getStat(homeStats, 'USFBpuntReturnYards') - getStat(awayStats, 'USFBpuntReturnYards'),
-                getStat(homeStats, 'USFBpuntReturnYardsPerGame') - getStat(awayStats, 'USFBpuntReturnYardsPerGame'),
-                getStat(homeStats, 'USFByardsPerReturn') - getStat(awayStats, 'USFByardsPerReturn'),
-                getStat(homeStats, 'USFBthirdDownEfficiency') - getStat(awayStats, 'USFBthirdDownEfficiency'),
-                getStat(homeStats, 'USFBtotalPenyards') - getStat(awayStats, 'USFBtotalPenyards'),
-                getStat(homeStats, 'USFBaveragePenYardsPerGame') - getStat(awayStats, 'USFBaveragePenYardsPerGame'),
-                getStat(homeStats, 'USFBgiveaways') - getStat(awayStats, 'USFBgiveaways'),
-                getStat(homeStats, 'USFBtakeaways') - getStat(awayStats, 'USFBtakeaways'),
-                getStat(homeStats, 'USFBturnoverDiff') - getStat(awayStats, 'USFBturnoverDiff'),
-                getStat(homeStats, 'USFBtotalFirstDowns') - getStat(awayStats, 'USFBtotalFirstDowns'),
+                normalizeStat('seasonWinLoss', getWinLoss(homeStats) - getWinLoss(awayStats)),
+                normalizeStat('homeWinLoss', getHomeAwayWinLoss(homeStats, 'homeWinLoss') - getHomeAwayWinLoss(awayStats, 'awayWinLoss')),
+                normalizeStat('pointDiff', getStat(homeStats, 'pointDiff') - getStat(awayStats, 'pointDiff')),
+                normalizeStat('USFBpointsPerGame', getStat(homeStats, 'USFBpointsPerGame') - getStat(awayStats, 'USFBpointsPerGame')),
+                normalizeStat('USFBtotalPoints', getStat(homeStats, 'USFBtotalPoints') - getStat(awayStats, 'USFBtotalPoints')),
+                normalizeStat('USFBtotalTouchdowns', getStat(homeStats, 'USFBtotalTouchdowns') - getStat(awayStats, 'USFBtotalTouchdowns')),
+                normalizeStat('USFBtouchdownsPerGame', getStat(homeStats, 'USFBtouchdownsPerGame') - getStat(awayStats, 'USFBtouchdownsPerGame')),
+                normalizeStat('USFBcompletionPercent', getStat(homeStats, 'USFBcompletionPercent') - getStat(awayStats, 'USFBcompletionPercent')),
+                normalizeStat('USFBcompletions', getStat(homeStats, 'USFBcompletions') - getStat(awayStats, 'USFBcompletions')),
+                normalizeStat('USFBcompletionsPerGame', getStat(homeStats, 'USFBcompletionsPerGame') - getStat(awayStats, 'USFBcompletionsPerGame')),
+                normalizeStat('USFBnetPassingYards', getStat(homeStats, 'USFBnetPassingYards') - getStat(awayStats, 'USFBnetPassingYards')),
+                normalizeStat('USFBnetPassingYardsPerGame', getStat(homeStats, 'USFBnetPassingYardsPerGame') - getStat(awayStats, 'USFBnetPassingYardsPerGame')),
+                normalizeStat('USFBpassingFirstDowns', getStat(homeStats, 'USFBpassingFirstDowns') - getStat(awayStats, 'USFBpassingFirstDowns')),
+                normalizeStat('USFBpassingYards', getStat(homeStats, 'USFBpassingYards') - getStat(awayStats, 'USFBpassingYards')),
+                normalizeStat('USFBpassingYardsPerGame', getStat(homeStats, 'USFBpassingYardsPerGame') - getStat(awayStats, 'USFBpassingYardsPerGame')),
+                normalizeStat('USFBpassingAttempts', getStat(homeStats, 'USFBpassingAttempts') - getStat(awayStats, 'USFBpassingAttempts')),
+                normalizeStat('USFBpassingAttemptsPerGame', getStat(homeStats, 'USFBpassingAttemptsPerGame') - getStat(awayStats, 'USFBpassingAttemptsPerGame')),
+                normalizeStat('USFByardsPerPassAttempt', getStat(homeStats, 'USFByardsPerPassAttempt') - getStat(awayStats, 'USFByardsPerPassAttempt')),
+                normalizeStat('USFBrushingAttempts', getStat(homeStats, 'USFBrushingAttempts') - getStat(awayStats, 'USFBrushingAttempts')),
+                normalizeStat('USFBrushingFirstDowns', getStat(homeStats, 'USFBrushingFirstDowns') - getStat(awayStats, 'USFBrushingFirstDowns')),
+                normalizeStat('USFBrushingTouchdowns', getStat(homeStats, 'USFBrushingTouchdowns') - getStat(awayStats, 'USFBrushingTouchdowns')),
+                normalizeStat('USFBrushingYards', getStat(homeStats, 'USFBrushingYards') - getStat(awayStats, 'USFBrushingYards')),
+                normalizeStat('USFBrushingYardsPerGame', getStat(homeStats, 'USFBrushingYardsPerGame') - getStat(awayStats, 'USFBrushingYardsPerGame')),
+                normalizeStat('USFByardsPerRushAttempt', getStat(homeStats, 'USFByardsPerRushAttempt') - getStat(awayStats, 'USFByardsPerRushAttempt')),
+                normalizeStat('USFBreceivingFirstDowns', getStat(homeStats, 'USFBreceivingFirstDowns') - getStat(awayStats, 'USFBreceivingFirstDowns')),
+                normalizeStat('USFBreceivingTouchdowns', getStat(homeStats, 'USFBreceivingTouchdowns') - getStat(awayStats, 'USFBreceivingTouchdowns')),
+                normalizeStat('USFBreceivingYards', getStat(homeStats, 'USFBreceivingYards') - getStat(awayStats, 'USFBreceivingYards')),
+                normalizeStat('USFBreceivingYardsPerGame', getStat(homeStats, 'USFBreceivingYardsPerGame') - getStat(awayStats, 'USFBreceivingYardsPerGame')),
+                normalizeStat('USFBreceivingYardsPerReception', getStat(homeStats, 'USFBreceivingYardsPerReception') - getStat(awayStats, 'USFBreceivingYardsPerReception')),
+                normalizeStat('USFBreceivingYardsAfterCatch', getStat(homeStats, 'USFBreceivingYardsAfterCatch') - getStat(awayStats, 'USFBreceivingYardsAfterCatch')),
+                normalizeStat('USFBreceivingYardsAfterCatchPerGame', getStat(homeStats, 'USFBreceivingYardsAfterCatchPerGame') - getStat(awayStats, 'USFBreceivingYardsAfterCatchPerGame')),
+                normalizeStat('USFBtacklesforLoss', getStat(homeStats, 'USFBtacklesforLoss') - getStat(awayStats, 'USFBtacklesforLoss')),
+                normalizeStat('USFBtacklesforLossPerGame', getStat(homeStats, 'USFBtacklesforLossPerGame') - getStat(awayStats, 'USFBtacklesforLossPerGame')),
+                normalizeStat('USFBinterceptions', getStat(homeStats, 'USFBinterceptions') - getStat(awayStats, 'USFBinterceptions')),
+                normalizeStat('USFByardsPerInterception', getStat(homeStats, 'USFByardsPerInterception') - getStat(awayStats, 'USFByardsPerInterception')),
+                normalizeStat('USFBsacksTotal', getStat(homeStats, 'USFBsacksTotal') - getStat(awayStats, 'USFBsacksTotal')),
+                normalizeStat('USFBsacksPerGame', getStat(homeStats, 'USFBsacksPerGame') - getStat(awayStats, 'USFBsacksPerGame')),
+                normalizeStat('USFBsackYards', getStat(homeStats, 'USFBsackYards') - getStat(awayStats, 'USFBsackYards')),
+                normalizeStat('USFBsackYardsPerGame', getStat(homeStats, 'USFBsackYardsPerGame') - getStat(awayStats, 'USFBsackYardsPerGame')),
+                normalizeStat('USFBstuffs', getStat(homeStats, 'USFBstuffs') - getStat(awayStats, 'USFBstuffs')),
+                normalizeStat('USFBstuffsPerGame', getStat(homeStats, 'USFBstuffsPerGame') - getStat(awayStats, 'USFBstuffsPerGame')),
+                normalizeStat('USFBstuffYards', getStat(homeStats, 'USFBstuffYards') - getStat(awayStats, 'USFBstuffYards')),
+                normalizeStat('USFBpassesDefended', getStat(homeStats, 'USFBpassesDefended') - getStat(awayStats, 'USFBpassesDefended')),
+                normalizeStat('USFBpassesDefendedPerGame', getStat(homeStats, 'USFBpassesDefendedPerGame') - getStat(awayStats, 'USFBpassesDefendedPerGame')),
+                normalizeStat('USFBsafties', getStat(homeStats, 'USFBsafties') - getStat(awayStats, 'USFBsafties')),
+                normalizeStat('USFBaverageKickoffYards', getStat(homeStats, 'USFBaverageKickoffYards') - getStat(awayStats, 'USFBaverageKickoffYards')),
+                normalizeStat('USFBaverageKickoffYardsPerGame', getStat(homeStats, 'USFBaverageKickoffYardsPerGame') - getStat(awayStats, 'USFBaverageKickoffYardsPerGame')),
+                normalizeStat('USFBextraPointAttempts', getStat(homeStats, 'USFBextraPointAttempts') - getStat(awayStats, 'USFBextraPointAttempts')),
+                normalizeStat('USFBextraPointAttemptsPerGame', getStat(homeStats, 'USFBextraPointAttemptsPerGame') - getStat(awayStats, 'USFBextraPointAttemptsPerGame')),
+                normalizeStat('USFBextraPointsMade', getStat(homeStats, 'USFBextraPointsMade') - getStat(awayStats, 'USFBextraPointsMade')),
+                normalizeStat('USFBextraPointsMadePerGame', getStat(homeStats, 'USFBextraPointsMadePerGame') - getStat(awayStats, 'USFBextraPointsMadePerGame')),
+                normalizeStat('USFBextraPointPercent', getStat(homeStats, 'USFBextraPointPercent') - getStat(awayStats, 'USFBextraPointPercent')),
+                normalizeStat('USFBextraPointPercentPerGame', getStat(homeStats, 'USFBextraPointPercentPerGame') - getStat(awayStats, 'USFBextraPointPercentPerGame')),
+                normalizeStat('USFBfieldGoalAttempts', getStat(homeStats, 'USFBfieldGoalAttempts') - getStat(awayStats, 'USFBfieldGoalAttempts')),
+                normalizeStat('USFBfieldGoalAttemptsPerGame', getStat(homeStats, 'USFBfieldGoalAttemptsPerGame') - getStat(awayStats, 'USFBfieldGoalAttemptsPerGame')),
+                normalizeStat('USFBfieldGoalsMade', getStat(homeStats, 'USFBfieldGoalsMade') - getStat(awayStats, 'USFBfieldGoalsMade')),
+                normalizeStat('USFBfieldGoalsMadePerGame', getStat(homeStats, 'USFBfieldGoalsMadePerGame') - getStat(awayStats, 'USFBfieldGoalsMadePerGame')),
+                normalizeStat('USFBfieldGoalPct', getStat(homeStats, 'USFBfieldGoalPct') - getStat(awayStats, 'USFBfieldGoalPct')),
+                normalizeStat('USFBfieldGoalPercentPerGame', getStat(homeStats, 'USFBfieldGoalPercentPerGame') - getStat(awayStats, 'USFBfieldGoalPercentPerGame')),
+                normalizeStat('USFBtouchbacks', getStat(homeStats, 'USFBtouchbacks') - getStat(awayStats, 'USFBtouchbacks')),
+                normalizeStat('USFBtouchbacksPerGame', getStat(homeStats, 'USFBtouchbacksPerGame') - getStat(awayStats, 'USFBtouchbacksPerGame')),
+                normalizeStat('USFBtouchBackPercentage', getStat(homeStats, 'USFBtouchBackPercentage') - getStat(awayStats, 'USFBtouchBackPercentage')),
+                normalizeStat('USFBkickReturns', getStat(homeStats, 'USFBkickReturns') - getStat(awayStats, 'USFBkickReturns')),
+                normalizeStat('USFBkickReturnsPerGame', getStat(homeStats, 'USFBkickReturnsPerGame') - getStat(awayStats, 'USFBkickReturnsPerGame')),
+                normalizeStat('USFBkickReturnYards', getStat(homeStats, 'USFBkickReturnYards') - getStat(awayStats, 'USFBkickReturnYards')),
+                normalizeStat('USFBkickReturnYardsPerGame', getStat(homeStats, 'USFBkickReturnYardsPerGame') - getStat(awayStats, 'USFBkickReturnYardsPerGame')),
+                normalizeStat('USFBpuntReturns', getStat(homeStats, 'USFBpuntReturns') - getStat(awayStats, 'USFBpuntReturns')),
+                normalizeStat('USFBpuntReturnsPerGame', getStat(homeStats, 'USFBpuntReturnsPerGame') - getStat(awayStats, 'USFBpuntReturnsPerGame')),
+                normalizeStat('USFBpuntReturnFairCatchPct', getStat(homeStats, 'USFBpuntReturnFairCatchPct') - getStat(awayStats, 'USFBpuntReturnFairCatchPct')),
+                normalizeStat('USFBpuntReturnYards', getStat(homeStats, 'USFBpuntReturnYards') - getStat(awayStats, 'USFBpuntReturnYards')),
+                normalizeStat('USFBpuntReturnYardsPerGame', getStat(homeStats, 'USFBpuntReturnYardsPerGame') - getStat(awayStats, 'USFBpuntReturnYardsPerGame')),
+                normalizeStat('USFByardsPerReturn', getStat(homeStats, 'USFByardsPerReturn') - getStat(awayStats, 'USFByardsPerReturn')),
+                normalizeStat('USFBthirdDownEfficiency', getStat(homeStats, 'USFBthirdDownEfficiency') - getStat(awayStats, 'USFBthirdDownEfficiency')),
+                normalizeStat('USFBtotalPenyards', getStat(homeStats, 'USFBtotalPenyards') - getStat(awayStats, 'USFBtotalPenyards')),
+                normalizeStat('USFBaveragePenYardsPerGame', getStat(homeStats, 'USFBaveragePenYardsPerGame') - getStat(awayStats, 'USFBaveragePenYardsPerGame')),
+                normalizeStat('USFBgiveaways', getStat(homeStats, 'USFBgiveaways') - getStat(awayStats, 'USFBgiveaways')),
+                normalizeStat('USFBtakeaways', getStat(homeStats, 'USFBtakeaways') - getStat(awayStats, 'USFBtakeaways')),
+                normalizeStat('USFBturnoverDiff', getStat(homeStats, 'USFBturnoverDiff') - getStat(awayStats, 'USFBturnoverDiff')),
+                normalizeStat('USFBtotalFirstDowns', getStat(homeStats, 'USFBtotalFirstDowns') - getStat(awayStats, 'USFBtotalFirstDowns')),
 
             ];
         case 'americanfootball_ncaaf':
             return [
-                getWinLoss(homeStats) - getWinLoss(awayStats),
-                getHomeAwayWinLoss(homeStats, 'homeWinLoss') - getHomeAwayWinLoss(awayStats, 'awayWinLoss'),
-                getStat(homeStats, 'pointDiff') - getStat(awayStats, 'pointDiff'),
-                getStat(homeStats, 'USFBpointsPerGame') - getStat(awayStats, 'USFBpointsPerGame'),
-                getStat(homeStats, 'USFBtotalPoints') - getStat(awayStats, 'USFBtotalPoints'),
-                getStat(homeStats, 'USFBtotalTouchdowns') - getStat(awayStats, 'USFBtotalTouchdowns'),
-                getStat(homeStats, 'USFBtouchdownsPerGame') - getStat(awayStats, 'USFBtouchdownsPerGame'),
-                getStat(homeStats, 'USFBcompletionPercent') - getStat(awayStats, 'USFBcompletionPercent'),
-                getStat(homeStats, 'USFBcompletions') - getStat(awayStats, 'USFBcompletions'),
-                getStat(homeStats, 'USFBcompletionsPerGame') - getStat(awayStats, 'USFBcompletionsPerGame'),
-                getStat(homeStats, 'USFBnetPassingYards') - getStat(awayStats, 'USFBnetPassingYards'),
-                getStat(homeStats, 'USFBnetPassingYardsPerGame') - getStat(awayStats, 'USFBnetPassingYardsPerGame'),
-                getStat(homeStats, 'USFBpassingFirstDowns') - getStat(awayStats, 'USFBpassingFirstDowns'),
-                getStat(homeStats, 'USFBpassingTouchdowns') - getStat(awayStats, 'USFBpassingTouchdowns'),
-                getStat(homeStats, 'USFBpassingYards') - getStat(awayStats, 'USFBpassingYards'),
-                getStat(homeStats, 'USFBpassingYardsPerGame') - getStat(awayStats, 'USFBpassingYardsPerGame'),
-                getStat(homeStats, 'USFBpassingAttempts') - getStat(awayStats, 'USFBpassingAttempts'),
-                getStat(homeStats, 'USFBpassingAttemptsPerGame') - getStat(awayStats, 'USFBpassingAttemptsPerGame'),
-                getStat(homeStats, 'USFByardsPerPassAttempt') - getStat(awayStats, 'USFByardsPerPassAttempt'),
-                getStat(homeStats, 'USFBrushingAttempts') - getStat(awayStats, 'USFBrushingAttempts'),
-                getStat(homeStats, 'USFBrushingFirstDowns') - getStat(awayStats, 'USFBrushingFirstDowns'),
-                getStat(homeStats, 'USFBrushingTouchdowns') - getStat(awayStats, 'USFBrushingTouchdowns'),
-                getStat(homeStats, 'USFBrushingYards') - getStat(awayStats, 'USFBrushingYards'),
-                getStat(homeStats, 'USFBrushingYardsPerGame') - getStat(awayStats, 'USFBrushingYardsPerGame'),
-                getStat(homeStats, 'USFByardsPerRushAttempt') - getStat(awayStats, 'USFByardsPerRushAttempt'),
-                getStat(homeStats, 'USFBreceivingFirstDowns') - getStat(awayStats, 'USFBreceivingFirstDowns'),
-                getStat(homeStats, 'USFBreceivingTouchdowns') - getStat(awayStats, 'USFBreceivingTouchdowns'),
-                getStat(homeStats, 'USFBreceivingYards') - getStat(awayStats, 'USFBreceivingYards'),
-                getStat(homeStats, 'USFBreceivingYardsPerGame') - getStat(awayStats, 'USFBreceivingYardsPerGame'),
-                getStat(homeStats, 'USFBreceivingYardsPerReception') - getStat(awayStats, 'USFBreceivingYardsPerReception'),
-                getStat(homeStats, 'USFBreceivingYardsAfterCatch') - getStat(awayStats, 'USFBreceivingYardsAfterCatch'),
-                getStat(homeStats, 'USFBreceivingYardsAfterCatchPerGame') - getStat(awayStats, 'USFBreceivingYardsAfterCatchPerGame'),
-                getStat(homeStats, 'USFBtacklesforLoss') - getStat(awayStats, 'USFBtacklesforLoss'),
-                getStat(homeStats, 'USFBtacklesforLossPerGame') - getStat(awayStats, 'USFBtacklesforLossPerGame'),
-                getStat(homeStats, 'USFBinterceptions') - getStat(awayStats, 'USFBinterceptions'),
-                getStat(homeStats, 'USFByardsPerInterception') - getStat(awayStats, 'USFByardsPerInterception'),
-                getStat(homeStats, 'USFBsacksTotal') - getStat(awayStats, 'USFBsacksTotal'),
-                getStat(homeStats, 'USFBsacksPerGame') - getStat(awayStats, 'USFBsacksPerGame'),
-                getStat(homeStats, 'USFBsackYards') - getStat(awayStats, 'USFBsackYards'),
-                getStat(homeStats, 'USFBsackYardsPerGame') - getStat(awayStats, 'USFBsackYardsPerGame'),
-                getStat(homeStats, 'USFBstuffs') - getStat(awayStats, 'USFBstuffs'),
-                getStat(homeStats, 'USFBstuffsPerGame') - getStat(awayStats, 'USFBstuffsPerGame'),
-                getStat(homeStats, 'USFBstuffYards') - getStat(awayStats, 'USFBstuffYards'),
-                getStat(homeStats, 'USFBpassesDefended') - getStat(awayStats, 'USFBpassesDefended'),
-                getStat(homeStats, 'USFBpassesDefendedPerGame') - getStat(awayStats, 'USFBpassesDefendedPerGame'),
-                getStat(homeStats, 'USFBsafties') - getStat(awayStats, 'USFBsafties'),
-                getStat(homeStats, 'USFBaverageKickoffYards') - getStat(awayStats, 'USFBaverageKickoffYards'),
-                getStat(homeStats, 'USFBaverageKickoffYardsPerGame') - getStat(awayStats, 'USFBaverageKickoffYardsPerGame'),
-                getStat(homeStats, 'USFBextraPointAttempts') - getStat(awayStats, 'USFBextraPointAttempts'),
-                getStat(homeStats, 'USFBextraPointAttemptsPerGame') - getStat(awayStats, 'USFBextraPointAttemptsPerGame'),
-                getStat(homeStats, 'USFBextraPointsMade') - getStat(awayStats, 'USFBextraPointsMade'),
-                getStat(homeStats, 'USFBextraPointsMadePerGame') - getStat(awayStats, 'USFBextraPointsMadePerGame'),
-                getStat(homeStats, 'USFBextraPointPercent') - getStat(awayStats, 'USFBextraPointPercent'),
-                getStat(homeStats, 'USFBextraPointPercentPerGame') - getStat(awayStats, 'USFBextraPointPercentPerGame'),
-                getStat(homeStats, 'USFBfieldGoalAttempts') - getStat(awayStats, 'USFBfieldGoalAttempts'),
-                getStat(homeStats, 'USFBfieldGoalAttemptsPerGame') - getStat(awayStats, 'USFBfieldGoalAttemptsPerGame'),
-                getStat(homeStats, 'USFBfieldGoalsMade') - getStat(awayStats, 'USFBfieldGoalsMade'),
-                getStat(homeStats, 'USFBfieldGoalsMadePerGame') - getStat(awayStats, 'USFBfieldGoalsMadePerGame'),
-                getStat(homeStats, 'USFBfieldGoalPct') - getStat(awayStats, 'USFBfieldGoalPct'),
-                getStat(homeStats, 'USFBfieldGoalPercentPerGame') - getStat(awayStats, 'USFBfieldGoalPercentPerGame'),
-                getStat(homeStats, 'USFBtouchbacks') - getStat(awayStats, 'USFBtouchbacks'),
-                getStat(homeStats, 'USFBtouchbacksPerGame') - getStat(awayStats, 'USFBtouchbacksPerGame'),
-                getStat(homeStats, 'USFBtouchBackPercentage') - getStat(awayStats, 'USFBtouchBackPercentage'),
-                getStat(homeStats, 'USFBkickReturns') - getStat(awayStats, 'USFBkickReturns'),
-                getStat(homeStats, 'USFBkickReturnsPerGame') - getStat(awayStats, 'USFBkickReturnsPerGame'),
-                getStat(homeStats, 'USFBkickReturnYards') - getStat(awayStats, 'USFBkickReturnYards'),
-                getStat(homeStats, 'USFBkickReturnYardsPerGame') - getStat(awayStats, 'USFBkickReturnYardsPerGame'),
-                getStat(homeStats, 'USFBpuntReturns') - getStat(awayStats, 'USFBpuntReturns'),
-                getStat(homeStats, 'USFBpuntReturnsPerGame') - getStat(awayStats, 'USFBpuntReturnsPerGame'),
-                getStat(homeStats, 'USFBpuntReturnFairCatchPct') - getStat(awayStats, 'USFBpuntReturnFairCatchPct'),
-                getStat(homeStats, 'USFBpuntReturnYards') - getStat(awayStats, 'USFBpuntReturnYards'),
-                getStat(homeStats, 'USFBpuntReturnYardsPerGame') - getStat(awayStats, 'USFBpuntReturnYardsPerGame'),
-                getStat(homeStats, 'USFByardsPerReturn') - getStat(awayStats, 'USFByardsPerReturn'),
-                getStat(homeStats, 'USFBthirdDownEfficiency') - getStat(awayStats, 'USFBthirdDownEfficiency'),
-                getStat(homeStats, 'USFBtotalPenyards') - getStat(awayStats, 'USFBtotalPenyards'),
-                getStat(homeStats, 'USFBaveragePenYardsPerGame') - getStat(awayStats, 'USFBaveragePenYardsPerGame'),
-                getStat(homeStats, 'USFBgiveaways') - getStat(awayStats, 'USFBgiveaways'),
-                getStat(homeStats, 'USFBtakeaways') - getStat(awayStats, 'USFBtakeaways'),
-                getStat(homeStats, 'USFBturnoverDiff') - getStat(awayStats, 'USFBturnoverDiff'),
-                getStat(homeStats, 'USFBtotalFirstDowns') - getStat(awayStats, 'USFBtotalFirstDowns'),
+                normalizeStat('seasonWinLoss', getWinLoss(homeStats) - getWinLoss(awayStats)),
+                normalizeStat('homeWinLoss', getHomeAwayWinLoss(homeStats, 'homeWinLoss') - getHomeAwayWinLoss(awayStats, 'awayWinLoss')),
+                normalizeStat('pointDiff', getStat(homeStats, 'pointDiff') - getStat(awayStats, 'pointDiff')),
+                normalizeStat('USFBpointsPerGame', getStat(homeStats, 'USFBpointsPerGame') - getStat(awayStats, 'USFBpointsPerGame')),
+                normalizeStat('USFBtotalPoints', getStat(homeStats, 'USFBtotalPoints') - getStat(awayStats, 'USFBtotalPoints')),
+                normalizeStat('USFBtotalTouchdowns', getStat(homeStats, 'USFBtotalTouchdowns') - getStat(awayStats, 'USFBtotalTouchdowns')),
+                normalizeStat('USFBtouchdownsPerGame', getStat(homeStats, 'USFBtouchdownsPerGame') - getStat(awayStats, 'USFBtouchdownsPerGame')),
+                normalizeStat('USFBcompletionPercent', getStat(homeStats, 'USFBcompletionPercent') - getStat(awayStats, 'USFBcompletionPercent')),
+                normalizeStat('USFBcompletions', getStat(homeStats, 'USFBcompletions') - getStat(awayStats, 'USFBcompletions')),
+                normalizeStat('USFBcompletionsPerGame', getStat(homeStats, 'USFBcompletionsPerGame') - getStat(awayStats, 'USFBcompletionsPerGame')),
+                normalizeStat('USFBnetPassingYards', getStat(homeStats, 'USFBnetPassingYards') - getStat(awayStats, 'USFBnetPassingYards')),
+                normalizeStat('USFBnetPassingYardsPerGame', getStat(homeStats, 'USFBnetPassingYardsPerGame') - getStat(awayStats, 'USFBnetPassingYardsPerGame')),
+                normalizeStat('USFBpassingFirstDowns', getStat(homeStats, 'USFBpassingFirstDowns') - getStat(awayStats, 'USFBpassingFirstDowns')),
+                normalizeStat('USFBpassingYards', getStat(homeStats, 'USFBpassingYards') - getStat(awayStats, 'USFBpassingYards')),
+                normalizeStat('USFBpassingYardsPerGame', getStat(homeStats, 'USFBpassingYardsPerGame') - getStat(awayStats, 'USFBpassingYardsPerGame')),
+                normalizeStat('USFBpassingAttempts', getStat(homeStats, 'USFBpassingAttempts') - getStat(awayStats, 'USFBpassingAttempts')),
+                normalizeStat('USFBpassingAttemptsPerGame', getStat(homeStats, 'USFBpassingAttemptsPerGame') - getStat(awayStats, 'USFBpassingAttemptsPerGame')),
+                normalizeStat('USFByardsPerPassAttempt', getStat(homeStats, 'USFByardsPerPassAttempt') - getStat(awayStats, 'USFByardsPerPassAttempt')),
+                normalizeStat('USFBrushingAttempts', getStat(homeStats, 'USFBrushingAttempts') - getStat(awayStats, 'USFBrushingAttempts')),
+                normalizeStat('USFBrushingFirstDowns', getStat(homeStats, 'USFBrushingFirstDowns') - getStat(awayStats, 'USFBrushingFirstDowns')),
+                normalizeStat('USFBrushingTouchdowns', getStat(homeStats, 'USFBrushingTouchdowns') - getStat(awayStats, 'USFBrushingTouchdowns')),
+                normalizeStat('USFBrushingYards', getStat(homeStats, 'USFBrushingYards') - getStat(awayStats, 'USFBrushingYards')),
+                normalizeStat('USFBrushingYardsPerGame', getStat(homeStats, 'USFBrushingYardsPerGame') - getStat(awayStats, 'USFBrushingYardsPerGame')),
+                normalizeStat('USFByardsPerRushAttempt', getStat(homeStats, 'USFByardsPerRushAttempt') - getStat(awayStats, 'USFByardsPerRushAttempt')),
+                normalizeStat('USFBreceivingFirstDowns', getStat(homeStats, 'USFBreceivingFirstDowns') - getStat(awayStats, 'USFBreceivingFirstDowns')),
+                normalizeStat('USFBreceivingTouchdowns', getStat(homeStats, 'USFBreceivingTouchdowns') - getStat(awayStats, 'USFBreceivingTouchdowns')),
+                normalizeStat('USFBreceivingYards', getStat(homeStats, 'USFBreceivingYards') - getStat(awayStats, 'USFBreceivingYards')),
+                normalizeStat('USFBreceivingYardsPerGame', getStat(homeStats, 'USFBreceivingYardsPerGame') - getStat(awayStats, 'USFBreceivingYardsPerGame')),
+                normalizeStat('USFBreceivingYardsPerReception', getStat(homeStats, 'USFBreceivingYardsPerReception') - getStat(awayStats, 'USFBreceivingYardsPerReception')),
+                normalizeStat('USFBreceivingYardsAfterCatch', getStat(homeStats, 'USFBreceivingYardsAfterCatch') - getStat(awayStats, 'USFBreceivingYardsAfterCatch')),
+                normalizeStat('USFBreceivingYardsAfterCatchPerGame', getStat(homeStats, 'USFBreceivingYardsAfterCatchPerGame') - getStat(awayStats, 'USFBreceivingYardsAfterCatchPerGame')),
+                normalizeStat('USFBtacklesforLoss', getStat(homeStats, 'USFBtacklesforLoss') - getStat(awayStats, 'USFBtacklesforLoss')),
+                normalizeStat('USFBtacklesforLossPerGame', getStat(homeStats, 'USFBtacklesforLossPerGame') - getStat(awayStats, 'USFBtacklesforLossPerGame')),
+                normalizeStat('USFBinterceptions', getStat(homeStats, 'USFBinterceptions') - getStat(awayStats, 'USFBinterceptions')),
+                normalizeStat('USFByardsPerInterception', getStat(homeStats, 'USFByardsPerInterception') - getStat(awayStats, 'USFByardsPerInterception')),
+                normalizeStat('USFBsacksTotal', getStat(homeStats, 'USFBsacksTotal') - getStat(awayStats, 'USFBsacksTotal')),
+                normalizeStat('USFBsacksPerGame', getStat(homeStats, 'USFBsacksPerGame') - getStat(awayStats, 'USFBsacksPerGame')),
+                normalizeStat('USFBsackYards', getStat(homeStats, 'USFBsackYards') - getStat(awayStats, 'USFBsackYards')),
+                normalizeStat('USFBsackYardsPerGame', getStat(homeStats, 'USFBsackYardsPerGame') - getStat(awayStats, 'USFBsackYardsPerGame')),
+                normalizeStat('USFBstuffs', getStat(homeStats, 'USFBstuffs') - getStat(awayStats, 'USFBstuffs')),
+                normalizeStat('USFBstuffsPerGame', getStat(homeStats, 'USFBstuffsPerGame') - getStat(awayStats, 'USFBstuffsPerGame')),
+                normalizeStat('USFBstuffYards', getStat(homeStats, 'USFBstuffYards') - getStat(awayStats, 'USFBstuffYards')),
+                normalizeStat('USFBpassesDefended', getStat(homeStats, 'USFBpassesDefended') - getStat(awayStats, 'USFBpassesDefended')),
+                normalizeStat('USFBpassesDefendedPerGame', getStat(homeStats, 'USFBpassesDefendedPerGame') - getStat(awayStats, 'USFBpassesDefendedPerGame')),
+                normalizeStat('USFBsafties', getStat(homeStats, 'USFBsafties') - getStat(awayStats, 'USFBsafties')),
+                normalizeStat('USFBaverageKickoffYards', getStat(homeStats, 'USFBaverageKickoffYards') - getStat(awayStats, 'USFBaverageKickoffYards')),
+                normalizeStat('USFBaverageKickoffYardsPerGame', getStat(homeStats, 'USFBaverageKickoffYardsPerGame') - getStat(awayStats, 'USFBaverageKickoffYardsPerGame')),
+                normalizeStat('USFBextraPointAttempts', getStat(homeStats, 'USFBextraPointAttempts') - getStat(awayStats, 'USFBextraPointAttempts')),
+                normalizeStat('USFBextraPointAttemptsPerGame', getStat(homeStats, 'USFBextraPointAttemptsPerGame') - getStat(awayStats, 'USFBextraPointAttemptsPerGame')),
+                normalizeStat('USFBextraPointsMade', getStat(homeStats, 'USFBextraPointsMade') - getStat(awayStats, 'USFBextraPointsMade')),
+                normalizeStat('USFBextraPointsMadePerGame', getStat(homeStats, 'USFBextraPointsMadePerGame') - getStat(awayStats, 'USFBextraPointsMadePerGame')),
+                normalizeStat('USFBextraPointPercent', getStat(homeStats, 'USFBextraPointPercent') - getStat(awayStats, 'USFBextraPointPercent')),
+                normalizeStat('USFBextraPointPercentPerGame', getStat(homeStats, 'USFBextraPointPercentPerGame') - getStat(awayStats, 'USFBextraPointPercentPerGame')),
+                normalizeStat('USFBfieldGoalAttempts', getStat(homeStats, 'USFBfieldGoalAttempts') - getStat(awayStats, 'USFBfieldGoalAttempts')),
+                normalizeStat('USFBfieldGoalAttemptsPerGame', getStat(homeStats, 'USFBfieldGoalAttemptsPerGame') - getStat(awayStats, 'USFBfieldGoalAttemptsPerGame')),
+                normalizeStat('USFBfieldGoalsMade', getStat(homeStats, 'USFBfieldGoalsMade') - getStat(awayStats, 'USFBfieldGoalsMade')),
+                normalizeStat('USFBfieldGoalsMadePerGame', getStat(homeStats, 'USFBfieldGoalsMadePerGame') - getStat(awayStats, 'USFBfieldGoalsMadePerGame')),
+                normalizeStat('USFBfieldGoalPct', getStat(homeStats, 'USFBfieldGoalPct') - getStat(awayStats, 'USFBfieldGoalPct')),
+                normalizeStat('USFBfieldGoalPercentPerGame', getStat(homeStats, 'USFBfieldGoalPercentPerGame') - getStat(awayStats, 'USFBfieldGoalPercentPerGame')),
+                normalizeStat('USFBtouchbacks', getStat(homeStats, 'USFBtouchbacks') - getStat(awayStats, 'USFBtouchbacks')),
+                normalizeStat('USFBtouchbacksPerGame', getStat(homeStats, 'USFBtouchbacksPerGame') - getStat(awayStats, 'USFBtouchbacksPerGame')),
+                normalizeStat('USFBtouchBackPercentage', getStat(homeStats, 'USFBtouchBackPercentage') - getStat(awayStats, 'USFBtouchBackPercentage')),
+                normalizeStat('USFBkickReturns', getStat(homeStats, 'USFBkickReturns') - getStat(awayStats, 'USFBkickReturns')),
+                normalizeStat('USFBkickReturnsPerGame', getStat(homeStats, 'USFBkickReturnsPerGame') - getStat(awayStats, 'USFBkickReturnsPerGame')),
+                normalizeStat('USFBkickReturnYards', getStat(homeStats, 'USFBkickReturnYards') - getStat(awayStats, 'USFBkickReturnYards')),
+                normalizeStat('USFBkickReturnYardsPerGame', getStat(homeStats, 'USFBkickReturnYardsPerGame') - getStat(awayStats, 'USFBkickReturnYardsPerGame')),
+                normalizeStat('USFBpuntReturns', getStat(homeStats, 'USFBpuntReturns') - getStat(awayStats, 'USFBpuntReturns')),
+                normalizeStat('USFBpuntReturnsPerGame', getStat(homeStats, 'USFBpuntReturnsPerGame') - getStat(awayStats, 'USFBpuntReturnsPerGame')),
+                normalizeStat('USFBpuntReturnFairCatchPct', getStat(homeStats, 'USFBpuntReturnFairCatchPct') - getStat(awayStats, 'USFBpuntReturnFairCatchPct')),
+                normalizeStat('USFBpuntReturnYards', getStat(homeStats, 'USFBpuntReturnYards') - getStat(awayStats, 'USFBpuntReturnYards')),
+                normalizeStat('USFBpuntReturnYardsPerGame', getStat(homeStats, 'USFBpuntReturnYardsPerGame') - getStat(awayStats, 'USFBpuntReturnYardsPerGame')),
+                normalizeStat('USFByardsPerReturn', getStat(homeStats, 'USFByardsPerReturn') - getStat(awayStats, 'USFByardsPerReturn')),
+                normalizeStat('USFBthirdDownEfficiency', getStat(homeStats, 'USFBthirdDownEfficiency') - getStat(awayStats, 'USFBthirdDownEfficiency')),
+                normalizeStat('USFBtotalPenyards', getStat(homeStats, 'USFBtotalPenyards') - getStat(awayStats, 'USFBtotalPenyards')),
+                normalizeStat('USFBaveragePenYardsPerGame', getStat(homeStats, 'USFBaveragePenYardsPerGame') - getStat(awayStats, 'USFBaveragePenYardsPerGame')),
+                normalizeStat('USFBgiveaways', getStat(homeStats, 'USFBgiveaways') - getStat(awayStats, 'USFBgiveaways')),
+                normalizeStat('USFBtakeaways', getStat(homeStats, 'USFBtakeaways') - getStat(awayStats, 'USFBtakeaways')),
+                normalizeStat('USFBturnoverDiff', getStat(homeStats, 'USFBturnoverDiff') - getStat(awayStats, 'USFBturnoverDiff')),
+                normalizeStat('USFBtotalFirstDowns', getStat(homeStats, 'USFBtotalFirstDowns') - getStat(awayStats, 'USFBtotalFirstDowns')),
 
             ];
         case 'icehockey_nhl':
             return [
-                getWinLoss(homeStats) - getWinLoss(awayStats),
-                getHomeAwayWinLoss(homeStats, 'homeWinLoss') - getHomeAwayWinLoss(awayStats, 'awayWinLoss'),
-                getStat(homeStats, 'pointDiff') - getStat(awayStats, 'pointDiff'),
-                getStat(homeStats, 'HKYgoals') - getStat(awayStats, 'HKYgoals'),
-                getStat(homeStats, 'HKYgoalsPerGame') - getStat(awayStats, 'HKYgoalsPerGame'),
-                getStat(homeStats, 'HKYassists') - getStat(awayStats, 'HKYassists'),
-                getStat(homeStats, 'HKYassistsPerGame') - getStat(awayStats, 'HKYassistsPerGame'),
-                getStat(homeStats, 'HKYshotsIn1st') - getStat(awayStats, 'HKYshotsIn1st'),
-                getStat(homeStats, 'HKYshotsIn1stPerGame') - getStat(awayStats, 'HKYshotsIn1stPerGame'),
-                getStat(homeStats, 'HKYshotsIn2nd') - getStat(awayStats, 'HKYshotsIn2nd'),
-                getStat(homeStats, 'HKYshotsIn2ndPerGame') - getStat(awayStats, 'HKYshotsIn2ndPerGame'),
-                getStat(homeStats, 'HKYshotsIn3rd') - getStat(awayStats, 'HKYshotsIn3rd'),
-                getStat(homeStats, 'HKYshotsIn3rdPerGame') - getStat(awayStats, 'HKYshotsIn3rdPerGame'),
-                getStat(homeStats, 'HKYtotalShots') - getStat(awayStats, 'HKYtotalShots'),
-                getStat(homeStats, 'HKYtotalShotsPerGame') - getStat(awayStats, 'HKYtotalShotsPerGame'),
-                getStat(homeStats, 'HKYshotsMissed') - getStat(awayStats, 'HKYshotsMissed'),
-                getStat(homeStats, 'HKYshotsMissedPerGame') - getStat(awayStats, 'HKYshotsMissedPerGame'),
-                getStat(homeStats, 'HKYppgGoals') - getStat(awayStats, 'HKYppgGoals'),
-                getStat(homeStats, 'HKYppgGoalsPerGame') - getStat(awayStats, 'HKYppgGoalsPerGame'),
-                getStat(homeStats, 'HKYppassists') - getStat(awayStats, 'HKYppassists'),
-                getStat(homeStats, 'HKYppassistsPerGame') - getStat(awayStats, 'HKYppassistsPerGame'),
-                getStat(homeStats, 'HKYpowerplayPct') - getStat(awayStats, 'HKYpowerplayPct'),
-                getStat(homeStats, 'HKYshortHandedGoals') - getStat(awayStats, 'HKYshortHandedGoals'),
-                getStat(homeStats, 'HKYshortHandedGoalsPerGame') - getStat(awayStats, 'HKYshortHandedGoalsPerGame'),
-                getStat(homeStats, 'HKYshootingPct') - getStat(awayStats, 'HKYshootingPct'),
-                getStat(homeStats, 'HKYfaceoffs') - getStat(awayStats, 'HKYfaceoffs'),
-                getStat(homeStats, 'HKYfaceoffsPerGame') - getStat(awayStats, 'HKYfaceoffsPerGame'),
-                getStat(homeStats, 'HKYfaceoffsWon') - getStat(awayStats, 'HKYfaceoffsWon'),
-                getStat(homeStats, 'HKYfaceoffsWonPerGame') - getStat(awayStats, 'HKYfaceoffsWonPerGame'),
-                getStat(homeStats, 'HKYfaceoffsLost') - getStat(awayStats, 'HKYfaceoffsLost'),
-                getStat(homeStats, 'HKYfaceoffsLostPerGame') - getStat(awayStats, 'HKYfaceoffsLostPerGame'),
-                getStat(homeStats, 'HKYfaceoffPct') - getStat(awayStats, 'HKYfaceoffPct'),
-                getStat(homeStats, 'HKYfaceoffPctPerGame') - getStat(awayStats, 'HKYfaceoffPctPerGame'),
-                getStat(homeStats, 'HKYgiveaways') - getStat(awayStats, 'HKYgiveaways'),
-                getStat(homeStats, 'HKYgoalsAgainst') - getStat(awayStats, 'HKYgoalsAgainst'),
-                getStat(homeStats, 'HKYgoalsAgainstPerGame') - getStat(awayStats, 'HKYgoalsAgainstPerGame'),
-                getStat(homeStats, 'HKYshotsAgainst') - getStat(awayStats, 'HKYshotsAgainst'),
-                getStat(homeStats, 'HKYshotsAgainstPerGame') - getStat(awayStats, 'HKYshotsAgainstPerGame'),
-                getStat(homeStats, 'HKYpenaltyKillPct') - getStat(awayStats, 'HKYpenaltyKillPct'),
-                getStat(homeStats, 'HKYpenaltyKillPctPerGame') - getStat(awayStats, 'HKYpenaltyKillPctPerGame'),
-                getStat(homeStats, 'HKYppGoalsAgainst') - getStat(awayStats, 'HKYppGoalsAgainst'),
-                getStat(homeStats, 'HKYppGoalsAgainstPerGame') - getStat(awayStats, 'HKYppGoalsAgainstPerGame'),
-                getStat(homeStats, 'HKYshutouts') - getStat(awayStats, 'HKYshutouts'),
-                getStat(homeStats, 'HKYsaves') - getStat(awayStats, 'HKYsaves'),
-                getStat(homeStats, 'HKYsavesPerGame') - getStat(awayStats, 'HKYsavesPerGame'),
-                getStat(homeStats, 'HKYsavePct') - getStat(awayStats, 'HKYsavePct'),
-                getStat(homeStats, 'HKYblockedShots') - getStat(awayStats, 'HKYblockedShots'),
-                getStat(homeStats, 'HKYblockedShotsPerGame') - getStat(awayStats, 'HKYblockedShotsPerGame'),
-                getStat(homeStats, 'HKYhits') - getStat(awayStats, 'HKYhits'),
-                getStat(homeStats, 'HKYhitsPerGame') - getStat(awayStats, 'HKYhitsPerGame'),
-                getStat(homeStats, 'HKYtakeaways') - getStat(awayStats, 'HKYtakeaways'),
-                getStat(homeStats, 'HKYtakeawaysPerGame') - getStat(awayStats, 'HKYtakeawaysPerGame'),
-                getStat(homeStats, 'HKYshotDifferential') - getStat(awayStats, 'HKYshotDifferential'),
-                getStat(homeStats, 'HKYshotDifferentialPerGame') - getStat(awayStats, 'HKYshotDifferentialPerGame'),
-                getStat(homeStats, 'HKYgoalDifferentialPerGame') - getStat(awayStats, 'HKYgoalDifferentialPerGame'),
-                getStat(homeStats, 'HKYpimDifferential') - getStat(awayStats, 'HKYpimDifferential'),
-                getStat(homeStats, 'HKYpimDifferentialPerGame') - getStat(awayStats, 'HKYpimDifferentialPerGame'),
-                getStat(homeStats, 'HKYtotalPenalties') - getStat(awayStats, 'HKYtotalPenalties'),
-                getStat(homeStats, 'HKYpenaltiesPerGame') - getStat(awayStats, 'HKYpenaltiesPerGame'),
-                getStat(homeStats, 'HKYpenaltyMinutes') - getStat(awayStats, 'HKYpenaltyMinutes'),
-                getStat(homeStats, 'HKYpenaltyMinutesPerGame') - getStat(awayStats, 'HKYpenaltyMinutesPerGame')
+                normalizeStat('seasonWinLoss', getWinLoss(homeStats) - getWinLoss(awayStats)),
+                normalizeStat('homeWinLoss', getHomeAwayWinLoss(homeStats, 'homeWinLoss') - getHomeAwayWinLoss(awayStats, 'awayWinLoss')),
+                normalizeStat('pointDiff', getStat(homeStats, 'pointDiff') - getStat(awayStats, 'pointDiff')),
+                normalizeStat('HKYgoals', getStat(homeStats, 'HKYgoals') - getStat(awayStats, 'HKYgoals')),
+                normalizeStat('HKYgoalsPerGame', getStat(homeStats, 'HKYgoalsPerGame') - getStat(awayStats, 'HKYgoalsPerGame')),
+                normalizeStat('HKYassists', getStat(homeStats, 'HKYassists') - getStat(awayStats, 'HKYassists')),
+                normalizeStat('HKYassistsPerGame', getStat(homeStats, 'HKYassistsPerGame') - getStat(awayStats, 'HKYassistsPerGame')),
+                normalizeStat('HKYshotsIn1st', getStat(homeStats, 'HKYshotsIn1st') - getStat(awayStats, 'HKYshotsIn1st')),
+                normalizeStat('HKYshotsIn1stPerGame', getStat(homeStats, 'HKYshotsIn1stPerGame') - getStat(awayStats, 'HKYshotsIn1stPerGame')),
+                normalizeStat('HKYshotsIn2nd', getStat(homeStats, 'HKYshotsIn2nd') - getStat(awayStats, 'HKYshotsIn2nd')),
+                normalizeStat('HKYshotsIn2ndPerGame', getStat(homeStats, 'HKYshotsIn2ndPerGame') - getStat(awayStats, 'HKYshotsIn2ndPerGame')),
+                normalizeStat('HKYshotsIn3rd', getStat(homeStats, 'HKYshotsIn3rd') - getStat(awayStats, 'HKYshotsIn3rd')),
+                normalizeStat('HKYshotsIn3rdPerGame', getStat(homeStats, 'HKYshotsIn3rdPerGame') - getStat(awayStats, 'HKYshotsIn3rdPerGame')),
+                normalizeStat('HKYtotalShots', getStat(homeStats, 'HKYtotalShots') - getStat(awayStats, 'HKYtotalShots')),
+                normalizeStat('HKYtotalShotsPerGame', getStat(homeStats, 'HKYtotalShotsPerGame') - getStat(awayStats, 'HKYtotalShotsPerGame')),
+                normalizeStat('HKYshotsMissed', getStat(homeStats, 'HKYshotsMissed') - getStat(awayStats, 'HKYshotsMissed')),
+                normalizeStat('HKYshotsMissedPerGame', getStat(homeStats, 'HKYshotsMissedPerGame') - getStat(awayStats, 'HKYshotsMissedPerGame')),
+                normalizeStat('HKYppgGoals', getStat(homeStats, 'HKYppgGoals') - getStat(awayStats, 'HKYppgGoals')),
+                normalizeStat('HKYppgGoalsPerGame', getStat(homeStats, 'HKYppgGoalsPerGame') - getStat(awayStats, 'HKYppgGoalsPerGame')),
+                normalizeStat('HKYppassists', getStat(homeStats, 'HKYppassists') - getStat(awayStats, 'HKYppassists')),
+                normalizeStat('HKYppassistsPerGame', getStat(homeStats, 'HKYppassistsPerGame') - getStat(awayStats, 'HKYppassistsPerGame')),
+                normalizeStat('HKYpowerplayPct', getStat(homeStats, 'HKYpowerplayPct') - getStat(awayStats, 'HKYpowerplayPct')),
+                normalizeStat('HKYshortHandedGoals', getStat(homeStats, 'HKYshortHandedGoals') - getStat(awayStats, 'HKYshortHandedGoals')),
+                normalizeStat('HKYshortHandedGoalsPerGame', getStat(homeStats, 'HKYshortHandedGoalsPerGame') - getStat(awayStats, 'HKYshortHandedGoalsPerGame')),
+                normalizeStat('HKYshootingPct', getStat(homeStats, 'HKYshootingPct') - getStat(awayStats, 'HKYshootingPct')),
+                normalizeStat('HKYfaceoffs', getStat(homeStats, 'HKYfaceoffs') - getStat(awayStats, 'HKYfaceoffs')),
+                normalizeStat('HKYfaceoffsPerGame', getStat(homeStats, 'HKYfaceoffsPerGame') - getStat(awayStats, 'HKYfaceoffsPerGame')),
+                normalizeStat('HKYfaceoffsWon', getStat(homeStats, 'HKYfaceoffsWon') - getStat(awayStats, 'HKYfaceoffsWon')),
+                normalizeStat('HKYfaceoffsWonPerGame', getStat(homeStats, 'HKYfaceoffsWonPerGame') - getStat(awayStats, 'HKYfaceoffsWonPerGame')),
+                normalizeStat('HKYfaceoffsLost', getStat(homeStats, 'HKYfaceoffsLost') - getStat(awayStats, 'HKYfaceoffsLost')),
+                normalizeStat('HKYfaceoffsLostPerGame', getStat(homeStats, 'HKYfaceoffsLostPerGame') - getStat(awayStats, 'HKYfaceoffsLostPerGame')),
+                normalizeStat('HKYfaceoffPct', getStat(homeStats, 'HKYfaceoffPct') - getStat(awayStats, 'HKYfaceoffPct')),
+                normalizeStat('HKYfaceoffPctPerGame', getStat(homeStats, 'HKYfaceoffPctPerGame') - getStat(awayStats, 'HKYfaceoffPctPerGame')),
+                normalizeStat('HKYgiveaways', getStat(homeStats, 'HKYgiveaways') - getStat(awayStats, 'HKYgiveaways')),
+                normalizeStat('HKYgoalsAgainst', getStat(homeStats, 'HKYgoalsAgainst') - getStat(awayStats, 'HKYgoalsAgainst')),
+                normalizeStat('HKYgoalsAgainstPerGame', getStat(homeStats, 'HKYgoalsAgainstPerGame') - getStat(awayStats, 'HKYgoalsAgainstPerGame')),
+                normalizeStat('HKYshotsAgainst', getStat(homeStats, 'HKYshotsAgainst') - getStat(awayStats, 'HKYshotsAgainst')),
+                normalizeStat('HKYshotsAgainstPerGame', getStat(homeStats, 'HKYshotsAgainstPerGame') - getStat(awayStats, 'HKYshotsAgainstPerGame')),
+                normalizeStat('HKYpenaltyKillPct', getStat(homeStats, 'HKYpenaltyKillPct') - getStat(awayStats, 'HKYpenaltyKillPct')),
+                normalizeStat('HKYpenaltyKillPctPerGame', getStat(homeStats, 'HKYpenaltyKillPctPerGame') - getStat(awayStats, 'HKYpenaltyKillPctPerGame')),
+                normalizeStat('HKYppGoalsAgainst', getStat(homeStats, 'HKYppGoalsAgainst') - getStat(awayStats, 'HKYppGoalsAgainst')),
+                normalizeStat('HKYppGoalsAgainstPerGame', getStat(homeStats, 'HKYppGoalsAgainstPerGame') - getStat(awayStats, 'HKYppGoalsAgainstPerGame')),
+                normalizeStat('HKYshutouts', getStat(homeStats, 'HKYshutouts') - getStat(awayStats, 'HKYshutouts')),
+                normalizeStat('HKYsaves', getStat(homeStats, 'HKYsaves') - getStat(awayStats, 'HKYsaves')),
+                normalizeStat('HKYsavesPerGame', getStat(homeStats, 'HKYsavesPerGame') - getStat(awayStats, 'HKYsavesPerGame')),
+                normalizeStat('HKYsavePct', getStat(homeStats, 'HKYsavePct') - getStat(awayStats, 'HKYsavePct')),
+                normalizeStat('HKYblockedShots', getStat(homeStats, 'HKYblockedShots') - getStat(awayStats, 'HKYblockedShots')),
+                normalizeStat('HKYblockedShotsPerGame', getStat(homeStats, 'HKYblockedShotsPerGame') - getStat(awayStats, 'HKYblockedShotsPerGame')),
+                normalizeStat('HKYhits', getStat(homeStats, 'HKYhits') - getStat(awayStats, 'HKYhits')),
+                normalizeStat('HKYhitsPerGame', getStat(homeStats, 'HKYhitsPerGame') - getStat(awayStats, 'HKYhitsPerGame')),
+                normalizeStat('HKYtakeaways', getStat(homeStats, 'HKYtakeaways') - getStat(awayStats, 'HKYtakeaways')),
+                normalizeStat('HKYtakeawaysPerGame', getStat(homeStats, 'HKYtakeawaysPerGame') - getStat(awayStats, 'HKYtakeawaysPerGame')),
+                normalizeStat('HKYshotDifferential', getStat(homeStats, 'HKYshotDifferential') - getStat(awayStats, 'HKYshotDifferential')),
+                normalizeStat('HKYshotDifferentialPerGame', getStat(homeStats, 'HKYshotDifferentialPerGame') - getStat(awayStats, 'HKYshotDifferentialPerGame')),
+                normalizeStat('HKYgoalDifferentialPerGame', getStat(homeStats, 'HKYgoalDifferentialPerGame') - getStat(awayStats, 'HKYgoalDifferentialPerGame')),
+                normalizeStat('HKYpimDifferential', getStat(homeStats, 'HKYpimDifferential') - getStat(awayStats, 'HKYpimDifferential')),
+                normalizeStat('HKYpimDifferentialPerGame', getStat(homeStats, 'HKYpimDifferentialPerGame') - getStat(awayStats, 'HKYpimDifferentialPerGame')),
+                normalizeStat('HKYtotalPenalties', getStat(homeStats, 'HKYtotalPenalties') - getStat(awayStats, 'HKYtotalPenalties')),
+                normalizeStat('HKYpenaltiesPerGame', getStat(homeStats, 'HKYpenaltiesPerGame') - getStat(awayStats, 'HKYpenaltiesPerGame')),
+                normalizeStat('HKYpenaltyMinutes', getStat(homeStats, 'HKYpenaltyMinutes') - getStat(awayStats, 'HKYpenaltyMinutes')),
+                normalizeStat('HKYpenaltyMinutesPerGame', getStat(homeStats, 'HKYpenaltyMinutesPerGame') - getStat(awayStats, 'HKYpenaltyMinutesPerGame'))
 
             ];
         case 'baseball_mlb':
             return [
-                getWinLoss(homeStats) - getWinLoss(awayStats),
-                getHomeAwayWinLoss(homeStats, 'homeWinLoss') - getHomeAwayWinLoss(awayStats, 'awayWinLoss'),
-                getStat(homeStats, 'pointDiff') - getStat(awayStats, 'pointDiff'),
-                getStat(homeStats, 'BSBbattingStrikeouts') - getStat(awayStats, 'BSBbattingStrikeouts'),
-                getStat(homeStats, 'BSBrunsBattedIn') - getStat(awayStats, 'BSBrunsBattedIn'),
-                getStat(homeStats, 'BSBsacrificeHits') - getStat(awayStats, 'BSBsacrificeHits'),
-                getStat(homeStats, 'BSBHitsTotal') - getStat(awayStats, 'BSBHitsTotal'),
-                getStat(homeStats, 'BSBwalks') - getStat(awayStats, 'BSBwalks'),
-                getStat(homeStats, 'BSBruns') - getStat(awayStats, 'BSBruns'),
-                getStat(homeStats, 'BSBhomeRuns') - getStat(awayStats, 'BSBhomeRuns'),
-                getStat(homeStats, 'BSBdoubles') - getStat(awayStats, 'BSBdoubles'),
-                getStat(homeStats, 'BSBtotalBases') - getStat(awayStats, 'BSBtotalBases'),
-                getStat(homeStats, 'BSBextraBaseHits') - getStat(awayStats, 'BSBextraBaseHits'),
-                getStat(homeStats, 'BSBbattingAverage') - getStat(awayStats, 'BSBbattingAverage'),
-                getStat(homeStats, 'BSBsluggingPercentage') - getStat(awayStats, 'BSBsluggingPercentage'),
-                getStat(homeStats, 'BSBonBasePercentage') - getStat(awayStats, 'BSBonBasePercentage'),
-                getStat(homeStats, 'BSBonBasePlusSlugging') - getStat(awayStats, 'BSBonBasePlusSlugging'),
-                getStat(homeStats, 'BSBgroundToFlyRatio') - getStat(awayStats, 'BSBgroundToFlyRatio'),
-                getStat(homeStats, 'BSBatBatsPerHomeRun') - getStat(awayStats, 'BSBatBatsPerHomeRun'),
-                getStat(homeStats, 'BSBstolenBasePercentage') - getStat(awayStats, 'BSBstolenBasePercentage'),
-                getStat(homeStats, 'BSBbatterWalkToStrikeoutRatio') - getStat(awayStats, 'BSBbatterWalkToStrikeoutRatio'),
-                getStat(homeStats, 'BSBsaves') - getStat(awayStats, 'BSBsaves'),
-                getStat(homeStats, 'BSBpitcherStrikeouts') - getStat(awayStats, 'BSBpitcherStrikeouts'),
-                getStat(homeStats, 'BSBhitsGivenUp') - getStat(awayStats, 'BSBhitsGivenUp'),
-                getStat(homeStats, 'BSBearnedRuns') - getStat(awayStats, 'BSBearnedRuns'),
-                getStat(homeStats, 'BSBbattersWalked') - getStat(awayStats, 'BSBbattersWalked'),
-                getStat(homeStats, 'BSBrunsAllowed') - getStat(awayStats, 'BSBrunsAllowed'),
-                getStat(homeStats, 'BSBhomeRunsAllowed') - getStat(awayStats, 'BSBhomeRunsAllowed'),
-                getStat(homeStats, 'BSBwins') - getStat(awayStats, 'BSBwins'),
-                getStat(homeStats, 'BSBshutouts') - getStat(awayStats, 'BSBshutouts'),
-                getStat(homeStats, 'BSBearnedRunAverage') - getStat(awayStats, 'BSBearnedRunAverage'),
-                getStat(homeStats, 'BSBwalksHitsPerInningPitched') - getStat(awayStats, 'BSBwalksHitsPerInningPitched'),
-                getStat(homeStats, 'BSBwinPct') - getStat(awayStats, 'BSBwinPct'),
-                getStat(homeStats, 'BSBpitcherCaughtStealingPct') - getStat(awayStats, 'BSBpitcherCaughtStealingPct'),
-                getStat(homeStats, 'BSBpitchesPerInning') - getStat(awayStats, 'BSBpitchesPerInning'),
-                getStat(homeStats, 'BSBrunSupportAverage') - getStat(awayStats, 'BSBrunSupportAverage'),
-                getStat(homeStats, 'BSBopponentBattingAverage') - getStat(awayStats, 'BSBopponentBattingAverage'),
-                getStat(homeStats, 'BSBopponentSlugAverage') - getStat(awayStats, 'BSBopponentSlugAverage'),
-                getStat(homeStats, 'BSBopponentOnBasePct') - getStat(awayStats, 'BSBopponentOnBasePct'),
-                getStat(homeStats, 'BSBopponentOnBasePlusSlugging') - getStat(awayStats, 'BSBopponentOnBasePlusSlugging'),
-                getStat(homeStats, 'BSBsavePct') - getStat(awayStats, 'BSBsavePct'),
-                getStat(homeStats, 'BSBstrikeoutsPerNine') - getStat(awayStats, 'BSBstrikeoutsPerNine'),
-                getStat(homeStats, 'BSBpitcherStrikeoutToWalkRatio') - getStat(awayStats, 'BSBpitcherStrikeoutToWalkRatio'),
-                getStat(homeStats, 'BSBdoublePlays') - getStat(awayStats, 'BSBdoublePlays'),
-                getStat(homeStats, 'BSBerrors') - getStat(awayStats, 'BSBerrors'),
-                getStat(homeStats, 'BSBpassedBalls') - getStat(awayStats, 'BSBpassedBalls'),
-                getStat(homeStats, 'BSBassists') - getStat(awayStats, 'BSBassists'),
-                getStat(homeStats, 'BSBputouts') - getStat(awayStats, 'BSBputouts'),
-                getStat(homeStats, 'BSBcatcherCaughtStealing') - getStat(awayStats, 'BSBcatcherCaughtStealing'),
-                getStat(homeStats, 'BSBcatcherCaughtStealingPct') - getStat(awayStats, 'BSBcatcherCaughtStealingPct'),
-                getStat(homeStats, 'BSBcatcherStolenBasesAllowed') - getStat(awayStats, 'BSBcatcherStolenBasesAllowed'),
-                getStat(homeStats, 'BSBfieldingPercentage') - getStat(awayStats, 'BSBfieldingPercentage'),
-                getStat(homeStats, 'BSBrangeFactor') - getStat(awayStats, 'BSBrangeFactor')
+                normalizeStat('seasonWinLoss', getWinLoss(homeStats) - getWinLoss(awayStats)),
+                normalizeStat('homeWinLoss', getHomeAwayWinLoss(homeStats, 'homeWinLoss') - getHomeAwayWinLoss(awayStats, 'awayWinLoss')),
+                normalizeStat('pointDiff', getStat(homeStats, 'pointDiff') - getStat(awayStats, 'pointDiff')),
+                normalizeStat('BSBbattingStrikeouts', getStat(homeStats, 'BSBbattingStrikeouts') - getStat(awayStats, 'BSBbattingStrikeouts')),
+                normalizeStat('BSBrunsBattedIn', getStat(homeStats, 'BSBrunsBattedIn') - getStat(awayStats, 'BSBrunsBattedIn')),
+                normalizeStat('BSBsacrificeHits', getStat(homeStats, 'BSBsacrificeHits') - getStat(awayStats, 'BSBsacrificeHits')),
+                normalizeStat('BSBHitsTotal', getStat(homeStats, 'BSBHitsTotal') - getStat(awayStats, 'BSBHitsTotal')),
+                normalizeStat('BSBwalks', getStat(homeStats, 'BSBwalks') - getStat(awayStats, 'BSBwalks')),
+                normalizeStat('BSBruns', getStat(homeStats, 'BSBruns') - getStat(awayStats, 'BSBruns')),
+                normalizeStat('BSBhomeRuns', getStat(homeStats, 'BSBhomeRuns') - getStat(awayStats, 'BSBhomeRuns')),
+                normalizeStat('BSBdoubles', getStat(homeStats, 'BSBdoubles') - getStat(awayStats, 'BSBdoubles')),
+                normalizeStat('BSBtotalBases', getStat(homeStats, 'BSBtotalBases') - getStat(awayStats, 'BSBtotalBases')),
+                normalizeStat('BSBextraBaseHits', getStat(homeStats, 'BSBextraBaseHits') - getStat(awayStats, 'BSBextraBaseHits')),
+                normalizeStat('BSBbattingAverage', getStat(homeStats, 'BSBbattingAverage') - getStat(awayStats, 'BSBbattingAverage')),
+                normalizeStat('BSBsluggingPercentage', getStat(homeStats, 'BSBsluggingPercentage') - getStat(awayStats, 'BSBsluggingPercentage')),
+                normalizeStat('BSBonBasePercentage', getStat(homeStats, 'BSBonBasePercentage') - getStat(awayStats, 'BSBonBasePercentage')),
+                normalizeStat('BSBonBasePlusSlugging', getStat(homeStats, 'BSBonBasePlusSlugging') - getStat(awayStats, 'BSBonBasePlusSlugging')),
+                normalizeStat('BSBgroundToFlyRatio', getStat(homeStats, 'BSBgroundToFlyRatio') - getStat(awayStats, 'BSBgroundToFlyRatio')),
+                normalizeStat('BSBatBatsPerHomeRun', getStat(homeStats, 'BSBatBatsPerHomeRun') - getStat(awayStats, 'BSBatBatsPerHomeRun')),
+                normalizeStat('BSBstolenBasePercentage', getStat(homeStats, 'BSBstolenBasePercentage') - getStat(awayStats, 'BSBstolenBasePercentage')),
+                normalizeStat('BSBbatterWalkToStrikeoutRatio', getStat(homeStats, 'BSBbatterWalkToStrikeoutRatio') - getStat(awayStats, 'BSBbatterWalkToStrikeoutRatio')),
+                normalizeStat('BSBsaves', getStat(homeStats, 'BSBsaves') - getStat(awayStats, 'BSBsaves')),
+                normalizeStat('BSBpitcherStrikeouts', getStat(homeStats, 'BSBpitcherStrikeouts') - getStat(awayStats, 'BSBpitcherStrikeouts')),
+                normalizeStat('BSBhitsGivenUp', getStat(homeStats, 'BSBhitsGivenUp') - getStat(awayStats, 'BSBhitsGivenUp')),
+                normalizeStat('BSBearnedRuns', getStat(homeStats, 'BSBearnedRuns') - getStat(awayStats, 'BSBearnedRuns')),
+                normalizeStat('BSBbattersWalked', getStat(homeStats, 'BSBbattersWalked') - getStat(awayStats, 'BSBbattersWalked')),
+                normalizeStat('BSBrunsAllowed', getStat(homeStats, 'BSBrunsAllowed') - getStat(awayStats, 'BSBrunsAllowed')),
+                normalizeStat('BSBhomeRunsAllowed', getStat(homeStats, 'BSBhomeRunsAllowed') - getStat(awayStats, 'BSBhomeRunsAllowed')),
+                normalizeStat('BSBwins', getStat(homeStats, 'BSBwins') - getStat(awayStats, 'BSBwins')),
+                normalizeStat('BSBshutouts', getStat(homeStats, 'BSBshutouts') - getStat(awayStats, 'BSBshutouts')),
+                normalizeStat('BSBearnedRunAverage', getStat(homeStats, 'BSBearnedRunAverage') - getStat(awayStats, 'BSBearnedRunAverage')),
+                normalizeStat('BSBwalksHitsPerInningPitched', getStat(homeStats, 'BSBwalksHitsPerInningPitched') - getStat(awayStats, 'BSBwalksHitsPerInningPitched')),
+                normalizeStat('BSBwinPct', getStat(homeStats, 'BSBwinPct') - getStat(awayStats, 'BSBwinPct')),
+                normalizeStat('BSBpitcherCaughtStealingPct', getStat(homeStats, 'BSBpitcherCaughtStealingPct') - getStat(awayStats, 'BSBpitcherCaughtStealingPct')),
+                normalizeStat('BSBpitchesPerInning', getStat(homeStats, 'BSBpitchesPerInning') - getStat(awayStats, 'BSBpitchesPerInning')),
+                normalizeStat('BSBrunSupportAverage', getStat(homeStats, 'BSBrunSupportAverage') - getStat(awayStats, 'BSBrunSupportAverage')),
+                normalizeStat('BSBopponentBattingAverage', getStat(homeStats, 'BSBopponentBattingAverage') - getStat(awayStats, 'BSBopponentBattingAverage')),
+                normalizeStat('BSBopponentSlugAverage', getStat(homeStats, 'BSBopponentSlugAverage') - getStat(awayStats, 'BSBopponentSlugAverage')),
+                normalizeStat('BSBopponentOnBasePct', getStat(homeStats, 'BSBopponentOnBasePct') - getStat(awayStats, 'BSBopponentOnBasePct')),
+                normalizeStat('BSBopponentOnBasePlusSlugging', getStat(homeStats, 'BSBopponentOnBasePlusSlugging') - getStat(awayStats, 'BSBopponentOnBasePlusSlugging')),
+                normalizeStat('BSBsavePct', getStat(homeStats, 'BSBsavePct') - getStat(awayStats, 'BSBsavePct')),
+                normalizeStat('BSBstrikeoutsPerNine', getStat(homeStats, 'BSBstrikeoutsPerNine') - getStat(awayStats, 'BSBstrikeoutsPerNine')),
+                normalizeStat('BSBpitcherStrikeoutToWalkRatio', getStat(homeStats, 'BSBpitcherStrikeoutToWalkRatio') - getStat(awayStats, 'BSBpitcherStrikeoutToWalkRatio')),
+                normalizeStat('BSBdoublePlays', getStat(homeStats, 'BSBdoublePlays') - getStat(awayStats, 'BSBdoublePlays')),
+                normalizeStat('BSBerrors', getStat(homeStats, 'BSBerrors') - getStat(awayStats, 'BSBerrors')),
+                normalizeStat('BSBpassedBalls', getStat(homeStats, 'BSBpassedBalls') - getStat(awayStats, 'BSBpassedBalls')),
+                normalizeStat('BSBassists', getStat(homeStats, 'BSBassists') - getStat(awayStats, 'BSBassists')),
+                normalizeStat('BSBputouts', getStat(homeStats, 'BSBputouts') - getStat(awayStats, 'BSBputouts')),
+                normalizeStat('BSBcatcherCaughtStealing', getStat(homeStats, 'BSBcatcherCaughtStealing') - getStat(awayStats, 'BSBcatcherCaughtStealing')),
+                normalizeStat('BSBcatcherCaughtStealingPct', getStat(homeStats, 'BSBcatcherCaughtStealingPct') - getStat(awayStats, 'BSBcatcherCaughtStealingPct')),
+                normalizeStat('BSBcatcherStolenBasesAllowed', getStat(homeStats, 'BSBcatcherStolenBasesAllowed') - getStat(awayStats, 'BSBcatcherStolenBasesAllowed')),
+                normalizeStat('BSBfieldingPercentage', getStat(homeStats, 'BSBfieldingPercentage') - getStat(awayStats, 'BSBfieldingPercentage')),
+                normalizeStat('BSBrangeFactor', getStat(homeStats, 'BSBrangeFactor') - getStat(awayStats, 'BSBrangeFactor'))
             ];
         case 'basketball_ncaab':
             return [
-                getWinLoss(homeStats) - getWinLoss(awayStats),
-                getHomeAwayWinLoss(homeStats, 'homeWinLoss') - getHomeAwayWinLoss(awayStats, 'awayWinLoss'),
-                getStat(homeStats, 'pointDiff') - getStat(awayStats, 'pointDiff'),
-                getStat(homeStats, 'BSKBtotalPoints') - getStat(awayStats, 'BSKBtotalPoints'),
-                getStat(homeStats, 'BSKBpointsPerGame') - getStat(awayStats, 'BSKBpointsPerGame'),
-                getStat(homeStats, 'BSKBassists') - getStat(awayStats, 'BSKBassists'),
-                getStat(homeStats, 'BSKBassistsPerGame') - getStat(awayStats, 'BSKBassistsPerGame'),
-                getStat(homeStats, 'BSKBassistRatio') - getStat(awayStats, 'BSKBassistRatio'),
-                getStat(homeStats, 'BSKBeffectiveFgPercent') - getStat(awayStats, 'BSKBeffectiveFgPercent'),
-                getStat(homeStats, 'BSKBfieldGoalPercent') - getStat(awayStats, 'BSKBfieldGoalPercent'),
-                getStat(homeStats, 'BSKBfieldGoalsAttempted') - getStat(awayStats, 'BSKBfieldGoalsAttempted'),
-                getStat(homeStats, 'BSKBfieldGoalsMade') - getStat(awayStats, 'BSKBfieldGoalsMade'),
-                getStat(homeStats, 'BSKBfieldGoalsPerGame') - getStat(awayStats, 'BSKBfieldGoalsPerGame'),
-                getStat(homeStats, 'BSKBfreeThrowPercent') - getStat(awayStats, 'BSKBfreeThrowPercent'),
-                getStat(homeStats, 'BSKBfreeThrowsAttempted') - getStat(awayStats, 'BSKBfreeThrowsAttempted'),
-                getStat(homeStats, 'BSKBfreeThrowsMade') - getStat(awayStats, 'BSKBfreeThrowsMade'),
-                getStat(homeStats, 'BSKBfreeThrowsMadePerGame') - getStat(awayStats, 'BSKBfreeThrowsMadePerGame'),
-                getStat(homeStats, 'BSKBoffensiveRebounds') - getStat(awayStats, 'BSKBoffensiveRebounds'),
-                getStat(homeStats, 'BSKBoffensiveReboundsPerGame') - getStat(awayStats, 'BSKBoffensiveReboundsPerGame'),
-                getStat(homeStats, 'BSKBoffensiveReboundRate') - getStat(awayStats, 'BSKBoffensiveReboundRate'),
-                getStat(homeStats, 'BSKBoffensiveTurnovers') - getStat(awayStats, 'BSKBoffensiveTurnovers'),
-                getStat(homeStats, 'BSKBturnoversPerGame') - getStat(awayStats, 'BSKBturnoversPerGame'),
-                getStat(homeStats, 'BSKBturnoverRatio') - getStat(awayStats, 'BSKBturnoverRatio'),
-                getStat(homeStats, 'BSKBthreePointPct') - getStat(awayStats, 'BSKBthreePointPct'),
-                getStat(homeStats, 'BSKBthreePointsAttempted') - getStat(awayStats, 'BSKBthreePointsAttempted'),
-                getStat(homeStats, 'BSKBthreePointsMade') - getStat(awayStats, 'BSKBthreePointsMade'),
-                getStat(homeStats, 'BSKBtrueShootingPct') - getStat(awayStats, 'BSKBtrueShootingPct'),
-                getStat(homeStats, 'BSKBpace') - getStat(awayStats, 'BSKBpace'),
-                getStat(homeStats, 'BSKBpointsInPaint') - getStat(awayStats, 'BSKBpointsInPaint'),
-                getStat(homeStats, 'BSKBshootingEfficiency') - getStat(awayStats, 'BSKBshootingEfficiency'),
-                getStat(homeStats, 'BSKBscoringEfficiency') - getStat(awayStats, 'BSKBscoringEfficiency'),
-                getStat(homeStats, 'BSKBblocks') - getStat(awayStats, 'BSKBblocks'),
-                getStat(homeStats, 'BSKBblocksPerGame') - getStat(awayStats, 'BSKBblocksPerGame'),
-                getStat(homeStats, 'BSKBdefensiveRebounds') - getStat(awayStats, 'BSKBdefensiveRebounds'),
-                getStat(homeStats, 'BSKBdefensiveReboundsPerGame') - getStat(awayStats, 'BSKBdefensiveReboundsPerGame'),
-                getStat(homeStats, 'BSKBsteals') - getStat(awayStats, 'BSKBsteals'),
-                getStat(homeStats, 'BSKBstealsPerGame') - getStat(awayStats, 'BSKBstealsPerGame'),
-                getStat(homeStats, 'BSKBreboundRate') - getStat(awayStats, 'BSKBreboundRate'),
-                getStat(homeStats, 'BSKBreboundsPerGame') - getStat(awayStats, 'BSKBreboundsPerGame'),
-                getStat(homeStats, 'BSKBfoulsPerGame') - getStat(awayStats, 'BSKBfoulsPerGame'),
-                getStat(homeStats, 'BSKBteamAssistToTurnoverRatio') - getStat(awayStats, 'BSKBteamAssistToTurnoverRatio')
+                normalizeStat('seasonWinLoss', getWinLoss(homeStats) - getWinLoss(awayStats)),
+                normalizeStat('homeWinLoss', getHomeAwayWinLoss(homeStats, 'homeWinLoss') - getHomeAwayWinLoss(awayStats, 'awayWinLoss')),
+                normalizeStat('pointDiff', getStat(homeStats, 'pointDiff') - getStat(awayStats, 'pointDiff')),
+                normalizeStat('BSKBtotalPoints', getStat(homeStats, 'BSKBtotalPoints') - getStat(awayStats, 'BSKBtotalPoints')),
+                normalizeStat('BSKBpointsPerGame', getStat(homeStats, 'BSKBpointsPerGame') - getStat(awayStats, 'BSKBpointsPerGame')),
+                normalizeStat('BSKBassists', getStat(homeStats, 'BSKBassists') - getStat(awayStats, 'BSKBassists')),
+                normalizeStat('BSKBassistsPerGame', getStat(homeStats, 'BSKBassistsPerGame') - getStat(awayStats, 'BSKBassistsPerGame')),
+                normalizeStat('BSKBassistRatio', getStat(homeStats, 'BSKBassistRatio') - getStat(awayStats, 'BSKBassistRatio')),
+                normalizeStat('BSKBeffectiveFgPercent', getStat(homeStats, 'BSKBeffectiveFgPercent') - getStat(awayStats, 'BSKBeffectiveFgPercent')),
+                normalizeStat('BSKBfieldGoalPercent', getStat(homeStats, 'BSKBfieldGoalPercent') - getStat(awayStats, 'BSKBfieldGoalPercent')),
+                normalizeStat('BSKBfieldGoalsAttempted', getStat(homeStats, 'BSKBfieldGoalsAttempted') - getStat(awayStats, 'BSKBfieldGoalsAttempted')),
+                normalizeStat('BSKBfieldGoalsMade', getStat(homeStats, 'BSKBfieldGoalsMade') - getStat(awayStats, 'BSKBfieldGoalsMade')),
+                normalizeStat('BSKBfieldGoalsPerGame', getStat(homeStats, 'BSKBfieldGoalsPerGame') - getStat(awayStats, 'BSKBfieldGoalsPerGame')),
+                normalizeStat('BSKBfreeThrowPercent', getStat(homeStats, 'BSKBfreeThrowPercent') - getStat(awayStats, 'BSKBfreeThrowPercent')),
+                normalizeStat('BSKBfreeThrowsAttempted', getStat(homeStats, 'BSKBfreeThrowsAttempted') - getStat(awayStats, 'BSKBfreeThrowsAttempted')),
+                normalizeStat('BSKBfreeThrowsMade', getStat(homeStats, 'BSKBfreeThrowsMade') - getStat(awayStats, 'BSKBfreeThrowsMade')),
+                normalizeStat('BSKBfreeThrowsMadePerGame', getStat(homeStats, 'BSKBfreeThrowsMadePerGame') - getStat(awayStats, 'BSKBfreeThrowsMadePerGame')),
+                normalizeStat('BSKBoffensiveRebounds', getStat(homeStats, 'BSKBoffensiveRebounds') - getStat(awayStats, 'BSKBoffensiveRebounds')),
+                normalizeStat('BSKBoffensiveReboundsPerGame', getStat(homeStats, 'BSKBoffensiveReboundsPerGame') - getStat(awayStats, 'BSKBoffensiveReboundsPerGame')),
+                normalizeStat('BSKBoffensiveReboundRate', getStat(homeStats, 'BSKBoffensiveReboundRate') - getStat(awayStats, 'BSKBoffensiveReboundRate')),
+                normalizeStat('BSKBoffensiveTurnovers', getStat(homeStats, 'BSKBoffensiveTurnovers') - getStat(awayStats, 'BSKBoffensiveTurnovers')),
+                normalizeStat('BSKBturnoversPerGame', getStat(homeStats, 'BSKBturnoversPerGame') - getStat(awayStats, 'BSKBturnoversPerGame')),
+                normalizeStat('BSKBturnoverRatio', getStat(homeStats, 'BSKBturnoverRatio') - getStat(awayStats, 'BSKBturnoverRatio')),
+                normalizeStat('BSKBthreePointPct', getStat(homeStats, 'BSKBthreePointPct') - getStat(awayStats, 'BSKBthreePointPct')),
+                normalizeStat('BSKBthreePointsAttempted', getStat(homeStats, 'BSKBthreePointsAttempted') - getStat(awayStats, 'BSKBthreePointsAttempted')),
+                normalizeStat('BSKBthreePointsMade', getStat(homeStats, 'BSKBthreePointsMade') - getStat(awayStats, 'BSKBthreePointsMade')),
+                normalizeStat('BSKBtrueShootingPct', getStat(homeStats, 'BSKBtrueShootingPct') - getStat(awayStats, 'BSKBtrueShootingPct')),
+                normalizeStat('BSKBpace', getStat(homeStats, 'BSKBpace') - getStat(awayStats, 'BSKBpace')),
+                normalizeStat('BSKBpointsInPaint', getStat(homeStats, 'BSKBpointsInPaint') - getStat(awayStats, 'BSKBpointsInPaint')),
+                normalizeStat('BSKBshootingEfficiency', getStat(homeStats, 'BSKBshootingEfficiency') - getStat(awayStats, 'BSKBshootingEfficiency')),
+                normalizeStat('BSKBscoringEfficiency', getStat(homeStats, 'BSKBscoringEfficiency') - getStat(awayStats, 'BSKBscoringEfficiency')),
+                normalizeStat('BSKBblocks', getStat(homeStats, 'BSKBblocks') - getStat(awayStats, 'BSKBblocks')),
+                normalizeStat('BSKBblocksPerGame', getStat(homeStats, 'BSKBblocksPerGame') - getStat(awayStats, 'BSKBblocksPerGame')),
+                normalizeStat('BSKBdefensiveRebounds', getStat(homeStats, 'BSKBdefensiveRebounds') - getStat(awayStats, 'BSKBdefensiveRebounds')),
+                normalizeStat('BSKBdefensiveReboundsPerGame', getStat(homeStats, 'BSKBdefensiveReboundsPerGame') - getStat(awayStats, 'BSKBdefensiveReboundsPerGame')),
+                normalizeStat('BSKBsteals', getStat(homeStats, 'BSKBsteals') - getStat(awayStats, 'BSKBsteals')),
+                normalizeStat('BSKBstealsPerGame', getStat(homeStats, 'BSKBstealsPerGame') - getStat(awayStats, 'BSKBstealsPerGame')),
+                normalizeStat('BSKBreboundRate', getStat(homeStats, 'BSKBreboundRate') - getStat(awayStats, 'BSKBreboundRate')),
+                normalizeStat('BSKBreboundsPerGame', getStat(homeStats, 'BSKBreboundsPerGame') - getStat(awayStats, 'BSKBreboundsPerGame')),
+                normalizeStat('BSKBfoulsPerGame', getStat(homeStats, 'BSKBfoulsPerGame') - getStat(awayStats, 'BSKBfoulsPerGame')),
+                normalizeStat('BSKBteamAssistToTurnoverRatio', getStat(homeStats, 'BSKBteamAssistToTurnoverRatio') - getStat(awayStats, 'BSKBteamAssistToTurnoverRatio'))
             ];
         case 'basketball_wncaab':
             return [
-                getWinLoss(homeStats) - getWinLoss(awayStats),
-                getHomeAwayWinLoss(homeStats, 'homeWinLoss') - getHomeAwayWinLoss(awayStats, 'awayWinLoss'),
-                getStat(homeStats, 'pointDiff') - getStat(awayStats, 'pointDiff'),
-                getStat(homeStats, 'BSKBtotalPoints') - getStat(awayStats, 'BSKBtotalPoints'),
-                getStat(homeStats, 'BSKBpointsPerGame') - getStat(awayStats, 'BSKBpointsPerGame'),
-                getStat(homeStats, 'BSKBassists') - getStat(awayStats, 'BSKBassists'),
-                getStat(homeStats, 'BSKBassistsPerGame') - getStat(awayStats, 'BSKBassistsPerGame'),
-                getStat(homeStats, 'BSKBassistRatio') - getStat(awayStats, 'BSKBassistRatio'),
-                getStat(homeStats, 'BSKBeffectiveFgPercent') - getStat(awayStats, 'BSKBeffectiveFgPercent'),
-                getStat(homeStats, 'BSKBfieldGoalPercent') - getStat(awayStats, 'BSKBfieldGoalPercent'),
-                getStat(homeStats, 'BSKBfieldGoalsAttempted') - getStat(awayStats, 'BSKBfieldGoalsAttempted'),
-                getStat(homeStats, 'BSKBfieldGoalsMade') - getStat(awayStats, 'BSKBfieldGoalsMade'),
-                getStat(homeStats, 'BSKBfieldGoalsPerGame') - getStat(awayStats, 'BSKBfieldGoalsPerGame'),
-                getStat(homeStats, 'BSKBfreeThrowPercent') - getStat(awayStats, 'BSKBfreeThrowPercent'),
-                getStat(homeStats, 'BSKBfreeThrowsAttempted') - getStat(awayStats, 'BSKBfreeThrowsAttempted'),
-                getStat(homeStats, 'BSKBfreeThrowsMade') - getStat(awayStats, 'BSKBfreeThrowsMade'),
-                getStat(homeStats, 'BSKBfreeThrowsMadePerGame') - getStat(awayStats, 'BSKBfreeThrowsMadePerGame'),
-                getStat(homeStats, 'BSKBoffensiveRebounds') - getStat(awayStats, 'BSKBoffensiveRebounds'),
-                getStat(homeStats, 'BSKBoffensiveReboundsPerGame') - getStat(awayStats, 'BSKBoffensiveReboundsPerGame'),
-                getStat(homeStats, 'BSKBoffensiveReboundRate') - getStat(awayStats, 'BSKBoffensiveReboundRate'),
-                getStat(homeStats, 'BSKBoffensiveTurnovers') - getStat(awayStats, 'BSKBoffensiveTurnovers'),
-                getStat(homeStats, 'BSKBturnoversPerGame') - getStat(awayStats, 'BSKBturnoversPerGame'),
-                getStat(homeStats, 'BSKBturnoverRatio') - getStat(awayStats, 'BSKBturnoverRatio'),
-                getStat(homeStats, 'BSKBthreePointPct') - getStat(awayStats, 'BSKBthreePointPct'),
-                getStat(homeStats, 'BSKBthreePointsAttempted') - getStat(awayStats, 'BSKBthreePointsAttempted'),
-                getStat(homeStats, 'BSKBthreePointsMade') - getStat(awayStats, 'BSKBthreePointsMade'),
-                getStat(homeStats, 'BSKBtrueShootingPct') - getStat(awayStats, 'BSKBtrueShootingPct'),
-                getStat(homeStats, 'BSKBpace') - getStat(awayStats, 'BSKBpace'),
-                getStat(homeStats, 'BSKBpointsInPaint') - getStat(awayStats, 'BSKBpointsInPaint'),
-                getStat(homeStats, 'BSKBshootingEfficiency') - getStat(awayStats, 'BSKBshootingEfficiency'),
-                getStat(homeStats, 'BSKBscoringEfficiency') - getStat(awayStats, 'BSKBscoringEfficiency'),
-                getStat(homeStats, 'BSKBblocks') - getStat(awayStats, 'BSKBblocks'),
-                getStat(homeStats, 'BSKBblocksPerGame') - getStat(awayStats, 'BSKBblocksPerGame'),
-                getStat(homeStats, 'BSKBdefensiveRebounds') - getStat(awayStats, 'BSKBdefensiveRebounds'),
-                getStat(homeStats, 'BSKBdefensiveReboundsPerGame') - getStat(awayStats, 'BSKBdefensiveReboundsPerGame'),
-                getStat(homeStats, 'BSKBsteals') - getStat(awayStats, 'BSKBsteals'),
-                getStat(homeStats, 'BSKBstealsPerGame') - getStat(awayStats, 'BSKBstealsPerGame'),
-                getStat(homeStats, 'BSKBreboundRate') - getStat(awayStats, 'BSKBreboundRate'),
-                getStat(homeStats, 'BSKBreboundsPerGame') - getStat(awayStats, 'BSKBreboundsPerGame'),
-                getStat(homeStats, 'BSKBfoulsPerGame') - getStat(awayStats, 'BSKBfoulsPerGame'),
-                getStat(homeStats, 'BSKBteamAssistToTurnoverRatio') - getStat(awayStats, 'BSKBteamAssistToTurnoverRatio'),
+                normalizeStat('seasonWinLoss', getWinLoss(homeStats) - getWinLoss(awayStats)),
+                normalizeStat('homeWinLoss', getHomeAwayWinLoss(homeStats, 'homeWinLoss') - getHomeAwayWinLoss(awayStats, 'awayWinLoss')),
+                normalizeStat('pointDiff', getStat(homeStats, 'pointDiff') - getStat(awayStats, 'pointDiff')),
+                normalizeStat('BSKBtotalPoints', getStat(homeStats, 'BSKBtotalPoints') - getStat(awayStats, 'BSKBtotalPoints')),
+                normalizeStat('BSKBpointsPerGame', getStat(homeStats, 'BSKBpointsPerGame') - getStat(awayStats, 'BSKBpointsPerGame')),
+                normalizeStat('BSKBassists', getStat(homeStats, 'BSKBassists') - getStat(awayStats, 'BSKBassists')),
+                normalizeStat('BSKBassistsPerGame', getStat(homeStats, 'BSKBassistsPerGame') - getStat(awayStats, 'BSKBassistsPerGame')),
+                normalizeStat('BSKBassistRatio', getStat(homeStats, 'BSKBassistRatio') - getStat(awayStats, 'BSKBassistRatio')),
+                normalizeStat('BSKBeffectiveFgPercent', getStat(homeStats, 'BSKBeffectiveFgPercent') - getStat(awayStats, 'BSKBeffectiveFgPercent')),
+                normalizeStat('BSKBfieldGoalPercent', getStat(homeStats, 'BSKBfieldGoalPercent') - getStat(awayStats, 'BSKBfieldGoalPercent')),
+                normalizeStat('BSKBfieldGoalsAttempted', getStat(homeStats, 'BSKBfieldGoalsAttempted') - getStat(awayStats, 'BSKBfieldGoalsAttempted')),
+                normalizeStat('BSKBfieldGoalsMade', getStat(homeStats, 'BSKBfieldGoalsMade') - getStat(awayStats, 'BSKBfieldGoalsMade')),
+                normalizeStat('BSKBfieldGoalsPerGame', getStat(homeStats, 'BSKBfieldGoalsPerGame') - getStat(awayStats, 'BSKBfieldGoalsPerGame')),
+                normalizeStat('BSKBfreeThrowPercent', getStat(homeStats, 'BSKBfreeThrowPercent') - getStat(awayStats, 'BSKBfreeThrowPercent')),
+                normalizeStat('BSKBfreeThrowsAttempted', getStat(homeStats, 'BSKBfreeThrowsAttempted') - getStat(awayStats, 'BSKBfreeThrowsAttempted')),
+                normalizeStat('BSKBfreeThrowsMade', getStat(homeStats, 'BSKBfreeThrowsMade') - getStat(awayStats, 'BSKBfreeThrowsMade')),
+                normalizeStat('BSKBfreeThrowsMadePerGame', getStat(homeStats, 'BSKBfreeThrowsMadePerGame') - getStat(awayStats, 'BSKBfreeThrowsMadePerGame')),
+                normalizeStat('BSKBoffensiveRebounds', getStat(homeStats, 'BSKBoffensiveRebounds') - getStat(awayStats, 'BSKBoffensiveRebounds')),
+                normalizeStat('BSKBoffensiveReboundsPerGame', getStat(homeStats, 'BSKBoffensiveReboundsPerGame') - getStat(awayStats, 'BSKBoffensiveReboundsPerGame')),
+                normalizeStat('BSKBoffensiveReboundRate', getStat(homeStats, 'BSKBoffensiveReboundRate') - getStat(awayStats, 'BSKBoffensiveReboundRate')),
+                normalizeStat('BSKBoffensiveTurnovers', getStat(homeStats, 'BSKBoffensiveTurnovers') - getStat(awayStats, 'BSKBoffensiveTurnovers')),
+                normalizeStat('BSKBturnoversPerGame', getStat(homeStats, 'BSKBturnoversPerGame') - getStat(awayStats, 'BSKBturnoversPerGame')),
+                normalizeStat('BSKBturnoverRatio', getStat(homeStats, 'BSKBturnoverRatio') - getStat(awayStats, 'BSKBturnoverRatio')),
+                normalizeStat('BSKBthreePointPct', getStat(homeStats, 'BSKBthreePointPct') - getStat(awayStats, 'BSKBthreePointPct')),
+                normalizeStat('BSKBthreePointsAttempted', getStat(homeStats, 'BSKBthreePointsAttempted') - getStat(awayStats, 'BSKBthreePointsAttempted')),
+                normalizeStat('BSKBthreePointsMade', getStat(homeStats, 'BSKBthreePointsMade') - getStat(awayStats, 'BSKBthreePointsMade')),
+                normalizeStat('BSKBtrueShootingPct', getStat(homeStats, 'BSKBtrueShootingPct') - getStat(awayStats, 'BSKBtrueShootingPct')),
+                normalizeStat('BSKBpace', getStat(homeStats, 'BSKBpace') - getStat(awayStats, 'BSKBpace')),
+                normalizeStat('BSKBpointsInPaint', getStat(homeStats, 'BSKBpointsInPaint') - getStat(awayStats, 'BSKBpointsInPaint')),
+                normalizeStat('BSKBshootingEfficiency', getStat(homeStats, 'BSKBshootingEfficiency') - getStat(awayStats, 'BSKBshootingEfficiency')),
+                normalizeStat('BSKBscoringEfficiency', getStat(homeStats, 'BSKBscoringEfficiency') - getStat(awayStats, 'BSKBscoringEfficiency')),
+                normalizeStat('BSKBblocks', getStat(homeStats, 'BSKBblocks') - getStat(awayStats, 'BSKBblocks')),
+                normalizeStat('BSKBblocksPerGame', getStat(homeStats, 'BSKBblocksPerGame') - getStat(awayStats, 'BSKBblocksPerGame')),
+                normalizeStat('BSKBdefensiveRebounds', getStat(homeStats, 'BSKBdefensiveRebounds') - getStat(awayStats, 'BSKBdefensiveRebounds')),
+                normalizeStat('BSKBdefensiveReboundsPerGame', getStat(homeStats, 'BSKBdefensiveReboundsPerGame') - getStat(awayStats, 'BSKBdefensiveReboundsPerGame')),
+                normalizeStat('BSKBsteals', getStat(homeStats, 'BSKBsteals') - getStat(awayStats, 'BSKBsteals')),
+                normalizeStat('BSKBstealsPerGame', getStat(homeStats, 'BSKBstealsPerGame') - getStat(awayStats, 'BSKBstealsPerGame')),
+                normalizeStat('BSKBreboundRate', getStat(homeStats, 'BSKBreboundRate') - getStat(awayStats, 'BSKBreboundRate')),
+                normalizeStat('BSKBreboundsPerGame', getStat(homeStats, 'BSKBreboundsPerGame') - getStat(awayStats, 'BSKBreboundsPerGame')),
+                normalizeStat('BSKBfoulsPerGame', getStat(homeStats, 'BSKBfoulsPerGame') - getStat(awayStats, 'BSKBfoulsPerGame')),
+                normalizeStat('BSKBteamAssistToTurnoverRatio', getStat(homeStats, 'BSKBteamAssistToTurnoverRatio') - getStat(awayStats, 'BSKBteamAssistToTurnoverRatio'))
             ];
         case 'basketball_nba':
             return [
-                getWinLoss(homeStats) - getWinLoss(awayStats),
-                getHomeAwayWinLoss(homeStats, 'homeWinLoss') - getHomeAwayWinLoss(awayStats, 'awayWinLoss'),
-                getStat(homeStats, 'pointDiff') - getStat(awayStats, 'pointDiff'),
-                getStat(homeStats, 'BSKBtotalPoints') - getStat(awayStats, 'BSKBtotalPoints'),
-                getStat(homeStats, 'BSKBpointsPerGame') - getStat(awayStats, 'BSKBpointsPerGame'),
-                getStat(homeStats, 'BSKBassists') - getStat(awayStats, 'BSKBassists'),
-                getStat(homeStats, 'BSKBassistsPerGame') - getStat(awayStats, 'BSKBassistsPerGame'),
-                getStat(homeStats, 'BSKBassistRatio') - getStat(awayStats, 'BSKBassistRatio'),
-                getStat(homeStats, 'BSKBeffectiveFgPercent') - getStat(awayStats, 'BSKBeffectiveFgPercent'),
-                getStat(homeStats, 'BSKBfieldGoalPercent') - getStat(awayStats, 'BSKBfieldGoalPercent'),
-                getStat(homeStats, 'BSKBfieldGoalsAttempted') - getStat(awayStats, 'BSKBfieldGoalsAttempted'),
-                getStat(homeStats, 'BSKBfieldGoalsMade') - getStat(awayStats, 'BSKBfieldGoalsMade'),
-                getStat(homeStats, 'BSKBfieldGoalsPerGame') - getStat(awayStats, 'BSKBfieldGoalsPerGame'),
-                getStat(homeStats, 'BSKBfreeThrowPercent') - getStat(awayStats, 'BSKBfreeThrowPercent'),
-                getStat(homeStats, 'BSKBfreeThrowsAttempted') - getStat(awayStats, 'BSKBfreeThrowsAttempted'),
-                getStat(homeStats, 'BSKBfreeThrowsMade') - getStat(awayStats, 'BSKBfreeThrowsMade'),
-                getStat(homeStats, 'BSKBfreeThrowsMadePerGame') - getStat(awayStats, 'BSKBfreeThrowsMadePerGame'),
-                getStat(homeStats, 'BSKBoffensiveRebounds') - getStat(awayStats, 'BSKBoffensiveRebounds'),
-                getStat(homeStats, 'BSKBoffensiveReboundsPerGame') - getStat(awayStats, 'BSKBoffensiveReboundsPerGame'),
-                getStat(homeStats, 'BSKBoffensiveReboundRate') - getStat(awayStats, 'BSKBoffensiveReboundRate'),
-                getStat(homeStats, 'BSKBoffensiveTurnovers') - getStat(awayStats, 'BSKBoffensiveTurnovers'),
-                getStat(homeStats, 'BSKBturnoversPerGame') - getStat(awayStats, 'BSKBturnoversPerGame'),
-                getStat(homeStats, 'BSKBturnoverRatio') - getStat(awayStats, 'BSKBturnoverRatio'),
-                getStat(homeStats, 'BSKBthreePointPct') - getStat(awayStats, 'BSKBthreePointPct'),
-                getStat(homeStats, 'BSKBthreePointsAttempted') - getStat(awayStats, 'BSKBthreePointsAttempted'),
-                getStat(homeStats, 'BSKBthreePointsMade') - getStat(awayStats, 'BSKBthreePointsMade'),
-                getStat(homeStats, 'BSKBtrueShootingPct') - getStat(awayStats, 'BSKBtrueShootingPct'),
-                getStat(homeStats, 'BSKBpace') - getStat(awayStats, 'BSKBpace'),
-                getStat(homeStats, 'BSKBpointsInPaint') - getStat(awayStats, 'BSKBpointsInPaint'),
-                getStat(homeStats, 'BSKBshootingEfficiency') - getStat(awayStats, 'BSKBshootingEfficiency'),
-                getStat(homeStats, 'BSKBscoringEfficiency') - getStat(awayStats, 'BSKBscoringEfficiency'),
-                getStat(homeStats, 'BSKBblocks') - getStat(awayStats, 'BSKBblocks'),
-                getStat(homeStats, 'BSKBblocksPerGame') - getStat(awayStats, 'BSKBblocksPerGame'),
-                getStat(homeStats, 'BSKBdefensiveRebounds') - getStat(awayStats, 'BSKBdefensiveRebounds'),
-                getStat(homeStats, 'BSKBdefensiveReboundsPerGame') - getStat(awayStats, 'BSKBdefensiveReboundsPerGame'),
-                getStat(homeStats, 'BSKBsteals') - getStat(awayStats, 'BSKBsteals'),
-                getStat(homeStats, 'BSKBstealsPerGame') - getStat(awayStats, 'BSKBstealsPerGame'),
-                getStat(homeStats, 'BSKBreboundRate') - getStat(awayStats, 'BSKBreboundRate'),
-                getStat(homeStats, 'BSKBreboundsPerGame') - getStat(awayStats, 'BSKBreboundsPerGame'),
-                getStat(homeStats, 'BSKBfoulsPerGame') - getStat(awayStats, 'BSKBfoulsPerGame'),
-                getStat(homeStats, 'BSKBteamAssistToTurnoverRatio') - getStat(awayStats, 'BSKBteamAssistToTurnoverRatio')
+                normalizeStat('seasonWinLoss', getWinLoss(homeStats) - getWinLoss(awayStats)),
+                normalizeStat('homeWinLoss', getHomeAwayWinLoss(homeStats, 'homeWinLoss') - getHomeAwayWinLoss(awayStats, 'awayWinLoss')),
+                normalizeStat('pointDiff', getStat(homeStats, 'pointDiff') - getStat(awayStats, 'pointDiff')),
+                normalizeStat('BSKBtotalPoints', getStat(homeStats, 'BSKBtotalPoints') - getStat(awayStats, 'BSKBtotalPoints')),
+                normalizeStat('BSKBpointsPerGame', getStat(homeStats, 'BSKBpointsPerGame') - getStat(awayStats, 'BSKBpointsPerGame')),
+                normalizeStat('BSKBassists', getStat(homeStats, 'BSKBassists') - getStat(awayStats, 'BSKBassists')),
+                normalizeStat('BSKBassistsPerGame', getStat(homeStats, 'BSKBassistsPerGame') - getStat(awayStats, 'BSKBassistsPerGame')),
+                normalizeStat('BSKBassistRatio', getStat(homeStats, 'BSKBassistRatio') - getStat(awayStats, 'BSKBassistRatio')),
+                normalizeStat('BSKBeffectiveFgPercent', getStat(homeStats, 'BSKBeffectiveFgPercent') - getStat(awayStats, 'BSKBeffectiveFgPercent')),
+                normalizeStat('BSKBfieldGoalPercent', getStat(homeStats, 'BSKBfieldGoalPercent') - getStat(awayStats, 'BSKBfieldGoalPercent')),
+                normalizeStat('BSKBfieldGoalsAttempted', getStat(homeStats, 'BSKBfieldGoalsAttempted') - getStat(awayStats, 'BSKBfieldGoalsAttempted')),
+                normalizeStat('BSKBfieldGoalsMade', getStat(homeStats, 'BSKBfieldGoalsMade') - getStat(awayStats, 'BSKBfieldGoalsMade')),
+                normalizeStat('BSKBfieldGoalsPerGame', getStat(homeStats, 'BSKBfieldGoalsPerGame') - getStat(awayStats, 'BSKBfieldGoalsPerGame')),
+                normalizeStat('BSKBfreeThrowPercent', getStat(homeStats, 'BSKBfreeThrowPercent') - getStat(awayStats, 'BSKBfreeThrowPercent')),
+                normalizeStat('BSKBfreeThrowsAttempted', getStat(homeStats, 'BSKBfreeThrowsAttempted') - getStat(awayStats, 'BSKBfreeThrowsAttempted')),
+                normalizeStat('BSKBfreeThrowsMade', getStat(homeStats, 'BSKBfreeThrowsMade') - getStat(awayStats, 'BSKBfreeThrowsMade')),
+                normalizeStat('BSKBfreeThrowsMadePerGame', getStat(homeStats, 'BSKBfreeThrowsMadePerGame') - getStat(awayStats, 'BSKBfreeThrowsMadePerGame')),
+                normalizeStat('BSKBoffensiveRebounds', getStat(homeStats, 'BSKBoffensiveRebounds') - getStat(awayStats, 'BSKBoffensiveRebounds')),
+                normalizeStat('BSKBoffensiveReboundsPerGame', getStat(homeStats, 'BSKBoffensiveReboundsPerGame') - getStat(awayStats, 'BSKBoffensiveReboundsPerGame')),
+                normalizeStat('BSKBoffensiveReboundRate', getStat(homeStats, 'BSKBoffensiveReboundRate') - getStat(awayStats, 'BSKBoffensiveReboundRate')),
+                normalizeStat('BSKBoffensiveTurnovers', getStat(homeStats, 'BSKBoffensiveTurnovers') - getStat(awayStats, 'BSKBoffensiveTurnovers')),
+                normalizeStat('BSKBturnoversPerGame', getStat(homeStats, 'BSKBturnoversPerGame') - getStat(awayStats, 'BSKBturnoversPerGame')),
+                normalizeStat('BSKBturnoverRatio', getStat(homeStats, 'BSKBturnoverRatio') - getStat(awayStats, 'BSKBturnoverRatio')),
+                normalizeStat('BSKBthreePointPct', getStat(homeStats, 'BSKBthreePointPct') - getStat(awayStats, 'BSKBthreePointPct')),
+                normalizeStat('BSKBthreePointsAttempted', getStat(homeStats, 'BSKBthreePointsAttempted') - getStat(awayStats, 'BSKBthreePointsAttempted')),
+                normalizeStat('BSKBthreePointsMade', getStat(homeStats, 'BSKBthreePointsMade') - getStat(awayStats, 'BSKBthreePointsMade')),
+                normalizeStat('BSKBtrueShootingPct', getStat(homeStats, 'BSKBtrueShootingPct') - getStat(awayStats, 'BSKBtrueShootingPct')),
+                normalizeStat('BSKBpace', getStat(homeStats, 'BSKBpace') - getStat(awayStats, 'BSKBpace')),
+                normalizeStat('BSKBpointsInPaint', getStat(homeStats, 'BSKBpointsInPaint') - getStat(awayStats, 'BSKBpointsInPaint')),
+                normalizeStat('BSKBshootingEfficiency', getStat(homeStats, 'BSKBshootingEfficiency') - getStat(awayStats, 'BSKBshootingEfficiency')),
+                normalizeStat('BSKBscoringEfficiency', getStat(homeStats, 'BSKBscoringEfficiency') - getStat(awayStats, 'BSKBscoringEfficiency')),
+                normalizeStat('BSKBblocks', getStat(homeStats, 'BSKBblocks') - getStat(awayStats, 'BSKBblocks')),
+                normalizeStat('BSKBblocksPerGame', getStat(homeStats, 'BSKBblocksPerGame') - getStat(awayStats, 'BSKBblocksPerGame')),
+                normalizeStat('BSKBdefensiveRebounds', getStat(homeStats, 'BSKBdefensiveRebounds') - getStat(awayStats, 'BSKBdefensiveRebounds')),
+                normalizeStat('BSKBdefensiveReboundsPerGame', getStat(homeStats, 'BSKBdefensiveReboundsPerGame') - getStat(awayStats, 'BSKBdefensiveReboundsPerGame')),
+                normalizeStat('BSKBsteals', getStat(homeStats, 'BSKBsteals') - getStat(awayStats, 'BSKBsteals')),
+                normalizeStat('BSKBstealsPerGame', getStat(homeStats, 'BSKBstealsPerGame') - getStat(awayStats, 'BSKBstealsPerGame')),
+                normalizeStat('BSKBreboundRate', getStat(homeStats, 'BSKBreboundRate') - getStat(awayStats, 'BSKBreboundRate')),
+                normalizeStat('BSKBreboundsPerGame', getStat(homeStats, 'BSKBreboundsPerGame') - getStat(awayStats, 'BSKBreboundsPerGame')),
+                normalizeStat('BSKBfoulsPerGame', getStat(homeStats, 'BSKBfoulsPerGame') - getStat(awayStats, 'BSKBfoulsPerGame')),
+                normalizeStat('BSKBteamAssistToTurnoverRatio', getStat(homeStats, 'BSKBteamAssistToTurnoverRatio') - getStat(awayStats, 'BSKBteamAssistToTurnoverRatio'))
             ];
         default:
             return [];
@@ -1662,7 +1673,20 @@ const mlModelTraining = async (gameData, xs, ys, sport) => {
     const decayCalc = (daysAgo, lambda) => {
         return 1 / (1 + lambda * daysAgo);
     };
-
+    // Function to calculate decay weight based on number of games processed
+    function decayCalcByGames(gamesProcessed, decayFactor) { //FOR USE TO DECAY BY GAMES PROCESSED
+        // Full strength for the last 25 games
+        const gamesDecayThreshold = 25;
+        if (gamesProcessed <= gamesDecayThreshold) {
+            return 1; // No decay for the most recent 25 games
+        } else {
+            // Apply decay based on the number of games processed
+            const decayFactorAdjusted = decayFactor || 0.99;  // Use a default decay factor if none is provided
+            const decayAmount = Math.pow(decayFactorAdjusted, (gamesProcessed - gamesDecayThreshold));
+            return decayAmount;  // Decay decreases as the games processed increases
+        }
+    }
+    let gamesProcessed = 0; // Track how many games have been processed
     const currentDate = new Date();
     gameData.forEach(game => {
         const homeStats = game.homeTeamStats;
@@ -1670,6 +1694,9 @@ const mlModelTraining = async (gameData, xs, ys, sport) => {
 
         // Extract features based on sport
         let features = extractSportFeatures(homeStats, awayStats, sport.name);
+
+
+
 
         // Calculate days since the game was played
         const gameDate = new Date(game.commence_time); // assuming game.date is in a valid format
@@ -1681,12 +1708,34 @@ const mlModelTraining = async (gameData, xs, ys, sport) => {
         features = features.map(feature => feature * decayWeight);
 
         // Set label to 1 if home team wins, 0 if away team wins
-        const correctPrediction = game.winner = 'home' ? 1 : 0;
+        const correctPrediction = game.winner === 'home' ? 1 : 0;
         checkNaNValues(features, game);  // Check features
 
         xs.push(features);
         ys.push(correctPrediction);
     });
+    // gameData.forEach(game => FOR USE TO DECAY BY GAMES PROCESSED
+    //     const homeStats = game.homeTeamStats;
+    //     const awayStats = game.awayTeamStats;
+
+    //     // Extract features based on sport
+    //     let features = extractSportFeatures(homeStats, awayStats, sport.name);
+
+    //     // Calculate decay based on the number of games processed
+    //     const decayWeight = decayCalcByGames(gamesProcessed, sport.decayFactor);  // get the decay weight based on gamesProcessed
+
+    //     // Apply decay to each feature
+    //     features = features.map(feature => feature * decayWeight);
+
+    //     // Set label to 1 if home team wins, 0 if away team wins
+    //     const correctPrediction = game.winner === 'home' ? 1 : 0;
+    //     checkNaNValues(features, game);  // Check features
+
+    //     xs.push(features);
+    //     ys.push(correctPrediction);
+
+    //     gamesProcessed++;  // Increment the counter for games processed
+    // });
     // Convert arrays to tensors
     const xsTensor = tf.tensor2d(xs);
     const ysTensor = tf.tensor2d(ys, [ys.length, 1]);
@@ -1703,9 +1752,12 @@ const mlModelTraining = async (gameData, xs, ys, sport) => {
             } else {
                 let newModel = tf.sequential();
 
-                newModel.add(tf.layers.dense({ units: 64, inputShape: [xs[0].length], activation: 'relu', kernelInitializer: 'glorotUniform', biasInitializer: 'zeros' }));
-                newModel.add(tf.layers.dense({ units: xs[0].length * 2, activation: 'relu', kernelInitializer: 'glorotUniform', biasInitializer: 'zeros' }));
-                newModel.add(tf.layers.dense({ units: xs[0].length * 2, activation: 'relu', kernelInitializer: 'glorotUniform', biasInitializer: 'zeros' }));
+                newModel.add(tf.layers.dense({ units: xs[0].length, inputShape: [xs[0].length], activation: 'relu', kernelInitializer: 'glorotUniform', biasInitializer: 'zeros' }));
+                newModel.add(tf.layers.dense({ units: 128, activation: 'relu', kernelInitializer: 'glorotUniform', biasInitializer: 'zeros' }));
+                newModel.add(tf.layers.dense({ units: 128, activation: 'relu', kernelInitializer: 'glorotUniform', biasInitializer: 'zeros' }));
+                newModel.add(tf.layers.dense({ units: 128, activation: 'relu', kernelInitializer: 'glorotUniform', biasInitializer: 'zeros' }));
+                newModel.add(tf.layers.dense({ units: 128, activation: 'relu', kernelInitializer: 'glorotUniform', biasInitializer: 'zeros' }));
+                newModel.add(tf.layers.dense({ units: 128, activation: 'relu', kernelInitializer: 'glorotUniform', biasInitializer: 'zeros' }));
                 newModel.add(tf.layers.dense({ units: 1, activation: 'sigmoid', kernelInitializer: 'glorotUniform', biasInitializer: 'zeros' }));
 
                 // Compile the model
@@ -1718,7 +1770,7 @@ const mlModelTraining = async (gameData, xs, ys, sport) => {
     }
     const model = await loadOrCreateModel()
     model.compile({
-        optimizer: tf.train.adam(.01),
+        optimizer: tf.train.adam(.0001),
         loss: 'binaryCrossentropy',
         metrics: ['accuracy']
     });
@@ -1729,9 +1781,15 @@ const mlModelTraining = async (gameData, xs, ys, sport) => {
     // Train the model
     await model.fit(xsTensor, ysTensor, {
         epochs: 100,
-        batchSize: xs.length < 32 ? xs.length : 32,
+        batchSize: 64,
         validationSplit: 0.3,
-        shuffle: false,
+        // callbacks: {
+        //     onEpochEnd: (epoch, logs) => {
+        //         console.log(`Epoch ${epoch}: loss = ${logs.loss}, accuracy = ${logs.acc}`);
+        //         const logits = model.predict(xsTensor);
+        //         logits.print(); // Check for trends in the logits at various epochs
+        //     },
+        // },
         verbose: false
     });
     if (!fs.existsSync(modelDir)) {
@@ -1746,38 +1804,55 @@ const mlModelTraining = async (gameData, xs, ys, sport) => {
 }
 const predictions = async (sportOdds, ff, model) => {
     if (sportOdds.length > 0) {
-        sportOdds.forEach(game => {
+        // Step 1: Extract the features for each game
+        for (const game of sportOdds) {
             if (game.homeTeamStats && game.awayTeamStats) {
                 const homeStats = game.homeTeamStats;
                 const awayStats = game.awayTeamStats;
 
-
-
                 // Extract features based on sport
                 const features = extractSportFeatures(homeStats, awayStats, game.sport_key);
-
-
-                ff.push(features);
+                ff.push(features);  // Add the features for each game
             }
+        }
 
-        });
+        // Step 2: Create a Tensor for the features array
         const ffTensor = tf.tensor2d(ff);
-        // Get predictions as a promise and wait for it to resolve
+
+        const logits = model.predict(ffTensor); // logits without sigmoid
+        logits.print(); // Check the raw values before sigmoid
+
+        // Step 3: Get the predictions
         const predictions = await model.predict(ffTensor);
-        // Convert tensor to an array of predicted probabilities
-        const probabilities = await predictions.array();  // This resolves the tensor to an array
-        sportOdds.forEach(async (game, index) => {
-            if (!game.awayTeamStats && !game.homeTeamStats) {
 
-            } else {
-                const predictedWinPercent = probabilities[index][0]; // Get the probability for the current game
-                // Update the game with the predicted win percentage
-                await Odds.findOneAndUpdate({ id: game.id }, { predictionStrength: predictedWinPercent != NaN ? predictedWinPercent : 0 });
+        // Step 4: Convert predictions tensor to array
+        const probabilities = await predictions.array();  // Resolves to an array
+
+        // Step 5: Loop through each game and update with predicted probabilities
+        for (let index = 0; index < sportOdds.length; index++) {
+            const game = sportOdds[index];
+            if (game.homeTeamStats && game.awayTeamStats) {
+                const predictedWinPercent = probabilities[index][0]; // Probability for the home team win
+
+                // Make sure to handle NaN values safely
+                const predictionStrength = Number.isNaN(predictedWinPercent) ? 0 : predictedWinPercent;
+
+                // Step 6: Determine the predicted winner
+                const predictedWinner = predictedWinPercent >= 0.5 ? 'home' : 'away';
+
+                // Update the game with prediction strength
+                await Odds.findOneAndUpdate(
+                    { id: game.id },
+                    {
+                        predictionStrength: predictionStrength,
+                        predictedWinner: predictedWinner
+                    }
+                );
             }
-
-        });
+        }
     }
 }
+
 //DETERMINE H2H INDEXES FOR EVERY GAME IN ODDS
 // Helper function to adjust indexes for football games
 function adjustnflStats(homeTeam, awayTeam, homeIndex, awayIndex) {
@@ -2541,6 +2616,8 @@ const normalizeTeamName = (teamName, league) => {
             teamName = 'UNLV Lady Rebels'
         } else if (teamName === 'Texas Tech Red Raiders') {
             teamName = 'Texas Tech Lady Raiders'
+        } else if (teamName === `Hawaii Rainbow Warriors`) {
+            teamName === `Hawaii Rainbow Wahine`
         }
     }
 
@@ -2559,7 +2636,7 @@ const normalizeTeamName = (teamName, league) => {
 const dataSeed = async () => {
 
     console.log("DB CONNECTED ------------------------------------------------- STARTING SEED")
-    await retrieveTeamsandStats()
+    // await retrieveTeamsandStats()
     // DETERMINE TEAMS
     console.log(`Finished TEAM SEEDING @ ${moment().format('HH:mm:ss')}`)
     // CLEANED AND FORMATTED
@@ -2581,21 +2658,16 @@ const dataSeed = async () => {
 
         const { model, xsTensor, ysTensor } = await mlModelTraining(gameData, xs, ys, sport)
 
-
-
         // After model is trained and evaluated, integrate the weight extraction
         const evaluation = model.evaluate(xsTensor, ysTensor);
         const loss = evaluation[0].arraySync();
         const accuracy = evaluation[1].arraySync();
 
-        if (accuracy < 1 || loss > 1) {
-            console.log(`${sport.name} Model Loss:`, loss);
-            console.log(`${sport.name} Model Accuracy:`, accuracy);
-        } else {
-            let ff = []
-            let sportOdds = await Odds.find({ sport_key: sport.name })
-            predictions(sportOdds, ff, model)
-        }
+        console.log(`${sport.name} Model Loss:`, loss);
+        console.log(`${sport.name} Model Accuracy:`, accuracy);
+        let ff = []
+        let sportOdds = await Odds.find({ sport_key: sport.name })
+        predictions(sportOdds, ff, model)
 
         // Handle the weights extraction after training
         await handleSportWeights(model, sport);
@@ -2603,14 +2675,7 @@ const dataSeed = async () => {
         // Example of accessing the weights (e.g., after training)
         // Now you can access the weights for each sport like this:
 
-
         indexAdjuster(currentOdds, sport, allPastGames)
-
-
-
-
-
-
     }
     for (sport = 0; sport < sports.length; sport++) {
         const currentDate = new Date();
@@ -3961,6 +4026,8 @@ const pastGameStatsPoC = async () => {
 
 
 }
+
+
 // oddsSeed()
 // dataSeed()
 // pastGameStatsPoC()

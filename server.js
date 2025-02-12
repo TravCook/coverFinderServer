@@ -53,7 +53,7 @@ const cronJobs = [
     timezone
   },
   // {
-  //   cronTime: '* * * * */3 *', //every quarter
+  //   cronTime: '0 0 0 0 */3 *', //every quarter
   //   onTick: dataSeed.espnSeed,
   //   timezone
   // }

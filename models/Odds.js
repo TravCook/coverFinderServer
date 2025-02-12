@@ -88,6 +88,10 @@ const oddsSchema = new Schema({
         type: Number,
         required: false
     },
+    predictedWinner: {
+        type: String,
+        required: false
+    },
     predictionStrength: {
         type: Number,
         required: false
