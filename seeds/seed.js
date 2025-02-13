@@ -927,9 +927,9 @@ const removePastGames = async (currentOdds) => {
                                 winner = homeScore > awayScore ? 'home' : 'away';
 
                                 // Check if the prediction was correct
-                                if (game.homeTeamIndex >= game.awayTeamIndex) {
-                                    predictionCorrect = winner === 'home';
-                                } else if (game.awayTeamIndex > game.homeTeamIndex) {
+                                if (game.predictedWinner === 'home') {
+                                    predictionCorrect = winner === game.predictedWinner;
+                                } else if (game.predictedWinner === 'away') {
                                     predictionCorrect = winner === 'away';
                                 }
 
@@ -948,7 +948,7 @@ const removePastGames = async (currentOdds) => {
                                             homeScore,
                                             awayScore,
                                             winner,
-                                            predictionCorrect: predictionCorrect ? predictionCorrect : false,
+                                            predictionCorrect: winner === game.predictedWinner,
                                             homeTeamStats: cleanStats(getCommonStats(homeTeam)),
                                             awayTeamStats: cleanStats(getCommonStats(awayTeam)),
                                         });
@@ -2534,8 +2534,8 @@ const indexAdjuster = (currentOdds, sport, allPastGames) => {
             // Update the Odds database with the calculated indices
             if (sport.name === game.sport_key) {
                 await Odds.findOneAndUpdate({ 'id': game.id }, {
-                    homeTeamIndex: homeIndex ? homeIndex * 10 : 0,
-                    awayTeamIndex: awayIndex ? awayIndex * 10 : 0,
+                    homeTeamIndex: homeIndex ? homeIndex * 3 : 0,
+                    awayTeamIndex: awayIndex ? awayIndex * 3 : 0,
                     homeTeamStats: homeTeam ? cleanStats(getCommonStats(homeTeam)) : 'no stat data',
                     awayTeamStats: awayTeam ? cleanStats(getCommonStats(awayTeam)) : 'no stat data',
                     homeTeamlogo: homeTeam ? homeTeam.logo : 'no logo data',
