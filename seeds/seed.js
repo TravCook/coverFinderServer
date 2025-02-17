@@ -500,7 +500,7 @@ const retrieveTeamsandStats = async () => {
                     updateTeamRecord(team, teamRecordJson);
 
                     // Fetch team stats
-                    const teamStatResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/${sport.espnSport}/leagues/${sport.league}/seasons/${statYear}/types/2/teams/${team.espnID}/statistics?lang=en&region=us`, { signal: AbortSignal.timeout(10000) });
+                    const teamStatResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/${sport.espnSport}/leagues/${sport.league}/seasons/${statYear}/types/2/teams/${team.espnID}/statistics?lang=en&region=us`, { signal: AbortSignal.timeout(20000) });
                     const teamStatJson = await teamStatResponse.json();
                     if (teamStatJson.splits) {
                         for (const category of teamStatJson.splits.categories) {
@@ -545,7 +545,7 @@ const retrieveTeamsandStats = async () => {
                 }
             };
 
-            const MAX_CONCURRENT_REQUESTS = 25; // You can adjust this number to control concurrency
+            const MAX_CONCURRENT_REQUESTS = 15; // You can adjust this number to control concurrency
             const promises = [];
 
             try {
@@ -1590,7 +1590,7 @@ const sports = [
         multiYear: true,
         statYear: getDynamicStatYear(9, 2, new Date()), // NFL starts in 2024 but extends into 2025, so statYear = 2024
         prevstatYear: getDynamicStatYear(9, 2, new Date()), // NHL also uses the same logic for prevstatYear
-        decayFactor: 0.45
+        decayFactor: 0.6
     },
     {
         name: "americanfootball_ncaaf",
@@ -1601,7 +1601,7 @@ const sports = [
         multiYear: true,
         statYear: getDynamicStatYear(9, 1, new Date()), // NCAA Football starts in 2024 but ends in 2025, so statYear = 2024
         prevstatYear: getDynamicStatYear(9, 1, new Date()), // NHL also uses the same logic for prevstatYear
-        decayFactor: 0.3
+        decayFactor: 0.5
     },
     {
         name: "basketball_nba",
@@ -1612,7 +1612,7 @@ const sports = [
         multiYear: true,
         statYear: getDynamicStatYear(10, 4, new Date()), // NBA starts in 2024 but extends into 2025, so statYear = 2025
         prevstatYear: getDynamicStatYear(10, 4, new Date()), // NHL also uses the same logic for prevstatYear
-        decayFactor: 0.2
+        decayFactor: 0.4
     },
     {
         name: "icehockey_nhl",
@@ -1623,7 +1623,7 @@ const sports = [
         multiYear: true,
         statYear: getDynamicStatYear(10, 4, new Date()), // NHL starts in 2024 but extends into 2025, so statYear = 2025
         prevstatYear: getDynamicStatYear(10, 4, new Date()), // NHL also uses the same logic for prevstatYear
-        decayFactor: 0.075
+        decayFactor: 0.15
     },
     {
         name: "baseball_mlb",
@@ -1634,7 +1634,7 @@ const sports = [
         multiYear: false,
         statYear: getDynamicStatYear(3, 10, new Date()), // MLB starts in 2024 but ends in 2024, so statYear = 2024
         prevstatYear: getDynamicStatYear(3, 10, new Date()), // NHL also uses the same logic for prevstatYear
-        decayFactor: 0.025
+        decayFactor: 0.05
     },
     {
         name: "basketball_ncaab",
@@ -1645,7 +1645,7 @@ const sports = [
         multiYear: true,
         statYear: getDynamicStatYear(11, 4, new Date()), // NCAA Basketball starts in 2024 but ends in 2025, so statYear = 2025
         prevstatYear: getDynamicStatYear(11, 4, new Date()), // NHL also uses the same logic for prevstatYear
-        decayFactor: 0.2
+        decayFactor: 0.4
     },
     {
         name: "basketball_wncaab",
@@ -1656,7 +1656,7 @@ const sports = [
         multiYear: true,
         statYear: getDynamicStatYear(11, 4, new Date()), // Same as men's college basketball
         prevstatYear: getDynamicStatYear(11, 4, new Date()), // NHL also uses the same logic for prevstatYear
-        decayFactor: 0.2
+        decayFactor: 0.4
     },
 ]
 // Example of checking for NaN or infinite values
