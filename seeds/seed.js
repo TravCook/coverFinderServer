@@ -2534,8 +2534,8 @@ const indexAdjuster = (currentOdds, sport, allPastGames) => {
             // Update the Odds database with the calculated indices
             if (sport.name === game.sport_key) {
                 await Odds.findOneAndUpdate({ 'id': game.id }, {
-                    homeTeamIndex: homeIndex ? homeIndex * 3 : 0,
-                    awayTeamIndex: awayIndex ? awayIndex * 3 : 0,
+                    homeTeamIndex: homeIndex ? homeIndex * 10 : 0,
+                    awayTeamIndex: awayIndex ? awayIndex * 10 : 0,
                     homeTeamStats: homeTeam ? cleanStats(getCommonStats(homeTeam)) : 'no stat data',
                     awayTeamStats: awayTeam ? cleanStats(getCommonStats(awayTeam)) : 'no stat data',
                     homeTeamlogo: homeTeam ? homeTeam.logo : 'no logo data',
