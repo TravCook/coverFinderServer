@@ -798,7 +798,7 @@ const pastGamesRePredict = async () => {
 
 }
 
-pastGamesRePredict()
+// pastGamesRePredict()
 // oddsSeed()
 // dataSeed()
 // removeSeed()
