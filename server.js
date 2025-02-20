@@ -9,7 +9,7 @@ const { createServer } = require('node:http');
 const { CronJob } = require('cron');
 const { Odds, PastGameOdds, UsaFootballTeam, BasketballTeam, BaseballTeam, HockeyTeam } = require('./models');
 const { setIo } = require('./socketManager'); // Import the socket manager
-const dataSeed = require('./seeds/seed.js');
+const dataSeed = require('./utils/seeds/seed.js');
 const { emitToClients } = require('./socketManager')
 const moment = require('moment')
 
