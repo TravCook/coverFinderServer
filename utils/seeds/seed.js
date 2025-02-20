@@ -702,7 +702,7 @@ const espnSeed = async () => {
 
 
 
-// oddsSeed()
+oddsSeed()
 // dataSeed()
 // removeSeed()
 // pastGameStatsPoC()
