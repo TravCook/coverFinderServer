@@ -552,15 +552,15 @@ const mlModelTraining = async (gameData, xs, ys, sport) => {
 
                 newModel.add(tf.layers.dense({ units: xs[0].length, inputShape: [xs[0].length], activation: 'relu', kernelInitializer: 'glorotUniform', biasInitializer: 'zeros' }));
                 newModel.add(tf.layers.dense({ units: 128, activation: 'relu', kernelInitializer: 'glorotUniform', biasInitializer: 'zeros' }));
-                newModel.add(tf.layers.dropout({ rate: 0.5 }));  // Dropout after the sixth hidden layer
+                newModel.add(tf.layers.dropout({ rate: 0.5 }));  //Dropout range from .2 up to .7, lower keeps performance intact while still preventing overfitting
                 newModel.add(tf.layers.dense({ units: 128, activation: 'relu', kernelInitializer: 'glorotUniform', biasInitializer: 'zeros' }));
-                newModel.add(tf.layers.dropout({ rate: 0.5 }));  // Dropout after the sixth hidden layer
+                newModel.add(tf.layers.dropout({ rate: 0.5 }));  //Dropout range from .2 up to .7, lower keeps performance intact while still preventing overfitting
                 newModel.add(tf.layers.dense({ units: 128, activation: 'relu', kernelInitializer: 'glorotUniform', biasInitializer: 'zeros' }));
-                newModel.add(tf.layers.dropout({ rate: 0.5 }));  // Dropout after the sixth hidden layer
+                newModel.add(tf.layers.dropout({ rate: 0.5 }));  //Dropout range from .2 up to .7, lower keeps performance intact while still preventing overfitting
                 newModel.add(tf.layers.dense({ units: 128, activation: 'relu', kernelInitializer: 'glorotUniform', biasInitializer: 'zeros' }));
-                newModel.add(tf.layers.dropout({ rate: 0.5 }));  // Dropout after the sixth hidden layer
+                newModel.add(tf.layers.dropout({ rate: 0.5 }));  //Dropout range from .2 up to .7, lower keeps performance intact while still preventing overfitting
                 newModel.add(tf.layers.dense({ units: 128, activation: 'relu', kernelInitializer: 'glorotUniform', biasInitializer: 'zeros' }));
-                newModel.add(tf.layers.dropout({ rate: 0.5 }));  // Dropout after the sixth hidden layer
+                newModel.add(tf.layers.dropout({ rate: 0.5 }));  //Dropout range from .2 up to .7, lower keeps performance intact while still preventing overfitting
                 newModel.add(tf.layers.dense({ units: 1, activation: 'sigmoid', kernelInitializer: 'glorotUniform', biasInitializer: 'zeros' }));
 
                 // Compile the model

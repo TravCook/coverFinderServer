@@ -7,14 +7,14 @@ const tf = require('@tensorflow/tfjs-node');
 const { emitToClients } = require('../../socketManager');
 const pastGameOdds = require('../../models/pastGameOdds');
 const statsMinMax = require('./sampledGlobalStats.json')
-const {retrieveTeamsandStats, getCommonStats, cleanStats} = require('../helperFunctions/dataHelpers/retrieveTeamsandStats')
-const {removePastGames} = require('../helperFunctions/dataHelpers/removeHelper')
-const {adjustnflStats, adjustncaafStats, adjustnbaStats, adjustwncaabStats, adjustncaamStats, adjustnhlStats, adjustmlbStats, indexAdjuster} = require('../helperFunctions/mlModelFuncs/indexHelpers')
-const {pastGameStatsPoC} = require('../helperFunctions/dataHelpers/pastGamesHelper')
-const {getStat, getWinLoss, getHomeAwayWinLoss, normalizeStat, extractSportFeatures, trainSportModel} = require('../helperFunctions/mlModelFuncs/trainingHelpers')
-const {normalizeTeamName} = require('../helperFunctions/dataHelpers/dataSanitizers')
-const {impliedProbCalc} = require('../helperFunctions/dataHelpers/impliedProbHelp')
-const {sports} = require('../constants')
+const { retrieveTeamsandStats, getCommonStats, cleanStats } = require('../helperFunctions/dataHelpers/retrieveTeamsandStats')
+const { removePastGames } = require('../helperFunctions/dataHelpers/removeHelper')
+const { adjustnflStats, adjustncaafStats, adjustnbaStats, adjustwncaabStats, adjustncaamStats, adjustnhlStats, adjustmlbStats, indexAdjuster } = require('../helperFunctions/mlModelFuncs/indexHelpers')
+const { pastGameStatsPoC } = require('../helperFunctions/dataHelpers/pastGamesHelper')
+const { getStat, getWinLoss, getHomeAwayWinLoss, normalizeStat, extractSportFeatures, trainSportModel } = require('../helperFunctions/mlModelFuncs/trainingHelpers')
+const { normalizeTeamName } = require('../helperFunctions/dataHelpers/dataSanitizers')
+const { impliedProbCalc } = require('../helperFunctions/dataHelpers/impliedProbHelp')
+const { sports } = require('../constants')
 
 // Suppress TensorFlow.js logging
 process.env.TF_CPP_MIN_LOG_LEVEL = '3'; // Suppress logs
@@ -83,26 +83,42 @@ const oddsSeed = async () => {
             return axiosWithBackoff(url, retries - 1, delayMs * 2);  // Exponential backoff
         }
     };
-    
+
     const fetchDataWithBackoff = async (sports) => {
-        const requests = sports.map(sport => {
-            if(process.env.PRODUCTION === 'true'){
+
+        // const requests = sports.map(sport => {
+        //     if(process.env.PRODUCTION === 'true'){
+        //         axiosWithBackoff(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_TCDEV}&regions=us&oddsFormat=american&markets=h2h`)
+        //     }else{
+        //         console.log(process.env.PRODUCTION)
+        //         axiosWithBackoff(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_TRAVM}&regions=us&oddsFormat=american&markets=h2h`)
+        //     }
+        // });
+        let requests
+        if (process.env.PRODUCTION === 'true') {
+            requests = sports.map(sport =>
+
                 axiosWithBackoff(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_TCDEV}&regions=us&oddsFormat=american&markets=h2h`)
-            }else{
+    
+            );
+        } else {
+            requests = sports.map(sport =>
+
                 axiosWithBackoff(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_TRAVM}&regions=us&oddsFormat=american&markets=h2h`)
-            }
+    
+            );
         }
 
-        );
+        console.log(requests)
         await axios.all(requests).then(async (data) => {
             try {
-    
+
                 data.map(async (item) => {
                     const dataSize = Buffer.byteLength(JSON.stringify(item.data), 'utf8');
                     console.log(`Data size sent: ${dataSize / 1024} KB ${moment().format('HH:mm:ss')} oddsSeed`);
                     item.data.map(async (event) => {
                         if (moment().isBefore(moment(event.commence_time))) {
-    
+
                             // Normalize the team names in outcomes (used for the 'name' field)
                             const normalizeOutcomes = (outcomes, league) => {
                                 return outcomes.map(outcome => ({
@@ -110,17 +126,17 @@ const oddsSeed = async () => {
                                     name: normalizeTeamName(outcome.name, league) // Normalize the outcome team name
                                 }));
                             };
-    
+
                             let oddExist = await Odds.findOne({ id: event.id });
-    
+
                             // Normalize team names for home and away teams
                             const normalizedHomeTeam = normalizeTeamName(event.home_team, event.sport_key);
                             const normalizedAwayTeam = normalizeTeamName(event.away_team, event.sport_key);
-    
+
                             let homeTeam
                             let awayTeam
                             let scheduleSport
-    
+
                             // Fetch team data based on sport
                             if (event.sport_key === 'americanfootball_nfl') {
                                 homeTeam = await UsaFootballTeam.findOne({
@@ -181,14 +197,14 @@ const oddsSeed = async () => {
                                 awayTeam = await HockeyTeam.findOne({ 'espnDisplayName': event.away_team });
                                 scheduleSport = 'hockey'
                             }
-    
+
                             const getCommonStats = (team) => ({
                                 //------------------------------SHARED STATS-----------------------------------------------------------
                                 seasonWinLoss: team.seasonWinLoss,
                                 homeWinLoss: team.homeWinLoss,
                                 awayWinLoss: team.awayWinLoss,
                                 pointDiff: team.pointDiff,
-    
+
                                 USFBcompletionPercent: team.stats.USFBcompletionPercent,
                                 USFBcompletions: team.stats.USFBcompletions,
                                 USFBcompletionsPerGame: team.stats.USFBcompletionsPerGame,
@@ -266,7 +282,7 @@ const oddsSeed = async () => {
                                 USFBtakeaways: team.stats.USFBtakeaways,
                                 USFBturnoverDiff: team.stats.USFBturnoverDiff,
                                 USFBtotalFirstDowns: team.stats.USFBtotalFirstDowns,
-    
+
                                 //------------------------------AMERICAN FOOTBALL STATS-----------------------------------------------------------
                                 BSBbattingStrikeouts: team.stats.BSBbattingStrikeouts,
                                 BSBrunsBattedIn: team.stats.BSBrunsBattedIn,
@@ -318,7 +334,7 @@ const oddsSeed = async () => {
                                 BSBcatcherStolenBasesAllowed: team.stats.BSBcatcherStolenBasesAllowed,
                                 BSBfieldingPercentage: team.stats.BSBfieldingPercentage,
                                 BSBrangeFactor: team.stats.BSBrangeFactor,
-    
+
                                 //------------------------------BASKETBALL STATS-----------------------------------------------------------
                                 BSKBtotalPoints: team.stats.BSKBtotalPoints,
                                 BSKBpointsPerGame: team.stats.BSKBpointsPerGame,
@@ -358,7 +374,7 @@ const oddsSeed = async () => {
                                 BSKBreboundsPerGame: team.stats.BSKBreboundsPerGame,
                                 BSKBfoulsPerGame: team.stats.BSKBfoulsPerGame,
                                 BSKBteamAssistToTurnoverRatio: team.stats.BSKBteamAssistToTurnoverRatio,
-    
+
                                 //------------------------------HOCKEY STATS-----------------------------------------------------------
                                 HKYgoals: team.stats.HKYgoals,
                                 HKYgoalsPerGame: team.stats.HKYgoalsPerGame,
@@ -421,16 +437,16 @@ const oddsSeed = async () => {
                             });
                             const cleanStats = (stats) => {
                                 const cleanedStats = {};
-    
+
                                 for (const key in stats) {
                                     if (stats[key] !== null && stats[key] !== undefined) {
                                         cleanedStats[key] = stats[key];
                                     }
                                 }
-    
+
                                 return cleanedStats;
                             };
-    
+
                             // Normalize the outcomes (nested inside bookmakers -> markets -> outcomes)
                             const updatedBookmakers = event.bookmakers.map(bookmaker => ({
                                 ...bookmaker,
@@ -439,8 +455,8 @@ const oddsSeed = async () => {
                                     outcomes: normalizeOutcomes(market.outcomes, event.sport_key) // Normalize outcomes names
                                 }))
                             }));
-    
-    
+
+
                             if (!event.sport_key) {
                                 console.error(`sportType is undefined for event: ${event.id}`);
                             } else {
@@ -483,14 +499,14 @@ const oddsSeed = async () => {
                         }
                     })
                 })
-    
+
                 console.info('Odds Seeding complete! 🌱');
             } catch (err) {
                 if (err) throw (err)
             }
         });
     };
-    
+
     await fetchDataWithBackoff(sports.filter(sport => {
         const { startMonth, endMonth, multiYear } = sport;
         if (multiYear) {
@@ -504,7 +520,7 @@ const oddsSeed = async () => {
         }
         return false;
     }));
-    
+
     dataSeed()
     console.info(`Full Seeding complete! 🌱 @ ${moment().format('HH:mm:ss')}`);
 
@@ -688,7 +704,7 @@ const espnSeed = async () => {
 
 
 
-// oddsSeed()
+oddsSeed()
 // dataSeed()
 // removeSeed()
 // pastGameStatsPoC()
