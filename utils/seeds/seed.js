@@ -108,8 +108,6 @@ const oddsSeed = async () => {
     
             );
         }
-
-        console.log(requests)
         await axios.all(requests).then(async (data) => {
             try {
 
@@ -704,7 +702,7 @@ const espnSeed = async () => {
 
 
 
-oddsSeed()
+// oddsSeed()
 // dataSeed()
 // removeSeed()
 // pastGameStatsPoC()
