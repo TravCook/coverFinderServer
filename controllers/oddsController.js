@@ -95,7 +95,7 @@ module.exports = {
                         return out.name === (gameData.predictedWinner === 'home' ? gameData.home_team : gameData.away_team);
                     });
                     // ((gameData.winPercent + (gameData.predictionStrength * 100)) / 2)
-                    if (prob?.impliedProb * 100 < 60) {
+                    if (prob?.impliedProb * 100 < gameData.winPercent) {
                         valueGames.push(gameData)
                     }
                 })

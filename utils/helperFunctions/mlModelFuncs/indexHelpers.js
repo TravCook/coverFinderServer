@@ -718,12 +718,12 @@ const indexAdjuster = (currentOdds, sport, allPastGames) => {
             // Get the final weighted average winrate including index difference winrate
             const average = winrate.weightedAverage
 
-            // 
+            // homeTeamIndex: process.env.PRODUCTION ?  ((homeIndex / 9) * 45) : homeIndex * 1,
             // Update the Odds database with the calculated indices
             if (sport.name === game.sport_key) {
                 await Odds.findOneAndUpdate({ 'id': game.id }, {
-                    homeTeamIndex: homeIndex ? homeIndex * (process.env.PRODUCTION ? 1 : 5) : 0,
-                    awayTeamIndex: awayIndex ? awayIndex * (process.env.PRODUCTION ? 1 : 5) : 0,
+                    homeTeamIndex: process.env.PRODUCTION === 'true' ?  ((homeIndex / 9) * 45) : homeIndex * 1,
+                    awayTeamIndex: process.env.PRODUCTION === 'true' ?  ((awayIndex / 9) * 45) : awayIndex * 1,
                     homeTeamStats: homeTeam ? cleanStats(getCommonStats(homeTeam)) : 'no stat data',
                     awayTeamStats: awayTeam ? cleanStats(getCommonStats(awayTeam)) : 'no stat data',
                     homeTeamlogo: homeTeam ? homeTeam.logo : 'no logo data',
