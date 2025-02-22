@@ -31,7 +31,9 @@ async function getCachedOdds(cacheKey, query, filterDays = 30) {
                 sport_key: 1,
                 sport_title: 1,
                 sport: 1,
-                bookmakers: 1
+                bookmakers: 1,
+                homeTeamStats: 1,
+                awayTeamStats: 1
             });
             // Apply filter
             odds = filterOddsByCommenceTime(odds, filterDays);
@@ -58,44 +60,52 @@ module.exports = {
 
                 // Get current date and calculate the date 7 days ago
                 const currentDate = new Date();
-                const sevenDaysAgo = new Date(currentDate);
-                sevenDaysAgo.setDate(currentDate.getDate() - 7); // Subtract 7 days
+                const twoWeeksAgo = new Date(currentDate);
+                twoWeeksAgo.setDate(currentDate.getDate() - 12); // Subtract 7 days
 
                 const yesterday = new Date(currentDate)
-                yesterday.setDate(currentDate.getDate() - 1) 
+                yesterday.setDate(currentDate.getDate() - 1)
 
                 // Format the dates to match your query format
-                const startOfWeek = sevenDaysAgo.toISOString(); // This gives you the date 7 days ago in ISO format
+                const startOfWeek = twoWeeksAgo.toISOString(); // This gives you the date 7 days ago in ISO format
 
-                let odds = await Odds.find({}, {
-                    commence_time: 1,
-                    home_team: 1,
-                    homeTeamIndex: 1,
-                    homeScore: 1,
-                    away_team: 1,
-                    awayTeamIndex: 1,
-                    awayScore: 1,
-                    winPercent: 1,
-                    homeTeamlogo: 1,
-                    awayTeamlogo: 1,
-                    winner: 1,
-                    predictionCorrect: 1,
-                    id: 1,
-                    sport_key: 1,
-                    sport_title: 1,
-                    sport: 1,
+                const oneMonthAgo = new Date(currentDate)
+                oneMonthAgo.setDate(currentDate.getDate() - 31)
+                let valueGames = []
+
+                let odds = await Odds.find({}).sort({ commence_time: 1, winPercent: 1 })
+                let pastGames = await PastGameOdds.find({
+                    commence_time: { $gte: twoWeeksAgo.toISOString(), $lt: currentDate.toISOString() }
+                }, {
                     bookmakers: 1,
-                    predictionStrength: 1,
-                    predictedWinner: 1
-                }).sort({ commence_time: 1, winPercent: 1 })
+                    home_team: 1,
+                    away_team: 1,
+                    winner: 1,
+                    predictedWinner: 1,
+                    predictionCorrect: 1,
+                    winPercent: 1,
+                    predictionStrength: 1
+                }).sort({ commence_time: -1, winPercent: 1 });
+                pastGames.map((gameData, idx) => {
+                    const bookmaker = gameData?.bookmakers?.find(b => b.key === req.body.sportsbook);
 
+                    const marketData = bookmaker?.markets?.find(m => m.key === 'h2h');
+
+                    const prob = marketData?.outcomes?.find(out => {
+                        return out.name === (gameData.predictedWinner === 'home' ? gameData.home_team : gameData.away_team);
+                    });
+                    // ((gameData.winPercent + (gameData.predictionStrength * 100)) / 2)
+                    if (prob?.impliedProb * 100 < 60) {
+                        valueGames.push(gameData)
+                    }
+                })
                 const [footballTeams, basketballTeams, baseballTeams, hockeyTeams] = await Promise.all([UsaFootballTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1, lastFiveGames: 1 }),
                 BasketballTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1, lastFiveGames: 1 }),
                 BaseballTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1, lastFiveGames: 1 }),
                 HockeyTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1, lastFiveGames: 1 })])
-
                 data = {
                     odds: odds,
+                    valueGames: valueGames,
                     teams: {
                         football: footballTeams,
                         basketball: basketballTeams,
@@ -166,13 +176,13 @@ module.exports = {
                 commence_time: { $gte: oneMonthAgo.toISOString(), $lt: currentDate.toISOString() }
             }).sort({ commence_time: -1, winPercent: 1 });
             const [footballTeams, basketballTeams, baseballTeams, hockeyTeams] = await Promise.all([UsaFootballTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1, lastFiveGames: 1 }),
-                BasketballTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1, lastFiveGames: 1 }),
-                BaseballTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1, lastFiveGames: 1 }),
-                HockeyTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1, lastFiveGames: 1 })])
+            BasketballTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1, lastFiveGames: 1 }),
+            BaseballTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1, lastFiveGames: 1 }),
+            HockeyTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1, lastFiveGames: 1 })])
 
-                data = {
-                    pastGames: pastGames
-                }
+            data = {
+                pastGames: pastGames
+            }
 
             const dataSize = Buffer.byteLength(JSON.stringify(data), 'utf8');
             console.log(`Data size sent: ${dataSize / 1024} KB pastGames`);

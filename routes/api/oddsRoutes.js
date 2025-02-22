@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const { getAllOdds, getQuickOdds, getOddsBySport, getPastGames, getUpcomingMatchups} = require('../../controllers/oddsController')
 
-router.route('/').get(getAllOdds)
+router.route('/').post(getAllOdds)
 router.route('/sport').post(getOddsBySport)
 router.route('/pastGameOdds').post(getPastGames)
 router.route('/upcomingGames').get(getUpcomingMatchups)

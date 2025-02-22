@@ -48,11 +48,11 @@ const sports = [
         name: "baseball_mlb",
         espnSport: 'baseball',
         league: 'mlb',
-        startMonth: 3,
+        startMonth: 2,
         endMonth: 10,
         multiYear: false,
-        statYear: getDynamicStatYear(3, 10, new Date()), // MLB starts in 2024 but ends in 2024, so statYear = 2024
-        prevstatYear: getDynamicStatYear(3, 10, new Date()), // NHL also uses the same logic for prevstatYear
+        statYear: getDynamicStatYear(2, 10, new Date()), // MLB starts in 2024 but ends in 2024, so statYear = 2024
+        prevstatYear: getDynamicStatYear(2, 10, new Date()), // NHL also uses the same logic for prevstatYear
         decayFactor: 0.05
     },
     {

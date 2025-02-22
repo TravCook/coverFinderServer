@@ -688,7 +688,7 @@ const trainSportModel = async (sport, gameData) => {
 
     // Example of accessing the weights (e.g., after training)
     // Now you can access the weights for each sport like this:
-    let allPastGames = await PastGameOdds.find({ sport_key: sport.name })
+    let allPastGames = await PastGameOdds.find()
     indexAdjuster(currentOdds, sport, allPastGames)
 }
 
