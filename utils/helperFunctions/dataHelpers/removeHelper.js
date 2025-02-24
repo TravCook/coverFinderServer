@@ -79,7 +79,7 @@ const removePastGames = async (currentOdds) => {
                     for (let event of homeTeamSchedJSON.events) {
 
                         // Check if the event matches the current game's date
-                        if ((event.name === `${awayTeam.espnDisplayName} at ${homeTeam.espnDisplayName}` || event.shortName === `${awayTeam.abbreviation} @ ${homeTeam.abbreviation}`) && moment(event.date).isSame(moment(game.commence_time), 'day')) {
+                        if ((event.name === `${awayTeam.espnDisplayName} at ${homeTeam.espnDisplayName}` || event.shortName === `${awayTeam.abbreviation} @ ${homeTeam.abbreviation}` || event.shortName === `${homeTeam.abbreviation} VS ${awayTeam.abbreviation}`) && moment(event.date).isSame(moment(game.commence_time), 'day')) {
                             if (event.competitions[0].status.type.completed === true) {
                                 let homeScore, awayScore, predictionCorrect, winner
                                 // Determine the scores and winner

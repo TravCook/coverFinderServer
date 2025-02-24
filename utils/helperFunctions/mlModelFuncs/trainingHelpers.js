@@ -468,13 +468,10 @@ const extractSportFeatures = (homeStats, awayStats, league) => {
 }
 
 const mlModelTraining = async (gameData, xs, ys, sport) => {
-    const decayCalc = (daysAgo, lambda) => {
-        return 1 / (1 + lambda * daysAgo);
-    };
     // Function to calculate decay weight based on number of games processed
     function decayCalcByGames(gamesProcessed, decayFactor) { //FOR USE TO DECAY BY GAMES PROCESSED
         // Full strength for the last 25 games
-        const gamesDecayThreshold = 25;
+        const gamesDecayThreshold = sport.gameDecayThreshold;
         if (gamesProcessed <= gamesDecayThreshold) {
             return 1; // No decay for the most recent 25 games
         } else {
@@ -485,7 +482,7 @@ const mlModelTraining = async (gameData, xs, ys, sport) => {
         }
     }
     let gamesProcessed = 0; // Track how many games have been processed
-    const currentDate = new Date();
+    // FOR USE TO DECAY BY GAMES PROCESSED
     gameData.forEach(game => {
         const homeStats = game.homeTeamStats;
         const awayStats = game.awayTeamStats;
@@ -493,16 +490,10 @@ const mlModelTraining = async (gameData, xs, ys, sport) => {
         // Extract features based on sport
         let features = extractSportFeatures(homeStats, awayStats, sport.name);
 
+        // Calculate decay based on the number of games processed
+        const decayWeight = decayCalcByGames(gamesProcessed, sport.decayFactor);  // get the decay weight based on gamesProcessed
 
-
-
-        // Calculate days since the game was played
-        const gameDate = new Date(game.commence_time); // assuming game.date is in a valid format
-        const daysAgo = Math.floor((currentDate - gameDate) / (1000 * 60 * 60 * 24)); // in days
-        // // Apply the decay to the stat differences (assuming the features include stat differences)
-        const decayWeight = decayCalc(daysAgo, sport.decayFactor);  // get the decay weight based on daysAgo
-
-        // // Apply decay to each feature if relevant
+        // Apply decay to each feature
         features = features.map(feature => feature * decayWeight);
 
         // Set label to 1 if home team wins, 0 if away team wins
@@ -511,29 +502,9 @@ const mlModelTraining = async (gameData, xs, ys, sport) => {
 
         xs.push(features);
         ys.push(correctPrediction);
+
+        gamesProcessed++;  // Increment the counter for games processed
     });
-    // gameData.forEach(game => FOR USE TO DECAY BY GAMES PROCESSED
-    //     const homeStats = game.homeTeamStats;
-    //     const awayStats = game.awayTeamStats;
-
-    //     // Extract features based on sport
-    //     let features = extractSportFeatures(homeStats, awayStats, sport.name);
-
-    //     // Calculate decay based on the number of games processed
-    //     const decayWeight = decayCalcByGames(gamesProcessed, sport.decayFactor);  // get the decay weight based on gamesProcessed
-
-    //     // Apply decay to each feature
-    //     features = features.map(feature => feature * decayWeight);
-
-    //     // Set label to 1 if home team wins, 0 if away team wins
-    //     const correctPrediction = game.winner === 'home' ? 1 : 0;
-    //     checkNaNValues(features, game);  // Check features
-
-    //     xs.push(features);
-    //     ys.push(correctPrediction);
-
-    //     gamesProcessed++;  // Increment the counter for games processed
-    // });
     // Convert arrays to tensors
     const xsTensor = tf.tensor2d(xs);
     const ysTensor = tf.tensor2d(ys, [ys.length, 1]);
@@ -657,7 +628,7 @@ const predictions = async (sportOdds, ff, model) => {
     }
 }
 const trainSportModel = async (sport, gameData) => {
-    currentOdds = await Odds.find({ sport_key: sport.name }) //USE THIS TO POPULATE UPCOMING GAME ODDS
+    currentOdds = await Odds.find({ sport_key: sport.name }).sort({ homeTeamIndex: -1 }) //USE THIS TO POPULATE UPCOMING GAME ODDS
     if (gameData.length === 0) {
         // Handle the case where there is no data for this sport
         console.log(`No data available for ${sport.league}. Skipping model training.`);
@@ -686,8 +657,6 @@ const trainSportModel = async (sport, gameData) => {
     // Handle the weights extraction after training
     await handleSportWeights(model, sport);
 
-    // Example of accessing the weights (e.g., after training)
-    // Now you can access the weights for each sport like this:
     let allPastGames = await PastGameOdds.find()
     indexAdjuster(currentOdds, sport, allPastGames)
 }
