@@ -68,6 +68,8 @@ const normalizeTeamName = (teamName, league) => {
             teamName = 'Texas Tech Lady Raiders'
         } else if (teamName === `Hawaii Rainbow Warriors`) {
             teamName === `Hawaii Rainbow Wahine`
+        } else if (teamName === 'Morgan State Bears'){
+            teamName = 'Morgan State Lady Bears'
         }
     }
 
