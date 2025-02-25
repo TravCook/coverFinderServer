@@ -467,6 +467,25 @@ const extractSportFeatures = (homeStats, awayStats, league) => {
     }
 }
 
+// Function to calculate dynamic class weights
+const calculateClassWeights = (ys) => {
+
+    const homeWins = ys.filter(y => y === 1).length;   // Count the home wins (ys = 1)
+    const homeLosses = ys.filter(y => y === 0).length; // Count the home losses (ys = 0)
+
+
+    const totalExamples = homeWins + homeLosses;
+    const classWeightWin = totalExamples / (2 * homeWins);   // Weight for home wins
+    const classWeightLoss = totalExamples / (2 * homeLosses); // Weight for home losses
+
+    return {
+        0: classWeightLoss, // Weight for home losses
+        1: classWeightWin   // Weight for home wins
+    };
+};
+
+
+
 const mlModelTraining = async (gameData, xs, ys, sport) => {
     // Function to calculate decay weight based on number of games processed
     function decayCalcByGames(gamesProcessed, decayFactor) { //FOR USE TO DECAY BY GAMES PROCESSED
@@ -505,8 +524,25 @@ const mlModelTraining = async (gameData, xs, ys, sport) => {
 
         gamesProcessed++;  // Increment the counter for games processed
     });
+
+    // xs.map((value, idx) => {
+    //     if(idx > xs.length - 5){
+    //         console.log(value)
+    //     }
+    // }) //USE TO MONITOR PROPER DECAY RATES
+
+
     // Convert arrays to tensors
     const xsTensor = tf.tensor2d(xs);
+
+    // xsTensor.array().then((array)=> {
+    //     array.map((value, idx) => {
+    //         if(idx > array.length - 5){
+    //             console.log(value)
+    //         }
+    //     })
+    // }) //USE TO MONITOR PROPER DECAY RATES
+
     const ysTensor = tf.tensor2d(ys, [ys.length, 1]);
     // Define the path to the model
     const modelPath = `./model_checkpoint/${sport.name}_model/model.json`;
@@ -520,19 +556,22 @@ const mlModelTraining = async (gameData, xs, ys, sport) => {
                 return await tf.loadLayersModel(`file://./model_checkpoint/${sport.name}_model/model.json`);
             } else {
                 let newModel = tf.sequential();
+                // Using the correct L2 regularization
+                const l2Regularizer = tf.regularizers.l2({ l2: 0.0001 });  // Adjust the value to suit your needs
 
-                newModel.add(tf.layers.dense({ units: xs[0].length, inputShape: [xs[0].length], activation: 'relu', kernelInitializer: 'glorotUniform', biasInitializer: 'zeros' }));
-                newModel.add(tf.layers.dense({ units: 128, activation: 'relu', kernelInitializer: 'glorotUniform', biasInitializer: 'zeros' }));
+
+                newModel.add(tf.layers.dense({ units: xs[0].length, inputShape: [xs[0].length], activation: 'relu', kernelInitializer: 'glorotUniform', kernelRegularizer: l2Regularizer, biasInitializer: 'zeros' }));
+                newModel.add(tf.layers.dense({ units: 128, activation: 'relu', kernelInitializer: 'glorotUniform', kernelRegularizer: l2Regularizer,biasInitializer: 'zeros' }));
                 newModel.add(tf.layers.dropout({ rate: 0.5 }));  //Dropout range from .2 up to .7, lower keeps performance intact while still preventing overfitting
-                newModel.add(tf.layers.dense({ units: 128, activation: 'relu', kernelInitializer: 'glorotUniform', biasInitializer: 'zeros' }));
+                newModel.add(tf.layers.dense({ units: 128, activation: 'relu', kernelInitializer: 'glorotUniform', kernelRegularizer: l2Regularizer,biasInitializer: 'zeros' }));
                 newModel.add(tf.layers.dropout({ rate: 0.5 }));  //Dropout range from .2 up to .7, lower keeps performance intact while still preventing overfitting
-                newModel.add(tf.layers.dense({ units: 128, activation: 'relu', kernelInitializer: 'glorotUniform', biasInitializer: 'zeros' }));
+                newModel.add(tf.layers.dense({ units: 128, activation: 'relu', kernelInitializer: 'glorotUniform', kernelRegularizer: l2Regularizer,biasInitializer: 'zeros' }));
                 newModel.add(tf.layers.dropout({ rate: 0.5 }));  //Dropout range from .2 up to .7, lower keeps performance intact while still preventing overfitting
-                newModel.add(tf.layers.dense({ units: 128, activation: 'relu', kernelInitializer: 'glorotUniform', biasInitializer: 'zeros' }));
+                newModel.add(tf.layers.dense({ units: 128, activation: 'relu', kernelInitializer: 'glorotUniform', kernelRegularizer: l2Regularizer,biasInitializer: 'zeros' }));
                 newModel.add(tf.layers.dropout({ rate: 0.5 }));  //Dropout range from .2 up to .7, lower keeps performance intact while still preventing overfitting
-                newModel.add(tf.layers.dense({ units: 128, activation: 'relu', kernelInitializer: 'glorotUniform', biasInitializer: 'zeros' }));
+                newModel.add(tf.layers.dense({ units: 128, activation: 'relu', kernelInitializer: 'glorotUniform', kernelRegularizer: l2Regularizer,biasInitializer: 'zeros' }));
                 newModel.add(tf.layers.dropout({ rate: 0.5 }));  //Dropout range from .2 up to .7, lower keeps performance intact while still preventing overfitting
-                newModel.add(tf.layers.dense({ units: 1, activation: 'sigmoid', kernelInitializer: 'glorotUniform', biasInitializer: 'zeros' }));
+                newModel.add(tf.layers.dense({ units: 1, activation: 'sigmoid', kernelInitializer: 'glorotUniform', kernelRegularizer: l2Regularizer,biasInitializer: 'zeros' }));
 
                 // Compile the model
 
@@ -543,28 +582,75 @@ const mlModelTraining = async (gameData, xs, ys, sport) => {
         }
     }
     const model = await loadOrCreateModel()
+    function exponentialDecay(epoch) {
+        const initialLearningRate = 0.001;  // Set your initial learning rate
+        const decayRate = 0.96;             // Rate at which the learning rate decays
+        const decaySteps = 10;              // The number of epochs after which decay occurs
+
+        return initialLearningRate * Math.pow(decayRate, Math.floor(epoch / decaySteps));
+    }
+
+    const learningRateScheduler = {
+        onEpochBegin: (epoch, logs) => {
+            if (epoch === 0) {
+                console.log(`Starting Learning Rate: .0001`);
+            }
+            // Get the new learning rate using the exponential decay function
+            const newLearningRate = exponentialDecay(epoch);
+
+            // Update the optimizer with the new learning rate
+            model.optimizer.learningRate = newLearningRate;
+            if (epoch === 99) {
+                console.log(`Final Learning Rate: ${newLearningRate}`);
+            }
+        }
+    };
+
+
+    // Flatten ysTensor to convert it to a 1D array
+    const ysArray = await ysTensor.reshape([-1]).array();
+    // Dynamically calculate class weights
+    const classWeights = calculateClassWeights(ysArray);
+
+    console.log("Class Weights: ", classWeights)
+
     model.compile({
         optimizer: tf.train.adam(.0001),
         loss: 'binaryCrossentropy',
         metrics: ['accuracy']
     });
-    // const earlyStopping = tf.callbacks.earlyStopping({
-    //     monitor: 'val_loss',
-    //     patience: 25,
-    // });
-    // Train the model
+
+
+
+    let bestValLoss = Infinity;  // Initialize to a high value
+    let bestWeights = null;      // Store the best weights
+    let epochsWithoutImprovement = 0;
+    const patience = 5;  // Set the number of epochs for early stopping (patience)
+    const earlyStopping = async (epoch, logs) => {
+        const valLoss = logs.val_loss;
+        if (valLoss < bestValLoss) {
+            bestValLoss = valLoss;
+            bestWeights = model.getWeights();  // Save the current weights as the best weights
+            epochsWithoutImprovement = 0;  // Reset counter if improvement is found
+        } else {
+            epochsWithoutImprovement++;
+        }
+
+        if (epochsWithoutImprovement >= patience) {
+            if (bestWeights) {
+                model.setWeights(bestWeights);  // Restore the best weights
+            }
+            return true;  // Stop training
+        }
+        return false;  // Continue training
+    };
     await model.fit(xsTensor, ysTensor, {
         epochs: 100,
         batchSize: 64,
         validationSplit: 0.3,
-        // callbacks: {
-        //     onEpochEnd: (epoch, logs) => {
-        //         console.log(`Epoch ${epoch}: loss = ${logs.loss}, accuracy = ${logs.acc}`);
-        //         const logits = model.predict(xsTensor);
-        //         logits.print(); // Check for trends in the logits at various epochs
-        //     },
-        // },
-        verbose: false
+        classWeight: classWeights,
+        verbose: false,
+        callbacks: [{ onEpochEnd: earlyStopping }, learningRateScheduler]
     });
     if (!fs.existsSync(modelDir)) {
         console.log('Creating model directory...');
@@ -573,8 +659,10 @@ const mlModelTraining = async (gameData, xs, ys, sport) => {
     }
     // Save model specific to the sport
     await model.save(`file://./model_checkpoint/${sport.name}_model`);
+
     return { model, xsTensor, ysTensor }
     // Log loss and accuracy
+
 }
 const predictions = async (sportOdds, ff, model) => {
     if (sportOdds.length > 0) {
@@ -593,15 +681,15 @@ const predictions = async (sportOdds, ff, model) => {
         // Step 2: Create a Tensor for the features array
         const ffTensor = tf.tensor2d(ff);
 
-        const logits = model.predict(ffTensor); // logits without sigmoid
-        logits.print(); // Check the raw values before sigmoid
+        // const logits = model.predict(ffTensor); // logits without sigmoid
+        // logits.print(); // Check the raw values before sigmoid
 
         // Step 3: Get the predictions
         const predictions = await model.predict(ffTensor);
 
         // Step 4: Convert predictions tensor to array
         const probabilities = await predictions.array();  // Resolves to an array
-        console.log(probabilities)
+        // console.log(probabilities)
 
         // Step 5: Loop through each game and update with predicted probabilities
         for (let index = 0; index < sportOdds.length; index++) {
@@ -619,7 +707,7 @@ const predictions = async (sportOdds, ff, model) => {
                 await Odds.findOneAndUpdate(
                     { id: game.id },
                     {
-                        predictionStrength: predictionStrength > .50 ? predictionStrength: 1 - predictionStrength,
+                        predictionStrength: predictionStrength > .50 ? predictionStrength : 1 - predictionStrength,
                         predictedWinner: predictedWinner
                     }
                 );
@@ -627,6 +715,38 @@ const predictions = async (sportOdds, ff, model) => {
         }
     }
 }
+const evaluateMetrics = (ysTensor, yPredTensor) => {
+    // Round the predictions to either 0 or 1 (binary classification)
+    const yPredBool = yPredTensor.greaterEqual(.49);
+
+
+    // Convert ysTensor from float32 to boolean tensor
+    const ysTensorBool = ysTensor.greaterEqual(.5);  // Convert values >= 0.5 to true (1), and < 0.5 to false (0)
+
+    // Convert tensors to arrays for easier manipulation
+    const truePositives = tf.sum(tf.logicalAnd(ysTensorBool, yPredBool)).arraySync();
+    const falsePositives = tf.sum(tf.logicalAnd(tf.logicalNot(ysTensorBool), yPredBool)).arraySync();
+    const falseNegatives = tf.sum(tf.logicalAnd(ysTensorBool, tf.logicalNot(yPredBool))).arraySync();
+    const trueNegatives = tf.sum(tf.logicalAnd(tf.logicalNot(ysTensorBool), tf.logicalNot(yPredBool))).arraySync();
+
+    console.log('truePositives',truePositives)
+    console.log('falsePositives',falsePositives)
+    console.log('falseNegatives',falseNegatives)
+    console.log('trueNegatives',trueNegatives)
+
+    // Calculate precision, recall, and F1-score
+    const precision = (truePositives + falsePositives > 0) ? truePositives / (truePositives + falsePositives) : 0;
+    const recall = (truePositives + falseNegatives > 0) ? truePositives / (truePositives + falseNegatives) : 0;
+    const f1Score = (precision + recall > 0) ? 2 * (precision * recall) / (precision + recall) : 0;
+
+
+    return {
+        precision: precision,
+        recall: recall,
+        f1Score: f1Score
+    };
+}
+
 const trainSportModel = async (sport, gameData) => {
     currentOdds = await Odds.find({ sport_key: sport.name }).sort({ homeTeamIndex: -1 }) //USE THIS TO POPULATE UPCOMING GAME ODDS
     if (gameData.length === 0) {
@@ -640,16 +760,28 @@ const trainSportModel = async (sport, gameData) => {
     const xs = []; // Features
     const ys = []; // Labels
     // Helper function to safely extract stats with fallback
-
+    console.log(`------------${sport.name} Model Metrics----------`);
     const { model, xsTensor, ysTensor } = await mlModelTraining(gameData, xs, ys, sport)
 
     // After model is trained and evaluated, integrate the weight extraction
     const evaluation = model.evaluate(xsTensor, ysTensor);
     const loss = evaluation[0].arraySync();
     const accuracy = evaluation[1].arraySync();
+    // Now, calculate precision, recall, and F1-score
 
+    const metrics = evaluateMetrics(ysTensor, model.predict(xsTensor));
+    // Log the metrics
     console.log(`${sport.name} Model Loss:`, loss);
     console.log(`${sport.name} Model Accuracy:`, accuracy);
+    console.log(`${sport.name} Model Precision:`, metrics.precision);
+    console.log(`${sport.name} Model Recall:`, metrics.recall);
+    console.log(`${sport.name} Model F1-Score:`, metrics.f1Score);
+    // Balanced Metrics (Precision ≈ Recall): This indicates a well-performing model, especially if your dataset is balanced.
+    // High Precision, Low Recall: The model is good at predicting the positive class but misses a lot of actual positives. You need to improve recall.
+    // High Recall, Low Precision: The model is identifying most of the positive instances, but is making many false positive predictions. Precision needs improvement.
+    // Low Precision, Low Recall: Likely an underfitting model, not learning effectively. Consider improving your features or the model itself.
+    // Perfect Precision and Recall (1.0): A sign of overfitting. This needs further testing to ensure it generalizes well to unseen data.
+
     let ff = []
     let sportOdds = await Odds.find({ sport_key: sport.name })
     predictions(sportOdds, ff, model)

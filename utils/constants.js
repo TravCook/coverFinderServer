@@ -9,7 +9,7 @@ const sports = [
         multiYear: true,
         statYear: getDynamicStatYear(9, 2, new Date()), // NFL starts in 2024 but extends into 2025, so statYear = 2024
         prevstatYear: getDynamicStatYear(9, 2, new Date()), // NHL also uses the same logic for prevstatYear
-        decayFactor: .5,
+        decayFactor: 1,
         gameDecayThreshold: 160,
     },
     {
@@ -21,7 +21,7 @@ const sports = [
         multiYear: true,
         statYear: getDynamicStatYear(9, 1, new Date()), // NCAA Football starts in 2024 but ends in 2025, so statYear = 2024
         prevstatYear: getDynamicStatYear(9, 1, new Date()), // NHL also uses the same logic for prevstatYear
-        decayFactor: .5,
+        decayFactor: 1,
         gameDecayThreshold: 360,
     },
     {
@@ -33,7 +33,7 @@ const sports = [
         multiYear: true,
         statYear: getDynamicStatYear(10, 4, new Date()), // NBA starts in 2024 but extends into 2025, so statYear = 2025
         prevstatYear: getDynamicStatYear(10, 4, new Date()), // NHL also uses the same logic for prevstatYear
-        decayFactor: .5,
+        decayFactor: 1,
         gameDecayThreshold: 160,
     },
     {
@@ -45,7 +45,7 @@ const sports = [
         multiYear: true,
         statYear: getDynamicStatYear(10, 4, new Date()), // NHL starts in 2024 but extends into 2025, so statYear = 2025
         prevstatYear: getDynamicStatYear(10, 4, new Date()), // NHL also uses the same logic for prevstatYear
-        decayFactor: .5,
+        decayFactor: 1,
         gameDecayThreshold: 160,
     },
     {
@@ -57,7 +57,7 @@ const sports = [
         multiYear: false,
         statYear: getDynamicStatYear(2, 10, new Date()), // MLB starts in 2024 but ends in 2024, so statYear = 2024
         prevstatYear: getDynamicStatYear(2, 10, new Date()), // NHL also uses the same logic for prevstatYear
-        decayFactor: .5,
+        decayFactor: 1,
         gameDecayThreshold: 150,
     },
     {
@@ -69,7 +69,7 @@ const sports = [
         multiYear: true,
         statYear: getDynamicStatYear(11, 4, new Date()), // NCAA Basketball starts in 2024 but ends in 2025, so statYear = 2025
         prevstatYear: getDynamicStatYear(11, 4, new Date()), // NHL also uses the same logic for prevstatYear
-        decayFactor: .5,
+        decayFactor: 1,
         gameDecayThreshold: 350,
     },
     {
@@ -81,7 +81,7 @@ const sports = [
         multiYear: true,
         statYear: getDynamicStatYear(11, 4, new Date()), // Same as men's college basketball
         prevstatYear: getDynamicStatYear(11, 4, new Date()), // NHL also uses the same logic for prevstatYear
-        decayFactor: .5,
+        decayFactor: 1,
         gameDecayThreshold: 350,
     },
 ]
