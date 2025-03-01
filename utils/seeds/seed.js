@@ -883,5 +883,6 @@ const pastGamesRePredict = async () => {
 // dataSeed()
 // removeSeed()
 // pastGameStatsPoC()
+mlModelTrainSeed()
 
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed }

@@ -485,7 +485,11 @@ const calculateClassWeights = (ys) => {
     };
 };
 
-const loadOrCreateModel = async () => {
+const loadOrCreateModel = async (xs) => {
+        // Define the path to the model
+        const modelPath = `./model_checkpoint/${sport.name}_model/model.json`;
+        // Define the path to the model directory
+        const modelDir = `./model_checkpoint/${sport.name}_model`;
     try {
         if (fs.existsSync(modelPath)) {
             return await tf.loadLayersModel(`file://./model_checkpoint/${sport.name}_model/model.json`);
@@ -572,7 +576,7 @@ const mlModelTraining = async (gameData, xs, ys, sport) => {
 
     // Define the model
 
-    const model = await loadOrCreateModel()
+    const model = await loadOrCreateModel(xs)
     function exponentialDecay(epoch) {
         const initialLearningRate = learningRate;  // Set your initial learning rate
         const decayRate = sport.learningDecayFactor;             // Rate at which the learning rate decays
