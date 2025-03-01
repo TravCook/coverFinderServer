@@ -11,16 +11,37 @@ const { retrieveTeamsandStats, getCommonStats, cleanStats } = require('../helper
 const { removePastGames } = require('../helperFunctions/dataHelpers/removeHelper')
 const { adjustnflStats, adjustncaafStats, adjustnbaStats, adjustwncaabStats, adjustncaamStats, adjustnhlStats, adjustmlbStats, indexAdjuster } = require('../helperFunctions/mlModelFuncs/indexHelpers')
 const { pastGameStatsPoC } = require('../helperFunctions/dataHelpers/pastGamesHelper')
-const { getStat, getWinLoss, getHomeAwayWinLoss, normalizeStat, extractSportFeatures, trainSportModel, predictions } = require('../helperFunctions/mlModelFuncs/trainingHelpers')
+const { extractSportFeatures, trainSportModel, trainSportModelKFold, loadOrCreateModel, handleSportWeights } = require('../helperFunctions/mlModelFuncs/trainingHelpers')
 const { normalizeTeamName } = require('../helperFunctions/dataHelpers/dataSanitizers')
 const { impliedProbCalc } = require('../helperFunctions/dataHelpers/impliedProbHelp')
-const { sports } = require('../constants')
+const { sports, weightDecayl2 } = require('../constants')
 
 // Suppress TensorFlow.js logging
 process.env.TF_CPP_MIN_LOG_LEVEL = '3'; // Suppress logs
 
 // Define the utility functions above your existing code
+const mlModelTrainSeed = async () => {
+    for (sport = 0; sport < sports.length; sport++) {
+        const currentDate = new Date();
+        const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11, so we add 1 to make it 1-12
+        // Assuming the sport object is already defined
+        if (sports[sport].multiYear) {
+            // Multi-year sports (e.g., NFL, NBA, NHL, etc.)
+            if ((currentMonth >= sports[sport].startMonth && currentMonth <= 12) || (currentMonth >= 1 && currentMonth <= sports[sport].endMonth)) {
+                const pastGames = await PastGameOdds.find({ sport_key: sports[sport].name }).sort({ commence_time: -1 })
+                await trainSportModelKFold(sports[sport], pastGames)
+            }
+        } else {
+            // Single-year sports (e.g., MLB)
+            if (currentMonth >= sports[sport].startMonth && currentMonth <= sports[sport].endMonth) {
+                const pastGames = await PastGameOdds.find({ sport_key: sports[sport].name }).sort({ commence_time: -1 })
+                await trainSportModelKFold(sports[sport], pastGames)
+            }
+        }
 
+        console.log(`${sports[sport].name} ML DONE @ ${moment().format('HH:mm:ss')}`)
+    }
+}
 
 const dataSeed = async () => {
 
@@ -30,35 +51,92 @@ const dataSeed = async () => {
     console.log(`Finished TEAM SEEDING @ ${moment().format('HH:mm:ss')}`)
     // CLEANED AND FORMATTED
     let currentOdds
-    for (sport = 0; sport < sports.length; sport++) {
-        const currentDate = new Date();
-        const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11, so we add 1 to make it 1-12
-        // Assuming the sport object is already defined
-        if (sports[sport].multiYear) {
-            // Multi-year sports (e.g., NFL, NBA, NHL, etc.)
-            if ((currentMonth >= sports[sport].startMonth && currentMonth <= 12) || (currentMonth >= 1 && currentMonth <= sports[sport].endMonth)) {
-                const pastGames = await PastGameOdds.find({ sport_key: sports[sport].name })
-                await trainSportModel(sports[sport], pastGames)
-            }
-        } else {
-            // Single-year sports (e.g., MLB)
-            if (currentMonth >= sports[sport].startMonth && currentMonth <= sports[sport].endMonth) {
-                const pastGames = await PastGameOdds.find({ sport_key: sports[sport].name })
-                await trainSportModel(sports[sport], pastGames)
+    const currentDate = new Date();
+    const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11, so we add 1 to make it 1-12
+
+    for (let sport = 0; sport < sports.length; sport++) {
+        const modelPath = `./model_checkpoint/${sports[sport].name}_model/model.json`;
+        // Define the path to the model directory
+        const modelDir = `./model_checkpoint/${sports[sport].name}_model`;
+        const loadOrCreateModel = async () => {
+            try {
+                if (fs.existsSync(modelPath)) {
+                    return await tf.loadLayersModel(`file://./model_checkpoint/${sports[sport].name}_model/model.json`);
+                }
+            } catch (err) {
+                console.log(err)
             }
         }
 
-        console.log(`${sports[sport].name} ML DONE @ ${moment().format('HH:mm:ss')}`)
-    }
-    // americanfootball_nfl:    11 sec
-    // americanfootball_ncaaf:  4 min
-    // basketball_nba:          2 min
-    // icehockey_nhl:           3 min
-    // baseball_mlb:            5 min
-    // basketball_ncaab:        12 min
-    // basketball_wncaab:        9 min
+        const model = await loadOrCreateModel()
 
-    console.log(`FINISHED TRAINING MODEL @ ${moment().format('HH:mm:ss')}`)
+
+        currentOdds = await Odds.find({
+            sport_key: sports[sport].name
+        })
+
+        let ff = []
+        if (currentOdds.length > 0) {
+            // Step 1: Extract the features for each game
+            for (const game of currentOdds) {
+                if (game.homeTeamStats && game.awayTeamStats) {
+                    const homeStats = game.homeTeamStats;
+                    const awayStats = game.awayTeamStats;
+
+                    // Extract features based on sport
+                    const features = extractSportFeatures(homeStats, awayStats, game.sport_key);
+                    ff.push(features);  // Add the features for each game
+                }
+            }
+            // Step 2: Create a Tensor for the features array
+            const ffTensor = tf.tensor2d(ff);
+
+            // Step 3: Get the predictions
+            const predictions = await model.predict(ffTensor);
+
+
+            // Step 4: Convert predictions tensor to array
+            const probabilities = await predictions.array();  // Resolves to an array
+
+
+
+
+
+            for (let index = 0; index < currentOdds.length; index++) {
+                const game = currentOdds[index];
+                if (game.homeTeamStats && game.awayTeamStats) {
+                    const predictedWinPercent = probabilities[index][0]; // Probability for the home team win
+
+                    // Make sure to handle NaN values safely
+                    const predictionStrength = Number.isNaN(predictedWinPercent) ? 0 : predictedWinPercent;
+
+                    // Step 6: Determine the predicted winner
+                    const predictedWinner = predictedWinPercent >= 0.5 ? 'home' : 'away';
+
+                    // Update the game with prediction strength
+                    await Odds.findOneAndUpdate(
+                        { id: game.id },
+                        {
+                            predictionStrength: predictionStrength > .50 ? predictionStrength : 1 - predictionStrength,
+                            predictedWinner: predictedWinner,
+                            predictionCorrect: game.winner === predictedWinner ? true : false
+                        }
+                    );
+                }
+            }
+            // Step 5: Loop through each game and update with predicted probabilities
+
+        }
+
+        // Handle the weights extraction after training
+        await handleSportWeights(model, sports[sport]);
+
+        let allPastGames = await PastGameOdds.find()
+        indexAdjuster(currentOdds, sports[sport], allPastGames)
+    }
+
+
+
     currentOdds = await Odds.find()
     impliedProbCalc(currentOdds)
 
@@ -702,24 +780,24 @@ const espnSeed = async () => {
 
 const pastGamesRePredict = async () => {
     sports.forEach(async (sport) => {
-        if(sport.name != 'americanfootball_ncaaf'){
+        if (sport.name != 'americanfootball_ncaaf') {
             let pastGames = await PastGameOdds.find({
                 sport_key: sport.name,
                 commence_time: { $gte: '2025-01-14T00:40:00Z' }
             });
-    
+
             // Define the path to the model
             const modelPath = `./model_checkpoint/${sport.name}_model/model.json`;
             // Define the path to the model directory
             const modelDir = `./model_checkpoint/${sport.name}_model`;
-    
+
             // Define the model
             const loadOrCreateModel = async () => {
                 try {
-                    if(sport.name != 'baseball_mlb'){
+                    if (sport.name != 'baseball_mlb') {
                         return await tf.loadLayersModel(`file://./model_checkpoint/${sport.name}_model/model.json`);
                     }
-    
+
                 } catch (err) {
                     console.log(err)
                 }
@@ -736,7 +814,7 @@ const pastGamesRePredict = async () => {
             //     epochs: 100,
             //     batchSize: 64,
             //     validationSplit: 0.3,
-    
+
             //     verbose: false
             // });
             //TODO LOAD ML CHECKPOINT FOR SPORT
@@ -748,49 +826,49 @@ const pastGamesRePredict = async () => {
                     if (game.homeTeamStats && game.awayTeamStats) {
                         const homeStats = game.homeTeamStats;
                         const awayStats = game.awayTeamStats;
-        
+
                         // Extract features based on sport
                         const features = extractSportFeatures(homeStats, awayStats, game.sport_key);
                         ff.push(features);  // Add the features for each game
                     }
                 }
-        
+
                 // Step 2: Create a Tensor for the features array
                 const ffTensor = tf.tensor2d(ff);
-        
+
                 const logits = model.predict(ffTensor); // logits without sigmoid
-        
+
                 // Step 3: Get the predictions
                 const predictions = await model.predict(ffTensor);
-        
+
                 // Step 4: Convert predictions tensor to array
                 const probabilities = await predictions.array();  // Resolves to an array
                 console.log(probabilities)
-        
+
                 // Step 5: Loop through each game and update with predicted probabilities
                 for (let index = 0; index < pastGames.length; index++) {
                     const game = pastGames[index];
                     if (game.homeTeamStats && game.awayTeamStats) {
                         const predictedWinPercent = probabilities[index][0]; // Probability for the home team win
-        
+
                         // Make sure to handle NaN values safely
                         const predictionStrength = Number.isNaN(predictedWinPercent) ? 0 : predictedWinPercent;
-        
+
                         // Step 6: Determine the predicted winner
                         const predictedWinner = predictedWinPercent >= 0.5 ? 'home' : 'away';
-        
+
                         // Update the game with prediction strength
                         await PastGameOdds.findOneAndUpdate(
                             { id: game.id },
                             {
-                                predictionStrength: predictionStrength > .50 ? predictionStrength: 1 - predictionStrength,
+                                predictionStrength: predictionStrength > .50 ? predictionStrength : 1 - predictionStrength,
                                 predictedWinner: predictedWinner,
                                 predictionCorrect: game.winner === predictedWinner ? true : false
                             }
                         );
                     }
                 }
-            }    
+            }
         }
 
     })
@@ -804,4 +882,4 @@ const pastGamesRePredict = async () => {
 // removeSeed()
 // pastGameStatsPoC()
 
-module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed }
+module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed }
