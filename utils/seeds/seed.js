@@ -69,8 +69,8 @@ const dataSeed = async () => {
         }
 
         const model = await loadOrCreateModel()
-
-
+        if(model){
+            
         currentOdds = await Odds.find({
             sport_key: sports[sport].name
         })
@@ -133,6 +133,8 @@ const dataSeed = async () => {
 
         let allPastGames = await PastGameOdds.find()
         indexAdjuster(currentOdds, sports[sport], allPastGames)
+        }
+
     }
 
 
