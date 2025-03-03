@@ -75,14 +75,14 @@ const dataSeed = async () => {
         const model = await loadOrCreateModel()
         if (model) {
 
-            currentOdds = await Odds.find({
+            let sportGames = await Odds.find({
                 sport_key: sports[sport].name
             })
 
             let ff = []
-            if (currentOdds.length > 0) {
+            if (sportGames.length > 0) {
                 // Step 1: Extract the features for each game
-                for (const game of currentOdds) {
+                for (const game of sportGames) {
                     if (game.homeTeamStats && game.awayTeamStats) {
                         const homeStats = game.homeTeamStats;
                         const awayStats = game.awayTeamStats;
@@ -106,8 +106,8 @@ const dataSeed = async () => {
 
 
 
-                for (let index = 0; index < currentOdds.length; index++) {
-                    const game = currentOdds[index];
+                for (let index = 0; index < sportGames.length; index++) {
+                    const game = sportGames[index];
                     if (game.homeTeamStats && game.awayTeamStats) {
                         const predictedWinPercent = probabilities[index][0]; // Probability for the home team win
 
@@ -136,7 +136,7 @@ const dataSeed = async () => {
             await handleSportWeights(model, sports[sport]);
 
             let allPastGames = await PastGameOdds.find()
-            indexAdjuster(currentOdds, sports[sport], allPastGames)
+            indexAdjuster(sportGames, sports[sport], allPastGames)
         }
         console.log(`${sports[sport].name} ML DONE @ ${moment().format('HH:mm:ss')}`)
 
