@@ -1,0 +1,11 @@
+{
+    "bestAccuracy": 0.9215189873417721,
+    "epochs": 200,
+    "batchSize": 32,
+    "KFolds": 3,
+    "hiddenLayerNum": 9,
+    "learningRate": 0.00001,
+    "l2Reg": 0.00001,
+    "dropoutReg": 0.4,
+    "kernalInitializer": "glorotNormal"
+}

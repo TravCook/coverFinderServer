@@ -1,0 +1,11 @@
+{
+    "bestAccuracy": 0.8796724813100748,
+    "epochs": 200,
+    "batchSize": 16,
+    "KFolds": 7,
+    "hiddenLayerNum": 10,
+    "learningRate": 0.01,
+    "l2Reg": 0.0001,
+    "dropoutReg": 0.3,
+    "kernalInitializer": "heNormal"
+}
