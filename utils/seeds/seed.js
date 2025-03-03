@@ -1148,12 +1148,12 @@ const hyperparameterGridSearch = async () => {
 
 
 
-hyperparameterGridSearch()
+// hyperparameterGridSearch()
 // pastGamesRePredict()
 // oddsSeed()
 // dataSeed()
 // removeSeed()
 // pastGameStatsPoC()
-// mlModelTrainSeed()
+mlModelTrainSeed()
 
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed }
