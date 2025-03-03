@@ -983,7 +983,7 @@ const hyperparameterGridSearch = async () => {
             layerNeurons: 16,
             kernalInitializer: 'glorotNormal'
         };
-        for (let iterations = 0; iterations < 1000; iterations++) {
+        for (let iterations = 0; iterations < 100; iterations++) {
             let currentParams = {}
 
             for (const param in paramSpace) {
