@@ -667,7 +667,7 @@ const predictions = async (sportOdds, ff, model) => {
         // logits.print(); // Check the raw values before sigmoid
 
         // Step 3: Get the predictions
-        const predictions = await model.predict(ffTensor);
+        const predictions = await model.predict(ffTensor, {training: false});
 
         // Step 4: Convert predictions tensor to array
         const probabilities = await predictions.array();  // Resolves to an array
@@ -783,7 +783,7 @@ const trainSportModelKFold = async (sport, gameData) => {
         const loss = evaluation[0].arraySync();
         const accuracy = evaluation[1].arraySync();
 
-        const metrics = evaluateMetrics(testYsTensor, model.predict(testXsTensor));
+        const metrics = evaluateMetrics(testYsTensor, model.predict(testXsTensor, {training: false}));
 
         // // Log metrics for each fold
         // console.log(`Fold ${foldIndex + 1}:`);
@@ -864,7 +864,7 @@ const trainSportModel = async (sport, gameData) => {
     const accuracy = evaluation[1].arraySync();
     // Now, calculate precision, recall, and F1-score
 
-    const metrics = evaluateMetrics(ysTensor, model.predict(xsTensor));
+    const metrics = evaluateMetrics(ysTensor, model.predict(xsTensor, {training: false}));
     // Log the metrics
     console.log(`${sport.name} Model Loss:`, loss);
     console.log(`${sport.name} Model Accuracy:`, accuracy);

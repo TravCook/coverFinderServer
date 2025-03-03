@@ -96,7 +96,7 @@ const dataSeed = async () => {
                 const ffTensor = tf.tensor2d(ff);
 
                 // Step 3: Get the predictions
-                const predictions = await model.predict(ffTensor);
+                const predictions = await model.predict(ffTensor, {training: false});
 
 
                 // Step 4: Convert predictions tensor to array
@@ -843,10 +843,10 @@ const pastGamesRePredict = async () => {
                 // Step 2: Create a Tensor for the features array
                 const ffTensor = tf.tensor2d(ff);
 
-                const logits = model.predict(ffTensor); // logits without sigmoid
+                const logits = model.predict(ffTensor, {training: false}); // logits without sigmoid
 
                 // Step 3: Get the predictions
-                const predictions = await model.predict(ffTensor);
+                const predictions = await model.predict(ffTensor, {training: false});
 
                 // Step 4: Convert predictions tensor to array
                 const probabilities = await predictions.array();  // Resolves to an array
@@ -1080,7 +1080,7 @@ const hyperparameterGridSearch = async () => {
             const accuracy = evaluation[1].arraySync();
             // Now, calculate precision, recall, and F1-score
 
-            const metrics = evaluateMetrics(ysTensor, model.predict(xsTensor));
+            const metrics = evaluateMetrics(ysTensor, model.predict(xsTensor, {training: false}));
             // Log the metrics
             console.log(`${sport.name} Model Loss:`, loss);
             console.log(`${sport.name} Model Accuracy:`, accuracy);

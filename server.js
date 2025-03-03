@@ -7,11 +7,11 @@ const db = require('./config/connection');
 const { Server } = require('socket.io');
 const { createServer } = require('node:http');
 const { CronJob } = require('cron');
-const { Odds, PastGameOdds, UsaFootballTeam, BasketballTeam, BaseballTeam, HockeyTeam } = require('./models');
 const { setIo } = require('./socketManager'); // Import the socket manager
 const dataSeed = require('./utils/seeds/seed.js');
-const { emitToClients } = require('./socketManager')
-const moment = require('moment')
+
+// Set the random seed
+Math.seedrandom(122021)
 
 // Initialize the app and create a port
 const app = express();
