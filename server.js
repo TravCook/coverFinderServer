@@ -48,12 +48,12 @@ const cronJobs = [
   //   timezone,
   // },
   {
-    cronTime: '0 0 0 * * *', //once a day at midnight
+    cronTime: '0 0 */24 * * *', //once a day at midnight
     onTick: dataSeed.mlModelTrainSeed,
     timezone
   },
   {
-    cronTime: '0 */5 * * * *', //every 5 minutes 1.2 mb
+    cronTime: '0 */1 * * * *', //every 5 minutes 1.2 mb
     onTick: dataSeed.removeSeed,
     timezone
   },

@@ -1,4 +1,11 @@
 const {getDynamicStatYear} = require('./helperFunctions/dataHelpers/dataSanitizers')
+const nflHyperParams = require('../hyperParameterTesting/americanfootball_nflbestSettings.json')
+const ncaafHyperParams = require('../hyperParameterTesting/americanfootball_ncaafbestSettings.json')
+const nbaHyperParams = require('../hyperParameterTesting/basketball_nbabestSettings.json')
+const nhlHyperParams = require('../hyperParameterTesting/icehockey_nhlbestSettings.json')
+const ncaabHyperParams = require('../hyperParameterTesting/basketball_ncaabbestSettings.json')
+const wncaabHyperParams = require('../hyperParameterTesting/basketball_wncaabbestSettings.json')
+const mlbHyperParams = require('../hyperParameterTesting/baseball_mlbbestSettings.json')
 const sports = [
     {
         name: "americanfootball_nfl",
@@ -11,7 +18,15 @@ const sports = [
         prevstatYear: getDynamicStatYear(9, 2, new Date()), // NHL also uses the same logic for prevstatYear
         decayFactor: 1,
         gameDecayThreshold: 160,
-        learningDecayFactor: .96
+        learningDecayFactor: .96,
+        epochs: nflHyperParams.epochs,
+        batchSize: nflHyperParams.batchSize,
+        KFolds: nflHyperParams.KFolds,
+        hiddenLayerNum: nflHyperParams.hiddenLayerNum,
+        learningRate: nflHyperParams.learningRate,
+        l2Reg: nflHyperParams.l2Reg,
+        dropoutReg: nflHyperParams.dropoutReg,
+        kernalInitializer: nflHyperParams.kernalInitializer
     },
     {
         name: "americanfootball_ncaaf",
@@ -24,7 +39,15 @@ const sports = [
         prevstatYear: getDynamicStatYear(9, 1, new Date()), // NHL also uses the same logic for prevstatYear
         decayFactor: 1,
         gameDecayThreshold: 360,
-        learningDecayFactor: .96
+        learningDecayFactor: .96,
+        epochs: ncaafHyperParams.epochs,
+        batchSize: ncaafHyperParams.batchSize,
+        KFolds: ncaafHyperParams.KFolds,
+        hiddenLayerNum: ncaafHyperParams.hiddenLayerNum,
+        learningRate: ncaafHyperParams.learningRate,
+        l2Reg: ncaafHyperParams.l2Reg,
+        dropoutReg: ncaafHyperParams.dropoutReg,
+        kernalInitializer: ncaafHyperParams.kernalInitializer
     },
     {
         name: "basketball_nba",
@@ -37,7 +60,15 @@ const sports = [
         prevstatYear: getDynamicStatYear(10, 4, new Date()), // NHL also uses the same logic for prevstatYear
         decayFactor: 1,
         gameDecayThreshold: 160,
-        learningDecayFactor: .96
+        learningDecayFactor: .96,
+        epochs: nbaHyperParams.epochs,
+        batchSize: nbaHyperParams.batchSize,
+        KFolds: nbaHyperParams.KFolds,
+        hiddenLayerNum: nbaHyperParams.hiddenLayerNum,
+        learningRate: nbaHyperParams.learningRate,
+        l2Reg: nbaHyperParams.l2Reg,
+        dropoutReg: nbaHyperParams.dropoutReg,
+        kernalInitializer: nbaHyperParams.kernalInitializer
     },
     {
         name: "icehockey_nhl",
@@ -50,7 +81,15 @@ const sports = [
         prevstatYear: getDynamicStatYear(10, 4, new Date()), // NHL also uses the same logic for prevstatYear
         decayFactor: 1,
         gameDecayThreshold: 160,
-        learningDecayFactor: .96
+        learningDecayFactor: .96,
+        epochs: nhlHyperParams.epochs,
+        batchSize: nhlHyperParams.batchSize,
+        KFolds: nhlHyperParams.KFolds,
+        hiddenLayerNum: nhlHyperParams.hiddenLayerNum,
+        learningRate: nhlHyperParams.learningRate,
+        l2Reg: nhlHyperParams.l2Reg,
+        dropoutReg: nhlHyperParams.dropoutReg,
+        kernalInitializer: nhlHyperParams.kernalInitializer
     },
     {
         name: "baseball_mlb",
@@ -63,7 +102,15 @@ const sports = [
         prevstatYear: getDynamicStatYear(2, 10, new Date()), // NHL also uses the same logic for prevstatYear
         decayFactor: 1,
         gameDecayThreshold: 150,
-        learningDecayFactor: .96
+        learningDecayFactor: .96,
+        epochs: mlbHyperParams.epochs,
+        batchSize: mlbHyperParams.batchSize,
+        KFolds: mlbHyperParams.KFolds,
+        hiddenLayerNum: mlbHyperParams.hiddenLayerNum,
+        learningRate: mlbHyperParams.learningRate,
+        l2Reg: mlbHyperParams.l2Reg,
+        dropoutReg: mlbHyperParams.dropoutReg,
+        kernalInitializer: mlbHyperParams.kernalInitializer
     },
     {
         name: "basketball_ncaab",
@@ -76,7 +123,15 @@ const sports = [
         prevstatYear: getDynamicStatYear(11, 4, new Date()), // NHL also uses the same logic for prevstatYear
         decayFactor: 1,
         gameDecayThreshold: 350,
-        learningDecayFactor: .96
+        learningDecayFactor: .96,
+        epochs: ncaabHyperParams.epochs,
+        batchSize: ncaabHyperParams.batchSize,
+        KFolds: ncaabHyperParams.KFolds,
+        hiddenLayerNum: ncaabHyperParams.hiddenLayerNum,
+        learningRate: ncaabHyperParams.learningRate,
+        l2Reg: ncaabHyperParams.l2Reg,
+        dropoutReg: ncaabHyperParams.dropoutReg,
+        kernalInitializer: ncaabHyperParams.kernalInitializer
     },
     {
         name: "basketball_wncaab",
@@ -89,7 +144,15 @@ const sports = [
         prevstatYear: getDynamicStatYear(11, 4, new Date()), // NHL also uses the same logic for prevstatYear
         decayFactor: 1,
         gameDecayThreshold: 350,
-        learningDecayFactor: .96
+        learningDecayFactor: .96,
+        epochs: wncaabHyperParams.epochs,
+        batchSize: wncaabHyperParams.batchSize,
+        KFolds: wncaabHyperParams.KFolds,
+        hiddenLayerNum: wncaabHyperParams.hiddenLayerNum,
+        learningRate: wncaabHyperParams.learningRate,
+        l2Reg: wncaabHyperParams.l2Reg,
+        dropoutReg: wncaabHyperParams.dropoutReg,
+        kernalInitializer: wncaabHyperParams.kernalInitializer
     },
 ]
 

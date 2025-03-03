@@ -642,18 +642,20 @@ const indexAdjuster = (currentOdds, sport, allPastGames) => {
 
                 return cleanedStats;
             };
-            function calculateWinrate(games, sport, homeTeam, awayTeam, homeTeamIndex, awayTeamIndex, predictedWinner) {
+            function calculateWinrate(games, sport, homeTeam, awayTeam, homeTeamIndex, awayTeamIndex, predictedWinner, predictionStrength) {
 
                 // Step 1: Filter games where predictionCorrect is true
                 const usableGames = games.filter(usableGame => usableGame.predictedWinner);
                 // Step 2: Filter games that match the sport league
                 const leagueGames = usableGames.filter(leagueGame => leagueGame.sport_key === sport.name);
-
                 // Step 3: Filter games where the home_team matches the team
                 const homeTeamGames = usableGames.filter(homeTeamGame => homeTeamGame.home_team === homeTeam || homeTeamGame.away_team === homeTeam);
-
                 // Step 4: Filter games where the away_team matches the team
                 const awayTeamGames = usableGames.filter(awayTeamGame => awayTeamGame.home_team === awayTeam || awayTeamGame.away_team === awayTeam);
+                //game with the same index diff
+                const indexDifGames = usableGames.filter(game => (game.predictedWinner === 'home' ? game.homeTeamIndex - game.awayTeamIndex : game.awayTeamIndex - game.homeTeamIndex) < (predictedWinner === 'home' ? homeTeamIndex - awayTeamIndex : awayTeamIndex - homeTeamIndex) + 5 || (game.predictedWinner === 'home' ? game.homeTeamIndex - game.awayTeamIndex : game.awayTeamIndex - game.homeTeamIndex) > (predictedWinner === 'home' ? homeTeamIndex - awayTeamIndex : awayTeamIndex - homeTeamIndex) - 5)
+                //games with same confidenceRating
+                const confidenceRateGames = usableGames.filter(game => (game.predictionStrength > predictionStrength - 5) || (game.predictionStrength < predictionStrength + 5))
 
                 // Step 5: Calculate winrate for each scenario
                 const totalGames = usableGames.length;
@@ -661,6 +663,8 @@ const indexAdjuster = (currentOdds, sport, allPastGames) => {
                 const totalLeagueGames = leagueGames.length;
                 const totalHomeTeamGames = homeTeamGames.length;
                 const totalAwayTeamGames = awayTeamGames.length;
+                const totalindexDifGames = indexDifGames.length
+                const totalConfidenceGames = confidenceRateGames.length
 
                 // Function to calculate winrate percentage
                 const calculatePercentage = (part, total) => total > 0 ? (part / total) * 100 : 0;
@@ -671,53 +675,55 @@ const indexAdjuster = (currentOdds, sport, allPastGames) => {
                 const awayTeamPredictionCorrect = calculatePercentage(awayTeamGames.filter(game => game.predictionCorrect === true).length, totalAwayTeamGames);
                 // Calculate the winrate for index differences (the percentage of games where the predicted winner had a larger index difference)
                 const indexDiffPredictionCorrect = calculatePercentage(
-                    usableGames.filter((indexDiffGame) => (Math.round((indexDiffGame.predictedWinner === 'home' ? indexDiffGame.homeTeamIndex - indexDiffGame.awayTeamIndex : indexDiffGame.awayTeamIndex - indexDiffGame.homeTeamIndex)) === Math.round((predictedWinner === 'home' ? homeTeamIndex - awayTeamIndex : awayTeamIndex - homeTeamIndex))) && indexDiffGame.predictionCorrect).length,
-                    usableGames.filter((indexDiffGame) => Math.round((indexDiffGame.predictedWinner === 'home' ? indexDiffGame.homeTeamIndex - indexDiffGame.awayTeamIndex : indexDiffGame.awayTeamIndex - indexDiffGame.homeTeamIndex)) === Math.round((predictedWinner === 'home' ? homeTeamIndex - awayTeamIndex : awayTeamIndex - homeTeamIndex))).length
+                    indexDifGames.filter(game => game.predictionCorrect === true).length,
+                    totalindexDifGames
                 );
-                const totalIndexDiffGames = usableGames.filter((indexDiffGame) => Math.round((indexDiffGame.predictedWinner === 'home' ? indexDiffGame.homeTeamIndex - indexDiffGame.awayTeamIndex : indexDiffGame.awayTeamIndex - indexDiffGame.homeTeamIndex)) === Math.round((predictedWinner === 'home' ? homeTeamIndex - awayTeamIndex : awayTeamIndex - homeTeamIndex))).length; // Use total games for this new "category"
+
+                const confidencePredictionCorrect = calculatePercentage(confidenceRateGames.filter(game => game.predictionCorrect === true), totalConfidenceGames)
                 // Step 6: Calculate the weighted winrate for regular categories
-                const weightedWinrate = {
-                    allPredictionCorrect,
-                    leaguePredictionCorrect,
-                    homeTeamPredictionCorrect,
-                    awayTeamPredictionCorrect,
-                    indexDiffPredictionCorrect
-                };
+                const weightedWinrate = {};
 
-                // Calculate the weights (sample sizes)
-                const weights = {
-                    allGames: totalGames,
-                    leagueGames: totalLeagueGames,
-                    homeTeamGames: totalHomeTeamGames,
-                    awayTeamGames: totalAwayTeamGames,
-                    indexDiffGames: totalIndexDiffGames,
-                };
+                if ( !(Number.isNaN(allPredictionCorrect))) {
+                    weightedWinrate.allPredictionCorrect = allPredictionCorrect;
+                }
+                
+                if ( !(Number.isNaN(leaguePredictionCorrect))) {
+                    weightedWinrate.leaguePredictionCorrect = leaguePredictionCorrect;
+                }
+                
+                if ( !(Number.isNaN(homeTeamPredictionCorrect))) {
+                    weightedWinrate.homeTeamPredictionCorrect = homeTeamPredictionCorrect;
+                }
+                
+                if ( !(Number.isNaN(awayTeamPredictionCorrect))) {
+                    weightedWinrate.awayTeamPredictionCorrect = awayTeamPredictionCorrect;
+                }
+                
+                if ( !(Number.isNaN(indexDiffPredictionCorrect))) {
+                    weightedWinrate.indexDiffPredictionCorrect = indexDiffPredictionCorrect;
+                }
+                
+                if ( !(Number.isNaN(confidencePredictionCorrect))) {
+                    weightedWinrate.confidencePredictionCorrect = confidencePredictionCorrect;
+                }
+                
 
-                // Step 7: Calculate weighted average winrate for regular categories
-                const weightedSum = (Object.keys(weightedWinrate).reduce((acc, key) => {
-                    const winrate = weightedWinrate[key];
-                    const weight = weights[key.replace('PredictionCorrect', 'Games')] || 0; // Matching key name to the weights
-                    return acc + (winrate * weight);
-                }, 0));
+                // Extract the values from the object
+                const values = Object.values(weightedWinrate);
 
+                // Calculate the sum of the values
+                const sum = values.reduce((acc, val) =>  acc + val, 0);
 
-                const totalWeight = Object.values(weights).reduce((acc, curr) => acc + curr, 0); // Sum of all weights
-
-                const weightedAverage = totalWeight > 0 ? weightedSum / totalWeight : 0; // Weighted average winrate
+                // Calculate the average by dividing the sum by the number of keys
+                const average = sum / values.length;
 
                 // Return both individual winrates, and weighted average
-                return {
-                    winrateByCategory: weightedWinrate,
-                    weightedAverage: weightedAverage,
-                };
+                return average
             }
 
             // Call the function
-            const winrate = calculateWinrate(allPastGames, sport, game.home_team, game.away_team, game.homeTeamIndex, game.awayTeamIndex, game.predictedWinner);
+            const winrate = await calculateWinrate(allPastGames, sport, game.home_team, game.away_team, game.homeTeamIndex, game.awayTeamIndex, game.predictedWinner, game.predictionStrength);
 
-            // Get the final weighted average winrate including index difference winrate
-            const average = winrate.weightedAverage
-            
             // Update the Odds database with the calculated indices
             if (sport.name === game.sport_key) {
                 await Odds.findOneAndUpdate({ 'id': game.id }, {
@@ -729,7 +735,7 @@ const indexAdjuster = (currentOdds, sport, allPastGames) => {
                     awayTeamlogo: awayTeam ? awayTeam.logo : 'no logo data',
                     homeTeamAbbr: homeTeam?.abbreviation,
                     awayTeamAbbr: awayTeam?.abbreviation,
-                    winPercent: average
+                    winPercent: winrate
                 });
             }
         }

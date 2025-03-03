@@ -496,21 +496,15 @@ const loadOrCreateModel = async (xs) => {
         } else {
             let newModel = tf.sequential();
             // Using the correct L2 regularization
-            const l2Regularizer = tf.regularizers.l2({ l2: weightDecayl2 });  // Adjust the value to suit your needs
+            const l2Regularizer = tf.regularizers.l2({ l2: sport.l2Reg });  // Adjust the value to suit your needs
 
 
-            newModel.add(tf.layers.dense({ units: xs[0].length, inputShape: [xs[0].length], activation: 'relu', kernelInitializer: 'glorotUniform', kernelRegularizer: l2Regularizer, biasInitializer: 'zeros' }));
-            newModel.add(tf.layers.dense({ units: layerNeurons, activation: 'relu', kernelInitializer: 'glorotUniform', kernelRegularizer: l2Regularizer, biasInitializer: 'zeros' }));
-            newModel.add(tf.layers.dropout({ rate: dropoutRate }));  //Dropout range from .2 up to .7, lower keeps performance intact while still preventing overfitting
-            newModel.add(tf.layers.dense({ units: layerNeurons, activation: 'relu', kernelInitializer: 'glorotUniform', kernelRegularizer: l2Regularizer, biasInitializer: 'zeros' }));
-            newModel.add(tf.layers.dropout({ rate: dropoutRate }));  //Dropout range from .2 up to .7, lower keeps performance intact while still preventing overfitting
-            newModel.add(tf.layers.dense({ units: layerNeurons, activation: 'relu', kernelInitializer: 'glorotUniform', kernelRegularizer: l2Regularizer, biasInitializer: 'zeros' }));
-            newModel.add(tf.layers.dropout({ rate: dropoutRate }));  //Dropout range from .2 up to .7, lower keeps performance intact while still preventing overfitting
-            newModel.add(tf.layers.dense({ units: layerNeurons, activation: 'relu', kernelInitializer: 'glorotUniform', kernelRegularizer: l2Regularizer, biasInitializer: 'zeros' }));
-            newModel.add(tf.layers.dropout({ rate: dropoutRate }));  //Dropout range from .2 up to .7, lower keeps performance intact while still preventing overfitting
-            newModel.add(tf.layers.dense({ units: layerNeurons, activation: 'relu', kernelInitializer: 'glorotUniform', kernelRegularizer: l2Regularizer, biasInitializer: 'zeros' }));
-            newModel.add(tf.layers.dropout({ rate: dropoutRate }));  //Dropout range from .2 up to .7, lower keeps performance intact while still preventing overfitting
-            newModel.add(tf.layers.dense({ units: 1, activation: 'sigmoid', kernelInitializer: 'glorotUniform', kernelRegularizer: l2Regularizer, biasInitializer: 'zeros' }));
+            newModel.add(tf.layers.dense({ units: xs[0].length, inputShape: [xs[0].length], activation: 'relu', kernelInitializer: sport.kernelInitializer, kernelRegularizer: l2Regularizer, biasInitializer: 'zeros' }));
+            for(let layers = 0; layers<sport.hiddenLayerNum;layers++){
+                newModel.add(tf.layers.dense({ units: layerNeurons, activation: 'relu', kernelInitializer: sport.kernelInitializer, kernelRegularizer: l2Regularizer, biasInitializer: 'zeros' }));
+                newModel.add(tf.layers.dropout({ rate: sport.dropoutReg }));  //Dropout range from .2 up to .7, lower keeps performance intact while still preventing overfitting
+            }
+            newModel.add(tf.layers.dense({ units: 1, activation: 'sigmoid', kernelInitializer: sport.kernelInitializer, kernelRegularizer: l2Regularizer, biasInitializer: 'zeros' }));
 
             // Compile the model
 
@@ -605,7 +599,7 @@ const mlModelTraining = async (gameData, xs, ys, sport) => {
     const classWeights = calculateClassWeights(ysArray);
     // console.log("Class Weights: ", classWeights)
     model.compile({
-        optimizer: tf.train.adam(learningRate),
+        optimizer: tf.train.adam(sport.learningRate),
         loss: 'binaryCrossentropy',
         metrics: ['accuracy']
     });
@@ -632,8 +626,8 @@ const mlModelTraining = async (gameData, xs, ys, sport) => {
         return false;  // Continue training
     };
     await model.fit(xsTensor, ysTensor, {
-        epochs: epochsValue,
-        batchSize: batchSize,
+        epochs: sport.epochs,
+        batchSize: sport.batchSize,
         validationSplit: 0.3,
         classWeight: classWeights,
         verbose: false,
@@ -740,7 +734,7 @@ const evaluateMetrics = (ysTensor, yPredTensor) => {
 }
 const trainSportModelKFold = async (sport, gameData) => {
     currentOdds = await Odds.find({ sport_key: sport.name }).sort({ commence_time: -1 }) //USE THIS TO POPULATE UPCOMING GAME ODDS
-    const numFolds = 5;  // Number of folds (you can adjust based on your data)
+    const numFolds = sport.KFolds;  // Number of folds (you can adjust based on your data)
     const foldSize = Math.floor(gameData.length / numFolds);  // Size of each fold
 
     let allFolds = [];
@@ -894,4 +888,4 @@ const trainSportModel = async (sport, gameData) => {
     indexAdjuster(currentOdds, sport, allPastGames)
 }
 
-module.exports = { getStat, getWinLoss, getHomeAwayWinLoss, normalizeStat, extractSportFeatures, mlModelTraining, predictions, trainSportModel, trainSportModelKFold, loadOrCreateModel, handleSportWeights }
+module.exports = { getStat, getWinLoss, getHomeAwayWinLoss, normalizeStat, extractSportFeatures, mlModelTraining, predictions, trainSportModel, trainSportModelKFold, loadOrCreateModel, handleSportWeights, evaluateMetrics }
