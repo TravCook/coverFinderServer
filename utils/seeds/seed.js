@@ -57,6 +57,7 @@ const dataSeed = async () => {
     let currentOdds
     const currentDate = new Date();
     const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11, so we add 1 to make it 1-12
+    let allPastGames = await PastGameOdds.find()
 
     for (let sport = 0; sport < sports.length; sport++) {
         const modelPath = `./model_checkpoint/${sports[sport].name}_model/model.json`;
@@ -135,7 +136,7 @@ const dataSeed = async () => {
             // Handle the weights extraction after training
             await handleSportWeights(model, sports[sport]);
 
-            let allPastGames = await PastGameOdds.find()
+
             indexAdjuster(sportGames, sports[sport], allPastGames)
         }
         console.log(`${sports[sport].name} ML DONE @ ${moment().format('HH:mm:ss')}`)
@@ -1150,7 +1151,7 @@ const hyperparameterGridSearch = async () => {
 
 // hyperparameterGridSearch()
 // pastGamesRePredict()
-oddsSeed()
+// oddsSeed()
 // dataSeed()
 // removeSeed()
 // pastGameStatsPoC()
