@@ -138,8 +138,10 @@ const dataSeed = async () => {
 
 
             indexAdjuster(sportGames, sports[sport], allPastGames)
+
+            sportGames = []
         }
-        console.log(`${sports[sport].name} ML DONE @ ${moment().format('HH:mm:ss')}`)
+        console.log(`${sports[sport].name} PREDICTING AND INDEXING DONE @ ${moment().format('HH:mm:ss')}`)
 
     }
 
@@ -165,7 +167,7 @@ const oddsSeed = async () => {
         } catch (error) {
             if (retries === 0) throw error;
             console.log(`Retrying request... (${retries} attempts left)`);
-            await delay(delayMs);
+            // await delay(delayMs);
             return axiosWithBackoff(url, retries - 1, delayMs * 2);  // Exponential backoff
         }
     };
@@ -1155,6 +1157,6 @@ const hyperparameterGridSearch = async () => {
 // dataSeed()
 // removeSeed()
 // pastGameStatsPoC()
-// mlModelTrainSeed()
+mlModelTrainSeed()
 
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed }

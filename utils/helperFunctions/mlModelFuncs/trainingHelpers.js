@@ -786,12 +786,6 @@ const trainSportModelKFold = async (sport, gameData) => {
         const metrics = evaluateMetrics(testYsTensor, model.predict(testXsTensor, {training: false}));
 
         // // Log metrics for each fold
-        // console.log(`Fold ${foldIndex + 1}:`);
-        // console.log(`Model Loss:`, loss);
-        // console.log(`Model Accuracy:`, accuracy);
-        // console.log(`Model Precision:`, metrics.precision);
-        // console.log(`Model Recall:`, metrics.recall);
-        // console.log(`Model F1-Score:`, metrics.f1Score);
         // Store fold results
         foldResults.push({
             foldIndex,
@@ -830,16 +824,6 @@ const trainSportModelKFold = async (sport, gameData) => {
     console.log(`Avg Precision: ${avgPrecision}`);
     console.log(`Avg Recall: ${avgRecall}`);
     console.log(`Avg F1-Score: ${avgF1Score}`);
-
-    let ff = []
-    let sportOdds = await Odds.find({ sport_key: sport.name })
-    predictions(sportOdds, ff, finalModel)
-
-    // Handle the weights extraction after training
-    await handleSportWeights(finalModel, sport);
-
-    let allPastGames = await PastGameOdds.find()
-    indexAdjuster(currentOdds, sport, allPastGames)
 };
 
 const trainSportModel = async (sport, gameData) => {
