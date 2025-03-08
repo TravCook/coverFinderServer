@@ -97,7 +97,7 @@ const dataSeed = async () => {
                 const ffTensor = tf.tensor2d(ff);
 
                 // Step 3: Get the predictions
-                const predictions = await model.predict(ffTensor, {training: false});
+                const predictions = await model.predict(ffTensor, { training: false });
 
 
                 // Step 4: Convert predictions tensor to array
@@ -846,10 +846,10 @@ const pastGamesRePredict = async () => {
                 // Step 2: Create a Tensor for the features array
                 const ffTensor = tf.tensor2d(ff);
 
-                const logits = model.predict(ffTensor, {training: false}); // logits without sigmoid
+                const logits = model.predict(ffTensor, { training: false }); // logits without sigmoid
 
                 // Step 3: Get the predictions
-                const predictions = await model.predict(ffTensor, {training: false});
+                const predictions = await model.predict(ffTensor, { training: false });
 
                 // Step 4: Convert predictions tensor to array
                 const probabilities = await predictions.array();  // Resolves to an array
@@ -1083,7 +1083,7 @@ const hyperparameterGridSearch = async () => {
             const accuracy = evaluation[1].arraySync();
             // Now, calculate precision, recall, and F1-score
 
-            const metrics = evaluateMetrics(ysTensor, model.predict(xsTensor, {training: false}));
+            const metrics = evaluateMetrics(ysTensor, model.predict(xsTensor, { training: false }));
             // Log the metrics
             console.log(`${sport.name} Model Loss:`, loss);
             console.log(`${sport.name} Model Accuracy:`, accuracy);
@@ -1150,13 +1150,214 @@ const hyperparameterGridSearch = async () => {
 }
 
 
+// const valueBetGridSearch = async () => {
+//     let pastGames = await PastGameOdds.find()
+//     let usableGames = pastGames.filter((game) => game.predictedWinner === 'home' || game.predictedWinner === 'away')
+
+//     let sportsbooks = ['fanduel', 'betmgm', 'draftkings', 'betrivers']
+//     let winPercentIncrease = [-50, -45, -40, -35, -30, -25, -20, -15, -10, -5, 0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
+//     let indexDiffSmallNum = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45]
+//     let indexDiffRangeNum = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45]
+//     let confidenceLowNum = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100]
+//     let confidenceRangeNum = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100]
+
+//     for (const sport of sports) {
+//         let sportGames = usableGames.filter((game) => game.sport_key === sport.name)
+//         let finalWinrate = 0
+//         let finalSettings = {
+//             winPercentIncrease: 0,
+//             indexDiffSmallNum: 0,
+//             indexDiffRangeNum: 0,
+//             confidenceLowNum: 0,
+//             confidenceRangeNum: 0
+//         }
+
+//         if (sportGames.length > 0) {
+//             for (const sportsbook of sportsbooks) {
+//                 for (const winPercentInc of winPercentIncrease) {
+//                     for (const indexDifSmall of indexDiffSmallNum) {
+//                         for (const indexDiffRange of indexDiffRangeNum) {
+//                             for (const confidenceLow of confidenceLowNum) {
+//                                 for (const confidenceRange of confidenceRangeNum) {
+
+//                                     let totalGames = sportGames.filter((game) => {
+//                                         const bookmaker = game.bookmakers.find(bookmaker => bookmaker.key === sportsbook);
+//                                         if (bookmaker) {
+//                                             // Check if the bookmaker has an outcome with impliedProb lower than winRateThreshold
+//                                             const outcome = bookmaker.markets.find(market => market.key === 'h2h').outcomes;
+//                                             const lowerImpliedProbOutcome = outcome.find(o => (((game.predictedWinner === 'home' ? Math.abs(game.homeTeamIndex - game.awayTeamIndex) : Math.abs(game.awayTeamIndex - game.homeTeamIndex)) > (indexDifSmall) && (game.predictedWinner === 'home' ? Math.abs(game.homeTeamIndex - game.awayTeamIndex) : Math.abs(game.awayTeamIndex - game.homeTeamIndex)) < (indexDifSmall + indexDiffRange))) && ((game.predictionStrength > confidenceLow && game.predictionStrength < (confidenceLow + confidenceRange))) && ((o.impliedProb * 100) < (game.winPercent + winPercentInc)) && ((game.predictedWinner === 'home' && game.home_team === o.name) || (game.predictedWinner === 'away' && game.away_team === o.name)))
+//                                             return lowerImpliedProbOutcome !== undefined;
+//                                         }
+//                                         return false;
+//                                     })
+
+//                                     if (totalGames.length > 0) {
+//                                         let correctGames = totalGames.filter((game) => game.predictionCorrect === true)
+
+//                                         let winRate = correctGames / totalGames
+//                                         if (winRate > finalWinrate) {
+//                                             finalWinrate = winRate
+//                                             finalSettings = {
+//                                                 winPercentIncrease: winPercentInc,
+//                                                 indexDiffSmallNum: indexDifSmall,
+//                                                 indexDiffRangeNum: indexDiffRange,
+//                                                 confidenceLowNum: confidenceLow,
+//                                                 confidenceRangeNum: confidenceRange
+//                                             }
+//                                             console.log('Sport', sport.name)
+//                                             console.log('Sportsbook: ', sportsbook)
+//                                             console.log('Best Winrate: ', finalWinrate)
+//                                             console.log('Best Settings: ', finalSettings)
+//                                         }
+//                                     }
+//                                 }
+//                             }
+//                         }
+//                     }
+//                 }
+//                 console.log('Sport', sport.name)
+//                 console.log('Sportsbook: ', sportsbook)
+//                 console.log('Best Winrate: ', finalWinrate)
+//                 console.log('Best Settings: ', finalSettings)
+//                 if (!fs.existsSync(`./valueBetTesting/${sport.name}`)) {
+//                     console.log('Creating model directory...');
+//                     // Create the directory (including any necessary parent directories)
+//                     fs.mkdirSync(`./valueBetTesting/${sport.name}`, { recursive: true });
+//                 }
+//                 fs.writeFile(`./valueBetTesting/${sport.name}/${sportsbook}-bestSettings.json`, JSON.stringify(finalSettings), function (err) {
+//                     if (err) {
+//                         console.log(err)
+//                     }
+//                 })
+//             }
+//         }
+
+
+
+//     }
+// }
+
+const valueBetGridSearch = async () => {
+    let pastGames = await PastGameOdds.find();
+    let usableGames = pastGames.filter((game) => game.predictedWinner === 'home' || game.predictedWinner === 'away');
+
+    let sportsbooks = ['fanduel', 'betmgm', 'draftkings', 'betrivers'];
+    let winPercentIncrease = [-50, -45, -40, -35, -30, -25, -20, -15, -10, -5, 0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
+    let indexDiffSmallNum = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45];
+    let indexDiffRangeNum = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45];
+    let confidenceLowNum = [ .50, .55, .60, .65, .70, .75, .80, .85, .90, .95, 1.00];
+    let confidenceRangeNum = [0, .05, .10, .15, .20, .25, .30, .35, .40, .45, .50];
+
+    for (const sport of sports) {
+        let sportGames = usableGames.filter((game) => game.sport_key === sport.name);
+ 
+
+        if (sportGames.length > 0) {
+            // Parallelize across sportsbooks
+            await Promise.all(sportsbooks.map(async (sportsbook) => {
+                let finalWinrate = 0;
+                let finalTotalGames = 0
+                let finalSettings = {
+                    winPercentIncrease: 0,
+                    indexDiffSmallNum: 0,
+                    indexDiffRangeNum: 0,
+                    confidenceLowNum: 0,
+                    confidenceRangeNum: 0
+                };
+                for (const winPercentInc of winPercentIncrease) {
+                    for (const indexDifSmall of indexDiffSmallNum) {
+                        for (const indexDiffRange of indexDiffRangeNum) {
+                            for (const confidenceLow of confidenceLowNum) {
+                                for (const confidenceRange of confidenceRangeNum) {
+                                    let totalGames = sportGames.filter((game) => {
+                                        const bookmaker = game.bookmakers.find(bookmaker => bookmaker.key === sportsbook);
+                                        if (bookmaker) {
+                                            const outcome = bookmaker.markets.find(market => market.key === 'h2h').outcomes;
+                                            const lowerImpliedProbOutcome = outcome.find(o => (
+                                                ((game.predictedWinner === 'home' ? Math.abs(game.homeTeamIndex - game.awayTeamIndex) : Math.abs(game.awayTeamIndex - game.homeTeamIndex)) > (indexDifSmall) && 
+                                                (game.predictedWinner === 'home' ? Math.abs(game.homeTeamIndex - game.awayTeamIndex) : Math.abs(game.awayTeamIndex - game.homeTeamIndex)) < (indexDifSmall + indexDiffRange)) &&
+                                                (game.predictionStrength > confidenceLow && game.predictionStrength < (confidenceLow + confidenceRange)) &&
+                                                (o.impliedProb * 100) < (game.winPercent + winPercentInc) &&
+                                                ((game.predictedWinner === 'home' && game.home_team === o.name) || (game.predictedWinner === 'away' && game.away_team === o.name))
+                                            ));
+                                            return lowerImpliedProbOutcome !== undefined;
+                                        }
+                                        return false;
+                                    });
+
+                                    if (totalGames.length > 10) {
+                                        let correctGames = totalGames.filter((game) => game.predictionCorrect === true);
+                                        let winRate = correctGames.length / totalGames.length;
+                                        if (winRate > finalWinrate) {
+                                            finalWinrate = winRate;
+                                            finalTotalGames = totalGames.length
+                                            finalSettings = {
+                                                winPercentIncrease: winPercentInc,
+                                                indexDiffSmallNum: indexDifSmall,
+                                                indexDiffRangeNum: indexDiffRange,
+                                                confidenceLowNum: confidenceLow,
+                                                confidenceRangeNum: confidenceRange
+                                            };
+                                            console.log('Sport', sport.name);
+                                            console.log('Sportsbook: ', sportsbook);
+                                            console.log('Best Winrate: ', finalWinrate);
+                                            console.log('Best Winrate numbers: ', `${correctGames.length}/${totalGames.length}`);
+                                            console.log('Best Settings: ', finalSettings);
+                                        }else if(winRate === finalWinrate && totalGames.length > finalTotalGames){
+                                            finalWinrate = winRate;
+                                            finalTotalGames = totalGames.length
+                                            finalSettings = {
+                                                winPercentIncrease: winPercentInc,
+                                                indexDiffSmallNum: indexDifSmall,
+                                                indexDiffRangeNum: indexDiffRange,
+                                                confidenceLowNum: confidenceLow,
+                                                confidenceRangeNum: confidenceRange
+                                            };
+                                            console.log('Sport', sport.name);
+                                            console.log('Sportsbook: ', sportsbook);
+                                            console.log('Best Winrate: ', finalWinrate);
+                                            console.log('Best Winrate numbers: ', `${correctGames.length}/${totalGames.length}`);
+                                            console.log('Best Settings: ', finalSettings);
+
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                console.log('Sport', sport.name);
+                console.log('Sportsbook: ', sportsbook);
+                console.log('Best Winrate: ', finalWinrate);
+                console.log('Best Settings: ', finalSettings);
+
+                if (!fs.existsSync(`./valueBetTesting/${sport.name}`)) {
+                    console.log('Creating model directory...');
+                    fs.mkdirSync(`./valueBetTesting/${sport.name}`, { recursive: true });
+                }
+                fs.writeFileSync(`./valueBetTesting/${sport.name}/${sportsbook}-bestSettings.json`, JSON.stringify(finalSettings), (err) => {
+                    if (err) {
+                        console.error("Error writing file:", err);
+                    } else {
+                        console.log('Data written to file');
+                    }
+                });
+                
+            }));
+        }
+    }
+};
+
+
 
 // hyperparameterGridSearch()
 // pastGamesRePredict()
 // oddsSeed()
-// dataSeed()
+dataSeed()
 // removeSeed()
 // pastGameStatsPoC()
 // mlModelTrainSeed()
+// valueBetGridSearch()
 
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed }
