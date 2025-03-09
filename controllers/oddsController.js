@@ -1,4 +1,4 @@
-const { Odds, PastGameOdds, UsaFootballTeam, BasketballTeam, HockeyTeam, BaseballTeam } = require('../models');
+const { Odds, PastGameOdds, UsaFootballTeam, BasketballTeam, HockeyTeam, BaseballTeam, Sport } = require('../models');
 const moment = require('moment');
 const NodeCache = require('node-cache');
 const myCache = new NodeCache(); // Instantiate cache object
@@ -72,7 +72,7 @@ module.exports = {
                 const oneMonthAgo = new Date(currentDate)
                 oneMonthAgo.setDate(currentDate.getDate() - 31)
                 let valueGames = []
-
+                let sports = await Sport.find({})
                 let odds = await Odds.find({}).sort({ commence_time: 1, winPercent: 1 })
                 let pastGames = await PastGameOdds.find({
                     commence_time: { $gte: twoWeeksAgo.toISOString(), $lt: currentDate.toISOString() }
@@ -106,6 +106,7 @@ module.exports = {
                 data = {
                     odds: odds,
                     valueGames: valueGames,
+                    sports: sports,
                     teams: {
                         football: footballTeams,
                         basketball: basketballTeams,
