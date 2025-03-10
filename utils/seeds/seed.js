@@ -119,7 +119,7 @@ const dataSeed = async () => {
 
 
     currentOdds = await Odds.find()
-    impliedProbCalc(currentOdds)
+    await impliedProbCalc(currentOdds)
 
     const dataSize = Buffer.byteLength(JSON.stringify(currentOdds), 'utf8');
     console.log(`Data size sent: ${dataSize / 1024} KB ${moment().format('HH:mm:ss')} dataSeed`);
@@ -155,8 +155,9 @@ const mlModelTrainSeed = async () => {
 
         console.log(`${sports[sport].name} ML DONE @ ${moment().format('HH:mm:ss')}`)
 
-        dataSeed()
     }
+    
+    dataSeed()
 }
 
 
@@ -1161,12 +1162,12 @@ const valueBetGridSearch = async () => {
     let winPercentIncrease = [-50, -45, -40, -35, -30, -25, -20, -15, -10, -5, 0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
     let indexDiffSmallNum = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45];
     let indexDiffRangeNum = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45];
-    let confidenceLowNum = [ .50, .55, .60, .65, .70, .75, .80, .85, .90, .95, 1.00];
+    let confidenceLowNum = [.50, .55, .60, .65, .70, .75, .80, .85, .90, .95, 1.00];
     let confidenceRangeNum = [0, .05, .10, .15, .20, .25, .30, .35, .40, .45, .50];
 
     for (const sport of sports) {
         let sportGames = usableGames.filter((game) => game.sport_key === sport.name);
- 
+
 
         if (sportGames.length > 0) {
             // Parallelize across sportsbooks
@@ -1190,8 +1191,8 @@ const valueBetGridSearch = async () => {
                                         if (bookmaker) {
                                             const outcome = bookmaker.markets.find(market => market.key === 'h2h').outcomes;
                                             const lowerImpliedProbOutcome = outcome.find(o => (
-                                                ((game.predictedWinner === 'home' ? Math.abs(game.homeTeamIndex - game.awayTeamIndex) : Math.abs(game.awayTeamIndex - game.homeTeamIndex)) > (indexDifSmall) && 
-                                                (game.predictedWinner === 'home' ? Math.abs(game.homeTeamIndex - game.awayTeamIndex) : Math.abs(game.awayTeamIndex - game.homeTeamIndex)) < (indexDifSmall + indexDiffRange)) &&
+                                                ((game.predictedWinner === 'home' ? Math.abs(game.homeTeamIndex - game.awayTeamIndex) : Math.abs(game.awayTeamIndex - game.homeTeamIndex)) > (indexDifSmall) &&
+                                                    (game.predictedWinner === 'home' ? Math.abs(game.homeTeamIndex - game.awayTeamIndex) : Math.abs(game.awayTeamIndex - game.homeTeamIndex)) < (indexDifSmall + indexDiffRange)) &&
                                                 (game.predictionStrength > confidenceLow && game.predictionStrength < (confidenceLow + confidenceRange)) &&
                                                 (o.impliedProb * 100) < (game.winPercent + winPercentInc) &&
                                                 ((game.predictedWinner === 'home' && game.home_team === o.name) || (game.predictedWinner === 'away' && game.away_team === o.name))
@@ -1219,7 +1220,7 @@ const valueBetGridSearch = async () => {
                                             console.log('Best Winrate: ', finalWinrate);
                                             console.log('Best Winrate numbers: ', `${correctGames.length}/${totalGames.length}`);
                                             console.log('Best Settings: ', finalSettings);
-                                        }else if(winRate === finalWinrate && totalGames.length > finalTotalGames){
+                                        } else if (winRate === finalWinrate && totalGames.length > finalTotalGames) {
                                             finalWinrate = winRate;
                                             finalTotalGames = totalGames.length
                                             finalSettings = {
@@ -1259,7 +1260,7 @@ const valueBetGridSearch = async () => {
                         console.log('Data written to file');
                     }
                 });
-                
+
             }));
         }
     }
@@ -1288,14 +1289,14 @@ const valueBetRandomSearch = async () => {
         'fliff',
         'hardrockbet',
         'windcreek'
-      ];
-      
+    ];
+
     let winPercentIncrease = [-50, -45, -40, -35, -30, -25, -20, -15, -10, -5, 0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
     let indexDiffSmallNum = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45];
     let indexDiffRangeNum = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45];
-    let confidenceLowNum = [ .50, .55, .60, .65, .70, .75, .80, .85, .90, .95, 1.00];
+    let confidenceLowNum = [.50, .55, .60, .65, .70, .75, .80, .85, .90, .95, 1.00];
     let confidenceRangeNum = [0, .05, .10, .15, .20, .25, .30, .35, .40, .45, .50];
-    
+
     const numRandomSamples = 1000; // Define how many random iterations you want to run
     for (const sport of sports) {
         let sportGames = usableGames.filter((game) => game.sport_key === sport.name);
@@ -1303,7 +1304,7 @@ const valueBetRandomSearch = async () => {
         if (sportGames.length > 0) {
             // Parallelize across sportsbooks
             // await Promise.all(sportsbooks.map(async (sportsbook) => {
-            for(const sportsbook of sportsbooks){
+            for (const sportsbook of sportsbooks) {
                 let finalWinrate = 0;
                 let finalTotalGames = 0;
                 let finalSettings = {
@@ -1331,8 +1332,8 @@ const valueBetRandomSearch = async () => {
                         if (bookmaker) {
                             const outcome = bookmaker.markets.find(market => market.key === 'h2h').outcomes;
                             const lowerImpliedProbOutcome = outcome.find(o => (
-                                ((game.predictedWinner === 'home' ? Math.abs(game.homeTeamIndex - game.awayTeamIndex) : Math.abs(game.awayTeamIndex - game.homeTeamIndex)) > (indexDifSmall) && 
-                                (game.predictedWinner === 'home' ? Math.abs(game.homeTeamIndex - game.awayTeamIndex) : Math.abs(game.awayTeamIndex - game.homeTeamIndex)) < (indexDifSmall + indexDiffRange)) &&
+                                ((game.predictedWinner === 'home' ? Math.abs(game.homeTeamIndex - game.awayTeamIndex) : Math.abs(game.awayTeamIndex - game.homeTeamIndex)) > (indexDifSmall) &&
+                                    (game.predictedWinner === 'home' ? Math.abs(game.homeTeamIndex - game.awayTeamIndex) : Math.abs(game.awayTeamIndex - game.homeTeamIndex)) < (indexDifSmall + indexDiffRange)) &&
                                 (game.predictionStrength > confidenceLow && game.predictionStrength < (confidenceLow + confidenceRange)) &&
                                 (o.impliedProb * 100) < (game.winPercent + winPercentInc) &&
                                 ((game.predictedWinner === 'home' && game.home_team === o.name) || (game.predictedWinner === 'away' && game.away_team === o.name))
@@ -1346,7 +1347,7 @@ const valueBetRandomSearch = async () => {
                         let correctGames = totalGames.filter((game) => game.predictionCorrect === true);
                         let winRate = correctGames.length / totalGames.length;
 
-                        if (winRate > finalWinrate) {
+                        if (winRate > finalWinrate && totalGames.length > sportGames.length / 4) {
                             finalWinrate = winRate;
                             finalTotalGames = totalGames.length;
                             finalSettings.settings = {
@@ -1384,42 +1385,84 @@ const valueBetRandomSearch = async () => {
                 console.log('Sportsbook: ', sportsbook);
                 console.log('Best Winrate: ', finalWinrate);
                 console.log('Best Settings: ', finalSettings);
+                // let sportExist = await Sport.find({
+                //     name: sport.name,
+                //     valueBetSettings: {
+                //         $elemMatch: {
+                //             bookmaker: sportsbook
+                //         }
+                //     }
+                // });
 
-                await Sport.findOneAndUpdate(
-                    { name: sport.name }, // Find the sport by name
-                    {
-                        // Update the main fields (statYear, decayFactor, etc.)
-                        $set: {
-                            name: sport.name,
-                            espnSport: sport.espnSport,
-                            league: sport.league,
-                            startMonth: sport.startMonth,
-                            endMonth: sport.endMonth,
-                            multiYear: sport.multiYear,
-                            statYear: sport.statYear,
-                            decayFactor: sport.decayFactor,
-                            gameDecayThreshold: sport.gameDecayThreshold,
-                            learningDecayFactor: sport.learningDecayFactor,
-                            epochs: sport.epochs,
-                            batchSize: sport.batchSize,
-                            KFolds: sport.KFolds,
-                            hiddenLayerNum: sport.hiddenLayerNum,
-                            learningRate: sport.learningRate,
-                            l2Reg: sport.l2Reg,
-                            dropoutReg: sport.dropoutReg,
-                            kernalInitializer: sport.kernalInitializer,
-                        },
-                        $addToSet: {
-                            valueBetSettings: {
-                                bookmaker: sportsbook,
-                                settings: finalSettings.settings
-                            }
-                        }
-                    },
-                    { upsert: true, new: true } // upsert creates the document if it doesn't exist, new returns the updated doc
-                );
+                // if (sportExist.length === 0) {
+                //     await Sport.findOneAndUpdate(
+                //         { name: sport.name }, // Find the sport by name
+                //         {
+                //             // Update the main fields (statYear, decayFactor, etc.)
+                //             $set: {
+                //                 name: sport.name,
+                //                 espnSport: sport.espnSport,
+                //                 league: sport.league,
+                //                 startMonth: sport.startMonth,
+                //                 endMonth: sport.endMonth,
+                //                 multiYear: sport.multiYear,
+                //                 statYear: sport.statYear,
+                //                 decayFactor: sport.decayFactor,
+                //                 gameDecayThreshold: sport.gameDecayThreshold,
+                //                 learningDecayFactor: sport.learningDecayFactor,
+                //                 epochs: sport.epochs,
+                //                 batchSize: sport.batchSize,
+                //                 KFolds: sport.KFolds,
+                //                 hiddenLayerNum: sport.hiddenLayerNum,
+                //                 learningRate: sport.learningRate,
+                //                 l2Reg: sport.l2Reg,
+                //                 dropoutReg: sport.dropoutReg,
+                //                 kernalInitializer: sport.kernalInitializer,
+                //             },
+                //             $addToSet: {
+                //                 valueBetSettings: {
+                //                     bookmaker: sportsbook,
+                //                     settings: finalSettings.settings
+                //                 }
+                //             }
+                //         },
+                //         { upsert: true, new: true } // upsert creates the document if it doesn't exist, new returns the updated doc
+                //     );
+                // } else {
+                //     await Sport.findOneAndUpdate(
+                //         { name: sport.name }, // Find the sport by name
+                //         {
+                //             // Update the main fields (statYear, decayFactor, etc.)
+                //             $set: {
+                //                 name: sport.name,
+                //                 espnSport: sport.espnSport,
+                //                 league: sport.league,
+                //                 startMonth: sport.startMonth,
+                //                 endMonth: sport.endMonth,
+                //                 multiYear: sport.multiYear,
+                //                 statYear: sport.statYear,
+                //                 decayFactor: sport.decayFactor,
+                //                 gameDecayThreshold: sport.gameDecayThreshold,
+                //                 learningDecayFactor: sport.learningDecayFactor,
+                //                 epochs: sport.epochs,
+                //                 batchSize: sport.batchSize,
+                //                 KFolds: sport.KFolds,
+                //                 hiddenLayerNum: sport.hiddenLayerNum,
+                //                 learningRate: sport.learningRate,
+                //                 l2Reg: sport.l2Reg,
+                //                 dropoutReg: sport.dropoutReg,
+                //                 kernalInitializer: sport.kernalInitializer,
+                //             },
+                //             $set: {
+                //                 // Update the settings for the specific bookmaker using the $[] positional operator
+                //                 "valueBetSettings.$[elem].settings": finalSettings.settings
+                //             }
+                //         },
+                //         { arrayFilters: [{ "elem.bookmaker": sportsbook }], upsert: true, new: true } // upsert creates the document if it doesn't exist, new returns the updated doc
+                //     );
+                // }
+
             }
-            // }));
         }
     }
 };
@@ -1436,4 +1479,5 @@ const valueBetRandomSearch = async () => {
 // valueBetGridSearch()
 // valueBetRandomSearch()
 
+//TODO CREATE STABILITY AND STRUCTURE OF SERVER TO THE POINT YOU CAN GIT PUSH AND LEAVE IT ALONE FOREVER
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed }

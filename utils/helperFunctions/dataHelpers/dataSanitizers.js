@@ -73,6 +73,8 @@ const normalizeTeamName = (teamName, league) => {
             teamName = 'Morgan State Lady Bears'
         } else if(teamName === 'UNLV Rebels'){
             teamName = 'UNLV Lady Rebels'
+        }else if (teamName === 'Montana Grizzlies'){
+            teamName = 'Montana Lady Griz'
         }
     }
 
