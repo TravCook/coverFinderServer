@@ -43,8 +43,6 @@ const normalizeTeamName = (teamName, league) => {
 
     }
 
-
-
     if (league === 'basketball_ncaab' || league === 'basketball_wncaab') {
         // Replace common abbreviations or patterns
         teamName = teamName.replace(/\bst\b(?!\.)/gi, 'State'); // Match "St" or "st" as a separate word, not followed by a perio
@@ -56,27 +54,72 @@ const normalizeTeamName = (teamName, league) => {
 
     if (league === 'basketball_wncaab') {
         if (teamName === 'Penn State Nittany Lions') {
-            teamName = 'Penn State Lady Lions'
+            teamName = 'Penn State Lady Lions';
         } else if (teamName === 'Georgia Bulldogs') {
-            teamName = 'Georgia Lady Bulldogs'
+            teamName = 'Georgia Lady Bulldogs';
         } else if (teamName === 'Tennessee Volunteers') {
-            teamName = 'Tennessee Lady Volunteers'
-        } else if (teamName === "Oklahoma State Cowboys") {
-            teamName = "Oklahoma State Cowgirls"
-        } else if (teamName === ' UNLV Rebels') {
-            teamName = 'UNLV Lady Rebels'
+            teamName = 'Tennessee Lady Volunteers';
+        } else if (teamName === 'Oklahoma State Cowboys') {
+            teamName = 'Oklahoma State Cowgirls';
+        } else if (teamName === 'UNLV Rebels') {
+            teamName = 'UNLV Lady Rebels';
         } else if (teamName === 'Texas Tech Red Raiders') {
-            teamName = 'Texas Tech Lady Raiders'
-        } else if (teamName === `Hawai'i Rainbow Warriors`) {
-            teamName = `Hawai'i Rainbow Wahine`
-        } else if (teamName === 'Morgan State Bears'){
-            teamName = 'Morgan State Lady Bears'
-        } else if(teamName === 'UNLV Rebels'){
-            teamName = 'UNLV Lady Rebels'
-        }else if (teamName === 'Montana Grizzlies'){
-            teamName = 'Montana Lady Griz'
+            teamName = 'Texas Tech Lady Raiders';
+        } else if (teamName === 'Hawai\'i Rainbow Warriors') {
+            teamName = 'Hawai\'i Rainbow Wahine';
+        } else if (teamName === 'Morgan State Bears') {
+            teamName = 'Morgan State Lady Bears';
+        } else if (teamName === 'Montana Grizzlies') {
+            teamName = 'Montana Lady Griz';
+        } else if (teamName === 'Western Kentucky Hilltoppers') {
+            teamName = 'Western Kentucky Lady Toppers';
+        } else if (teamName === 'Massachusetts Minutemen') {
+            teamName = 'Massachusetts Minutewomen';
+        } else if (teamName === 'Crown College Polars') {
+            teamName = 'Crown College Storm';
+        } else if (teamName === 'NE Illinois Ne Illinois') {
+            teamName = 'Northeastern Illinois Golden Eagles';
+        } else if (teamName === 'Hampton Pirates') {
+            teamName = 'Hampton Lady Pirates';
+        } else if (teamName === 'McNeese Cowboys') {
+            teamName = 'McNeese Cowgirls';
+        } else if (teamName === 'Missouri State Bears') {
+            teamName = 'Missouri State Lady Bears';
+        } else if (teamName === 'Wyoming Cowboys') {
+            teamName = 'Wyoming Cowgirls';
+        } else if (teamName === 'Grambling Tigers') {
+            teamName = 'Grambling Lady Tigers';
+        } else if (teamName === 'Alcorn State Braves') {
+            teamName = 'Alcorn State Lady Braves';
+        } else if (teamName === 'Central Arkansas Bears') {
+            teamName = 'Central Arkansas Sugar Bears';
+        } else if (teamName === 'Alabama State Hornets') {
+            teamName = 'Alabama State Lady Hornets';
+        } else if (teamName === 'Jackson State Tigers') {
+            teamName = 'Jackson State Lady Tigers';
+        } else if (teamName === 'Mississippi Valley State Delta Devils') {
+            teamName = 'Mississippi Valley State Devilettes';
+        } else if (teamName === 'Southern Miss Golden Eagles') {
+            teamName = 'Southern Miss Lady Eagles';
+        } else if (teamName === 'Prairie View A&M Panthers') {
+            teamName = 'Prairie View A&M Lady Panthers';
+        } else if (teamName === 'South Carolina State Bulldogs') {
+            teamName = 'South Carolina State Lady Bulldogs';
+        } else if (teamName === 'SE Louisiana Lions') {
+            teamName = 'SE Louisiana Lady Lions';
+        } else if (teamName === 'Stephen F. Austin Lumberjacks') {
+            teamName = 'Stephen F. Austin Ladyjacks';
+        } else if (teamName === 'Tennessee State Tigers') {
+            teamName = 'Tennessee State Lady Tigers';
+        } else if (teamName === 'Louisiana Tech Bulldogs') {
+            teamName = 'Louisiana Tech Lady Techsters';
+        } else if (teamName === 'Northwestern State Demons') {
+            teamName = 'Northwestern State Lady Demons';
+        } else if (teamName === 'East Tennessee State Buccaneers') {
+            teamName = 'East Tennessee State Bucs';
         }
     }
+    
 
     // // Replace hyphens with spaces
     // teamName = teamName.replace(/-/g, ' '); // Replace all hyphens with spaces
@@ -114,4 +157,22 @@ const checkNaNValues = (data, game) => {
     });
 };
 
-module.exports = {checkNaNValues, getDynamicStatYear, normalizeTeamName}
+const nameSearch = async () => {
+    let mensTeams = await BasketballTeam.find({league:'mens-college-basketball'})
+    let womensTeams = await BasketballTeam.find({league: 'womens-college-basketball'})
+
+    for(const mensTeam of mensTeams){
+        let matchingTeam = womensTeams.find((team) => team.espnID === mensTeam.espnID)
+        if(matchingTeam){
+            if(mensTeam.espnDisplayName !== matchingTeam.espnDisplayName){
+                console.log(`Mens Team Name: ${mensTeam.espnDisplayName}`)
+                console.log(`Womens Team Name: ${matchingTeam.espnDisplayName}`)
+            }
+        }
+        else{
+            console.log(`No Matching Team for: ${mensTeam.espnDisplayName}`)
+        }
+    }
+}
+
+module.exports = {checkNaNValues, getDynamicStatYear, normalizeTeamName, nameSearch}

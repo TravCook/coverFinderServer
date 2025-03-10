@@ -1469,6 +1469,7 @@ const valueBetRandomSearch = async () => {
 
 
 
+
 // hyperparameterGridSearch()
 // pastGamesRePredict()
 // oddsSeed()
@@ -1479,5 +1480,4 @@ const valueBetRandomSearch = async () => {
 // valueBetGridSearch()
 // valueBetRandomSearch()
 
-//TODO CREATE STABILITY AND STRUCTURE OF SERVER TO THE POINT YOU CAN GIT PUSH AND LEAVE IT ALONE FOREVER
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed }
