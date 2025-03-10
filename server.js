@@ -42,11 +42,11 @@ const cronJobs = [
     onTick: dataSeed.oddsSeed,
     timezone,
   },
-  // {
-  //   cronTime: '0 */30 * * * *', // Runs 5 min after the odds cron job
-  //   onTick: dataSeed.dataSeed,
-  //   timezone,
-  // },
+  {
+    cronTime: '0 0 2 * * */7', // Once a week at 2 am
+    onTick: dataSeed.valueBetRandomSearch,
+    timezone,
+  },
   {
     cronTime: '0 0 */24 * * *', //once a day at midnight
     onTick: dataSeed.mlModelTrainSeed,

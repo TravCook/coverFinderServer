@@ -156,13 +156,37 @@ const sports = [
     },
 ]
 
-const learningRate = .001 //Controls how much the weights are adjusted during training .00001 to .01
-const batchSize = 64 //The number of samples processed before the model is updated 16, 32, 64, 128
-const epochsValue = 100 //The number of times the model is trained on the entire dataset. 10, 50, 100, 200
-const weightDecayl2 = 0.0001 //Adds a penalty to the loss for large weights, helping to prevent overfitting .00001 to 0
-const dropoutRate = .5 //Randomly drops neurons during training to prevent overfitting by preventing co-adaptation of hidden units. .2 to .5
-const layerNeurons = 128 //More neurons increase the model's capacity to learn but can lead to overfitting. 16 - 1000
+
+// Calculate the index difference
+const indexCondition = (game, indexDifSmall, indexDiffRange) => {
+    const indexDiff = game.predictedWinner === 'home'
+      ? Math.abs(game.homeTeamIndex - game.awayTeamIndex)
+      : Math.abs(game.awayTeamIndex - game.homeTeamIndex);
+  
+    return indexDiff > indexDifSmall && indexDiff < (indexDifSmall + indexDiffRange);
+  };
+  
+  const strengthCondition = (game, confidenceLow, confidenceRange) => {
+    return game.predictionStrength > confidenceLow && game.predictionStrength < (confidenceLow + confidenceRange);
+  };
+  
+  const probabilityCondition = (o, game, winPercentInc) => {
+    return (o.impliedProb * 100) < (game.winPercent + winPercentInc);
+  };
+  
+  const teamCondition = (game, o) => {
+    return (game.predictedWinner === 'home' && game.home_team === o.name) || (game.predictedWinner === 'away' && game.away_team === o.name);
+  };
+  
+  
+  // You can also combine them into a single condition
+  const combinedCondition = (game, o, indexDifSmall, indexDiffRange, confidenceLow, confidenceRange, winPercentInc) => {
+    return probabilityCondition(o, game, winPercentInc)
+      && teamCondition(game, o)
+     && indexCondition(game, indexDifSmall, indexDiffRange)
+     && strengthCondition(game, confidenceLow, confidenceRange)
+  };
+  
 
 
-
-module.exports = {sports, learningRate, batchSize, epochsValue, weightDecayl2, dropoutRate, layerNeurons}
+module.exports = {sports, combinedCondition}

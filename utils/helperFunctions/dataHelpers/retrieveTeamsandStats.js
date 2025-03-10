@@ -496,7 +496,7 @@ const retrieveTeamsandStats = async () => {
                             { home_team: team.espnDisplayName },
                             { away_team: team.espnDisplayName }
                         ]
-                    }).sort({ commence_time: -1, winPercent: 1 })
+                    }).sort({ commence_time: -1 })
                     team.lastFiveGames = []
 
 
@@ -517,6 +517,7 @@ const retrieveTeamsandStats = async () => {
                                 homeScore: game.homeScore,
                                 awayScore: game.awayScore,
                                 winner: game.winner,
+                                predictedWinner: game.predictedWinner
                             }
                         }
 
@@ -565,7 +566,7 @@ const retrieveTeamsandStats = async () => {
         fetchAllTeamData(sports[i], teams, sports[i].statYear)
     }
 
-
+    console.log(`Finished TEAM SEEDING @ ${moment().format('HH:mm:ss')}`)
 }
 const getCommonStats = (team) => ({
     //------------------------------SHARED STATS-----------------------------------------------------------

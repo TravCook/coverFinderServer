@@ -23,12 +23,19 @@ const dataSeed = async () => {
     console.log("DB CONNECTED ------------------------------------------------- STARTING SEED")
     await retrieveTeamsandStats()
     // DETERMINE TEAMS
-    console.log(`Finished TEAM SEEDING @ ${moment().format('HH:mm:ss')}`)
-    // CLEANED AND FORMATTED
+
     let currentOdds
+    let allPastGames
+    let sportGames
     const currentDate = new Date();
     const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11, so we add 1 to make it 1-12
-    let allPastGames = await PastGameOdds.find()
+
+    try{
+        allPastGames = await PastGameOdds.find()
+    }catch(err){
+        console.log(err)
+    }
+
 
     for (let sport = 0; sport < sports.length; sport++) {
         const modelPath = `./model_checkpoint/${sports[sport].name}_model/model.json`;
@@ -46,10 +53,14 @@ const dataSeed = async () => {
 
         const model = await loadOrCreateModel()
         if (model) {
+            try{
+                sportGames = await Odds.find({
+                    sport_key: sports[sport].name
+                })
+            }catch(err){
+                console.log(err)
+            }
 
-            let sportGames = await Odds.find({
-                sport_key: sports[sport].name
-            })
 
             let ff = []
             if (sportGames.length > 0) {
@@ -88,41 +99,38 @@ const dataSeed = async () => {
 
                         // Step 6: Determine the predicted winner
                         const predictedWinner = predictedWinPercent >= 0.5 ? 'home' : 'away';
-
-                        // Update the game with prediction strength
-                        await Odds.findOneAndUpdate(
-                            { id: game.id },
-                            {
-                                predictionStrength: predictionStrength > .50 ? predictionStrength : 1 - predictionStrength,
-                                predictedWinner: predictedWinner,
-                                predictionCorrect: game.winner === predictedWinner ? true : false
-                            }
-                        );
+                        try{
+                            await Odds.findOneAndUpdate(
+                                { id: game.id },
+                                {
+                                    predictionStrength: predictionStrength > .50 ? predictionStrength : 1 - predictionStrength,
+                                    predictedWinner: predictedWinner,
+                                    predictionCorrect: game.winner === predictedWinner ? true : false
+                                }
+                            );
+                        }catch(err){
+                            console.log(err)
+                        }
                     }
                 }
-                // Step 5: Loop through each game and update with predicted probabilities
-
             }
-
             // Handle the weights extraction after training
             await handleSportWeights(model, sports[sport]);
-
 
             indexAdjuster(sportGames, sports[sport], allPastGames)
 
             sportGames = []
         }
         console.log(`${sports[sport].name} PREDICTING AND INDEXING DONE @ ${moment().format('HH:mm:ss')}`)
-
     }
 
-
-
-    currentOdds = await Odds.find()
+    try{
+        currentOdds = await Odds.find()
+    }catch(err){
+        console.log(err)
+    }
+    
     await impliedProbCalc(currentOdds)
-
-    const dataSize = Buffer.byteLength(JSON.stringify(currentOdds), 'utf8');
-    console.log(`Data size sent: ${dataSize / 1024} KB ${moment().format('HH:mm:ss')} dataSeed`);
 
     // Fetch current odds and iterate over them using async loop
     console.info(`Full Seeding complete! 🌱 @ ${moment().format('HH:mm:ss')}`);
@@ -159,7 +167,6 @@ const mlModelTrainSeed = async () => {
     
     dataSeed()
 }
-
 
 
 const oddsSeed = async () => {
@@ -1468,16 +1475,4 @@ const valueBetRandomSearch = async () => {
 };
 
 
-
-
-// hyperparameterGridSearch()
-// pastGamesRePredict()
-// oddsSeed()
-// dataSeed()
-// removeSeed()
-// pastGameStatsPoC()
-// mlModelTrainSeed()
-// valueBetGridSearch()
-// valueBetRandomSearch()
-
-module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed }
+module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed, valueBetRandomSearch }

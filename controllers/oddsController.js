@@ -1,6 +1,7 @@
 const { Odds, PastGameOdds, UsaFootballTeam, BasketballTeam, HockeyTeam, BaseballTeam, Sport } = require('../models');
 const moment = require('moment');
 const NodeCache = require('node-cache');
+const { combinedCondition } = require('../utils/constants');
 const myCache = new NodeCache(); // Instantiate cache object
 
 // Utility function for filtering odds based on commence time
@@ -76,28 +77,19 @@ module.exports = {
                 let odds = await Odds.find({}).sort({ commence_time: 1, winPercent: 1 })
                 let pastGames = await PastGameOdds.find({
                     commence_time: { $gte: twoWeeksAgo.toISOString(), $lt: currentDate.toISOString() }
-                }, {
-                    bookmakers: 1,
-                    home_team: 1,
-                    away_team: 1,
-                    winner: 1,
-                    predictedWinner: 1,
-                    predictionCorrect: 1,
-                    winPercent: 1,
-                    predictionStrength: 1
                 }).sort({ commence_time: -1, winPercent: 1 });
                 pastGames.map((gameData, idx) => {
                     const bookmaker = gameData?.bookmakers?.find(b => b.key === req.body.sportsbook);
 
                     const marketData = bookmaker?.markets?.find(m => m.key === 'h2h');
 
-                    const prob = marketData?.outcomes?.find(out => {
-                        return out.name === (gameData.predictedWinner === 'home' ? gameData.home_team : gameData.away_team);
+                    marketData?.outcomes?.find(out => {
+                        let currentSport = sports.find(arraySport => arraySport.name === gameData.sport_key)
+                        let sportSettings = currentSport.valueBetSettings.find((setting) => setting.bookmaker === req.body.sportsbook)
+                        if(combinedCondition(gameData, out, sportSettings.settings.indexDiffSmallNum, sportSettings.settings.indexDiffRangeNum, sportSettings.settings.confidenceLowNum, sportSettings.settings.confidenceRangeNum, sportSettings.settings.winPercentIncrease)){
+                            valueGames.push(gameData)
+                        }
                     });
-                    // ((gameData.winPercent + (gameData.predictionStrength * 100)) / 2)
-                    if (prob?.impliedProb * 100 < gameData.winPercent) {
-                        valueGames.push(gameData)
-                    }
                 })
                 const [footballTeams, basketballTeams, baseballTeams, hockeyTeams] = await Promise.all([UsaFootballTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1, lastFiveGames: 1 }),
                 BasketballTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1, lastFiveGames: 1 }),
