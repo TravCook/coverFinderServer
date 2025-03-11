@@ -30,9 +30,9 @@ const dataSeed = async () => {
     const currentDate = new Date();
     const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11, so we add 1 to make it 1-12
 
-    try{
+    try {
         allPastGames = await PastGameOdds.find()
-    }catch(err){
+    } catch (err) {
         console.log(err)
     }
 
@@ -53,15 +53,16 @@ const dataSeed = async () => {
 
         const model = await loadOrCreateModel()
         if (model) {
-            try{
+            try {
                 sportGames = await Odds.find({
-                    sport_key: sports[sport].name
+                    sport_key: sports[sport].name,
+                    predictedWinner: {$nin: ['home','away']}
                 })
-            }catch(err){
+            } catch (err) {
                 console.log(err)
             }
 
-
+            
             let ff = []
             if (sportGames.length > 0) {
                 // Step 1: Extract the features for each game
@@ -99,7 +100,7 @@ const dataSeed = async () => {
 
                         // Step 6: Determine the predicted winner
                         const predictedWinner = predictedWinPercent >= 0.5 ? 'home' : 'away';
-                        try{
+                        try {
                             await Odds.findOneAndUpdate(
                                 { id: game.id },
                                 {
@@ -108,7 +109,7 @@ const dataSeed = async () => {
                                     predictionCorrect: game.winner === predictedWinner ? true : false
                                 }
                             );
-                        }catch(err){
+                        } catch (err) {
                             console.log(err)
                         }
                     }
@@ -124,12 +125,12 @@ const dataSeed = async () => {
         console.log(`${sports[sport].name} PREDICTING AND INDEXING DONE @ ${moment().format('HH:mm:ss')}`)
     }
 
-    try{
+    try {
         currentOdds = await Odds.find()
-    }catch(err){
+    } catch (err) {
         console.log(err)
     }
-    
+
     await impliedProbCalc(currentOdds)
 
     // Fetch current odds and iterate over them using async loop
@@ -164,7 +165,7 @@ const mlModelTrainSeed = async () => {
         console.log(`${sports[sport].name} ML DONE @ ${moment().format('HH:mm:ss')}`)
 
     }
-    
+
     dataSeed()
 }
 
@@ -560,21 +561,26 @@ const oddsSeed = async () => {
                             } else {
                                 if (oddExist) {
                                     // Update the existing odds with normalized team names and sport type
-                                    await Odds.findOneAndUpdate({ id: event.id }, {
-                                        homeTeamIndex: oddExist.homeTeamIndex ? oddExist.homeTeamIndex : 0,
-                                        awayTeamIndex: oddExist.awayTeamIndex ? oddExist.awayTeamIndex : 0,
-                                        ...event,
-                                        homeTeamStats: homeTeam ? cleanStats(getCommonStats(homeTeam)) : 'no stat data',
-                                        awayTeamStats: awayTeam ? cleanStats(getCommonStats(awayTeam)) : 'no stat data',
-                                        homeTeamlogo: homeTeam ? homeTeam.logo : 'no logo data',
-                                        awayTeamlogo: awayTeam ? awayTeam.logo : 'no logo data',
-                                        homeTeamAbbr: homeTeam?.abbreviation,
-                                        awayTeamAbbr: awayTeam?.abbreviation,
-                                        home_team: normalizedHomeTeam,
-                                        away_team: normalizedAwayTeam,
-                                        bookmakers: updatedBookmakers, // Include the updated bookmakers with normalized outcomes
-                                        sport: scheduleSport,
-                                    });
+
+                                    try {
+                                        await Odds.findOneAndUpdate({ id: event.id }, {
+                                            homeTeamIndex: oddExist.homeTeamIndex ? oddExist.homeTeamIndex : 0,
+                                            awayTeamIndex: oddExist.awayTeamIndex ? oddExist.awayTeamIndex : 0,
+                                            ...event,
+                                            homeTeamStats: homeTeam ? cleanStats(getCommonStats(homeTeam)) : 'no stat data',
+                                            awayTeamStats: awayTeam ? cleanStats(getCommonStats(awayTeam)) : 'no stat data',
+                                            homeTeamlogo: homeTeam ? homeTeam.logo : 'no logo data',
+                                            awayTeamlogo: awayTeam ? awayTeam.logo : 'no logo data',
+                                            homeTeamAbbr: homeTeam?.abbreviation,
+                                            awayTeamAbbr: awayTeam?.abbreviation,
+                                            home_team: normalizedHomeTeam,
+                                            away_team: normalizedAwayTeam,
+                                            bookmakers: updatedBookmakers, // Include the updated bookmakers with normalized outcomes
+                                            sport: scheduleSport,
+                                        });
+                                    } catch (err) {
+                                        console.log(err)
+                                    }
                                 } else {
                                     // Create a new odds entry with normalized team names and sport type
                                     await Odds.create({
@@ -878,16 +884,20 @@ const pastGamesRePredict = async () => {
 
                         // Step 6: Determine the predicted winner
                         const predictedWinner = predictedWinPercent >= 0.5 ? 'home' : 'away';
+                        try {
+                            // Update the game with prediction strength
+                            await PastGameOdds.findOneAndUpdate(
+                                { id: game.id },
+                                {
+                                    predictionStrength: predictionStrength > .50 ? predictionStrength : 1 - predictionStrength,
+                                    predictedWinner: predictedWinner,
+                                    predictionCorrect: game.winner === predictedWinner ? true : false
+                                }
+                            );
+                        } catch (err) {
+                            console.log(err)
+                        }
 
-                        // Update the game with prediction strength
-                        await PastGameOdds.findOneAndUpdate(
-                            { id: game.id },
-                            {
-                                predictionStrength: predictionStrength > .50 ? predictionStrength : 1 - predictionStrength,
-                                predictedWinner: predictedWinner,
-                                predictionCorrect: game.winner === predictedWinner ? true : false
-                            }
-                        );
                     }
                 }
             }
@@ -1473,6 +1483,5 @@ const valueBetRandomSearch = async () => {
         }
     }
 };
-
 
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed, valueBetRandomSearch }

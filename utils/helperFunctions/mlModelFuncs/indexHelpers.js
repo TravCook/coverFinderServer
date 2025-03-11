@@ -726,17 +726,22 @@ const indexAdjuster = (currentOdds, sport, allPastGames) => {
 
             // Update the Odds database with the calculated indices
             if (sport.name === game.sport_key) {
-                await Odds.findOneAndUpdate({ 'id': game.id }, {
-                    homeTeamIndex: ((homeIndex / (homeIndex + awayIndex)) * 45),
-                    awayTeamIndex: ((awayIndex / (homeIndex + awayIndex)) * 45),
-                    homeTeamStats: homeTeam ? cleanStats(getCommonStats(homeTeam)) : 'no stat data',
-                    awayTeamStats: awayTeam ? cleanStats(getCommonStats(awayTeam)) : 'no stat data',
-                    homeTeamlogo: homeTeam ? homeTeam.logo : 'no logo data',
-                    awayTeamlogo: awayTeam ? awayTeam.logo : 'no logo data',
-                    homeTeamAbbr: homeTeam?.abbreviation,
-                    awayTeamAbbr: awayTeam?.abbreviation,
-                    winPercent: winrate
-                });
+                try{
+                    await Odds.findOneAndUpdate({ 'id': game.id }, {
+                        homeTeamIndex: ((homeIndex / (homeIndex + awayIndex)) * 45),
+                        awayTeamIndex: ((awayIndex / (homeIndex + awayIndex)) * 45),
+                        homeTeamStats: homeTeam ? cleanStats(getCommonStats(homeTeam)) : 'no stat data',
+                        awayTeamStats: awayTeam ? cleanStats(getCommonStats(awayTeam)) : 'no stat data',
+                        homeTeamlogo: homeTeam ? homeTeam.logo : 'no logo data',
+                        awayTeamlogo: awayTeam ? awayTeam.logo : 'no logo data',
+                        homeTeamAbbr: homeTeam?.abbreviation,
+                        awayTeamAbbr: awayTeam?.abbreviation,
+                        winPercent: winrate
+                    });
+                }catch(err){
+                    console.log(err)
+                }
+
             }
         }
     });

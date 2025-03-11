@@ -616,31 +616,36 @@ const pastGameStatsPoC = async () => {
 
                             if (homeTeam && awayTeam && (homeScore !== undefined && homeScore !== null) && (awayScore !== undefined && awayScore !== null)) {
                                 // Use findOneAndUpdate to either update or create the game odds record
-                                await PastGameOdds.findOneAndUpdate(
-                                    { id: event.id },  // Match on event ID
-                                    {
-                                        $set: {
-                                            id: event.id,
-                                            sport_key: sport.name,
-                                            sport_title: sport.league,
-                                            commence_time: event.date,
-                                            home_team: homeTeam.espnDisplayName,
-                                            away_team: awayTeam.espnDisplayName,
-                                            awayTeamAbbr: awayTeam.abbreviation,
-                                            homeTeamAbbr: homeTeam.abbreviation,
-                                            homeTeamlogo: homeTeam.logo,
-                                            awayTeamlogo: awayTeam.logo,
-                                            sport: sport.espnSport,
-                                            winner: gameWinner || 'draw',
-                                            homeScore: homeScore,
-                                            awayScore: awayScore,
-                                            homeTeamStats: homeTeam.stats,
-                                            awayTeamStats: awayTeam.stats,
-                                            predictionCorrect: false
-                                        }
-                                    },
-                                    { upsert: true }  // If not found, insert a new document
-                                );
+                                try {
+                                    await PastGameOdds.findOneAndUpdate(
+                                        { id: event.id },  // Match on event ID
+                                        {
+                                            $set: {
+                                                id: event.id,
+                                                sport_key: sport.name,
+                                                sport_title: sport.league,
+                                                commence_time: event.date,
+                                                home_team: homeTeam.espnDisplayName,
+                                                away_team: awayTeam.espnDisplayName,
+                                                awayTeamAbbr: awayTeam.abbreviation,
+                                                homeTeamAbbr: homeTeam.abbreviation,
+                                                homeTeamlogo: homeTeam.logo,
+                                                awayTeamlogo: awayTeam.logo,
+                                                sport: sport.espnSport,
+                                                winner: gameWinner || 'draw',
+                                                homeScore: homeScore,
+                                                awayScore: awayScore,
+                                                homeTeamStats: homeTeam.stats,
+                                                awayTeamStats: awayTeam.stats,
+                                                predictionCorrect: false
+                                            }
+                                        },
+                                        { upsert: true }  // If not found, insert a new document
+                                    );
+                                } catch (err) {
+                                    console.log(err)
+                                }
+
                             }
 
 
@@ -663,4 +668,4 @@ const pastGameStatsPoC = async () => {
 
 }
 
-module.exports = {pastGameStatsPoC}
+module.exports = { pastGameStatsPoC }

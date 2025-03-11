@@ -3,7 +3,7 @@ const statsMinMax = require('../../seeds/sampledGlobalStats.json')
 const { checkNaNValues } = require('../dataHelpers/dataSanitizers')
 const fs = require('fs')
 const tf = require('@tensorflow/tfjs-node');
-const {learningRate, batchSize, epochsValue, weightDecayl2, dropoutRate, layerNeurons} = require('../../constants')
+const { learningRate, batchSize, epochsValue, weightDecayl2, dropoutRate, layerNeurons } = require('../../constants')
 const { handleSportWeights, indexAdjuster } = require('./indexHelpers')
 
 const getStat = (stats, statName, fallbackValue = 0) => {
@@ -486,10 +486,10 @@ const calculateClassWeights = (ys) => {
 };
 
 const loadOrCreateModel = async (xs) => {
-        // Define the path to the model
-        const modelPath = `./model_checkpoint/${sport.name}_model/model.json`;
-        // Define the path to the model directory
-        const modelDir = `./model_checkpoint/${sport.name}_model`;
+    // Define the path to the model
+    const modelPath = `./model_checkpoint/${sport.name}_model/model.json`;
+    // Define the path to the model directory
+    const modelDir = `./model_checkpoint/${sport.name}_model`;
     try {
         if (fs.existsSync(modelPath)) {
             return await tf.loadLayersModel(`file://./model_checkpoint/${sport.name}_model/model.json`);
@@ -500,7 +500,7 @@ const loadOrCreateModel = async (xs) => {
 
 
             newModel.add(tf.layers.dense({ units: xs[0].length, inputShape: [xs[0].length], activation: 'relu', kernelInitializer: sport.kernelInitializer, kernelRegularizer: l2Regularizer, biasInitializer: 'zeros' }));
-            for(let layers = 0; layers<sport.hiddenLayerNum;layers++){
+            for (let layers = 0; layers < sport.hiddenLayerNum; layers++) {
                 newModel.add(tf.layers.dense({ units: layerNeurons, activation: 'relu', kernelInitializer: sport.kernelInitializer, kernelRegularizer: l2Regularizer, biasInitializer: 'zeros' }));
                 newModel.add(tf.layers.dropout({ rate: sport.dropoutReg }));  //Dropout range from .2 up to .7, lower keeps performance intact while still preventing overfitting
             }
@@ -667,7 +667,7 @@ const predictions = async (sportOdds, ff, model) => {
         // logits.print(); // Check the raw values before sigmoid
 
         // Step 3: Get the predictions
-        const predictions = await model.predict(ffTensor, {training: false});
+        const predictions = await model.predict(ffTensor, { training: false });
 
         // Step 4: Convert predictions tensor to array
         const probabilities = await predictions.array();  // Resolves to an array
@@ -684,15 +684,19 @@ const predictions = async (sportOdds, ff, model) => {
 
                 // Step 6: Determine the predicted winner
                 const predictedWinner = predictedWinPercent >= 0.5 ? 'home' : 'away';
-
+                try {
+                    await Odds.findOneAndUpdate(
+                        { id: game.id },
+                        {
+                            predictionStrength: predictionStrength > .50 ? predictionStrength : 1 - predictionStrength,
+                            predictedWinner: predictedWinner
+                        }
+                    );
+                } catch (err) {
+                    console.log(err)
+                }
                 // Update the game with prediction strength
-                await Odds.findOneAndUpdate(
-                    { id: game.id },
-                    {
-                        predictionStrength: predictionStrength > .50 ? predictionStrength : 1 - predictionStrength,
-                        predictedWinner: predictedWinner
-                    }
-                );
+
             }
         }
     }
@@ -783,7 +787,7 @@ const trainSportModelKFold = async (sport, gameData) => {
         const loss = evaluation[0].arraySync();
         const accuracy = evaluation[1].arraySync();
 
-        const metrics = evaluateMetrics(testYsTensor, model.predict(testXsTensor, {training: false}));
+        const metrics = evaluateMetrics(testYsTensor, model.predict(testXsTensor, { training: false }));
 
         // // Log metrics for each fold
         // Store fold results
@@ -848,7 +852,7 @@ const trainSportModel = async (sport, gameData) => {
     const accuracy = evaluation[1].arraySync();
     // Now, calculate precision, recall, and F1-score
 
-    const metrics = evaluateMetrics(ysTensor, model.predict(xsTensor, {training: false}));
+    const metrics = evaluateMetrics(ysTensor, model.predict(xsTensor, { training: false }));
     // Log the metrics
     console.log(`${sport.name} Model Loss:`, loss);
     console.log(`${sport.name} Model Accuracy:`, accuracy);

@@ -11,37 +11,47 @@ const impliedProbCalc = (currentOdds) => {
                     await Promise.all(market.outcomes.map(async (outcome) => {
                         // Perform the update using arrayFilters to target the correct outcome
                         if (outcome.price < 0) {
-                            await Odds.findOneAndUpdate(
-                                { 'id': game.id }, // Filter by game id
-                                {
-                                    $set: {
-                                        'bookmakers.$[bookmaker].markets.$[market].outcomes.$[outcome].impliedProb': Math.abs(outcome.price) / (Math.abs(outcome.price) + 100)
+                            try{
+                                await Odds.findOneAndUpdate(
+                                    { 'id': game.id }, // Filter by game id
+                                    {
+                                        $set: {
+                                            'bookmakers.$[bookmaker].markets.$[market].outcomes.$[outcome].impliedProb': Math.abs(outcome.price) / (Math.abs(outcome.price) + 100)
+                                        }
+                                    },
+                                    {
+                                        arrayFilters: [
+                                            { 'bookmaker.key': bookmaker.key }, // Match bookmaker by key
+                                            { 'market.key': market.key }, // Match market by key
+                                            { 'outcome._id': outcome._id } // Match outcome by its _id
+                                        ]
                                     }
-                                },
-                                {
-                                    arrayFilters: [
-                                        { 'bookmaker.key': bookmaker.key }, // Match bookmaker by key
-                                        { 'market.key': market.key }, // Match market by key
-                                        { 'outcome._id': outcome._id } // Match outcome by its _id
-                                    ]
-                                }
-                            );
+                                );
+                            }catch(err){
+                                console.log(err)
+                            }
+
                         } else {
-                            await Odds.findOneAndUpdate(
-                                { 'id': game.id }, // Filter by game id
-                                {
-                                    $set: {
-                                        'bookmakers.$[bookmaker].markets.$[market].outcomes.$[outcome].impliedProb': 100 / (outcome.price + 100)
+                            try{
+                                await Odds.findOneAndUpdate(
+                                    { 'id': game.id }, // Filter by game id
+                                    {
+                                        $set: {
+                                            'bookmakers.$[bookmaker].markets.$[market].outcomes.$[outcome].impliedProb': 100 / (outcome.price + 100)
+                                        }
+                                    },
+                                    {
+                                        arrayFilters: [
+                                            { 'bookmaker.key': bookmaker.key }, // Match bookmaker by key
+                                            { 'market.key': market.key }, // Match market by key
+                                            { 'outcome._id': outcome._id } // Match outcome by its _id
+                                        ]
                                     }
-                                },
-                                {
-                                    arrayFilters: [
-                                        { 'bookmaker.key': bookmaker.key }, // Match bookmaker by key
-                                        { 'market.key': market.key }, // Match market by key
-                                        { 'outcome._id': outcome._id } // Match outcome by its _id
-                                    ]
-                                }
-                            );
+                                );
+                            }catch(err){
+                                console.log(err)
+                            }
+
                         }
                     }));
                 }));
