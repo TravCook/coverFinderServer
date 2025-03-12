@@ -753,11 +753,17 @@ const espnSeed = async () => {
 //TAKES ABOUT 1 HOUR
 const paramAndValueSeed = async () => {
     const { sports } = require('../constants')
+    
 
     // await valueBetRandomSearch(sports)
 
     await hyperparameterRandSearch(sports)
 }
 
+oddsSeed()
+
+//TODO: RE EVALUATE WEIGHTS OF ALL PAST GAMES THROUGH THE INDEX ADJUSTER FUNCTION
+// THEN RE RUN VALUE SEED BARE MINIMUM TO MAKE SURE VALUE PARAMS ARE GOOD
+// POSSIBLY RUN HYPER PARAMS PENDING RESULTS FROM TONIGHT
 
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed, paramAndValueSeed }

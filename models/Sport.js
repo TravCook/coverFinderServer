@@ -35,6 +35,10 @@ const sportSchema = new Schema({
         required: true
     },
     hyperParameters: {
+        bestAccuracy: {
+            type: Number,
+            required: false
+        },
         decayFactor: {
             type: Number,
             required: false
