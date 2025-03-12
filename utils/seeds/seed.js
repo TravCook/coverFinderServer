@@ -760,8 +760,4 @@ const paramAndValueSeed = async () => {
 }
 
 
-// paramAndValueSeed()
-// oddsSeed()
-dataSeed()
-
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed, paramAndValueSeed }
