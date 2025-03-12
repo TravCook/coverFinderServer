@@ -1,9 +1,553 @@
-const sports = require('../../constants')
 const moment = require('moment')
+const { Odds, PastGameOdds, UsaFootballTeam, BasketballTeam, BaseballTeam, HockeyTeam, Sport, Weights } = require('../../../models');
 
-const retrieveTeamsandStats = async () => {
+const getTeamRecordUrl = (month, startMonth, endMonth, espnSport, league, statYear, espnID) => {
+    let type = 2; // Default type
+    if (month === startMonth) {
+        type = 1; // Pre-season
+    } else if (month === endMonth) {
+        type = 3; // Post-season
+    }
+    return `https://sports.core.api.espn.com/v2/sports/${espnSport}/leagues/${league}/seasons/${statYear}/types/${type}/teams/${espnID}/record?lang=en&region=us`;
+};
+
+// Helper function to process the team record response and update the team
+const updateTeamRecord = (team, teamRecordJson) => {
+    try {
+        teamRecordJson.items.forEach((item) => {
+            if (item.name === 'overall') {
+                item.stats.forEach((stat) => {
+                    if (stat.name === 'pointDifferential') {
+                        team.pointDiff = stat.value;
+                    }
+                });
+                team.seasonWinLoss = item.displayValue.replace(/, \d+ PTS$/, ''); // Remove ", X PTS" where X is any number
+            } else if (item.name === 'Home') {
+                team.homeWinLoss = item.displayValue.replace(/, \d+ PTS$/, ''); // Same here
+            } else if (item.name === 'Road' || item.name === 'Away') {
+                team.awayWinLoss = item.displayValue.replace(/, \d+ PTS$/, ''); // Same here
+            }
+        });
+    } catch (err) {
+        console.error("Error processing team record:", err);
+    }
+};
+// Helper function to update team stats
+const updateTeamStats = (team, statName, value, perGameValue, displayValue, category) => {
+    const statMap = {
+        'assists': [
+            { modelField: 'BSKBassists', category: 'offensive' },
+            { modelField: 'HKYassists', category: 'offensive' },
+            { modelField: 'HKYassistsPerGame', isPerGame: true, category: 'offensive' },
+            { modelField: 'BSBassists', category: 'fielding' }
+        ],
+        'hits': [
+            { modelField: 'BSBHitsTotal', category: 'batting' },
+            { modelField: 'BSBhitsGivenUp', category: 'pitching' },
+            { modelField: 'HKYhits', category: 'defensive' },
+            { modelField: 'HKYhitsPerGame', isPerGame: true, category: 'defensive' }
+        ],
+        'shutouts': [
+            { modelField: 'HKYshutouts', category: 'defensive' },
+            { modelField: 'BSBshutouts', category: 'pitching' }
+        ],
+        'saves': [
+            { modelField: 'HKYsaves', category: 'defensive' },
+            { modelField: 'HKYsavesPerGame', isPerGame: true, category: 'defensive' },
+            { modelField: 'BSBsaves', category: 'pitching' }
+        ],
+        'savePct': [
+            { modelField: 'HKYsavePct', category: 'defensive' },
+            { modelField: 'BSBsavePct', category: 'pitching' }
+        ],
+        //'statinapi : [{modelField: 'fieldindb'}, category: 'categoryinDb']
+        //-------------------------------AMERICAN FOOTBALL STATS---------------------------------------------
+        'completionPct': [{ modelField: 'USFBcompletionPercent', category: 'passing' }],
+        'completions': [
+            { modelField: 'USFBcompletions', category: 'passing' },
+            { modelField: 'USFBcompletionsPerGame', isPerGame: true, category: 'passing' }],
+        'netPassingYards': [
+            { modelField: 'USFBnetPassingYards', category: 'passing' },
+            { modelField: 'USFBnetPassingYardsPerGame', isPerGame: true, category: 'passing' }
+        ],
+        'passingFirstDowns': [{ modelField: 'USFBpassingFirstDowns', category: 'passing' }],
+        'passingTouchdowns': [{ modelField: 'USFBpassingTouchdowns', category: 'passing' }],
+        'passingYards': [
+            { USFBpassingYards: 'USFBPassingYards', category: 'passing' },
+            { USFBpassingYardsPerGame: 'USFBPassingYardsPerGame', isPerGame: true, category: 'passing' }
+        ],
+        'passingAttempts': [
+            { modelField: 'USFBpassingAttempts', category: 'passing' },
+            { modelField: 'USFBpassingAttemptsPerGame', isPerGame: true, category: 'passing' }
+        ],
+        'yardsPerPassAttempt': [{ modelField: 'USFByardsPerPassAttempt', category: 'passing' }],
+        'rushingAttempts': [{ modelField: 'USFBrushingAttempts', category: 'rushing' }],
+        'rushingFirstDowns': [{ modelField: 'USFBrushingFirstDowns', category: 'rushing' }],
+        'rushingTouchdowns': [{ modelField: 'USFBrushingTouchdowns', category: 'rushing' }],
+        'rushingYards': [
+            { modelField: 'USFBrushingYards', category: 'rushing' },
+            { modelField: 'USFBrushingYardsPerGame', isPerGame: true, category: 'rushing' }
+        ],
+        'yardsPerRushAttempt': [{ modelField: 'USFByardsPerRushAttempt', category: 'rushing' }],
+        'receivingFirstDowns': [{ modelField: 'USFBreceivingFirstDowns', category: 'receiving' }],
+        'receivingTouchdowns': [{ modelField: 'USFBreceivingTouchdowns', category: 'receiving' }],
+        'receivingYards': [
+            { modelField: 'USFBreceivingYards', category: 'receiving' },
+            { modelField: 'USFBreceivingYardsPerGame', category: 'receiving' }
+        ],
+        'yardsPerReception': [{ modelField: 'USFBreceivingYardsPerReception', category: 'receiving' }],
+        'receivingYardsAfterCatch': [
+            { modelField: 'USFBreceivingYardsAfterCatch', category: 'receiving' },
+            { modelField: 'USFBreceivingYardsAfterCatchPerGame', category: 'receiving' }
+        ],
+        'totalTouchdowns': [
+            { modelField: 'USFBtotalTouchdowns', category: 'scoring' },
+            { modelField: 'USFBtouchdownsPerGame', isPerGame: true, category: 'scoring' }
+        ],
+        'totalPoints': [{ modelField: 'USFBtotalPoints', category: 'scoring' }],
+        'totalPointsPerGame': [{ modelField: 'USFBpointsPerGame', category: 'scoring' }],
+        'tacklesForLoss': [
+            { modelField: 'USFBtacklesforLoss', category: 'defensive' },
+            { modelField: 'USFBtacklesforLossPerGame', isPerGame: true, category: 'defensive' }
+        ],
+        'interceptions': [{ modelField: 'USFBinterceptions', category: 'defensiveInterceptions' }],
+        'avgInterceptionYards': [{ modelField: 'USFByardsPerInterception', category: 'defensive' }],
+        'sacks': [
+            { modelField: 'USFBsacksTotal', category: 'defensive' },
+            { modelField: 'USFBsacksPerGame', isPerGame: true, category: 'defensive' }
+        ],
+        'sackYards': [
+            { modelField: 'USFBsackYards', category: 'defensive' },
+            { modelField: 'USFBsackYardsPerGame', isPerGame: true, category: 'defensive' }
+        ],
+        'stuffs': [
+            { modelField: 'USFBstuffs', category: 'defensive' },
+            { modelField: 'USFBstuffsPerGame', isPerGame: true, category: 'defensive' }
+        ],
+        'stuffYards': [{ modelField: 'USFBstuffYards', category: 'defensive' }],
+        'passesDefended': [
+            { modelField: 'USFBpassesDefended', category: 'defensive' },
+            { modelField: 'USFBpassesDefendedPerGame', isPerGame: true, category: 'defensive' }
+        ],
+        'safeties': [{ modelField: 'USFBsafties', category: 'defensive' }],
+        'avgKickoffYards': [
+            { modelField: 'USFBaverageKickoffYards', category: 'kicking' },
+            { modelField: 'USFBaverageKickoffYardsPerGame', isPerGame: true, category: 'kicking' }
+        ],
+        'extraPointAttempts': [
+            { modelField: 'USFBextraPointAttempts', category: 'kicking' },
+            { modelField: 'USFBextraPointAttemptsPerGame', isPerGame: true, category: 'kicking' }
+        ],
+        'extraPointsMade': [
+            { modelField: 'USFBextraPointsMade', category: 'kicking' },
+            { modelField: 'USFBextraPointsMadePerGame', isPerGame: true, category: 'kicking' }
+        ],
+        'extraPointPct': [
+            { modelField: 'USFBextraPointPercent', category: 'kicking' },
+            { modelField: 'USFBextraPointPercentPerGame', isPerGame: true, category: 'kicking' }
+        ],
+        'fieldGoalAttempts': [
+            { modelField: 'USFBfieldGoalAttempts', category: 'kicking' },
+            { modelField: 'USFBfieldGoalAttemptsPerGame', isPerGame: true, category: 'kicking' }
+        ],
+        'fieldGoalsMade': [
+            { modelField: 'USFBfieldGoalsMade', category: 'kicking' },
+            { modelField: 'USFBfieldGoalsMadePerGame', isPerGame: true, category: 'kicking' }
+        ],
+        'fieldGoalPct': [
+            { modelField: 'USFBfieldGoalPct', category: 'kicking' },
+            { modelField: 'USFBfieldGoalPercentPerGame', isPerGame: true, category: 'kicking' }
+        ],
+        'touchbacks': [
+            { modelField: 'USFBtouchbacks', category: 'kicking' },
+            { modelField: 'USFBtouchbacksPerGame', isPerGame: true, category: 'kicking' }
+        ],
+        'touchbackPct': [{ modelField: 'USFBtouchBackPercentage', category: 'kicking' }],
+        'kickReturns': [
+            { modelField: 'USFBkickReturns', category: 'returning' },
+            { modelField: 'USFBkickReturnsPerGame', isPerGame: true, category: 'returning' }
+        ],
+        'kickReturnYards': [
+            { modelField: 'USFBkickReturnYards', category: 'returning' },
+            { modelField: 'USFBkickReturnYardsPerGame', isPerGame: true, category: 'returning' }
+        ],
+        'puntReturns': [
+            { modelField: 'USFBpuntReturns', category: 'returning' },
+            { modelField: 'USFBpuntReturnsPerGame', isPerGame: true, category: 'returning' }
+        ],
+        'puntReturnFairCatchPct': [{ modelField: 'USFBpuntReturnFairCatchPct', category: 'returning' }],
+        'puntReturnYards': [
+            { modelField: 'USFBpuntReturnYards', category: 'returning' },
+            { modelField: 'USFBpuntReturnYardsPerGame', isPerGame: true, category: 'returning' }
+        ],
+        'yardsPerReturn': [{ modelField: 'USFByardsPerReturn', category: 'returning' }],
+        'thirdDownConvPct': [{ modelField: 'USFBthirdDownEfficiency', category: 'miscellaneous' }],
+        'totalPenaltyYards': [
+            { modelField: 'USFBtotalPenyards', category: 'miscellaneous' },
+            { modelField: 'USFBaveragePenYardsPerGame', isPerGame: true, category: 'miscellaneous' }
+        ],
+        'totalGiveaways': [{ modelField: 'USFBgiveaways', category: 'miscellaneous' }],
+        'totalTakeaways': [{ modelField: 'USFBtakeaways', category: 'miscellaneous' }],
+        'turnOverDifferential': [{ modelField: 'USFBturnoverDiff', category: 'miscellaneous' }],
+        'firstDowns': [{ modelField: 'USFBtotalFirstDowns', category: 'miscellaneous' }],
+        //------------------------------------BASKETBALL STATS--------------------------------------------------------------
+        'points': [{ modelField: 'BSKBtotalPoints', category: 'offensive' }],
+        'avgPoints': [{ modelField: 'BSKBpointsPerGame', category: 'offensive' }],
+
+        'avgAssists': [{ modelField: 'BSKBassistsPerGame', category: 'offensive' }],
+        'assistRatio': [{ modelField: 'BSKBassistRatio', category: 'offensive' }],
+        'effectiveFGPct': [{ modelField: 'BSKBeffectiveFgPercent', category: 'offensive' }],
+        'fieldGoalPct': [{ modelField: 'BSKBfieldGoalPercent', category: 'offensive' }],
+        'fieldGoalsAttempted': [{ modelField: 'BSKBfieldGoalsAttempted', category: 'offensive' }],
+        'fieldGoalsMade': [{ modelField: 'BSKBfieldGoalsMade', category: 'offensive' }],
+        'avgFieldGoalsMade': [{ modelField: 'BSKBfieldGoalsPerGame', category: 'offensive' }],
+        'freeThrowPct': [{ modelField: 'BSKBfreeThrowPercent', category: 'offensive' }],
+        'freeThrowsAttempted': [{ modelField: 'BSKBfreeThrowsAttempted', category: 'offensive' }],
+        'freeThrowsMade': [{ modelField: 'BSKBfreeThrowsMade', category: 'offensive' }],
+        'avgFreeThrowsMade': [{ modelField: 'BSKBfreeThrowsMadePerGame', category: 'offensive' }],
+        'offensiveRebounds': [{ modelField: 'BSKBoffensiveRebounds', category: 'offensive' }],
+        'avgOffensiveRebounds': [{ modelField: 'BSKBoffensiveReboundsPerGame', category: 'offensive' }],
+        'offensiveReboundPct': [{ modelField: 'BSKBoffensiveReboundRate', category: 'offensive' }],
+        'turnovers': [{ modelField: 'BSKBoffensiveTurnovers', category: 'offensive' }],
+        'avgTurnovers': [{ modelField: 'BSKBturnoversPerGame', category: 'offensive' }],
+        'turnoverRatio': [{ modelField: 'BSKBturnoverRatio', category: 'offensive' }],
+        'turnthreePointPctverRatio': [{ modelField: 'BSKBthreePointPct', category: 'offensive' }],
+        'threePointFieldGoalsAttempted': [{ modelField: 'BSKBthreePointsAttempted', category: 'offensive' }],
+        'threePointFieldGoalsMade': [{ modelField: 'BSKBthreePointsMade', category: 'offensive' }],
+        'trueShootingPct': [{ modelField: 'BSKBtrueShootingPct', category: 'offensive' }],
+        'paceFactor': [{ modelField: 'BSKBpace', category: 'offensive' }],
+        'pointsInPaint': [{ modelField: 'BSKBpointsInPaint', category: 'offensive' }],
+        'shootingEfficiency': [{ modelField: 'BSKBshootingEfficiency', category: 'offensive' }],
+        'scoringEfficiency': [{ modelField: 'BSKBscoringEfficiency', category: 'offensive' }],
+        'blocks': [{ modelField: 'BSKBblocks', category: 'defensive' }],
+        'avgBlocks': [{ modelField: 'BSKBblocksPerGame', category: 'defensive' }],
+        'defensiveRebounds': [{ modelField: 'BSKBdefensiveRebounds', category: 'defensive' }],
+        'avgDefensiveRebounds': [{ modelField: 'BSKBdefensiveReboundsPerGame', category: 'defensive' }],
+        'steals': [{ modelField: 'BSKBsteals', category: 'defensive' }],
+        'avgSteals': [{ modelField: 'BSKBstealsPerGame', category: 'defensive' }],
+        'reboundRate': [{ modelField: 'BSKBreboundRate', category: 'general' }],
+        'avgRebounds': [{ modelField: 'BSKBreboundsPerGame', category: 'general' }],
+        'avgFouls': [{ modelField: 'BSKBfoulsPerGame', category: 'general' }],
+        'teamAssistTurnoverRatio': [{ modelField: 'BSKBteamAssistToTurnoverRatio', category: 'general' }],
+        //------------------------------------HOCKEY STATS--------------------------------------------------------------
+        'goals': [{ modelField: 'HKYgoals', category: 'offensive' }],
+        'avgGoals': [{ modelField: 'HKYgoalsPerGame', category: 'offensive' }],
+        'shotsIn1stPeriod': [
+            { modelField: 'HKYshotsIn1st', category: 'offensive' },
+            { modelField: 'HKYshotsIn1stPerGame', isPerGame: true, category: 'offensive' }
+        ],
+        'shotsIn2ndPeriod': [
+            { modelField: 'HKYshotsIn2nd', category: 'offensive' },
+            { modelField: 'HKYshotsIn2ndPerGame', isPerGame: true, category: 'offensive' }
+        ],
+        'shotsIn3rdPeriod': [
+            { modelField: 'HKYshotsIn3rd', category: 'offensive' },
+            { modelField: 'HKYshotsIn3rdPerGame', isPerGame: true, category: 'offensive' }
+        ],
+        'shotsTotal': [
+            { modelField: 'HKYtotalShots', category: 'offensive' },
+        ],
+        'avgShots': [
+            { modelField: 'HKYtotalShotsPerGame', category: 'offensive' },
+        ],
+        'shotsMissed': [
+            { modelField: 'HKYshotsMissed', category: 'offensive' },
+            { modelField: 'HKYshotsMissedPerGame', isPerGame: true, category: 'offensive' }
+        ],
+        'powerPlayGoals': [
+            { modelField: 'HKYppgGoals', category: 'offensive' },
+            { modelField: 'HKYppgGoalsPerGame', isPerGame: true, category: 'offensive' }
+        ],
+        'powerPlayAssists': [
+            { modelField: 'HKYppassists', category: 'offensive' },
+            { modelField: 'HKYppassistsPerGame', isPerGame: true, category: 'offensive' }
+        ],
+        'powerPlayPct': [
+            { modelField: 'HKYpowerplayPct', category: 'offensive' },
+        ],
+        'shortHandedGoals': [
+            { modelField: 'HKYshortHandedGoals', category: 'offensive' },
+            { modelField: 'HKYshortHandedGoalsPerGame', isPerGame: true, category: 'offensive' }
+        ],
+        'shootingPct': [
+            { modelField: 'HKYshootingPct', category: 'offensive' },
+        ],
+        'totalFaceOffs': [
+            { modelField: 'HKYfaceoffs', category: 'offensive' },
+            { modelField: 'HKYfaceoffsPerGame', isPerGame: true, category: 'offensive' }
+        ],
+        'faceoffsWon': [
+            { modelField: 'HKYfaceoffsWon', category: 'offensive' },
+            { modelField: 'HKYfaceoffsWonPerGame', isPerGame: true, category: 'offensive' }
+        ],
+        'faceoffsLost': [
+            { modelField: 'HKYfaceoffsLost', category: 'offensive' },
+            { modelField: 'HKYfaceoffsLostPerGame', isPerGame: true, category: 'offensive' }
+        ],
+        'faceoffPercent': [
+            { modelField: 'HKYfaceoffPct', category: 'offensive' },
+            { modelField: 'HKYfaceoffPctPerGame', isPerGame: true, category: 'offensive' }
+        ],
+        'giveaways': [
+            { modelField: 'HKYgiveaways', category: 'offensive' },
+        ],
+        'goalsAgainst': [
+            { modelField: 'HKYgoalsAgainst', category: 'defensive' },
+        ],
+        'avgGoalsAgainst': [
+            { modelField: 'HKYgoalsAgainstPerGame', category: 'defensive' },
+        ],
+        'shotsAgainst': [
+            { modelField: 'HKYshotsAgainst', category: 'defensive' },
+        ],
+        'avgShotsAgainst': [
+            { modelField: 'HKYshotsAgainstPerGame', category: 'defensive' },
+        ],
+        'penaltyKillPct': [
+            { modelField: 'HKYpenaltyKillPct', category: 'defensive' },
+            { modelField: 'HKYpenaltyKillPctPerGame', isPerGame: true, category: 'defensive' }
+        ],
+        'powerPlayGoalsAgainst': [
+            { modelField: 'HKYppGoalsAgainst', category: 'defensive' },
+            { modelField: 'HKYppGoalsAgainstPerGame', isPerGame: true, category: 'defensive' }
+        ],
+
+        'blockedShots': [
+            { modelField: 'HKYblockedShots', category: 'defensive' },
+            { modelField: 'HKYblockedShotsPerGame', isPerGame: true, category: 'defensive' }
+        ],
+        'takeaways': [
+            { modelField: 'HKYtakeaways', category: 'defensive' },
+            { modelField: 'HKYtakeawaysPerGame', isPerGame: true, category: 'defensive' }
+        ],
+        'shotDifferential': [
+            { modelField: 'HKYshotDifferential', category: 'general' },
+            { modelField: 'HKYshotDifferentialPerGame', isPerGame: true, category: 'general' }
+        ],
+        'goalDifferential': [
+            { modelField: 'HKYgoalDifferentialPerGame', isPerGame: true, category: 'general' },
+        ],
+        'PIMDifferential': [
+            { modelField: 'HKYpimDifferential', category: 'general' },
+            { modelField: 'HKYpimDifferentialPerGame', isPerGame: true, category: 'general' }
+        ],
+        'penalties': [
+            { modelField: 'HKYtotalPenalties', category: 'penalties' },
+            { modelField: 'HKYpenaltiesPerGame', isPerGame: true, category: 'penalties' }
+        ],
+        'penaltyMinutes': [
+            { modelField: 'HKYpenaltyMinutes', category: 'penalties' },
+            { modelField: 'HKYpenaltyMinutesPerGame', isPerGame: true, category: 'penalties' }
+        ],
+        //------------------------------------BASEBALL STATS--------------------------------------------------------------
+        'strikeouts': [
+            { modelField: 'BSBbattingStrikeouts', category: 'batting' },
+            { modelField: 'BSBpitcherStrikeouts', category: 'pitching' }
+        ],
+        'walks': [
+            { modelField: 'BSBwalks', category: 'batting' },
+            { modelField: 'BSBbattersWalked', category: 'pitching' }
+        ],
+        'RBIs': [{ modelField: 'BSBrunsBattedIn', category: 'batting' }],
+        'sacHits': [{ modelField: 'BSBsacrificeHits', category: 'batting' }],
+        'runs': [
+            { modelField: 'BSBruns', category: 'batting' },
+            { modelField: 'BSBrunsAllowed', category: 'pitching' }
+        ],
+        'homeRuns': [
+            { modelField: 'BSBhomeRuns', category: 'batting' },
+            { modelField: 'BSBhomeRunsAllowed', category: 'pitching' }
+        ],
+        'doubles': [{ modelField: 'BSBdoubles', category: 'batting' }],
+        'totalBases': [{ modelField: 'BSBtotalBases', category: 'batting' }],
+        'extraBaseHits': [{ modelField: 'BSBextraBaseHits', category: 'batting' }],
+        'avg': [{ modelField: 'BSBbattingAverage', category: 'batting' }],
+        'slugAvg': [{ modelField: 'BSBsluggingPercentage', category: 'batting' }],
+        'onBasePct': [{ modelField: 'BSBonBasePercentage', category: 'batting' }],
+        'OPS': [{ modelField: 'BSBonBasePlusSlugging', category: 'batting' }],
+        'groundToFlyRatio': [{ modelField: 'BSBgroundToFlyRatio', category: 'batting' }],
+        'atBatsPerHomeRun': [{ modelField: 'BSBatBatsPerHomeRun', category: 'batting' }],
+        'stolenBasePct': [{ modelField: 'BSBstolenBasePercentage', category: 'batting' }],
+        'walkToStrikeoutRatio': [{ modelField: 'BSBbatterWalkToStrikeoutRatio', category: 'batting' }],
+        'earnedRuns': [{ modelField: 'BSBearnedRuns', category: 'pitching' }],
+        'wins': [{ modelField: 'BSBwins', category: 'pitching' }],
+        'ERA': [{ modelField: 'BSBearnedRunAverage', category: 'pitching' }],
+        'WHIP': [{ modelField: 'BSBwalksHitsPerInningPitched', category: 'pitching' }],
+        'winPct': [{ modelField: 'BSBwinPct', category: 'pitching' }],
+        'caughtStealingPct': [{ modelField: 'BSBpitcherCaughtStealingPct', category: 'pitching' }],
+        'pitchesPerInning': [{ modelField: 'BSBpitchesPerInning', category: 'pitching' }],
+        'runSupportAvg': [{ modelField: 'BSBrunSupportAverage', category: 'pitching' }],
+        'opponentAvg': [{ modelField: 'BSBopponentBattingAverage', category: 'pitching' }],
+        'opponentSlugAvg': [{ modelField: 'BSBopponentSlugAverage', category: 'pitching' }],
+        'opponentOnBasePct': [{ modelField: 'BSBopponentOnBasePct', category: 'pitching' }],
+        'opponentOPS': [{ modelField: 'BSBopponentOnBasePlusSlugging', category: 'pitching' }],
+        'strikeoutsPerNineInnings': [{ modelField: 'BSBstrikeoutsPerNine', category: 'pitching' }],
+        'strikeoutToWalkRatio': [{ modelField: 'BSBpitcherStrikeoutToWalkRatio', category: 'pitching' }],
+        'doublePlays': [{ modelField: 'BSBdoublePlays', category: 'fielding' }],
+        'errors': [{ modelField: 'BSBerrors', category: 'fielding' }],
+        'passedBalls': [{ modelField: 'BSBpassedBalls', category: 'fielding' }],
+        'putouts': [{ modelField: 'BSBputouts', category: 'fielding' }],
+        'catcherCaughtStealing': [{ modelField: 'BSBcatcherCaughtStealing', category: 'fielding' }],
+        'catcherCaughtStealingPct': [{ modelField: 'BSBcatcherCaughtStealingPct', category: 'fielding' }],
+        'catcherStolenBasesAllowed': [{ modelField: 'BSBcatcherStolenBasesAllowed', category: 'fielding' }],
+        'fieldingPct': [{ modelField: 'BSBfieldingPercentage', category: 'fielding' }],
+        'rangeFactor': [{ modelField: 'BSBrangeFactor', category: 'fielding' }],
+    }
+
+
+    if (statMap[statName]) {
+        // Loop through all mappings for this stat (in case there are multiple)
+        for (const statInfo of statMap[statName]) {
+            // Ensure the stats object exists
+            team.stats = team.stats || {};
+
+            // Check if the category matches
+            if (statInfo.category === category) {
+                const statKey = statInfo.modelField;
+
+                // If it's a per-game stat, update with perGameValue
+                if (statInfo.isPerGame || statInfo.isDisplayValue) {
+                    statInfo.isDisplayValue ? team.stats[statKey] = displayValue : 0
+                    statInfo.isPerGame ? team.stats[statKey] = perGameValue : 0;
+                } else {
+                    // If it's not a per-game stat, store the regular value
+                    team.stats[statKey] = value;
+                }
+            }
+        }
+    }
+
+    return team;
+};
+
+const upsertTeamsInBulk = async (teams, sport, TeamModel) => {
+
+    const bulkOps = teams.map(team => {
+        // Create a new object without the _id field
+        const { _id, ...teamWithoutId } = team;
+
+        if (sport.league === team.league) {
+            return {
+                updateOne: {
+                    filter: {
+                        'espnID': team.espnID, // Unique to the team
+                        'league': sport.league, // Ensures uniqueness within the league
+                    },
+                    update: { $set: teamWithoutId }, // Ensure you're not updating _id
+                    upsert: true,
+                }
+            };
+        }
+
+        return null
+
+    }).filter(operation => operation !== null);
+
+    if (bulkOps.length > 0) {
+        try{
+            await TeamModel.bulkWrite(bulkOps);
+        }catch(err){
+            console.log(err)
+        }
+
+    }
+};
+
+const fetchAllTeamData = async (sport, teams, statYear, TeamModel) => {
+
+    const fetchTeamData = async (team, sport) => {
+        try {
+            // Fetch team record
+            const teamRecordUrl = getTeamRecordUrl(moment().format('M'), sport.startMonth, sport.endMonth, sport.espnSport, sport.league, sport.statYear, team.espnID);
+            const teamRecordResponse = await fetch(teamRecordUrl);
+            const teamRecordJson = await teamRecordResponse.json();
+            updateTeamRecord(team, teamRecordJson);
+
+            // Fetch team stats
+            const teamStatResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/${sport.espnSport}/leagues/${sport.league}/seasons/${statYear}/types/2/teams/${team.espnID}/statistics?lang=en&region=us`, { signal: AbortSignal.timeout(20000) });
+            const teamStatJson = await teamStatResponse.json();
+            if (teamStatJson.splits) {
+                for (const category of teamStatJson.splits.categories) {
+                    for (const stat of category.stats) {
+                        team = updateTeamStats(team, stat.name, stat.value, stat.perGameValue, stat.displayValue, category.name);
+                    }
+                }
+            }
+            let pastTeamGames = await PastGameOdds.find({
+                $or: [
+                    { home_team: team.espnDisplayName },
+                    { away_team: team.espnDisplayName }
+                ]
+            }).sort({ commence_time: -1 })
+            team.lastFiveGames = []
+
+
+
+            pastTeamGames.map((game, idx) => {
+                if (idx <= 4) {
+                    team.lastFiveGames[idx] = {
+                        id: game.id,
+                        commence_time: game.commence_time,
+                        home_team: game.home_team,
+                        away_team: game.away_team,
+                        homeTeamIndex: game.homeTeamIndex,
+                        awayTeamIndex: game.awayTeamIndex,
+                        homeTeamLogo: game.homeTeamLogo,
+                        awayTeamLogo: game.awayTeamLogo,
+                        homeTeamAbbr: game.homeTeamAbbr,
+                        awayTeamAbbr: game.awayTeamAbbr,
+                        homeScore: game.homeScore,
+                        awayScore: game.awayScore,
+                        winner: game.winner,
+                        predictedWinner: game.predictedWinner
+                    }
+                }
+
+            })
+            return team;  // Return the updated team
+        } catch (error) {
+            console.log(`Error fetching data for team ${team.espnID}:`, error);
+        }
+    };
+
+    const MAX_CONCURRENT_REQUESTS = 20; // You can adjust this number to control concurrency
+    const promises = [];
+
+    try {
+        // Loop through each team and fetch their data
+        for (let team of teams) {
+            promises.push(fetchTeamData(team, sport).then(updatedTeam => {
+                if (updatedTeam) {
+                    return updatedTeam; // Add the updated team to the result
+                }
+            }));
+            // If we reach the maximum number of concurrent requests, wait for them to resolve
+            if (promises.length >= MAX_CONCURRENT_REQUESTS) {
+                // Wait for all current promises to resolve
+                const results = await Promise.all(promises);
+                // Filter out any undefined results (in case some fetches failed)
+                const filteredResults = results.filter(result => result !== undefined);
+                // Upsert the fetched team data in bulk
+                await upsertTeamsInBulk(filteredResults, sport, TeamModel);
+                promises.length = 0; // Clear the array after waiting for requests to resolve
+            }
+        }
+        // After all requests have been processed, make sure to upsert the remaining teams
+        if (promises.length > 0) {
+            const results = await Promise.all(promises);
+            const filteredResults = results.filter(result => result !== undefined);
+            await upsertTeamsInBulk(filteredResults, sport, TeamModel);
+        }
+
+    } catch (error) {
+        console.error("Error fetching or processing team data:", error);
+    }
+};
+
+const retrieveTeamsandStats = async (sports) => {
 
     for (let i = 0; i < sports.length; i++) {
+        console.log(`STARTING ${sports[i].name} TEAM SEEDING @ ${moment().format('HH:mm:ss')}`)
         let TeamModel;
         switch (sports[i].espnSport) {
             case 'football':
@@ -25,546 +569,9 @@ const retrieveTeamsandStats = async () => {
         let teams
         teams = await TeamModel.find({})
         // Helper function to get the team record URL based on the current month
-        const getTeamRecordUrl = (month, startMonth, endMonth, espnSport, league, statYear, espnID) => {
-            let type = 2; // Default type
-            if (month === startMonth) {
-                type = 1; // Pre-season
-            } else if (month === endMonth) {
-                type = 3; // Post-season
-            }
-            return `https://sports.core.api.espn.com/v2/sports/${espnSport}/leagues/${league}/seasons/${statYear}/types/${type}/teams/${espnID}/record?lang=en&region=us`;
-        };
 
-        // Helper function to process the team record response and update the team
-        const updateTeamRecord = (team, teamRecordJson) => {
-            try {
-                teamRecordJson.items.forEach((item) => {
-                    if (item.name === 'overall') {
-                        item.stats.forEach((stat) => {
-                            if (stat.name === 'pointDifferential') {
-                                team.pointDiff = stat.value;
-                            }
-                        });
-                        team.seasonWinLoss = item.displayValue.replace(/, \d+ PTS$/, ''); // Remove ", X PTS" where X is any number
-                    } else if (item.name === 'Home') {
-                        team.homeWinLoss = item.displayValue.replace(/, \d+ PTS$/, ''); // Same here
-                    } else if (item.name === 'Road' || item.name === 'Away') {
-                        team.awayWinLoss = item.displayValue.replace(/, \d+ PTS$/, ''); // Same here
-                    }
-                });
-            } catch (err) {
-                console.error("Error processing team record:", err);
-            }
-        };
-        // Helper function to update team stats
-        const updateTeamStats = (team, statName, value, perGameValue, displayValue, category) => {
-            const statMap = {
-                'assists': [
-                    { modelField: 'BSKBassists', category: 'offensive' },
-                    { modelField: 'HKYassists', category: 'offensive' },
-                    { modelField: 'HKYassistsPerGame', isPerGame: true, category: 'offensive' },
-                    { modelField: 'BSBassists', category: 'fielding' }
-                ],
-                'hits': [
-                    { modelField: 'BSBHitsTotal', category: 'batting' },
-                    { modelField: 'BSBhitsGivenUp', category: 'pitching' },
-                    { modelField: 'HKYhits', category: 'defensive' },
-                    { modelField: 'HKYhitsPerGame', isPerGame: true, category: 'defensive' }
-                ],
-                'shutouts': [
-                    { modelField: 'HKYshutouts', category: 'defensive' },
-                    { modelField: 'BSBshutouts', category: 'pitching' }
-                ],
-                'saves': [
-                    { modelField: 'HKYsaves', category: 'defensive' },
-                    { modelField: 'HKYsavesPerGame', isPerGame: true, category: 'defensive' },
-                    { modelField: 'BSBsaves', category: 'pitching' }
-                ],
-                'savePct': [
-                    { modelField: 'HKYsavePct', category: 'defensive' },
-                    { modelField: 'BSBsavePct', category: 'pitching' }
-                ],
-                //'statinapi : [{modelField: 'fieldindb'}, category: 'categoryinDb']
-                //-------------------------------AMERICAN FOOTBALL STATS---------------------------------------------
-                'completionPct': [{ modelField: 'USFBcompletionPercent', category: 'passing' }],
-                'completions': [
-                    { modelField: 'USFBcompletions', category: 'passing' },
-                    { modelField: 'USFBcompletionsPerGame', isPerGame: true, category: 'passing' }],
-                'netPassingYards': [
-                    { modelField: 'USFBnetPassingYards', category: 'passing' },
-                    { modelField: 'USFBnetPassingYardsPerGame', isPerGame: true, category: 'passing' }
-                ],
-                'passingFirstDowns': [{ modelField: 'USFBpassingFirstDowns', category: 'passing' }],
-                'passingTouchdowns': [{ modelField: 'USFBpassingTouchdowns', category: 'passing' }],
-                'passingYards': [
-                    { USFBpassingYards: 'USFBPassingYards', category: 'passing' },
-                    { USFBpassingYardsPerGame: 'USFBPassingYardsPerGame', isPerGame: true, category: 'passing' }
-                ],
-                'passingAttempts': [
-                    { modelField: 'USFBpassingAttempts', category: 'passing' },
-                    { modelField: 'USFBpassingAttemptsPerGame', isPerGame: true, category: 'passing' }
-                ],
-                'yardsPerPassAttempt': [{ modelField: 'USFByardsPerPassAttempt', category: 'passing' }],
-                'rushingAttempts': [{ modelField: 'USFBrushingAttempts', category: 'rushing' }],
-                'rushingFirstDowns': [{ modelField: 'USFBrushingFirstDowns', category: 'rushing' }],
-                'rushingTouchdowns': [{ modelField: 'USFBrushingTouchdowns', category: 'rushing' }],
-                'rushingYards': [
-                    { modelField: 'USFBrushingYards', category: 'rushing' },
-                    { modelField: 'USFBrushingYardsPerGame', isPerGame: true, category: 'rushing' }
-                ],
-                'yardsPerRushAttempt': [{ modelField: 'USFByardsPerRushAttempt', category: 'rushing' }],
-                'receivingFirstDowns': [{ modelField: 'USFBreceivingFirstDowns', category: 'receiving' }],
-                'receivingTouchdowns': [{ modelField: 'USFBreceivingTouchdowns', category: 'receiving' }],
-                'receivingYards': [
-                    { modelField: 'USFBreceivingYards', category: 'receiving' },
-                    { modelField: 'USFBreceivingYardsPerGame', category: 'receiving' }
-                ],
-                'yardsPerReception': [{ modelField: 'USFBreceivingYardsPerReception', category: 'receiving' }],
-                'receivingYardsAfterCatch': [
-                    { modelField: 'USFBreceivingYardsAfterCatch', category: 'receiving' },
-                    { modelField: 'USFBreceivingYardsAfterCatchPerGame', category: 'receiving' }
-                ],
-                'totalTouchdowns': [
-                    { modelField: 'USFBtotalTouchdowns', category: 'scoring' },
-                    { modelField: 'USFBtouchdownsPerGame', isPerGame: true, category: 'scoring' }
-                ],
-                'totalPoints': [{ modelField: 'USFBtotalPoints', category: 'scoring' }],
-                'totalPointsPerGame': [{ modelField: 'USFBpointsPerGame', category: 'scoring' }],
-                'tacklesForLoss': [
-                    { modelField: 'USFBtacklesforLoss', category: 'defensive' },
-                    { modelField: 'USFBtacklesforLossPerGame', isPerGame: true, category: 'defensive' }
-                ],
-                'interceptions': [{ modelField: 'USFBinterceptions', category: 'defensiveInterceptions' }],
-                'avgInterceptionYards': [{ modelField: 'USFByardsPerInterception', category: 'defensive' }],
-                'sacks': [
-                    { modelField: 'USFBsacksTotal', category: 'defensive' },
-                    { modelField: 'USFBsacksPerGame', isPerGame: true, category: 'defensive' }
-                ],
-                'sackYards': [
-                    { modelField: 'USFBsackYards', category: 'defensive' },
-                    { modelField: 'USFBsackYardsPerGame', isPerGame: true, category: 'defensive' }
-                ],
-                'stuffs': [
-                    { modelField: 'USFBstuffs', category: 'defensive' },
-                    { modelField: 'USFBstuffsPerGame', isPerGame: true, category: 'defensive' }
-                ],
-                'stuffYards': [{ modelField: 'USFBstuffYards', category: 'defensive' }],
-                'passesDefended': [
-                    { modelField: 'USFBpassesDefended', category: 'defensive' },
-                    { modelField: 'USFBpassesDefendedPerGame', isPerGame: true, category: 'defensive' }
-                ],
-                'safeties': [{ modelField: 'USFBsafties', category: 'defensive' }],
-                'avgKickoffYards': [
-                    { modelField: 'USFBaverageKickoffYards', category: 'kicking' },
-                    { modelField: 'USFBaverageKickoffYardsPerGame', isPerGame: true, category: 'kicking' }
-                ],
-                'extraPointAttempts': [
-                    { modelField: 'USFBextraPointAttempts', category: 'kicking' },
-                    { modelField: 'USFBextraPointAttemptsPerGame', isPerGame: true, category: 'kicking' }
-                ],
-                'extraPointsMade': [
-                    { modelField: 'USFBextraPointsMade', category: 'kicking' },
-                    { modelField: 'USFBextraPointsMadePerGame', isPerGame: true, category: 'kicking' }
-                ],
-                'extraPointPct': [
-                    { modelField: 'USFBextraPointPercent', category: 'kicking' },
-                    { modelField: 'USFBextraPointPercentPerGame', isPerGame: true, category: 'kicking' }
-                ],
-                'fieldGoalAttempts': [
-                    { modelField: 'USFBfieldGoalAttempts', category: 'kicking' },
-                    { modelField: 'USFBfieldGoalAttemptsPerGame', isPerGame: true, category: 'kicking' }
-                ],
-                'fieldGoalsMade': [
-                    { modelField: 'USFBfieldGoalsMade', category: 'kicking' },
-                    { modelField: 'USFBfieldGoalsMadePerGame', isPerGame: true, category: 'kicking' }
-                ],
-                'fieldGoalPct': [
-                    { modelField: 'USFBfieldGoalPct', category: 'kicking' },
-                    { modelField: 'USFBfieldGoalPercentPerGame', isPerGame: true, category: 'kicking' }
-                ],
-                'touchbacks': [
-                    { modelField: 'USFBtouchbacks', category: 'kicking' },
-                    { modelField: 'USFBtouchbacksPerGame', isPerGame: true, category: 'kicking' }
-                ],
-                'touchbackPct': [{ modelField: 'USFBtouchBackPercentage', category: 'kicking' }],
-                'kickReturns': [
-                    { modelField: 'USFBkickReturns', category: 'returning' },
-                    { modelField: 'USFBkickReturnsPerGame', isPerGame: true, category: 'returning' }
-                ],
-                'kickReturnYards': [
-                    { modelField: 'USFBkickReturnYards', category: 'returning' },
-                    { modelField: 'USFBkickReturnYardsPerGame', isPerGame: true, category: 'returning' }
-                ],
-                'puntReturns': [
-                    { modelField: 'USFBpuntReturns', category: 'returning' },
-                    { modelField: 'USFBpuntReturnsPerGame', isPerGame: true, category: 'returning' }
-                ],
-                'puntReturnFairCatchPct': [{ modelField: 'USFBpuntReturnFairCatchPct', category: 'returning' }],
-                'puntReturnYards': [
-                    { modelField: 'USFBpuntReturnYards', category: 'returning' },
-                    { modelField: 'USFBpuntReturnYardsPerGame', isPerGame: true, category: 'returning' }
-                ],
-                'yardsPerReturn': [{ modelField: 'USFByardsPerReturn', category: 'returning' }],
-                'thirdDownConvPct': [{ modelField: 'USFBthirdDownEfficiency', category: 'miscellaneous' }],
-                'totalPenaltyYards': [
-                    { modelField: 'USFBtotalPenyards', category: 'miscellaneous' },
-                    { modelField: 'USFBaveragePenYardsPerGame', isPerGame: true, category: 'miscellaneous' }
-                ],
-                'totalGiveaways': [{ modelField: 'USFBgiveaways', category: 'miscellaneous' }],
-                'totalTakeaways': [{ modelField: 'USFBtakeaways', category: 'miscellaneous' }],
-                'turnOverDifferential': [{ modelField: 'USFBturnoverDiff', category: 'miscellaneous' }],
-                'firstDowns': [{ modelField: 'USFBtotalFirstDowns', category: 'miscellaneous' }],
-                //------------------------------------BASKETBALL STATS--------------------------------------------------------------
-                'points': [{ modelField: 'BSKBtotalPoints', category: 'offensive' }],
-                'avgPoints': [{ modelField: 'BSKBpointsPerGame', category: 'offensive' }],
-
-                'avgAssists': [{ modelField: 'BSKBassistsPerGame', category: 'offensive' }],
-                'assistRatio': [{ modelField: 'BSKBassistRatio', category: 'offensive' }],
-                'effectiveFGPct': [{ modelField: 'BSKBeffectiveFgPercent', category: 'offensive' }],
-                'fieldGoalPct': [{ modelField: 'BSKBfieldGoalPercent', category: 'offensive' }],
-                'fieldGoalsAttempted': [{ modelField: 'BSKBfieldGoalsAttempted', category: 'offensive' }],
-                'fieldGoalsMade': [{ modelField: 'BSKBfieldGoalsMade', category: 'offensive' }],
-                'avgFieldGoalsMade': [{ modelField: 'BSKBfieldGoalsPerGame', category: 'offensive' }],
-                'freeThrowPct': [{ modelField: 'BSKBfreeThrowPercent', category: 'offensive' }],
-                'freeThrowsAttempted': [{ modelField: 'BSKBfreeThrowsAttempted', category: 'offensive' }],
-                'freeThrowsMade': [{ modelField: 'BSKBfreeThrowsMade', category: 'offensive' }],
-                'avgFreeThrowsMade': [{ modelField: 'BSKBfreeThrowsMadePerGame', category: 'offensive' }],
-                'offensiveRebounds': [{ modelField: 'BSKBoffensiveRebounds', category: 'offensive' }],
-                'avgOffensiveRebounds': [{ modelField: 'BSKBoffensiveReboundsPerGame', category: 'offensive' }],
-                'offensiveReboundPct': [{ modelField: 'BSKBoffensiveReboundRate', category: 'offensive' }],
-                'turnovers': [{ modelField: 'BSKBoffensiveTurnovers', category: 'offensive' }],
-                'avgTurnovers': [{ modelField: 'BSKBturnoversPerGame', category: 'offensive' }],
-                'turnoverRatio': [{ modelField: 'BSKBturnoverRatio', category: 'offensive' }],
-                'turnthreePointPctverRatio': [{ modelField: 'BSKBthreePointPct', category: 'offensive' }],
-                'threePointFieldGoalsAttempted': [{ modelField: 'BSKBthreePointsAttempted', category: 'offensive' }],
-                'threePointFieldGoalsMade': [{ modelField: 'BSKBthreePointsMade', category: 'offensive' }],
-                'trueShootingPct': [{ modelField: 'BSKBtrueShootingPct', category: 'offensive' }],
-                'paceFactor': [{ modelField: 'BSKBpace', category: 'offensive' }],
-                'pointsInPaint': [{ modelField: 'BSKBpointsInPaint', category: 'offensive' }],
-                'shootingEfficiency': [{ modelField: 'BSKBshootingEfficiency', category: 'offensive' }],
-                'scoringEfficiency': [{ modelField: 'BSKBscoringEfficiency', category: 'offensive' }],
-                'blocks': [{ modelField: 'BSKBblocks', category: 'defensive' }],
-                'avgBlocks': [{ modelField: 'BSKBblocksPerGame', category: 'defensive' }],
-                'defensiveRebounds': [{ modelField: 'BSKBdefensiveRebounds', category: 'defensive' }],
-                'avgDefensiveRebounds': [{ modelField: 'BSKBdefensiveReboundsPerGame', category: 'defensive' }],
-                'steals': [{ modelField: 'BSKBsteals', category: 'defensive' }],
-                'avgSteals': [{ modelField: 'BSKBstealsPerGame', category: 'defensive' }],
-                'reboundRate': [{ modelField: 'BSKBreboundRate', category: 'general' }],
-                'avgRebounds': [{ modelField: 'BSKBreboundsPerGame', category: 'general' }],
-                'avgFouls': [{ modelField: 'BSKBfoulsPerGame', category: 'general' }],
-                'teamAssistTurnoverRatio': [{ modelField: 'BSKBteamAssistToTurnoverRatio', category: 'general' }],
-                //------------------------------------HOCKEY STATS--------------------------------------------------------------
-                'goals': [{ modelField: 'HKYgoals', category: 'offensive' }],
-                'avgGoals': [{ modelField: 'HKYgoalsPerGame', category: 'offensive' }],
-                'shotsIn1stPeriod': [
-                    { modelField: 'HKYshotsIn1st', category: 'offensive' },
-                    { modelField: 'HKYshotsIn1stPerGame', isPerGame: true, category: 'offensive' }
-                ],
-                'shotsIn2ndPeriod': [
-                    { modelField: 'HKYshotsIn2nd', category: 'offensive' },
-                    { modelField: 'HKYshotsIn2ndPerGame', isPerGame: true, category: 'offensive' }
-                ],
-                'shotsIn3rdPeriod': [
-                    { modelField: 'HKYshotsIn3rd', category: 'offensive' },
-                    { modelField: 'HKYshotsIn3rdPerGame', isPerGame: true, category: 'offensive' }
-                ],
-                'shotsTotal': [
-                    { modelField: 'HKYtotalShots', category: 'offensive' },
-                ],
-                'avgShots': [
-                    { modelField: 'HKYtotalShotsPerGame', category: 'offensive' },
-                ],
-                'shotsMissed': [
-                    { modelField: 'HKYshotsMissed', category: 'offensive' },
-                    { modelField: 'HKYshotsMissedPerGame', isPerGame: true, category: 'offensive' }
-                ],
-                'powerPlayGoals': [
-                    { modelField: 'HKYppgGoals', category: 'offensive' },
-                    { modelField: 'HKYppgGoalsPerGame', isPerGame: true, category: 'offensive' }
-                ],
-                'powerPlayAssists': [
-                    { modelField: 'HKYppassists', category: 'offensive' },
-                    { modelField: 'HKYppassistsPerGame', isPerGame: true, category: 'offensive' }
-                ],
-                'powerPlayPct': [
-                    { modelField: 'HKYpowerplayPct', category: 'offensive' },
-                ],
-                'shortHandedGoals': [
-                    { modelField: 'HKYshortHandedGoals', category: 'offensive' },
-                    { modelField: 'HKYshortHandedGoalsPerGame', isPerGame: true, category: 'offensive' }
-                ],
-                'shootingPct': [
-                    { modelField: 'HKYshootingPct', category: 'offensive' },
-                ],
-                'totalFaceOffs': [
-                    { modelField: 'HKYfaceoffs', category: 'offensive' },
-                    { modelField: 'HKYfaceoffsPerGame', isPerGame: true, category: 'offensive' }
-                ],
-                'faceoffsWon': [
-                    { modelField: 'HKYfaceoffsWon', category: 'offensive' },
-                    { modelField: 'HKYfaceoffsWonPerGame', isPerGame: true, category: 'offensive' }
-                ],
-                'faceoffsLost': [
-                    { modelField: 'HKYfaceoffsLost', category: 'offensive' },
-                    { modelField: 'HKYfaceoffsLostPerGame', isPerGame: true, category: 'offensive' }
-                ],
-                'faceoffPercent': [
-                    { modelField: 'HKYfaceoffPct', category: 'offensive' },
-                    { modelField: 'HKYfaceoffPctPerGame', isPerGame: true, category: 'offensive' }
-                ],
-                'giveaways': [
-                    { modelField: 'HKYgiveaways', category: 'offensive' },
-                ],
-                'goalsAgainst': [
-                    { modelField: 'HKYgoalsAgainst', category: 'defensive' },
-                ],
-                'avgGoalsAgainst': [
-                    { modelField: 'HKYgoalsAgainstPerGame', category: 'defensive' },
-                ],
-                'shotsAgainst': [
-                    { modelField: 'HKYshotsAgainst', category: 'defensive' },
-                ],
-                'avgShotsAgainst': [
-                    { modelField: 'HKYshotsAgainstPerGame', category: 'defensive' },
-                ],
-                'penaltyKillPct': [
-                    { modelField: 'HKYpenaltyKillPct', category: 'defensive' },
-                    { modelField: 'HKYpenaltyKillPctPerGame', isPerGame: true, category: 'defensive' }
-                ],
-                'powerPlayGoalsAgainst': [
-                    { modelField: 'HKYppGoalsAgainst', category: 'defensive' },
-                    { modelField: 'HKYppGoalsAgainstPerGame', isPerGame: true, category: 'defensive' }
-                ],
-
-                'blockedShots': [
-                    { modelField: 'HKYblockedShots', category: 'defensive' },
-                    { modelField: 'HKYblockedShotsPerGame', isPerGame: true, category: 'defensive' }
-                ],
-                'takeaways': [
-                    { modelField: 'HKYtakeaways', category: 'defensive' },
-                    { modelField: 'HKYtakeawaysPerGame', isPerGame: true, category: 'defensive' }
-                ],
-                'shotDifferential': [
-                    { modelField: 'HKYshotDifferential', category: 'general' },
-                    { modelField: 'HKYshotDifferentialPerGame', isPerGame: true, category: 'general' }
-                ],
-                'goalDifferential': [
-                    { modelField: 'HKYgoalDifferentialPerGame', isPerGame: true, category: 'general' },
-                ],
-                'PIMDifferential': [
-                    { modelField: 'HKYpimDifferential', category: 'general' },
-                    { modelField: 'HKYpimDifferentialPerGame', isPerGame: true, category: 'general' }
-                ],
-                'penalties': [
-                    { modelField: 'HKYtotalPenalties', category: 'penalties' },
-                    { modelField: 'HKYpenaltiesPerGame', isPerGame: true, category: 'penalties' }
-                ],
-                'penaltyMinutes': [
-                    { modelField: 'HKYpenaltyMinutes', category: 'penalties' },
-                    { modelField: 'HKYpenaltyMinutesPerGame', isPerGame: true, category: 'penalties' }
-                ],
-                //------------------------------------BASEBALL STATS--------------------------------------------------------------
-                'strikeouts': [
-                    { modelField: 'BSBbattingStrikeouts', category: 'batting' },
-                    { modelField: 'BSBpitcherStrikeouts', category: 'pitching' }
-                ],
-                'walks': [
-                    { modelField: 'BSBwalks', category: 'batting' },
-                    { modelField: 'BSBbattersWalked', category: 'pitching' }
-                ],
-                'RBIs': [{ modelField: 'BSBrunsBattedIn', category: 'batting' }],
-                'sacHits': [{ modelField: 'BSBsacrificeHits', category: 'batting' }],
-                'runs': [
-                    { modelField: 'BSBruns', category: 'batting' },
-                    { modelField: 'BSBrunsAllowed', category: 'pitching' }
-                ],
-                'homeRuns': [
-                    { modelField: 'BSBhomeRuns', category: 'batting' },
-                    { modelField: 'BSBhomeRunsAllowed', category: 'pitching' }
-                ],
-                'doubles': [{ modelField: 'BSBdoubles', category: 'batting' }],
-                'totalBases': [{ modelField: 'BSBtotalBases', category: 'batting' }],
-                'extraBaseHits': [{ modelField: 'BSBextraBaseHits', category: 'batting' }],
-                'avg': [{ modelField: 'BSBbattingAverage', category: 'batting' }],
-                'slugAvg': [{ modelField: 'BSBsluggingPercentage', category: 'batting' }],
-                'onBasePct': [{ modelField: 'BSBonBasePercentage', category: 'batting' }],
-                'OPS': [{ modelField: 'BSBonBasePlusSlugging', category: 'batting' }],
-                'groundToFlyRatio': [{ modelField: 'BSBgroundToFlyRatio', category: 'batting' }],
-                'atBatsPerHomeRun': [{ modelField: 'BSBatBatsPerHomeRun', category: 'batting' }],
-                'stolenBasePct': [{ modelField: 'BSBstolenBasePercentage', category: 'batting' }],
-                'walkToStrikeoutRatio': [{ modelField: 'BSBbatterWalkToStrikeoutRatio', category: 'batting' }],
-                'earnedRuns': [{ modelField: 'BSBearnedRuns', category: 'pitching' }],
-                'wins': [{ modelField: 'BSBwins', category: 'pitching' }],
-                'ERA': [{ modelField: 'BSBearnedRunAverage', category: 'pitching' }],
-                'WHIP': [{ modelField: 'BSBwalksHitsPerInningPitched', category: 'pitching' }],
-                'winPct': [{ modelField: 'BSBwinPct', category: 'pitching' }],
-                'caughtStealingPct': [{ modelField: 'BSBpitcherCaughtStealingPct', category: 'pitching' }],
-                'pitchesPerInning': [{ modelField: 'BSBpitchesPerInning', category: 'pitching' }],
-                'runSupportAvg': [{ modelField: 'BSBrunSupportAverage', category: 'pitching' }],
-                'opponentAvg': [{ modelField: 'BSBopponentBattingAverage', category: 'pitching' }],
-                'opponentSlugAvg': [{ modelField: 'BSBopponentSlugAverage', category: 'pitching' }],
-                'opponentOnBasePct': [{ modelField: 'BSBopponentOnBasePct', category: 'pitching' }],
-                'opponentOPS': [{ modelField: 'BSBopponentOnBasePlusSlugging', category: 'pitching' }],
-                'strikeoutsPerNineInnings': [{ modelField: 'BSBstrikeoutsPerNine', category: 'pitching' }],
-                'strikeoutToWalkRatio': [{ modelField: 'BSBpitcherStrikeoutToWalkRatio', category: 'pitching' }],
-                'doublePlays': [{ modelField: 'BSBdoublePlays', category: 'fielding' }],
-                'errors': [{ modelField: 'BSBerrors', category: 'fielding' }],
-                'passedBalls': [{ modelField: 'BSBpassedBalls', category: 'fielding' }],
-                'putouts': [{ modelField: 'BSBputouts', category: 'fielding' }],
-                'catcherCaughtStealing': [{ modelField: 'BSBcatcherCaughtStealing', category: 'fielding' }],
-                'catcherCaughtStealingPct': [{ modelField: 'BSBcatcherCaughtStealingPct', category: 'fielding' }],
-                'catcherStolenBasesAllowed': [{ modelField: 'BSBcatcherStolenBasesAllowed', category: 'fielding' }],
-                'fieldingPct': [{ modelField: 'BSBfieldingPercentage', category: 'fielding' }],
-                'rangeFactor': [{ modelField: 'BSBrangeFactor', category: 'fielding' }],
-            }
-
-
-            if (statMap[statName]) {
-                // Loop through all mappings for this stat (in case there are multiple)
-                for (const statInfo of statMap[statName]) {
-                    // Ensure the stats object exists
-                    team.stats = team.stats || {};
-
-                    // Check if the category matches
-                    if (statInfo.category === category) {
-                        const statKey = statInfo.modelField;
-
-                        // If it's a per-game stat, update with perGameValue
-                        if (statInfo.isPerGame || statInfo.isDisplayValue) {
-                            statInfo.isDisplayValue ? team.stats[statKey] = displayValue : 0
-                            statInfo.isPerGame ? team.stats[statKey] = perGameValue : 0;
-                        } else {
-                            // If it's not a per-game stat, store the regular value
-                            team.stats[statKey] = value;
-                        }
-                    }
-                }
-            }
-
-            return team;
-        };
-
-        const upsertTeamsInBulk = async (teams, sport) => {
-
-            const bulkOps = teams.map(team => {
-                // Create a new object without the _id field
-                const { _id, ...teamWithoutId } = team;
-
-                if (sport.league === team.league) {
-                    return {
-                        updateOne: {
-                            filter: {
-                                'espnID': team.espnID, // Unique to the team
-                                'league': sport.league, // Ensures uniqueness within the league
-                            },
-                            update: { $set: teamWithoutId }, // Ensure you're not updating _id
-                            upsert: true,
-                        }
-                    };
-                }
-
-                return null
-
-            }).filter(operation => operation !== null);
-
-            if (bulkOps.length > 0) {
-                await TeamModel.bulkWrite(bulkOps);
-            }
-        };
-
-        const fetchAllTeamData = async (sport, teams, statYear) => {
-
-            const fetchTeamData = async (team, sport) => {
-                try {
-                    // Fetch team record
-                    const teamRecordUrl = getTeamRecordUrl(moment().format('M'), sport.startMonth, sport.endMonth, sport.espnSport, sport.league, sport.statYear, team.espnID);
-                    const teamRecordResponse = await fetch(teamRecordUrl);
-                    const teamRecordJson = await teamRecordResponse.json();
-                    updateTeamRecord(team, teamRecordJson);
-
-                    // Fetch team stats
-                    const teamStatResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/${sport.espnSport}/leagues/${sport.league}/seasons/${statYear}/types/2/teams/${team.espnID}/statistics?lang=en&region=us`, { signal: AbortSignal.timeout(20000) });
-                    const teamStatJson = await teamStatResponse.json();
-                    if (teamStatJson.splits) {
-                        for (const category of teamStatJson.splits.categories) {
-                            for (const stat of category.stats) {
-                                team = updateTeamStats(team, stat.name, stat.value, stat.perGameValue, stat.displayValue, category.name);
-                            }
-                        }
-                    }
-                    let pastTeamGames = await PastGameOdds.find({
-                        $or: [
-                            { home_team: team.espnDisplayName },
-                            { away_team: team.espnDisplayName }
-                        ]
-                    }).sort({ commence_time: -1 })
-                    team.lastFiveGames = []
-
-
-
-                    pastTeamGames.map((game, idx) => {
-                        if (idx <= 4) {
-                            team.lastFiveGames[idx] = {
-                                id: game.id,
-                                commence_time: game.commence_time,
-                                home_team: game.home_team,
-                                away_team: game.away_team,
-                                homeTeamIndex: game.homeTeamIndex,
-                                awayTeamIndex: game.awayTeamIndex,
-                                homeTeamLogo: game.homeTeamLogo,
-                                awayTeamLogo: game.awayTeamLogo,
-                                homeTeamAbbr: game.homeTeamAbbr,
-                                awayTeamAbbr: game.awayTeamAbbr,
-                                homeScore: game.homeScore,
-                                awayScore: game.awayScore,
-                                winner: game.winner,
-                                predictedWinner: game.predictedWinner
-                            }
-                        }
-
-                    })
-                    return team;  // Return the updated team
-                } catch (error) {
-                    console.log(`Error fetching data for team ${team.espnID}:`, error);
-                }
-            };
-
-            const MAX_CONCURRENT_REQUESTS = 15; // You can adjust this number to control concurrency
-            const promises = [];
-
-            try {
-                // Loop through each team and fetch their data
-                for (let team of teams) {
-                    promises.push(fetchTeamData(team, sport).then(updatedTeam => {
-                        if (updatedTeam) {
-                            return updatedTeam; // Add the updated team to the result
-                        }
-                    }));
-
-                    // If we reach the maximum number of concurrent requests, wait for them to resolve
-                    if (promises.length >= MAX_CONCURRENT_REQUESTS) {
-                        // Wait for all current promises to resolve
-                        const results = await Promise.all(promises);
-                        // Filter out any undefined results (in case some fetches failed)
-                        const filteredResults = results.filter(result => result !== undefined);
-                        // Upsert the fetched team data in bulk
-                        await upsertTeamsInBulk(filteredResults, sport);
-                        promises.length = 0; // Clear the array after waiting for requests to resolve
-                    }
-                }
-
-                // After all requests have been processed, make sure to upsert the remaining teams
-                if (promises.length > 0) {
-                    const results = await Promise.all(promises);
-                    const filteredResults = results.filter(result => result !== undefined);
-                    await upsertTeamsInBulk(filteredResults, sport);
-                }
-
-            } catch (error) {
-                console.error("Error fetching or processing team data:", error);
-            }
-        };
-        fetchAllTeamData(sports[i], teams, sports[i].statYear)
+        await fetchAllTeamData(sports[i], teams, sports[i].statYear, TeamModel)
+        console.log(`Finished ${sports[i].name} TEAM SEEDING @ ${moment().format('HH:mm:ss')}`)
     }
 
     console.log(`Finished TEAM SEEDING @ ${moment().format('HH:mm:ss')}`)

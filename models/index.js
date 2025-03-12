@@ -6,5 +6,6 @@ const BasketballTeam = require('./BasketballTeam')
 const BaseballTeam = require('./BaseballTeam')
 const HockeyTeam = require('./HockeyTeam')
 const Sport = require('./Sport')
+const Weights = require('./MLModelWeights')
 
-module.exports = {Odds, PastGameOdds, WinRate, UsaFootballTeam, BasketballTeam, BaseballTeam, HockeyTeam, Sport}
+module.exports = {Odds, PastGameOdds, WinRate, UsaFootballTeam, BasketballTeam, BaseballTeam, HockeyTeam, Sport, Weights}

@@ -1,8 +1,9 @@
-const { Odds, PastGameOdds } = require('../../../models');
+const { Odds, PastGameOdds, Weights } = require('../../../models');
 const statsMinMax = require('../../seeds/sampledGlobalStats.json')
 const { checkNaNValues } = require('../dataHelpers/dataSanitizers')
 const fs = require('fs')
 const tf = require('@tensorflow/tfjs-node');
+const moment = require('moment')
 const { learningRate, batchSize, epochsValue, weightDecayl2, dropoutRate, layerNeurons } = require('../../constants')
 const { handleSportWeights, indexAdjuster } = require('./indexHelpers')
 
@@ -485,7 +486,7 @@ const calculateClassWeights = (ys) => {
     };
 };
 
-const loadOrCreateModel = async (xs) => {
+const loadOrCreateModel = async (xs, sport) => {
     // Define the path to the model
     const modelPath = `./model_checkpoint/${sport.name}_model/model.json`;
     // Define the path to the model directory
@@ -498,10 +499,9 @@ const loadOrCreateModel = async (xs) => {
             // Using the correct L2 regularization
             const l2Regularizer = tf.regularizers.l2({ l2: sport.l2Reg });  // Adjust the value to suit your needs
 
-
             newModel.add(tf.layers.dense({ units: xs[0].length, inputShape: [xs[0].length], activation: 'relu', kernelInitializer: sport.kernelInitializer, kernelRegularizer: l2Regularizer, biasInitializer: 'zeros' }));
             for (let layers = 0; layers < sport.hiddenLayerNum; layers++) {
-                newModel.add(tf.layers.dense({ units: layerNeurons, activation: 'relu', kernelInitializer: sport.kernelInitializer, kernelRegularizer: l2Regularizer, biasInitializer: 'zeros' }));
+                newModel.add(tf.layers.dense({ units: sport.layerNeurons, activation: 'relu', kernelInitializer: sport.kernelInitializer, kernelRegularizer: l2Regularizer, biasInitializer: 'zeros' }));
                 newModel.add(tf.layers.dropout({ rate: sport.dropoutReg }));  //Dropout range from .2 up to .7, lower keeps performance intact while still preventing overfitting
             }
             newModel.add(tf.layers.dense({ units: 1, activation: 'sigmoid', kernelInitializer: sport.kernelInitializer, kernelRegularizer: l2Regularizer, biasInitializer: 'zeros' }));
@@ -519,7 +519,7 @@ const mlModelTraining = async (gameData, xs, ys, sport) => {
     // Function to calculate decay weight based on number of games processed
     function decayCalcByGames(gamesProcessed, decayFactor) { //FOR USE TO DECAY BY GAMES PROCESSED
         // Full strength for the last 25 games
-        const gamesDecayThreshold = sport.gameDecayThreshold;
+        const gamesDecayThreshold = sport.hyperParameters.gameDecayThreshold || 15;
         if (gamesProcessed <= gamesDecayThreshold) {
             return 1; // No decay for the most recent 25 games
         } else {
@@ -529,10 +529,6 @@ const mlModelTraining = async (gameData, xs, ys, sport) => {
             return decayAmount;  // Decay decreases as the games processed increases
         }
     }
-
-
-
-
 
     let gamesProcessed = 0; // Track how many games have been processed
     // FOR USE TO DECAY BY GAMES PROCESSED
@@ -544,7 +540,7 @@ const mlModelTraining = async (gameData, xs, ys, sport) => {
         let features = extractSportFeatures(homeStats, awayStats, sport.name);
 
         // Calculate decay based on the number of games processed
-        const decayWeight = decayCalcByGames(gamesProcessed, sport.decayFactor);  // get the decay weight based on gamesProcessed
+        const decayWeight = decayCalcByGames(gamesProcessed, sport.hyperParameters.decayFactor);  // get the decay weight based on gamesProcessed
 
         // Apply decay to each feature
         features = features.map(feature => feature * decayWeight);
@@ -552,12 +548,32 @@ const mlModelTraining = async (gameData, xs, ys, sport) => {
         // Set label to 1 if home team wins, 0 if away team wins
         const correctPrediction = game.winner === 'home' ? 1 : 0;
         checkNaNValues(features, game);  // Check features
+        if (features.some(isNaN)) {
+            console.error('NaN detected in features:', features);
+            // Handle NaN values (you could skip this data, replace NaN with a default value, etc.)
+        } else {
+            xs.push(features);
+            ys.push(correctPrediction);
+        }
+
 
         xs.push(features);
         ys.push(correctPrediction);
 
         gamesProcessed++;  // Increment the counter for games processed
     });
+
+    // Check if xs contains NaN values
+    if (xs.some(row => row.some(isNaN))) {
+        console.error('NaN detected in xs:', xs);
+        // Handle NaN values (skip, replace, or log)
+    }
+
+    // Check if ys contains NaN values
+    if (ys.some(isNaN)) {
+        console.error('NaN detected in ys:', ys);
+        // Handle NaN values
+    }
 
     // Convert arrays to tensors
     const xsTensor = tf.tensor2d(xs);
@@ -569,11 +585,10 @@ const mlModelTraining = async (gameData, xs, ys, sport) => {
     const modelDir = `./model_checkpoint/${sport.name}_model`;
 
     // Define the model
-
-    const model = await loadOrCreateModel(xs)
+    const model = await loadOrCreateModel(xs, sport)
     function exponentialDecay(epoch) {
-        const initialLearningRate = learningRate;  // Set your initial learning rate
-        const decayRate = sport.learningDecayFactor;             // Rate at which the learning rate decays
+        const initialLearningRate = sport.hyperParameters.learningRate;  // Set your initial learning rate
+        const decayRate = .99;             // Rate at which the learning rate decays
         const decaySteps = 10;              // The number of epochs after which decay occurs
 
         return initialLearningRate * Math.pow(decayRate, Math.floor(epoch / decaySteps));
@@ -581,7 +596,7 @@ const mlModelTraining = async (gameData, xs, ys, sport) => {
     const learningRateScheduler = {
         onEpochBegin: (epoch, logs) => {
             if (epoch === 0) {
-                // console.log(`Starting Learning Rate: ${learningRate}`);
+                // console.log(`Starting Learning Rate: ${model.optimizer.learningRate}`);
             }
             // Get the new learning rate using the exponential decay function
             const newLearningRate = exponentialDecay(epoch);
@@ -591,15 +606,17 @@ const mlModelTraining = async (gameData, xs, ys, sport) => {
             if (epoch === 99) {
                 // console.log(`Final Learning Rate: ${newLearningRate}`);
             }
+        },
+        onEpochEnd: (epoch, logs) => {
+            // console.log(`New: ${model.optimizer.learningRate}`)
         }
     };
     // Flatten ysTensor to convert it to a 1D array
     const ysArray = await ysTensor.reshape([-1]).array();
     // Dynamically calculate class weights
     const classWeights = calculateClassWeights(ysArray);
-    // console.log("Class Weights: ", classWeights)
     model.compile({
-        optimizer: tf.train.adam(sport.learningRate),
+        optimizer: tf.train.adam(sport.hyperParameters.learningRate),
         loss: 'binaryCrossentropy',
         metrics: ['accuracy']
     });
@@ -625,13 +642,14 @@ const mlModelTraining = async (gameData, xs, ys, sport) => {
         }
         return false;  // Continue training
     };
+
     await model.fit(xsTensor, ysTensor, {
-        epochs: sport.epochs,
-        batchSize: sport.batchSize,
+        epochs: sport.hyperParameters.epochs,
+        batchSize: sport.hyperParameters.batchSize,
         validationSplit: 0.3,
         classWeight: classWeights,
-        verbose: false,
         shuffle: false,
+        verbose: false,
         callbacks: [{ onEpochEnd: earlyStopping }, learningRateScheduler]
     });
     if (!fs.existsSync(modelDir)) {
@@ -646,7 +664,9 @@ const mlModelTraining = async (gameData, xs, ys, sport) => {
     // Log loss and accuracy
 
 }
-const predictions = async (sportOdds, ff, model) => {
+const predictions = async (sportOdds, ff, model, sport) => {
+    console.info(`STARTING PREDICTIONS FOR ${sport.name} @ ${moment().format('HH:mm:ss')}`);
+
     if (sportOdds.length > 0) {
         // Step 1: Extract the features for each game
         for (const game of sportOdds) {
@@ -656,22 +676,27 @@ const predictions = async (sportOdds, ff, model) => {
 
                 // Extract features based on sport
                 const features = extractSportFeatures(homeStats, awayStats, game.sport_key);
+                checkNaNValues(features, game);
                 ff.push(features);  // Add the features for each game
             }
         }
 
-        // Step 2: Create a Tensor for the features array
         const ffTensor = tf.tensor2d(ff);
+        
 
-        // const logits = model.predict(ffTensor); // logits without sigmoid
+        const logits = model.predict(ffTensor); // logits without sigmoid
         // logits.print(); // Check the raw values before sigmoid
 
         // Step 3: Get the predictions
         const predictions = await model.predict(ffTensor, { training: false });
 
+        // Check if model is compiled
+        if (!model.optimizer) {
+            console.error('Model is not compiled');
+        }
+
         // Step 4: Convert predictions tensor to array
         const probabilities = await predictions.array();  // Resolves to an array
-        // console.log(probabilities)
 
         // Step 5: Loop through each game and update with predicted probabilities
         for (let index = 0; index < sportOdds.length; index++) {
@@ -700,6 +725,7 @@ const predictions = async (sportOdds, ff, model) => {
             }
         }
     }
+    console.info(`FINSIHED PREDICTIONS FOR ${sport.name} @ ${moment().format('HH:mm:ss')}`);
 }
 const evaluateMetrics = (ysTensor, yPredTensor) => {
     // Round the predictions to either 0 or 1 (binary classification)
@@ -736,9 +762,34 @@ const evaluateMetrics = (ysTensor, yPredTensor) => {
         falseNegatives: falseNegatives
     };
 }
+
+function calculateFeatureImportance(inputToHiddenWeights, hiddenToOutputWeights) {
+    const featureImportanceScores = [];
+
+    // Loop through each feature (f = feature index)
+    for (let f = 0; f < inputToHiddenWeights[0].length; f++) {  // 0th row = first hidden neuron
+        let importance = 0;
+
+        // Loop through each hidden layer neuron (i = hidden neuron index)
+        for (let i = 0; i < inputToHiddenWeights.length; i++) {  // Length is 128 hidden neurons
+            const inputToHiddenWeight = Math.abs(inputToHiddenWeights[i][f]);  // Absolute weight between feature f and hidden neuron i
+            const hiddenToOutputWeight = Math.abs(hiddenToOutputWeights[i]);    // Absolute weight from hidden neuron i to output
+
+            // Add the contribution to the importance of feature f
+            importance += inputToHiddenWeight * hiddenToOutputWeight;
+        }
+
+        // Store the calculated importance for feature f
+        featureImportanceScores.push(importance);
+    }
+
+    return featureImportanceScores;
+}
+
+
 const trainSportModelKFold = async (sport, gameData) => {
     currentOdds = await Odds.find({ sport_key: sport.name }).sort({ commence_time: -1 }) //USE THIS TO POPULATE UPCOMING GAME ODDS
-    const numFolds = sport.KFolds;  // Number of folds (you can adjust based on your data)
+    const numFolds = sport.hyperParameters.KFolds;  // Number of folds (you can adjust based on your data)
     const foldSize = Math.floor(gameData.length / numFolds);  // Size of each fold
 
     let allFolds = [];
@@ -769,17 +820,15 @@ const trainSportModelKFold = async (sport, gameData) => {
                 testData.push(...allFolds[i]);  // Current fold will be used as the test data
             }
         }
-
         // Train the model with training data
         const { model, xsTensor, ysTensor } = await mlModelTraining(trainingData, [], [], sport);
 
         finalModel = model
 
-
+        
         // Evaluate the model on the test data
         const testXs = testData.map(game => extractSportFeatures(game.homeTeamStats, game.awayTeamStats, sport.name)); // Extract features for test data
         const testYs = testData.map(game => game.winner === 'home' ? 1 : 0);  // Extract labels for test data
-
         const testXsTensor = tf.tensor2d(testXs);
         const testYsTensor = tf.tensor2d(testYs, [testYs.length, 1]);
 
@@ -789,7 +838,6 @@ const trainSportModelKFold = async (sport, gameData) => {
 
         const metrics = evaluateMetrics(testYsTensor, model.predict(testXsTensor, { training: false }));
 
-        // // Log metrics for each fold
         // Store fold results
         foldResults.push({
             foldIndex,
@@ -804,7 +852,7 @@ const trainSportModelKFold = async (sport, gameData) => {
             falseNegatives: metrics.falseNegatives
         });
     }
-
+    await predictions(currentOdds, [], finalModel, sport)
     // After all folds, calculate and log the overall performance
     const avgLoss = foldResults.reduce((sum, fold) => sum + fold.loss, 0) / foldResults.length;
     const avgAccuracy = foldResults.reduce((sum, fold) => sum + fold.accuracy, 0) / foldResults.length;
@@ -828,6 +876,21 @@ const trainSportModelKFold = async (sport, gameData) => {
     console.log(`Avg Precision: ${avgPrecision}`);
     console.log(`Avg Recall: ${avgRecall}`);
     console.log(`Avg F1-Score: ${avgF1Score}`);
+
+
+    // Get the input-to-hidden weights (40 features × 128 neurons)
+    const inputToHiddenWeights = finalModel.layers[0].getWeights()[0].arraySync();  // Shape: 40x128
+    // Get the hidden-to-output weights (128 neurons × 1 output)
+    const hiddenToOutputWeights = finalModel.layers[finalModel.layers.length - 1].getWeights()[0].arraySync();  // Shape: 128x1
+    // Calculate the importance scores
+    const featureImportanceScores = calculateFeatureImportance(inputToHiddenWeights, hiddenToOutputWeights);
+
+    await Weights.findOneAndUpdate({ league: sport.name }, {
+        inputToHiddenWeights: inputToHiddenWeights,  // Store the 40x128 matrix
+        hiddenToOutputWeights: hiddenToOutputWeights, // Store the 128x1 vector
+        featureImportanceScores: featureImportanceScores,  // Store the importance scores
+    }, { upsert: true })
+
 };
 
 const trainSportModel = async (sport, gameData) => {
@@ -869,11 +932,18 @@ const trainSportModel = async (sport, gameData) => {
     let sportOdds = await Odds.find({ sport_key: sport.name })
     predictions(sportOdds, ff, model)
 
-    // Handle the weights extraction after training
-    await handleSportWeights(model, sport);
+    //STORE WEIGHTS IN DB
+    let outputLayerWeights = await model.layers[model.layers.length - 1].getWeights()
 
-    let allPastGames = await PastGameOdds.find()
-    indexAdjuster(currentOdds, sport, allPastGames)
+
+    console.log(outputLayerWeights[0].array())
+
+    // await Weights.findOneAndUpdate({league: sport.name}, {
+    //     weights: model.layers[0].getWeights()
+    // }, {upsert: true})
+
+    // let allPastGames = await PastGameOdds.find()
+    // indexAdjuster(currentOdds, sport, allPastGames)
 }
 
 module.exports = { getStat, getWinLoss, getHomeAwayWinLoss, normalizeStat, extractSportFeatures, mlModelTraining, predictions, trainSportModel, trainSportModelKFold, loadOrCreateModel, handleSportWeights, evaluateMetrics }

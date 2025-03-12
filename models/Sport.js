@@ -34,75 +34,81 @@ const sportSchema = new Schema({
         type: Number,
         required: true
     },
-    decayFactor: {
-        type: Number,
-        required: true
-    },
-    gameDecayThreshold: {
-        type: Number,
-        required: true
-    },
-    learningDecayFactor: {
-        type: Number,
-        required: true
-    },
-    epochs: {
-        type: Number,
-        required: true
-    },
-    batchSize: {
-        type: Number,
-        required: true
-    },
-    KFolds: {
-        type: Number,
-        required: true
-    },
-    hiddenLayerNum: {
-        type: Number,
-        required: true
-    },
-    learningRate: {
-        type: Number,
-        required: true
-    },
-    l2Reg: {
-        type: Number,
-        required: true
-    },
-    dropoutReg: {
-        type: Number,
-        required: true
-    },
-    kernalInitializer: {
-        type: String,
-        required: true
+    hyperParameters: {
+        decayFactor: {
+            type: Number,
+            required: false
+        },
+        gameDecayThreshold: {
+            type: Number,
+            required: false
+        },
+        learningDecayFactor: {
+            type: Number,
+            required: false
+        },
+        epochs: {
+            type: Number,
+            required: false
+        },
+        batchSize: {
+            type: Number,
+            required: false
+        },
+        KFolds: {
+            type: Number,
+            required: false
+        },
+        hiddenLayerNum: {
+            type: Number,
+            required: false
+        },
+        learningRate: {
+            type: Number,
+            required: false
+        },
+        l2Reg: {
+            type: Number,
+            required: false
+        },
+        dropoutReg: {
+            type: Number,
+            required: false
+        },
+        kernalInitializer: {
+            type: String,
+            required: false
+        },
+        layerNeurons: {
+            type: Number,
+            required: false
+        }
     },
     valueBetSettings: [{
         bookmaker: {
             type: String,
-            required: true
+            required: false
         },
         settings: {
-            winPercentIncrease: {
-                type: Number,
-                required: true
-            },
+            // winPercentIncrease: {
+            //     type: Number,
+            //     required: false
+            // },
             indexDiffSmallNum: {
                 type: Number,
-                required: true
+                required: false
             },
             indexDiffRangeNum: {
                 type: Number,
-                required: true
+                required: false
             },
             confidenceLowNum: {
                 type: Number,
-                required: true
+                required: false
             },
             confidenceRangeNum: {
                 type: Number,
-                required: true
+                required: false
             }
         }
     }]

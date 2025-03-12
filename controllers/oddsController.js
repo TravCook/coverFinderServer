@@ -86,7 +86,7 @@ module.exports = {
                     marketData?.outcomes?.find(out => {
                         let currentSport = sports.find(arraySport => arraySport.name === gameData.sport_key)
                         let sportSettings = currentSport.valueBetSettings.find((setting) => setting.bookmaker === req.body.sportsbook)
-                        if(combinedCondition(gameData, out, sportSettings.settings.indexDiffSmallNum, sportSettings.settings.indexDiffRangeNum, sportSettings.settings.confidenceLowNum, sportSettings.settings.confidenceRangeNum, sportSettings.settings.winPercentIncrease)){
+                        if(combinedCondition(gameData, out, sportSettings.settings.indexDiffSmallNum, sportSettings.settings.indexDiffRangeNum, sportSettings.settings.confidenceLowNum, sportSettings.settings.confidenceRangeNum)){
                             valueGames.push(gameData)
                         }
                     });

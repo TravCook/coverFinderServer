@@ -11,10 +11,10 @@ let ncaawWeights = []
 
 //DETERMINE H2H INDEXES FOR EVERY GAME IN ODDS
 // Helper function to adjust indexes for football games
-const adjustnflStats = (homeTeam, awayTeam, homeIndex, awayIndex) => {
-    homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += nflWeights[0] : awayIndex += nflWeights[0];
-    homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += nflWeights[1] : awayIndex += nflWeights[1];
-    homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += nflWeights[2] : awayIndex += nflWeights[2];
+const adjustnflStats = (homeTeam, awayTeam, homeIndex, awayIndex, weightArray) => {
+    homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += weightArray[0][0] : awayIndex += weightArray[0][0];
+    homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += weightArray[1][0] : awayIndex += weightArray[1][0];
+    homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += weightArray[2] : awayIndex += weightArray[2][0];
 
     let nflWeightIndex = 3;
     const reverseComparisonStats = ['totalPenyards', 'averagePenYardsPerGame', 'interceptions', 'giveaways'];
@@ -29,18 +29,18 @@ const adjustnflStats = (homeTeam, awayTeam, homeIndex, awayIndex) => {
             if (reverseComparisonStats.includes(stat)) {
                 if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
                     if (homeStat <= awayStat) {
-                        homeIndex += nflWeights[nflWeightIndex];
+                        homeIndex += weightArray[nflWeightIndex][0];
                     } else {
-                        awayIndex += nflWeights[nflWeightIndex];
+                        awayIndex += weightArray[nflWeightIndex][0];
                     }
                     nflWeightIndex++;
                 }
             } else {
                 if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
                     if (homeStat >= awayStat) {
-                        homeIndex += nflWeights[nflWeightIndex];
+                        homeIndex += weightArray[nflWeightIndex][0];
                     } else {
-                        awayIndex += nflWeights[nflWeightIndex];
+                        awayIndex += weightArray[nflWeightIndex][0];
                     }
                     nflWeightIndex++;
                 }
@@ -51,10 +51,10 @@ const adjustnflStats = (homeTeam, awayTeam, homeIndex, awayIndex) => {
     return { homeIndex, awayIndex };
 }
 
-const adjustncaafStats = (homeTeam, awayTeam, homeIndex, awayIndex) => {
-    homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += ncaafWeights[0] : awayIndex += ncaafWeights[0];
-    homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += ncaafWeights[1] : awayIndex += ncaafWeights[1];
-    homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += ncaafWeights[2] : awayIndex += ncaafWeights[2];
+const adjustncaafStats = (homeTeam, awayTeam, homeIndex, awayIndex, weightArray) => {
+    homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += weightArray[0][0] : awayIndex += weightArray[0][0];
+    homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += weightArray[1][0] : awayIndex += weightArray[1][0];
+    homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += weightArray[2][0] : awayIndex += weightArray[2][0];
 
     let ncaafWeightIndex = 3;
     const reverseComparisonStats = ['totalPenyards', 'averagePenYardsPerGame', 'interceptions', 'giveaways'];
@@ -69,18 +69,18 @@ const adjustncaafStats = (homeTeam, awayTeam, homeIndex, awayIndex) => {
             if (reverseComparisonStats.includes(stat)) {
                 if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
                     if (homeStat <= awayStat) {
-                        homeIndex += ncaafWeights[ncaafWeightIndex];
+                        homeIndex += weightArray[ncaafWeightIndex][0];
                     } else {
-                        awayIndex += ncaafWeights[ncaafWeightIndex];
+                        awayIndex += weightArray[ncaafWeightIndex][0];
                     }
                     ncaafWeightIndex++;
                 }
             } else {
                 if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
                     if (homeStat >= awayStat) {
-                        homeIndex += ncaafWeights[ncaafWeightIndex];
+                        homeIndex += weightArray[ncaafWeightIndex][0];
                     } else {
-                        awayIndex += ncaafWeights[ncaafWeightIndex];
+                        awayIndex += weightArray[ncaafWeightIndex][0];
                     }
                     ncaafWeightIndex++;
                 }
@@ -92,10 +92,10 @@ const adjustncaafStats = (homeTeam, awayTeam, homeIndex, awayIndex) => {
 }
 
 // Helper function to adjust indexes for hockey games
-const adjustnhlStats = (homeTeam, awayTeam, homeIndex, awayIndex) => {
-    homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += nhlWeights[0] : awayIndex += nhlWeights[0];
-    homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += nhlWeights[1] : awayIndex += nhlWeights[1];
-    homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += nhlWeights[2] : awayIndex += nhlWeights[2];
+const adjustnhlStats = (homeTeam, awayTeam, homeIndex, awayIndex, weightArray) => {
+    homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += weightArray[0][0] : awayIndex += weightArray[0][0];
+    homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += weightArray[1][0] : awayIndex += weightArray[1][0];
+    homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += weightArray[2][0] : awayIndex += weightArray[2][0];
 
     let nhlWeightIndex = 3;
     const reverseComparisonStats = [];
@@ -110,18 +110,18 @@ const adjustnhlStats = (homeTeam, awayTeam, homeIndex, awayIndex) => {
             if (reverseComparisonStats.includes(stat)) {
                 if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
                     if (homeStat <= awayStat) {
-                        homeIndex += nhlWeights[nhlWeightIndex];
+                        homeIndex += weightArray[nhlWeightIndex][0];
                     } else {
-                        awayIndex += nhlWeights[nhlWeightIndex];
+                        awayIndex += weightArray[nhlWeightIndex][0];
                     }
                     nhlWeightIndex++;
                 }
             } else {
                 if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
                     if (homeStat >= awayStat) {
-                        homeIndex += nhlWeights[nhlWeightIndex];
+                        homeIndex += weightArray[nhlWeightIndex][0];
                     } else {
-                        awayIndex += nhlWeights[nhlWeightIndex];
+                        awayIndex += weightArray[nhlWeightIndex][0];
                     }
                     nhlWeightIndex++;
                 }
@@ -133,10 +133,10 @@ const adjustnhlStats = (homeTeam, awayTeam, homeIndex, awayIndex) => {
 }
 
 // Helper function to adjust indexes for basketball games
-const adjustnbaStats = (homeTeam, awayTeam, homeIndex, awayIndex) => {
-    homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += nbaWeights[0] : awayIndex += nbaWeights[0];
-    homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += nbaWeights[1] : awayIndex += nbaWeights[1];
-    homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += nbaWeights[2] : awayIndex += nbaWeights[2];
+const adjustnbaStats = (homeTeam, awayTeam, homeIndex, awayIndex, weightArray) => {
+    homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += weightArray[0][0] : awayIndex += weightArray[0][0];
+    homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += weightArray[1][0] : awayIndex += weightArray[1][0];
+    homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += weightArray[2][0] : awayIndex += weightArray[2][0];
     let nbaWeightIndex = 3
     const reverseComparisonStats = [];
     // Loop through homeTeam.stats to goalsAgainst each stat
@@ -151,9 +151,9 @@ const adjustnbaStats = (homeTeam, awayTeam, homeIndex, awayIndex) => {
                 // For reversed comparison, check if homeStat is less than or equal to awayStat
                 if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
                     if (homeStat <= awayStat) {
-                        homeIndex += nbaWeights[nbaWeightIndex];
+                        homeIndex += weightArray[nbaWeightIndex][0];
                     } else {
-                        awayIndex += nbaWeights[nbaWeightIndex];
+                        awayIndex += weightArray[nbaWeightIndex][0];
                     }
                     nbaWeightIndex++
                 }
@@ -161,9 +161,9 @@ const adjustnbaStats = (homeTeam, awayTeam, homeIndex, awayIndex) => {
             } else {
                 if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
                     if (homeStat >= awayStat) {
-                        homeIndex += nbaWeights[nbaWeightIndex];
+                        homeIndex += weightArray[nbaWeightIndex][0];
                     } else {
-                        awayIndex += nbaWeights[nbaWeightIndex];
+                        awayIndex += weightArray[nbaWeightIndex][0];
                     }
                     nbaWeightIndex++
                 }
@@ -178,10 +178,10 @@ const adjustnbaStats = (homeTeam, awayTeam, homeIndex, awayIndex) => {
     return { homeIndex, awayIndex };
 }
 // Helper function to adjust indexes for baseball games
-const adjustmlbStats = (homeTeam, awayTeam, homeIndex, awayIndex) => {
-    homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += mlbWeights[0] : awayIndex += mlbWeights[0];
-    homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += mlbWeights[1] : awayIndex += mlbWeights[1];
-    homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += mlbWeights[2] : awayIndex += mlbWeights[2];
+const adjustmlbStats = (homeTeam, awayTeam, homeIndex, awayIndex, weightArray) => {
+    homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += weightArray[0][0] : awayIndex += weightArray[0][0];
+    homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += weightArray[1][0] : awayIndex += weightArray[1][0];
+    homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += weightArray[2][0] : awayIndex += weightArray[2][0];
 
     let mlbWeightIndex = 3;
     const reverseComparisonStats = ['fieldingErrors', 'oppOPS', 'oppSlugging', 'oppBattingAverage', 'walksHitsPerInningPitched', 'earnedRunAverage', 'walksPitchingTotal'];
@@ -196,18 +196,18 @@ const adjustmlbStats = (homeTeam, awayTeam, homeIndex, awayIndex) => {
             if (reverseComparisonStats.includes(stat)) {
                 if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
                     if (homeStat <= awayStat) {
-                        homeIndex += mlbWeights[mlbWeightIndex];
+                        homeIndex += weightArray[mlbWeightIndex][0];
                     } else {
-                        awayIndex += mlbWeights[mlbWeightIndex];
+                        awayIndex += weightArray[mlbWeightIndex][0];
                     }
                     mlbWeightIndex++;
                 }
             } else {
                 if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
                     if (homeStat >= awayStat) {
-                        homeIndex += mlbWeights[mlbWeightIndex];
+                        homeIndex += weightArray[mlbWeightIndex][0];
                     } else {
-                        awayIndex += mlbWeights[mlbWeightIndex];
+                        awayIndex += weightArray[mlbWeightIndex][0];
                     }
                     mlbWeightIndex++;
                 }
@@ -218,10 +218,10 @@ const adjustmlbStats = (homeTeam, awayTeam, homeIndex, awayIndex) => {
     return { homeIndex, awayIndex };
 }
 
-const adjustncaamStats = (homeTeam, awayTeam, homeIndex, awayIndex) => {
-    homeTeam?.seasonWinLoss?.split("-")[0] >= awayTeam?.seasonWinLoss?.split("-")[0] ? homeIndex += ncaamWeights[0] : awayIndex += ncaamWeights[0];
-    homeTeam?.homeWinLoss?.split("-")[0] >= awayTeam?.awayWinLoss.split("-")[0] ? homeIndex += ncaamWeights[1] : awayIndex += ncaamWeights[1];
-    homeTeam?.pointDiff >= awayTeam?.pointDiff ? homeIndex += ncaamWeights[2] : awayIndex += ncaamWeights[2];
+const adjustncaamStats = (homeTeam, awayTeam, homeIndex, awayIndex, weightArray) => {
+    homeTeam?.seasonWinLoss?.split("-")[0] >= awayTeam?.seasonWinLoss?.split("-")[0] ? homeIndex += weightArray[0][0] : awayIndex += weightArray[0][0];
+    homeTeam?.homeWinLoss?.split("-")[0] >= awayTeam?.awayWinLoss.split("-")[0] ? homeIndex += weightArray[1][0] : awayIndex += weightArray[1][0];
+    homeTeam?.pointDiff >= awayTeam?.pointDiff ? homeIndex += weightArray[2][0] : awayIndex += weightArray[2][0];
 
     let ncaamWeightIndex = 3;
     const reverseComparisonStats = [];
@@ -236,18 +236,18 @@ const adjustncaamStats = (homeTeam, awayTeam, homeIndex, awayIndex) => {
             if (reverseComparisonStats.includes(stat)) {
                 if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
                     if (homeStat <= awayStat) {
-                        homeIndex += ncaamWeights[ncaamWeightIndex];
+                        homeIndex += weightArray[ncaamWeightIndex][0];
                     } else {
-                        awayIndex += ncaamWeights[ncaamWeightIndex];
+                        awayIndex += weightArray[ncaamWeightIndex][0];
                     }
                     ncaamWeightIndex++;
                 }
             } else {
                 if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
                     if (homeStat >= awayStat) {
-                        homeIndex += ncaamWeights[ncaamWeightIndex];
+                        homeIndex += weightArray[ncaamWeightIndex][0];
                     } else {
-                        awayIndex += ncaamWeights[ncaamWeightIndex];
+                        awayIndex += weightArray[ncaamWeightIndex][0];
                     }
                     ncaamWeightIndex++;
                 }
@@ -258,10 +258,10 @@ const adjustncaamStats = (homeTeam, awayTeam, homeIndex, awayIndex) => {
     return { homeIndex, awayIndex };
 }
 
-const adjustwncaabStats = (homeTeam, awayTeam, homeIndex, awayIndex) => {
-    homeTeam?.seasonWinLoss?.split("-")[0] >= awayTeam?.seasonWinLoss?.split("-")[0] ? homeIndex += ncaawWeights[0] : awayIndex += ncaawWeights[0];
-    homeTeam?.homeWinLoss?.split("-")[0] >= awayTeam?.awayWinLoss.split("-")[0] ? homeIndex += ncaawWeights[1] : awayIndex += ncaawWeights[1];
-    homeTeam?.pointDiff >= awayTeam?.pointDiff ? homeIndex += ncaawWeights[2] : awayIndex += ncaawWeights[2];
+const adjustwncaabStats = (homeTeam, awayTeam, homeIndex, awayIndex, weightArray) => {
+    homeTeam?.seasonWinLoss?.split("-")[0] >= awayTeam?.seasonWinLoss?.split("-")[0] ? homeIndex += weightArray[0][0] : awayIndex += weightArray[0][0];
+    homeTeam?.homeWinLoss?.split("-")[0] >= awayTeam?.awayWinLoss.split("-")[0] ? homeIndex += weightArray[1][0] : awayIndex += weightArray[1][0];
+    homeTeam?.pointDiff >= awayTeam?.pointDiff ? homeIndex += weightArray[2][0] : awayIndex += weightArray[2][0];
 
     let ncaawWeightIndex = 3;
     const reverseComparisonStats = [];
@@ -276,18 +276,18 @@ const adjustwncaabStats = (homeTeam, awayTeam, homeIndex, awayIndex) => {
             if (reverseComparisonStats.includes(stat)) {
                 if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
                     if (homeStat <= awayStat) {
-                        homeIndex += ncaawWeights[ncaawWeightIndex];
+                        homeIndex += weightArray[ncaawWeightIndex][0];
                     } else {
-                        awayIndex += ncaawWeights[ncaawWeightIndex];
+                        awayIndex += weightArray[ncaawWeightIndex][0];
                     }
                     ncaawWeightIndex++;
                 }
             } else {
                 if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
                     if (homeStat >= awayStat) {
-                        homeIndex += ncaawWeights[ncaawWeightIndex];
+                        homeIndex += weightArray[ncaawWeightIndex][0];
                     } else {
-                        awayIndex += ncaawWeights[ncaawWeightIndex];
+                        awayIndex += weightArray[ncaawWeightIndex][0];
                     }
                     ncaawWeightIndex++;
                 }
@@ -298,8 +298,9 @@ const adjustwncaabStats = (homeTeam, awayTeam, homeIndex, awayIndex) => {
     return { homeIndex, awayIndex };
 }
 
-const indexAdjuster = (currentOdds, sport, allPastGames) => {
-    currentOdds.map(async (game, index) => {
+const indexAdjuster = async (currentOdds, sport, allPastGames, weightArray) => {
+    console.log(`STARTING INDEXING FOR ${sport.name} @ ${moment().format('HH:mm:ss')}`);
+    for (const game of currentOdds) {
         // Check if the game is in the future
         if (moment().isBefore(moment(game.commence_time))) {
 
@@ -372,26 +373,26 @@ const indexAdjuster = (currentOdds, sport, allPastGames) => {
             if (homeTeam && awayTeam && homeTeam.stats && awayTeam.stats && homeTeam.seasonWinLoss && awayTeam.seasonWinLoss) {
                 // Sport-specific conditions
                 if (game.sport_key === 'americanfootball_nfl') {
-                    ({ homeIndex, awayIndex } = adjustnflStats(homeTeam, awayTeam, homeIndex, awayIndex));
+                    ({ homeIndex, awayIndex } = await adjustnflStats(homeTeam, awayTeam, homeIndex, awayIndex, weightArray));
                 }
                 else if (game.sport_key === 'americanfootball_ncaaf') {
-                    ({ homeIndex, awayIndex } = adjustncaafStats(homeTeam, awayTeam, homeIndex, awayIndex));
+                    ({ homeIndex, awayIndex } = await adjustncaafStats(homeTeam, awayTeam, homeIndex, awayIndex, weightArray));
                 }
                 else if (game.sport_key === 'icehockey_nhl') {
-                    ({ homeIndex, awayIndex } = adjustnhlStats(homeTeam, awayTeam, homeIndex, awayIndex));
+                    ({ homeIndex, awayIndex } = await adjustnhlStats(homeTeam, awayTeam, homeIndex, awayIndex, weightArray));
                 }
                 else if (game.sport_key === 'basketball_nba') {
-                    ({ homeIndex, awayIndex } = adjustnbaStats(homeTeam, awayTeam, homeIndex, awayIndex));
+                    ({ homeIndex, awayIndex } = await adjustnbaStats(homeTeam, awayTeam, homeIndex, awayIndex, weightArray));
                 }
                 else if (game.sport_key === 'baseball_mlb') {
-                    ({ homeIndex, awayIndex } = adjustmlbStats(homeTeam, awayTeam, homeIndex, awayIndex));
+                    ({ homeIndex, awayIndex } = await adjustmlbStats(homeTeam, awayTeam, homeIndex, awayIndex, weightArray));
                 }
                 else if (game.sport_key === 'basketball_ncaab') {
-                    ({ homeIndex, awayIndex } = adjustncaamStats(homeTeam, awayTeam, homeIndex, awayIndex));
+                    ({ homeIndex, awayIndex } = await adjustncaamStats(homeTeam, awayTeam, homeIndex, awayIndex, weightArray));
 
                 }
                 else if (game.sport_key === 'basketball_wncaab') {
-                    ({ homeIndex, awayIndex } = adjustwncaabStats(homeTeam, awayTeam, homeIndex, awayIndex));
+                    ({ homeIndex, awayIndex } = await adjustwncaabStats(homeTeam, awayTeam, homeIndex, awayIndex, weightArray));
                 }
             }
             const getCommonStats = (team) => ({
@@ -683,36 +684,36 @@ const indexAdjuster = (currentOdds, sport, allPastGames) => {
                 // Step 6: Calculate the weighted winrate for regular categories
                 const weightedWinrate = {};
 
-                if ( !(Number.isNaN(allPredictionCorrect))) {
+                if (!(Number.isNaN(allPredictionCorrect))) {
                     weightedWinrate.allPredictionCorrect = allPredictionCorrect;
                 }
-                
-                if ( !(Number.isNaN(leaguePredictionCorrect))) {
+
+                if (!(Number.isNaN(leaguePredictionCorrect))) {
                     weightedWinrate.leaguePredictionCorrect = leaguePredictionCorrect;
                 }
-                
-                if ( !(Number.isNaN(homeTeamPredictionCorrect))) {
+
+                if (!(Number.isNaN(homeTeamPredictionCorrect))) {
                     weightedWinrate.homeTeamPredictionCorrect = homeTeamPredictionCorrect;
                 }
-                
-                if ( !(Number.isNaN(awayTeamPredictionCorrect))) {
+
+                if (!(Number.isNaN(awayTeamPredictionCorrect))) {
                     weightedWinrate.awayTeamPredictionCorrect = awayTeamPredictionCorrect;
                 }
-                
-                if ( !(Number.isNaN(indexDiffPredictionCorrect))) {
+
+                if (!(Number.isNaN(indexDiffPredictionCorrect))) {
                     weightedWinrate.indexDiffPredictionCorrect = indexDiffPredictionCorrect;
                 }
-                
-                if ( !(Number.isNaN(confidencePredictionCorrect))) {
+
+                if (!(Number.isNaN(confidencePredictionCorrect))) {
                     weightedWinrate.confidencePredictionCorrect = confidencePredictionCorrect;
                 }
-                
+
 
                 // Extract the values from the object
                 const values = Object.values(weightedWinrate);
 
                 // Calculate the sum of the values
-                const sum = values.reduce((acc, val) =>  acc + val, 0);
+                const sum = values.reduce((acc, val) => acc + val, 0);
 
                 // Calculate the average by dividing the sum by the number of keys
                 const average = sum / values.length;
@@ -724,12 +725,30 @@ const indexAdjuster = (currentOdds, sport, allPastGames) => {
             // Call the function
             const winrate = await calculateWinrate(allPastGames, sport, game.home_team, game.away_team, game.homeTeamIndex, game.awayTeamIndex, game.predictedWinner, game.predictionStrength);
 
+            let theoryMax = 0
+            let theoryMin = 0
+
+            weightArray.map((weight) => {
+                if (weight > 0) {
+                    theoryMax += weight[0]
+                } else {
+                    theoryMin += weight[0]
+                }
+            })
+
+            if (((homeIndex / (homeIndex > 0 ? theoryMax : theoryMin)) * 45) > 45 || ((homeIndex / (homeIndex > 0 ? theoryMax : theoryMin)) * 45) < -45) {
+                console.log(game.id)
+            } else if (((awayIndex / (awayIndex > 0 ? theoryMax : theoryMin)) * 45) > 45 || ((awayIndex / (awayIndex > 0 ? theoryMax : theoryMin)) * 45) < -45) {
+                console.log(game.id)
+            }
+
+
             // Update the Odds database with the calculated indices
             if (sport.name === game.sport_key) {
-                try{
+                try {
                     await Odds.findOneAndUpdate({ 'id': game.id }, {
-                        homeTeamIndex: ((homeIndex / (homeIndex + awayIndex)) * 45),
-                        awayTeamIndex: ((awayIndex / (homeIndex + awayIndex)) * 45),
+                        homeTeamIndex: ((homeIndex / (homeIndex > 0 ? theoryMax : theoryMin)) * 45),
+                        awayTeamIndex: ((awayIndex / (awayIndex > 0 ? theoryMax : theoryMin)) * 45),
                         homeTeamStats: homeTeam ? cleanStats(getCommonStats(homeTeam)) : 'no stat data',
                         awayTeamStats: awayTeam ? cleanStats(getCommonStats(awayTeam)) : 'no stat data',
                         homeTeamlogo: homeTeam ? homeTeam.logo : 'no logo data',
@@ -738,13 +757,15 @@ const indexAdjuster = (currentOdds, sport, allPastGames) => {
                         awayTeamAbbr: awayTeam?.abbreviation,
                         winPercent: winrate
                     });
-                }catch(err){
+                } catch (err) {
                     console.log(err)
                 }
 
             }
         }
-    });
+    }
+
+    console.log(`FINSHED INDEXING FOR ${sport.name} @ ${moment().format('HH:mm:ss')}`);
 }
 
 const extractSportWeights = async (model, sportName) => {
@@ -779,7 +800,7 @@ const handleSportWeights = async (model, sport) => {
     switch (sport.name) {
         case 'americanfootball_nfl':
             sportWeights = await extractSportWeights(model, 'americanfootball_nfl');
-            nflWeights = sportWeights;
+            weightArray = sportWeights;
             break;
 
         case 'americanfootball_ncaaf':
