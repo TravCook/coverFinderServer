@@ -760,7 +760,6 @@ const paramAndValueSeed = async () => {
     await hyperparameterRandSearch(sports)
 }
 
-oddsSeed()
 
 //TODO: RE EVALUATE WEIGHTS OF ALL PAST GAMES THROUGH THE INDEX ADJUSTER FUNCTION
 // THEN RE RUN VALUE SEED BARE MINIMUM TO MAKE SURE VALUE PARAMS ARE GOOD
