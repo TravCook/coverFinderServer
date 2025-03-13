@@ -43,7 +43,7 @@ const cronJobs = [
   },
   {
     cronTime: '0 0 2 * * */7', // Once a week at 2 am
-    onTick: dataSeed.valueBetRandomSearch,
+    onTick: dataSeed.paramAndValueSeed,
     timezone,
   },
   {

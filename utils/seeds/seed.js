@@ -7,16 +7,14 @@ const tf = require('@tensorflow/tfjs-node');
 const { emitToClients } = require('../../socketManager');
 const { retrieveTeamsandStats } = require('../helperFunctions/dataHelpers/retrieveTeamsandStats')
 const { removePastGames } = require('../helperFunctions/dataHelpers/removeHelper')
-const { indexAdjuster } = require('../helperFunctions/mlModelFuncs/indexHelpers')
-const { pastGameStatsPoC } = require('../helperFunctions/dataHelpers/pastGamesHelper')
-const { predictions, trainSportModelKFold, handleSportWeights, evaluateMetrics, trainSportModel } = require('../helperFunctions/mlModelFuncs/trainingHelpers')
-const { normalizeTeamName, checkNaNValues } = require('../helperFunctions/dataHelpers/dataSanitizers')
+const { indexAdjuster, pastGamesReIndex } = require('../helperFunctions/mlModelFuncs/indexHelpers')
+const { predictions, trainSportModelKFold } = require('../helperFunctions/mlModelFuncs/trainingHelpers')
+const { normalizeTeamName } = require('../helperFunctions/dataHelpers/dataSanitizers')
 const { impliedProbCalc } = require('../helperFunctions/dataHelpers/impliedProbHelp')
 const { valueBetRandomSearch, hyperparameterRandSearch } = require('../helperFunctions/mlModelFuncs/searchHelpers')
 // Suppress TensorFlow.js logging
 process.env.TF_CPP_MIN_LOG_LEVEL = '3'; // Suppress logs
 
-// TODO: REFACTOR FOR STABILITY
 const dataSeed = async () => {
     console.log("DB CONNECTED ------------------------------------------------- STARTING DATA SEED")
     // UPDATE TEAMS WITH MOST RECENT STATS // WORKING AS LONG AS DYNAMIC STAT YEAR CAN WORK CORRECTLY
@@ -68,7 +66,6 @@ const dataSeed = async () => {
     console.info(`Full Seeding complete! 🌱 @ ${moment().format('HH:mm:ss')}`);
 }
 
-// THIS SEED FUNCTION HAS BE REFACTORED AND WORKS TO RUN ONCE A DAY AT MIDNIGHT // TAKES ABOUT 2 HOURS
 const mlModelTrainSeed = async () => {
     console.log("DB CONNECTED ------------------------------------------------- STARTING ML SEED")
     const sports = await Sport.find({})
@@ -110,7 +107,6 @@ const mlModelTrainSeed = async () => {
     }
 }
 
-// TODO: REFACTOR FOR STABILITY
 const oddsSeed = async () => {
     const sports = await Sport.find({})
     // RETRIEVE ODDS
@@ -755,14 +751,10 @@ const paramAndValueSeed = async () => {
     const { sports } = require('../constants')
     
 
-    // await valueBetRandomSearch(sports)
+    await valueBetRandomSearch(sports)
 
     await hyperparameterRandSearch(sports)
 }
-
-
-//TODO: RE EVALUATE WEIGHTS OF ALL PAST GAMES THROUGH THE INDEX ADJUSTER FUNCTION
 // THEN RE RUN VALUE SEED BARE MINIMUM TO MAKE SURE VALUE PARAMS ARE GOOD
-// POSSIBLY RUN HYPER PARAMS PENDING RESULTS FROM TONIGHT
 
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed, paramAndValueSeed }

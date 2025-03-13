@@ -242,14 +242,16 @@ const hyperparameterRandSearch = async (sports) => {
             console.log('Best Cross-Validation Accuracy:', bestAccuracy);
             let currentSport = await Sport.findOne({ name: sport.name })
 
-            if (bestAccuracy > currentSport.hyperParameters ? currentSport.hyperParameters.bestAccuracy : 0) {
-                console.log('accuracy comparison works, move db operation inside if statement')
+            let accuracyComparison = currentSport?.hyperParameters?.bestAccuracy || 0
+
+            if (bestAccuracy > accuracyComparison) {
+                await Sport.findOneAndUpdate({ name: sport.name }, {
+                    ...sport,
+                    hyperParameters: bestParams
+                }, {upsert: true})
             }
 
-            await Sport.findOneAndUpdate({ name: sport.name }, {
-                ...sport,
-                hyperParameters: bestParams
-            }, {upsert: true})
+
 
         }
 

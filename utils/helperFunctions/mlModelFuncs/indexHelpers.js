@@ -298,11 +298,11 @@ const adjustwncaabStats = (homeTeam, awayTeam, homeIndex, awayIndex, weightArray
     return { homeIndex, awayIndex };
 }
 
-const indexAdjuster = async (currentOdds, sport, allPastGames, weightArray) => {
+const indexAdjuster = async (currentOdds, sport, allPastGames, weightArray, past) => {
     console.log(`STARTING INDEXING FOR ${sport.name} @ ${moment().format('HH:mm:ss')}`);
     for (const game of currentOdds) {
         // Check if the game is in the future
-        if (moment().isBefore(moment(game.commence_time))) {
+        if (moment().isBefore(moment(game.commence_time)) || past === true) {
 
             let homeTeam;
             let awayTeam;
@@ -745,21 +745,40 @@ const indexAdjuster = async (currentOdds, sport, allPastGames, weightArray) => {
 
             // Update the Odds database with the calculated indices
             if (sport.name === game.sport_key) {
-                try {
-                    await Odds.findOneAndUpdate({ 'id': game.id }, {
-                        homeTeamIndex: ((homeIndex / (homeIndex > 0 ? theoryMax : theoryMin)) * 45),
-                        awayTeamIndex: ((awayIndex / (awayIndex > 0 ? theoryMax : theoryMin)) * 45),
-                        homeTeamStats: homeTeam ? cleanStats(getCommonStats(homeTeam)) : 'no stat data',
-                        awayTeamStats: awayTeam ? cleanStats(getCommonStats(awayTeam)) : 'no stat data',
-                        homeTeamlogo: homeTeam ? homeTeam.logo : 'no logo data',
-                        awayTeamlogo: awayTeam ? awayTeam.logo : 'no logo data',
-                        homeTeamAbbr: homeTeam?.abbreviation,
-                        awayTeamAbbr: awayTeam?.abbreviation,
-                        winPercent: winrate
-                    });
-                } catch (err) {
-                    console.log(err)
+                if(past === true){
+                    try {
+                        await PastGameOdds.findOneAndUpdate({ 'id': game.id }, {
+                            homeTeamIndex: ((homeIndex / (homeIndex > 0 ? theoryMax : theoryMin)) * 45),
+                            awayTeamIndex: ((awayIndex / (awayIndex > 0 ? theoryMax : theoryMin)) * 45),
+                            homeTeamStats: homeTeam ? cleanStats(getCommonStats(homeTeam)) : 'no stat data',
+                            awayTeamStats: awayTeam ? cleanStats(getCommonStats(awayTeam)) : 'no stat data',
+                            homeTeamlogo: homeTeam ? homeTeam.logo : 'no logo data',
+                            awayTeamlogo: awayTeam ? awayTeam.logo : 'no logo data',
+                            homeTeamAbbr: homeTeam?.abbreviation,
+                            awayTeamAbbr: awayTeam?.abbreviation,
+                            winPercent: winrate
+                        });
+                    } catch (err) {
+                        console.log(err)
+                    }
+                }else{
+                    try {
+                        await Odds.findOneAndUpdate({ 'id': game.id }, {
+                            homeTeamIndex: ((homeIndex / (homeIndex > 0 ? theoryMax : theoryMin)) * 45),
+                            awayTeamIndex: ((awayIndex / (awayIndex > 0 ? theoryMax : theoryMin)) * 45),
+                            homeTeamStats: homeTeam ? cleanStats(getCommonStats(homeTeam)) : 'no stat data',
+                            awayTeamStats: awayTeam ? cleanStats(getCommonStats(awayTeam)) : 'no stat data',
+                            homeTeamlogo: homeTeam ? homeTeam.logo : 'no logo data',
+                            awayTeamlogo: awayTeam ? awayTeam.logo : 'no logo data',
+                            homeTeamAbbr: homeTeam?.abbreviation,
+                            awayTeamAbbr: awayTeam?.abbreviation,
+                            winPercent: winrate
+                        });
+                    } catch (err) {
+                        console.log(err)
+                    }
                 }
+
 
             }
         }
@@ -838,4 +857,30 @@ const handleSportWeights = async (model, sport) => {
     }
 }
 
-module.exports = { adjustnflStats, adjustncaafStats, adjustnhlStats, adjustnbaStats, adjustmlbStats, adjustncaamStats, adjustwncaabStats, indexAdjuster, extractSportWeights, matrixIterator, handleSportWeights }
+const pastGamesReIndex = async () => {
+
+    const sports = await Sport.find({})
+    for(const sport of sports){
+        const currentDate = new Date();
+        const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11, so we add 1 to make it 1-12
+        if (sport.multiYear
+            && ((currentMonth >= sport.startMonth && currentMonth <= 12) || (currentMonth >= 1 && currentMonth <= sport.endMonth))
+            || !sport.multiYear
+            && (currentMonth >= sport.startMonth && currentMonth <= sport.endMonth)) {
+    
+                const pastGames = await PastGameOdds.find({sport_key: sport.name})
+                const sportWeightDB = await Weights.findOne({ league: sport.name })
+        
+                let weightArray = sportWeightDB?.hiddenToOutputWeights
+        
+                const usableGames = pastGames.filter((game)=>  game.predictedWinner === 'home' || game.predictedWinner === 'away')
+                console.log(usableGames.length)
+                await indexAdjuster(usableGames, sport, pastGames, weightArray, true)
+    
+        }
+
+    }
+    
+}
+
+module.exports = { adjustnflStats, adjustncaafStats, adjustnhlStats, adjustnbaStats, adjustmlbStats, adjustncaamStats, adjustwncaabStats, indexAdjuster, extractSportWeights, matrixIterator, handleSportWeights, pastGamesReIndex }
