@@ -63,6 +63,9 @@ const dataSeed = async () => {
 
     }
 
+    const currentOdds = await Odds.find({})
+    await impliedProbCalc(currentOdds)
+
     console.info(`Full Seeding complete! 🌱 @ ${moment().format('HH:mm:ss')}`);
 }
 
@@ -563,8 +566,7 @@ const oddsSeed = async () => {
         return false;
     }));
 
-    const currentOdds = await Odds.find({})
-    await impliedProbCalc(currentOdds)
+
 
     await dataSeed()
 
@@ -754,7 +756,10 @@ const paramAndValueSeed = async () => {
     await valueBetRandomSearch(sports)
 
     await hyperparameterRandSearch(sports)
+
 }
+
+
 // THEN RE RUN VALUE SEED BARE MINIMUM TO MAKE SURE VALUE PARAMS ARE GOOD
 
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed, paramAndValueSeed }
