@@ -248,11 +248,16 @@ const hyperparameterRandSearch = async (sports) => {
                 await Sport.findOneAndUpdate({ name: sport.name }, {
                     ...sport,
                     hyperParameters: bestParams
-                }, {upsert: true})
+                }, { upsert: true })
+
+                const modelPath = `./model_checkpoint/${sport.name}_model/model.json`;
+                try {
+                    fs.unlinkSync(modelPath);
+                    console.log('File deleted successfully');
+                } catch (err) {
+                    console.error('Error deleting file:', err);
+                }
             }
-
-
-
         }
 
     }
@@ -416,12 +421,12 @@ const valueBetRandomSearch = async (sports) => {
 
             let sportGames = usableGames.filter((game) => game.sport_key === sport.name);
 
+
             if (sportGames.length > 0) {
-                // Parallelize across sportsbooks
-                // await Promise.all(sportsbooks.map(async (sportsbook) => {
                 for (const sportsbook of sportsbooks) {
-                    let finalWinrate = 0;
-                    let finalTotalGames = 0;
+                    let finalWinrate = sport.valueBetSettings?.sportsbook?.settings.bestWinrate || 0
+                    let finalTotalGames = sport.valueBetSettings?.sportsbook?.settings.bestTotalGames || 0
+                    let finalWeightScore = sport.valueBetSettings?.sportsbook?.settings.bestWeightScore || 0
                     let finalSettings = {
                         bookmaker: sportsbook,
                         settings: {
@@ -459,93 +464,90 @@ const valueBetRandomSearch = async (sports) => {
                             return false;
                         });
 
-                        if (totalGames.length > 10) {
-                            let correctGames = totalGames.filter((game) => game.predictionCorrect === true);
-                            let winRate = correctGames.length / totalGames.length;
+                        let correctGames = totalGames.filter((game) => game.predictionCorrect === true);
+                        let winRate = correctGames.length / totalGames.length;
+                        let weightScore = winRate * Math.log(totalGames.length + 1)
+                        if (weightScore > finalWeightScore && winRate > .7) {
+                            finalWinrate = winRate;
+                            finalTotalGames = totalGames.length;
+                            finalWeightScore = weightScore
+                            finalSettings.settings = {
+                                // winPercentIncrease: winPercentInc,
+                                indexDiffSmallNum: indexDifSmall,
+                                indexDiffRangeNum: indexDiffRange,
+                                confidenceLowNum: confidenceLow,
+                                confidenceRangeNum: confidenceRange,
+                                bestWinrate: winRate,
+                                bestWeightScore: weightScore,
+                                bestTotalGames: totalGames.length
+                            };
 
-                            if (winRate > finalWinrate) {
-                                finalWinrate = winRate;
-                                finalTotalGames = totalGames.length;
-                                finalSettings.settings = {
-                                    // winPercentIncrease: winPercentInc,
-                                    indexDiffSmallNum: indexDifSmall,
-                                    indexDiffRangeNum: indexDiffRange,
-                                    confidenceLowNum: confidenceLow,
-                                    confidenceRangeNum: confidenceRange
-                                };
-                            } else if (winRate === finalWinrate && totalGames.length > finalTotalGames) {
-                                finalWinrate = winRate;
-                                finalTotalGames = totalGames.length;
-                                finalSettings.settings = {
-                                    // winPercentIncrease: winPercentInc,
-                                    indexDiffSmallNum: indexDifSmall,
-                                    indexDiffRangeNum: indexDiffRange,
-                                    confidenceLowNum: confidenceLow,
-                                    confidenceRangeNum: confidenceRange
-                                };
-                            }
-                        }
-                    }
-                    let sportExist = await Sport.find({
-                        name: sport.name,
-                        valueBetSettings: {
-                            $elemMatch: {
-                                bookmaker: sportsbook
-                            }
-                        }
-                    });
-
-                    if (sportExist.length === 0) {
-                        await Sport.findOneAndUpdate(
-                            { name: sport.name }, // Find the sport by name
-                            {
-                                // Update the main fields (statYear, decayFactor, etc.)
-                                $set: {
-                                    name: sport.name,
-                                    espnSport: sport.espnSport,
-                                    league: sport.league,
-                                    startMonth: sport.startMonth,
-                                    endMonth: sport.endMonth,
-                                    multiYear: sport.multiYear,
-                                    statYear: sport.statYear,
-                                },
-                                $addToSet: {
-                                    valueBetSettings: {
-                                        bookmaker: sportsbook,
-                                        settings: finalSettings.settings
+                            // console.log('best Settings: ', finalSettings.settings)
+                            let sportExist = await Sport.find({
+                                name: sport.name,
+                                valueBetSettings: {
+                                    $elemMatch: {
+                                        bookmaker: sportsbook
                                     }
                                 }
-                            },
-                            { upsert: true, new: true } // upsert creates the document if it doesn't exist, new returns the updated doc
-                        );
-                    } else {
-                        await Sport.findOneAndUpdate(
-                            { name: sport.name }, // Find the sport by name
-                            {
-                                // Update the main fields (statYear, decayFactor, etc.)
-                                $set: {
-                                    name: sport.name,
-                                    espnSport: sport.espnSport,
-                                    league: sport.league,
-                                    startMonth: sport.startMonth,
-                                    endMonth: sport.endMonth,
-                                    multiYear: sport.multiYear,
-                                    statYear: sport.statYear,
-                                },
-                                $set: {
-                                    // Update the settings for the specific bookmaker using the $[] positional operator
-                                    "valueBetSettings.$[elem].settings": finalSettings.settings
-                                }
-                            },
-                            { arrayFilters: [{ "elem.bookmaker": sportsbook }], upsert: true, new: true } // upsert creates the document if it doesn't exist, new returns the updated doc
-                        );
+                            });
+                            if (sportExist.length === 0) {
+                                await Sport.findOneAndUpdate(
+                                    { name: sport.name }, // Find the sport by name
+                                    {
+                                        // Update the main fields (statYear, decayFactor, etc.)
+                                        $set: {
+                                            name: sport.name,
+                                            espnSport: sport.espnSport,
+                                            league: sport.league,
+                                            startMonth: sport.startMonth,
+                                            endMonth: sport.endMonth,
+                                            multiYear: sport.multiYear,
+                                            statYear: sport.statYear,
+                                        },
+                                        $addToSet: {
+                                            valueBetSettings: {
+                                                bookmaker: sportsbook,
+                                                settings: finalSettings.settings
+                                            }
+                                        }
+                                    },
+                                    { upsert: true, new: true } // upsert creates the document if it doesn't exist, new returns the updated doc
+                                );
+                            } else {
+                                await Sport.findOneAndUpdate(
+                                    { name: sport.name }, // Find the sport by name
+                                    {
+                                        // Update the main fields (statYear, decayFactor, etc.)
+                                        $set: {
+                                            name: sport.name,
+                                            espnSport: sport.espnSport,
+                                            league: sport.league,
+                                            startMonth: sport.startMonth,
+                                            endMonth: sport.endMonth,
+                                            multiYear: sport.multiYear,
+                                            statYear: sport.statYear,
+                                        },
+                                        $set: {
+                                            // Update the settings for the specific bookmaker using the $[] positional operator
+                                            "valueBetSettings.$[elem].settings": finalSettings.settings
+                                        }
+                                    },
+                                    { arrayFilters: [{ "elem.bookmaker": sportsbook }], upsert: true, new: true } // upsert creates the document if it doesn't exist, new returns the updated doc
+                                );
+                            }
+
+                        }
+
                     }
+
 
                 }
             }
 
         }
 
+        console.log(`FINISHED VALUE BET SEARCH for ${sport.name} @ ${moment().format('HH:mm:ss')}`)
     }
     console.log(`FINISHED VALUE BET SEARCH @ ${moment().format('HH:mm:ss')}`)
 

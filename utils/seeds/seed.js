@@ -18,55 +18,13 @@ process.env.TF_CPP_MIN_LOG_LEVEL = '3'; // Suppress logs
 const dataSeed = async () => {
     console.log("DB CONNECTED ------------------------------------------------- STARTING DATA SEED")
     // UPDATE TEAMS WITH MOST RECENT STATS // WORKING AS LONG AS DYNAMIC STAT YEAR CAN WORK CORRECTLY
-    const sports = await Sport.find({})
+    let sports = await Sport.find({})
     await retrieveTeamsandStats(sports)
 
-    const allPastGames = await PastGameOdds.find({})
 
-    for (const sport of sports) {
-        const currentDate = new Date();
-        const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11, so we add 1 to make it 1-12
-
-        if (sport.multiYear
-            && ((currentMonth >= sport.startMonth && currentMonth <= 12) || (currentMonth >= 1 && currentMonth <= sport.endMonth))
-            || !sport.multiYear
-            && (currentMonth >= sport.startMonth && currentMonth <= sport.endMonth)) {
-
-            // retrieve upcoming games
-            const upcomingGames = await Odds.find({ sport_key: sport.name })
-
-            const sportWeightDB = await Weights.findOne({ league: sport.name })
-
-            let weightArray = sportWeightDB?.hiddenToOutputWeights
-
-            if (upcomingGames.length > 0) {
-                let model
-                await indexAdjuster(upcomingGames, sport, allPastGames, weightArray)
-
-                const modelPath = `./model_checkpoint/${sport.name}_model/model.json`;
-
-                if (fs.existsSync(modelPath)) {
-                    model = await tf.loadLayersModel(`file://./model_checkpoint/${sport.name}_model/model.json`);
-                    model.compile({
-                        optimizer: tf.train.adam(sport.hyperParameters.learningRate),  // Use a smaller learning rate for testing
-                        loss: 'binaryCrossentropy',
-                        metrics: ['accuracy']
-                    });
-
-                    await predictions(upcomingGames, [], model, sport)
-                } else {
-                    console.log(`No Model, skipping predictions for ${sport.name}`)
-                }
-            }
-
-        }
-
-    }
-
-    const currentOdds = await Odds.find({})
-    await impliedProbCalc(currentOdds)
 
     console.info(`Full Seeding complete! 🌱 @ ${moment().format('HH:mm:ss')}`);
+    sports = []
 }
 
 const mlModelTrainSeed = async () => {
@@ -113,7 +71,7 @@ const mlModelTrainSeed = async () => {
 const oddsSeed = async () => {
     const sports = await Sport.find({})
     // RETRIEVE ODDS
-    console.log('BEGINNING ODDS SEEDING')
+    console.log(`BEGINNING ODDS SEEDING @ ${moment().format('HH:mm:ss')}`)
     const axiosWithBackoff = async (url, retries = 5, delayMs = 1000) => {
         try {
             const response = await axios.get(url);
@@ -127,15 +85,6 @@ const oddsSeed = async () => {
     };
 
     const fetchDataWithBackoff = async (sports) => {
-
-        // const requests = sports.map(sport => {
-        //     if(process.env.PRODUCTION === 'true'){
-        //         axiosWithBackoff(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_TCDEV}&regions=us&oddsFormat=american&markets=h2h`)
-        //     }else{
-        //         console.log(process.env.PRODUCTION)
-        //         axiosWithBackoff(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_TRAVM}&regions=us&oddsFormat=american&markets=h2h`)
-        //     }
-        // });
         let requests
         if (process.env.PRODUCTION === 'true') {
             requests = sports.map(sport =>
@@ -152,10 +101,7 @@ const oddsSeed = async () => {
         }
         await axios.all(requests).then(async (data) => {
             try {
-
                 data.map(async (item) => {
-                    const dataSize = Buffer.byteLength(JSON.stringify(item.data), 'utf8');
-                    console.log(`Data size sent: ${dataSize / 1024} KB ${moment().format('HH:mm:ss')} oddsSeed`);
                     item.data.map(async (event) => {
                         if (moment().isBefore(moment(event.commence_time))) {
 
@@ -181,60 +127,60 @@ const oddsSeed = async () => {
                             if (event.sport_key === 'americanfootball_nfl') {
                                 homeTeam = await UsaFootballTeam.findOne({
                                     'sport_key': 'americanfootball_nfl',
-                                    'espnDisplayName': event.home_team
+                                    'espnDisplayName': normalizedHomeTeam
                                 });
                                 awayTeam = await UsaFootballTeam.findOne({
                                     'sport_key': 'americanfootball_nfl',
-                                    'espnDisplayName': event.away_team
+                                    'espnDisplayName': normalizedAwayTeam
                                 });
                                 scheduleSport = 'football'
                             } else if (event.sport_key === 'americanfootball_ncaaf') {
                                 homeTeam = await UsaFootballTeam.findOne({
                                     'sport_key': 'americanfootball_ncaaf',
-                                    'espnDisplayName': event.home_team
+                                    'espnDisplayName': normalizedHomeTeam
                                 });
                                 awayTeam = await UsaFootballTeam.findOne({
                                     'sport_key': 'americanfootball_ncaaf',
-                                    'espnDisplayName': event.away_team
+                                    'espnDisplayName': normalizedAwayTeam
                                 });
                                 scheduleSport = 'football'
                             } else if (event.sport_key === 'basketball_nba') {
                                 homeTeam = await BasketballTeam.findOne({
                                     'league': 'nba',
-                                    'espnDisplayName': event.home_team
+                                    'espnDisplayName': normalizedHomeTeam
                                 });
                                 awayTeam = await BasketballTeam.findOne({
                                     'league': 'nba',
-                                    'espnDisplayName': event.away_team
+                                    'espnDisplayName': normalizedAwayTeam
                                 });
                                 scheduleSport = 'basketball'
                             } else if (event.sport_key === 'basketball_ncaab') {
                                 homeTeam = await BasketballTeam.findOne({
                                     'league': 'mens-college-basketball',
-                                    'espnDisplayName': event.home_team
+                                    'espnDisplayName': normalizedHomeTeam
                                 });
                                 awayTeam = await BasketballTeam.findOne({
                                     'league': 'mens-college-basketball',
-                                    'espnDisplayName': event.away_team
+                                    'espnDisplayName': normalizedAwayTeam
                                 });
                                 scheduleSport = 'basketball'
                             } else if (event.sport_key === 'basketball_wncaab') {
                                 homeTeam = await BasketballTeam.findOne({
                                     'league': 'womens-college-basketball',
-                                    'espnDisplayName': event.home_team
+                                    'espnDisplayName': normalizedHomeTeam
                                 });
                                 awayTeam = await BasketballTeam.findOne({
                                     'league': 'womens-college-basketball',
-                                    'espnDisplayName': event.away_team
+                                    'espnDisplayName': normalizedAwayTeam
                                 });
                                 scheduleSport = 'basketball'
                             } else if (event.sport_key === 'baseball_mlb') {
-                                homeTeam = await BaseballTeam.findOne({ 'espnDisplayName': event.home_team });
-                                awayTeam = await BaseballTeam.findOne({ 'espnDisplayName': event.away_team });
+                                homeTeam = await BaseballTeam.findOne({ 'espnDisplayName': normalizedHomeTeam });
+                                awayTeam = await BaseballTeam.findOne({ 'espnDisplayName': normalizedAwayTeam });
                                 scheduleSport = 'baseball'
                             } else if (event.sport_key === 'icehockey_nhl') {
-                                homeTeam = await HockeyTeam.findOne({ 'espnDisplayName': event.home_team });
-                                awayTeam = await HockeyTeam.findOne({ 'espnDisplayName': event.away_team });
+                                homeTeam = await HockeyTeam.findOne({ 'espnDisplayName': normalizedHomeTeam });
+                                awayTeam = await HockeyTeam.findOne({ 'espnDisplayName': normalizedAwayTeam });
                                 scheduleSport = 'hockey'
                             }
 
@@ -514,6 +460,8 @@ const oddsSeed = async () => {
                                             awayTeamlogo: awayTeam ? awayTeam.logo : 'no logo data',
                                             homeTeamAbbr: homeTeam?.abbreviation,
                                             awayTeamAbbr: awayTeam?.abbreviation,
+                                            homeTeamShort: homeTeam?.teamName,
+                                            awayTeamShort: awayTeam?.teamName,
                                             home_team: normalizedHomeTeam,
                                             away_team: normalizedAwayTeam,
                                             bookmakers: updatedBookmakers, // Include the updated bookmakers with normalized outcomes
@@ -536,6 +484,8 @@ const oddsSeed = async () => {
                                         awayTeamAbbr: awayTeam?.abbreviation,
                                         home_team: normalizedHomeTeam,
                                         away_team: normalizedAwayTeam,
+                                        homeTeamShort: homeTeam?.teamName,
+                                        awayTeamShort: awayTeam?.teamName,
                                         bookmakers: updatedBookmakers, // Include the updated bookmakers with normalized outcomes
                                         sport: scheduleSport,
                                     });
@@ -565,10 +515,51 @@ const oddsSeed = async () => {
         }
         return false;
     }));
+    const allPastGames = await PastGameOdds.find({})
 
+    for (const sport of sports) {
+        const currentDate = new Date();
+        const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11, so we add 1 to make it 1-12
 
+        if (sport.multiYear
+            && ((currentMonth >= sport.startMonth && currentMonth <= 12) || (currentMonth >= 1 && currentMonth <= sport.endMonth))
+            || !sport.multiYear
+            && (currentMonth >= sport.startMonth && currentMonth <= sport.endMonth)) {
 
-    await dataSeed()
+            // retrieve upcoming games
+            const upcomingGames = await Odds.find({ sport_key: sport.name })
+
+            const sportWeightDB = await Weights.findOne({ league: sport.name })
+
+            let weightArray = sportWeightDB?.hiddenToOutputWeights
+
+            if (upcomingGames.length > 0) {
+                let model
+                await indexAdjuster(upcomingGames, sport, allPastGames, weightArray)
+
+                const modelPath = `./model_checkpoint/${sport.name}_model/model.json`;
+
+                if (fs.existsSync(modelPath)) {
+                    model = await tf.loadLayersModel(`file://./model_checkpoint/${sport.name}_model/model.json`);
+                    model.compile({
+                        optimizer: tf.train.adam(sport.hyperParameters.learningRate),  // Use a smaller learning rate for testing
+                        loss: 'binaryCrossentropy',
+                        metrics: ['accuracy']
+                    });
+
+                    await predictions(upcomingGames, [], model, sport)
+                } else {
+                    console.log(`No Model, skipping predictions for ${sport.name}`)
+                }
+            }
+
+        }
+
+    }
+
+    const currentOdds = await Odds.find({})
+    await impliedProbCalc(currentOdds)
+    console.log(`ODDS FETCHED AND STORED, STARTING DATA SEED @ ${moment().format('HH:mm:ss')}`)
 
 }
 
@@ -751,15 +742,176 @@ const espnSeed = async () => {
 //TAKES ABOUT 1 HOUR
 const paramAndValueSeed = async () => {
     const { sports } = require('../constants')
-    
+
 
     await valueBetRandomSearch(sports)
 
     await hyperparameterRandSearch(sports)
 
+    await mlModelTrainSeed()
+
+}
+
+//RUN THIS ON SERVER BEFORE UPDATING CLIENT FOR SERVING
+const addShortNamestoGames = async () => {
+    const pastGames = await PastGameOdds.find({})
+    let usablePastGames = pastGames.filter((game) => game.predictedWinner === 'home' || game.predictedWinner === 'away');
+    const upcomingGames = await Odds.find({})
+
+    let sports = await Sport.find({})
+
+    for (const sport of sports) {
+
+        let sportPastGames = usablePastGames.filter((game) => game.sport_key === sport.name)
+        let sportUpcomingGames = upcomingGames.filter((game) => game.sport_key === sport.name)
+
+        const pastGameProcessing = async () => {
+            for (const game of sportPastGames) {
+
+                let TeamModel;
+                let leagueQuery;
+                switch (sport.espnSport) {
+                    case 'football':
+                        TeamModel = UsaFootballTeam;
+                        break;
+                    case 'basketball':
+                        TeamModel = BasketballTeam;
+                        break;
+                    case 'hockey':
+                        TeamModel = HockeyTeam;
+                        break;
+                    case 'baseball':
+                        TeamModel = BaseballTeam;
+                        break;
+                    default:
+                        console.error("Unsupported sport:", sport.espnSport);
+                        return;
+                }
+                switch (sport.name) {
+                    case 'americanfootball_nfl':
+                        leagueQuery = 'nfl'
+                        break;
+                    case 'americanfootball_ncaaf':
+                        leagueQuery = 'college-football'
+                        break;
+                    case 'basketball_nba':
+                        leagueQuery = 'nba'
+                        break;
+                    case 'basketball_ncaab':
+                        leagueQuery = 'mens-college-basketball'
+                        break;
+                    case 'basketball_wncaab':
+                        leagueQuery = 'womens-college-basketball'
+                        break;
+                    case 'icehockey_nhl':
+                        leagueQuery = 'nhl';
+                        break;
+                    case 'baseball_mlb':
+                        leagueQuery = 'mlb';
+                        break;
+                    default:
+                        console.error("Unsupported sport:", sport.name);
+                        return;
+                }
+                let homeTeam = await TeamModel.findOne({ espnDisplayName: game.home_team, league: leagueQuery })
+                let awayTeam = await TeamModel.findOne({ espnDisplayName: game.away_team, league: leagueQuery })
+
+
+                try {
+                    await PastGameOdds.findOneAndUpdate({ id: game.id }, {
+                        homeTeamShort: homeTeam.teamName,
+                        awayTeamShort: awayTeam.teamName
+                    })
+                } catch (err) {
+                    console.log(game.home_team)
+                    console.log(game.away_team)
+                }
+
+
+
+            }
+        }
+
+        const upcomingGameProcessing = async () => {
+            for (const game of sportUpcomingGames) {
+
+                let TeamModel;
+                let leagueQuery;
+                switch (game.sport) {
+                    case 'football':
+                        TeamModel = UsaFootballTeam;
+                        break;
+                    case 'basketball':
+                        TeamModel = BasketballTeam;
+                        break;
+                    case 'hockey':
+                        TeamModel = HockeyTeam;
+                        break;
+                    case 'baseball':
+                        TeamModel = BaseballTeam;
+                        break;
+                    default:
+                        console.error("Unsupported sport:", sports[i].espnSport);
+                        return;
+                }
+                switch (game.sport_key) {
+                    case 'americanfootball_nfl':
+                        leagueQuery = 'nfl'
+                        break;
+                    case 'americanfootball_ncaaf':
+                        leagueQuery = 'college-football'
+                        break;
+                    case 'basketball_nba':
+                        leagueQuery = 'nba'
+                        break;
+                    case 'basketball_ncaab':
+                        leagueQuery = 'mens-college-basketball'
+                        break;
+                    case 'basketball_wncaab':
+                        leagueQuery = 'womens-college-basketball'
+                        break;
+                    case 'icehockey_nhl':
+                        leagueQuery = 'nhl';
+                        break;
+                    case 'baseball_mlb':
+                        leagueQuery = 'mlb';
+                        break;
+                    default:
+                        console.error("Unsupported sport:", game.sport_key);
+                        return;
+                }
+
+                let homeTeam = await TeamModel.findOne({ espnDisplayName: game.home_team, league: leagueQuery })
+                let awayTeam = await TeamModel.findOne({ espnDisplayName: game.away_team, league: leagueQuery })
+
+                try {
+                    await Odds.findOneAndUpdate({ id: game.id }, {
+                        homeTeamShort: homeTeam.teamName,
+                        awayTeamShort: awayTeam.teamName
+                    })
+                } catch (err) {
+                    console.log(game.home_team)
+                    console.log(game.away_team)
+                }
+
+            }
+        }
+
+        await pastGameProcessing()
+
+        console.log(`FINISHED PAST GAMES FOR ${sport.name}`)
+
+        await upcomingGameProcessing()
+
+        console.log(`FINISHED UPCOMING GAMES FOR ${sport.name}`)
+    }
+
+
+
 }
 
 
-// THEN RE RUN VALUE SEED BARE MINIMUM TO MAKE SURE VALUE PARAMS ARE GOOD
+addShortNamestoGames()
+
 
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed, paramAndValueSeed }

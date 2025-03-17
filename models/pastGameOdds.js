@@ -28,9 +28,17 @@ const pastGameOddsSchema = new Schema({
         type: String,
         required: true,
     },
+    homeTeamShort: {
+        type: String,
+        required: false,
+    },
     away_team: {
         type: String,
         required: true,
+    },
+    awayTeamShort: {
+        type: String,
+        required: false,
     },
     awayTeamAbbr: {
         type: String,

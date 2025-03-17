@@ -444,9 +444,9 @@ const upsertTeamsInBulk = async (teams, sport, TeamModel) => {
     }).filter(operation => operation !== null);
 
     if (bulkOps.length > 0) {
-        try{
+        try {
             await TeamModel.bulkWrite(bulkOps);
-        }catch(err){
+        } catch (err) {
             console.log(err)
         }
 
@@ -546,32 +546,43 @@ const fetchAllTeamData = async (sport, teams, statYear, TeamModel) => {
 
 const retrieveTeamsandStats = async (sports) => {
 
-    for (let i = 0; i < sports.length; i++) {
-        console.log(`STARTING ${sports[i].name} TEAM SEEDING @ ${moment().format('HH:mm:ss')}`)
-        let TeamModel;
-        switch (sports[i].espnSport) {
-            case 'football':
-                TeamModel = UsaFootballTeam;
-                break;
-            case 'basketball':
-                TeamModel = BasketballTeam;
-                break;
-            case 'hockey':
-                TeamModel = HockeyTeam;
-                break;
-            case 'baseball':
-                TeamModel = BaseballTeam;
-                break;
-            default:
-                console.error("Unsupported sport:", sports[i].espnSport);
-                return;
-        }
-        let teams
-        teams = await TeamModel.find({})
-        // Helper function to get the team record URL based on the current month
+    for (let sport of sports) {
+        const currentDate = new Date();
+        const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11, so we add 1 to make it 1-12
 
-        await fetchAllTeamData(sports[i], teams, sports[i].statYear, TeamModel)
-        console.log(`Finished ${sports[i].name} TEAM SEEDING @ ${moment().format('HH:mm:ss')}`)
+        if (sport.multiYear
+            && ((currentMonth >= sport.startMonth && currentMonth <= 12) || (currentMonth >= 1 && currentMonth <= sport.endMonth))
+            || !sport.multiYear
+            && (currentMonth >= sport.startMonth && currentMonth <= sport.endMonth)) {
+
+
+            console.log(`STARTING ${sport.name} TEAM SEEDING @ ${moment().format('HH:mm:ss')}`)
+            let TeamModel;
+            switch (sport.espnSport) {
+                case 'football':
+                    TeamModel = UsaFootballTeam;
+                    break;
+                case 'basketball':
+                    TeamModel = BasketballTeam;
+                    break;
+                case 'hockey':
+                    TeamModel = HockeyTeam;
+                    break;
+                case 'baseball':
+                    TeamModel = BaseballTeam;
+                    break;
+                default:
+                    console.error("Unsupported sport:", sport.espnSport);
+                    return;
+            }
+            let teams
+            teams = await TeamModel.find({})
+            // Helper function to get the team record URL based on the current month
+
+            await fetchAllTeamData(sport, teams, sport.statYear, TeamModel)
+            console.log(`Finished ${sport.name} TEAM SEEDING @ ${moment().format('HH:mm:ss')}`)
+            teams = []
+        }
     }
 
     console.log(`Finished TEAM SEEDING @ ${moment().format('HH:mm:ss')}`)
@@ -825,4 +836,4 @@ const cleanStats = (stats) => {
     return cleanedStats;
 };
 
-module.exports = {retrieveTeamsandStats, getCommonStats, cleanStats}
+module.exports = { retrieveTeamsandStats, getCommonStats, cleanStats }

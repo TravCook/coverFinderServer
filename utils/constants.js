@@ -87,21 +87,17 @@ const indexCondition = (game, indexDifSmall, indexDiffRange) => {
     return game.predictionStrength > confidenceLow && game.predictionStrength < (confidenceLow + confidenceRange);
   };
   
-  const probabilityCondition = (o, game, winPercentInc) => {
-    return (o.impliedProb * 100) < (game.winPercent + winPercentInc);
+  const probabilityCondition = (o, game) => {
+    return (o.impliedProb * 100) < (game.winPercent);
   };
   
-  const teamCondition = (game, o) => {
-    return (game.predictedWinner === 'home' && game.home_team === o.name) || (game.predictedWinner === 'away' && game.away_team === o.name);
-  };
   
   
   // You can also combine them into a single condition
-  const combinedCondition = (game, o, indexDifSmall, indexDiffRange, confidenceLow, confidenceRange, winPercentInc) => {
-    return probabilityCondition(o, game, winPercentInc)
-      && teamCondition(game, o)
+  const combinedCondition = (game, o, indexDifSmall, indexDiffRange, confidenceLow, confidenceRange) => {
+    return probabilityCondition(o, game)
      && indexCondition(game, indexDifSmall, indexDiffRange)
-     && strengthCondition(game, confidenceLow, confidenceRange)
+    //  && strengthCondition(game, confidenceLow, confidenceRange)
   };
   
 

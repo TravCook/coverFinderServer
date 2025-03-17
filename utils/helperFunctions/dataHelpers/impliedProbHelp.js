@@ -2,6 +2,7 @@ const moment = require('moment')
 const { Odds } = require('../../../models');
 const impliedProbCalc = (currentOdds) => {
     currentOdds.map(async (game) => {
+
         try {
             // Loop over all bookmakers
             await Promise.all(game.bookmakers.map(async (bookmaker) => {
@@ -11,7 +12,7 @@ const impliedProbCalc = (currentOdds) => {
                     await Promise.all(market.outcomes.map(async (outcome) => {
                         // Perform the update using arrayFilters to target the correct outcome
                         if (outcome.price < 0) {
-                            try{
+                            try {
                                 await Odds.findOneAndUpdate(
                                     { 'id': game.id }, // Filter by game id
                                     {
@@ -23,16 +24,16 @@ const impliedProbCalc = (currentOdds) => {
                                         arrayFilters: [
                                             { 'bookmaker.key': bookmaker.key }, // Match bookmaker by key
                                             { 'market.key': market.key }, // Match market by key
-                                            { 'outcome._id': outcome._id } // Match outcome by its _id
+                                            { 'outcome.name': outcome.name} // Match outcome by its _id
                                         ]
                                     }
                                 );
-                            }catch(err){
+                            } catch (err) {
                                 console.log(err)
                             }
 
                         } else {
-                            try{
+                            try {
                                 await Odds.findOneAndUpdate(
                                     { 'id': game.id }, // Filter by game id
                                     {
@@ -44,11 +45,11 @@ const impliedProbCalc = (currentOdds) => {
                                         arrayFilters: [
                                             { 'bookmaker.key': bookmaker.key }, // Match bookmaker by key
                                             { 'market.key': market.key }, // Match market by key
-                                            { 'outcome._id': outcome._id } // Match outcome by its _id
+                                            { 'outcome.name': outcome.name } // Match outcome by its _id
                                         ]
                                     }
                                 );
-                            }catch(err){
+                            } catch (err) {
                                 console.log(err)
                             }
 
@@ -63,4 +64,4 @@ const impliedProbCalc = (currentOdds) => {
     console.log(`FINISHED CALCULATING IMPLIED PROBABILITY @ ${moment().format('HH:mm:ss')}`) //CLEANED AND FORMATTED
 }
 
-module.exports = {impliedProbCalc}
+module.exports = { impliedProbCalc }

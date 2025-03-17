@@ -113,6 +113,18 @@ const sportSchema = new Schema({
             confidenceRangeNum: {
                 type: Number,
                 required: false
+            },
+            bestWinrate : {
+                type: Number,
+                required: false
+            },
+            bestWeightScore: {
+                type: Number,
+                required: false
+            },
+            bestTotalGames: {
+                type: Number,
+                required: false
             }
         }
     }]

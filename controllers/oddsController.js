@@ -78,33 +78,37 @@ module.exports = {
                 let pastGames = await PastGameOdds.find({
                     commence_time: { $gte: twoWeeksAgo.toISOString(), $lt: currentDate.toISOString() }
                 }).sort({ commence_time: -1, winPercent: 1 });
-                pastGames.map((gameData, idx) => {
-                    const bookmaker = gameData?.bookmakers?.find(b => b.key === req.body.sportsbook);
+                
+                try {
+                    pastGames.map((gameData, idx) => {
+                        const bookmaker = gameData?.bookmakers?.find(b => b.key === req.body.sportsbook);
+                        if (bookmaker) {
+                            const marketData = bookmaker?.markets?.find(m => m.key === 'h2h');
 
-                    const marketData = bookmaker?.markets?.find(m => m.key === 'h2h');
+                            let outcome = marketData?.outcomes?.find(o => {
+                                return o.name === (gameData.predictedWinner === 'home' ? gameData.home_team : gameData.away_team)
+                            });
+                            
+                            if (outcome) {
+                                let currentSport = sports.find(arraySport => arraySport.name === gameData.sport_key)
+                                let sportSettings = currentSport.valueBetSettings.find((setting) => setting.bookmaker === req.body.sportsbook)
+                                let valueBetCheck = combinedCondition(gameData, outcome, sportSettings.settings.indexDiffSmallNum, sportSettings.settings.indexDiffRangeNum, sportSettings.settings.confidenceLowNum, sportSettings.settings.confidenceRangeNum)
+                                
+                                if (valueBetCheck) {
+                                    valueGames.push(gameData)
+                                }
+                            }
 
-                    marketData?.outcomes?.find(out => {
-                        let currentSport = sports.find(arraySport => arraySport.name === gameData.sport_key)
-                        let sportSettings = currentSport.valueBetSettings.find((setting) => setting.bookmaker === req.body.sportsbook)
-                        if(combinedCondition(gameData, out, sportSettings.settings.indexDiffSmallNum, sportSettings.settings.indexDiffRangeNum, sportSettings.settings.confidenceLowNum, sportSettings.settings.confidenceRangeNum)){
-                            valueGames.push(gameData)
                         }
-                    });
-                })
-                const [footballTeams, basketballTeams, baseballTeams, hockeyTeams] = await Promise.all([UsaFootballTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1, lastFiveGames: 1 }),
-                BasketballTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1, lastFiveGames: 1 }),
-                BaseballTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1, lastFiveGames: 1 }),
-                HockeyTeam.find({}, { teamName: 1, logo: 1, espnDisplayName: 1, espnID: 1, league: 1, abbreviation: 1, lastFiveGames: 1 })])
+                    })
+                } catch (err) {
+                    console.log(err)
+                }
+
                 data = {
                     odds: odds,
                     valueGames: valueGames,
                     sports: sports,
-                    teams: {
-                        football: footballTeams,
-                        basketball: basketballTeams,
-                        baseball: baseballTeams,
-                        hockey: hockeyTeams
-                    }
                 }
                 myCache.set('fullData', JSON.stringify(data), 60);
                 // Sort data by commence_time and winPercent
