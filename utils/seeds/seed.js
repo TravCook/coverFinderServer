@@ -559,7 +559,7 @@ const oddsSeed = async () => {
 
     const currentOdds = await Odds.find({})
     await impliedProbCalc(currentOdds)
-    console.log(`ODDS FETCHED AND STORED, STARTING DATA SEED @ ${moment().format('HH:mm:ss')}`)
+    console.log(`ODDS FETCHED AND STORED @ ${moment().format('HH:mm:ss')}`)
 
 }
 
@@ -910,8 +910,6 @@ const addShortNamestoGames = async () => {
 
 }
 
-
-oddsSeed()
-
+paramAndValueSeed()
 
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed, paramAndValueSeed }
