@@ -115,150 +115,154 @@ const hyperparameterRandSearch = async (sports) => {
             gameDecayThreshold: 10
         };
         console.log(`--------------- ${sport.name}-------------------`)
-        if (sport.multiYear
-            && ((currentMonth >= sport.startMonth && currentMonth <= 12) || (currentMonth >= 1 && currentMonth <= sport.endMonth))
-            || !sport.multiYear
-            && (currentMonth >= sport.startMonth && currentMonth <= sport.endMonth)) {
-
-            for (let iterations = 0; iterations < 100; iterations++) {
-                let currentParams = {}
-
-                for (const param in paramSpace) {
-                    const values = paramSpace[param]
-
-                    const randomIndex = Math.floor(Math.random() * values.length)
-                    currentParams[param] = values[randomIndex]
-                }
-
-
-
-                let gameData = await PastGameOdds.find({ sport_key: sport.name })
-
-                function decayCalcByGames(gamesProcessed, decayFactor) { //FOR USE TO DECAY BY GAMES PROCESSED
-                    // Full strength for the last 25 games
-                    const gamesDecayThreshold = currentParams.gameDecayThresholds;
-                    if (gamesProcessed <= gamesDecayThreshold) {
-                        return 1; // No decay for the most recent 25 games
-                    } else {
-                        // Apply decay based on the number of games processed
-                        const decayFactorAdjusted = decayFactor;  // Use a default decay factor if none is provided
-                        const decayAmount = Math.pow(decayFactorAdjusted, (gamesProcessed - gamesDecayThreshold));
-                        return decayAmount;  // Decay decreases as the games processed increases
+        let gameData = await PastGameOdds.find({ sport_key: sport.name })
+        if(gameData.length > 0){
+            if (sport.multiYear
+                && ((currentMonth >= sport.startMonth && currentMonth <= 12) || (currentMonth >= 1 && currentMonth <= sport.endMonth))
+                || !sport.multiYear
+                && (currentMonth >= sport.startMonth && currentMonth <= sport.endMonth)) {
+    
+                for (let iterations = 0; iterations < 100; iterations++) {
+                    let currentParams = {}
+    
+                    for (const param in paramSpace) {
+                        const values = paramSpace[param]
+    
+                        const randomIndex = Math.floor(Math.random() * values.length)
+                        currentParams[param] = values[randomIndex]
                     }
-                }
-                let xs = []
-                let ys = []
-                let gamesProcessed = 0; // Track how many games have been processed
-                // FOR USE TO DECAY BY GAMES PROCESSED
-                gameData.forEach(game => {
-                    const homeStats = game.homeTeamStats;
-                    const awayStats = game.awayTeamStats;
-
-                    // Extract features based on sport
-                    let features = extractSportFeatures(homeStats, awayStats, sport.name);
-                    // Calculate decay based on the number of games processed
-                    const decayWeight = decayCalcByGames(gamesProcessed, currentParams.decayFactors);  // get the decay weight based on gamesProcessed
-
-                    // Apply decay to each feature
-                    features = features.map(feature => feature * decayWeight);
-
-                    // Set label to 1 if home team wins, 0 if away team wins
-                    const correctPrediction = game.winner === 'home' ? 1 : 0;
-                    checkNaNValues(features, game);  // Check features
-
-                    xs.push(features);
-                    ys.push(correctPrediction);
-
-                    gamesProcessed++;  // Increment the counter for games processed
-                });
-                // Function to calculate dynamic class weights
-                const calculateClassWeights = (ys) => {
-
-                    const homeWins = ys.filter(y => y === 1).length;   // Count the home wins (ys = 1)
-                    const homeLosses = ys.filter(y => y === 0).length; // Count the home losses (ys = 0)
-
-
-                    const totalExamples = homeWins + homeLosses;
-                    const classWeightWin = totalExamples / (2 * homeWins);   // Weight for home wins
-                    const classWeightLoss = totalExamples / (2 * homeLosses); // Weight for home losses
-
-                    return {
-                        0: classWeightLoss, // Weight for home losses
-                        1: classWeightWin   // Weight for home wins
+    
+    
+    
+    
+    
+                    function decayCalcByGames(gamesProcessed, decayFactor) { //FOR USE TO DECAY BY GAMES PROCESSED
+                        // Full strength for the last 25 games
+                        const gamesDecayThreshold = currentParams.gameDecayThresholds;
+                        if (gamesProcessed <= gamesDecayThreshold) {
+                            return 1; // No decay for the most recent 25 games
+                        } else {
+                            // Apply decay based on the number of games processed
+                            const decayFactorAdjusted = decayFactor;  // Use a default decay factor if none is provided
+                            const decayAmount = Math.pow(decayFactorAdjusted, (gamesProcessed - gamesDecayThreshold));
+                            return decayAmount;  // Decay decreases as the games processed increases
+                        }
+                    }
+                    let xs = []
+                    let ys = []
+                    let gamesProcessed = 0; // Track how many games have been processed
+                    // FOR USE TO DECAY BY GAMES PROCESSED
+                    gameData.forEach(game => {
+                        const homeStats = game.homeTeamStats;
+                        const awayStats = game.awayTeamStats;
+    
+                        // Extract features based on sport
+                        let features = extractSportFeatures(homeStats, awayStats, sport.name);
+                        // Calculate decay based on the number of games processed
+                        const decayWeight = decayCalcByGames(gamesProcessed, currentParams.decayFactors);  // get the decay weight based on gamesProcessed
+    
+                        // Apply decay to each feature
+                        features = features.map(feature => feature * decayWeight);
+    
+                        // Set label to 1 if home team wins, 0 if away team wins
+                        const correctPrediction = game.winner === 'home' ? 1 : 0;
+                        checkNaNValues(features, game);  // Check features
+    
+                        xs.push(features);
+                        ys.push(correctPrediction);
+    
+                        gamesProcessed++;  // Increment the counter for games processed
+                    });
+                    // Function to calculate dynamic class weights
+                    const calculateClassWeights = (ys) => {
+    
+                        const homeWins = ys.filter(y => y === 1).length;   // Count the home wins (ys = 1)
+                        const homeLosses = ys.filter(y => y === 0).length; // Count the home losses (ys = 0)
+    
+    
+                        const totalExamples = homeWins + homeLosses;
+                        const classWeightWin = totalExamples / (2 * homeWins);   // Weight for home wins
+                        const classWeightLoss = totalExamples / (2 * homeLosses); // Weight for home losses
+    
+                        return {
+                            0: classWeightLoss, // Weight for home losses
+                            1: classWeightWin   // Weight for home wins
+                        };
                     };
-                };
-
-                // Convert arrays to tensors
-                const xsTensor = tf.tensor2d(xs);
-
-                const ysTensor = tf.tensor2d(ys, [ys.length, 1]);
-
-                // Flatten ysTensor to convert it to a 1D array
-                const ysArray = await ysTensor.reshape([-1]).array();
-                // Dynamically calculate class weights
-                const classWeights = calculateClassWeights(ysArray);
-
-                // Create a fresh model for each hyperparameter combination
-                const model = await createModel(currentParams.learningRates, currentParams.batchSizes, currentParams.epochs, currentParams.l2Regs, currentParams.dropoutRegs, currentParams.hiddenLayerNums, currentParams.kernalInitializers, currentParams.numKFolds, currentParams.layerNeurons, xs);
-                // Perform K-Fold cross-validation with this hyperparameter combination
-                //const avgAccuracy = await trainAndEvaluateKFold(model, KFolds, xsTensor, ysTensor, epoch, batchSize); // 5-fold cross-validation
-                // Train the model on the current fold
-                await model.fit(xsTensor, ysTensor, {
-                    epochs: currentParams.epoch, // Example epochs, you should set this dynamically
-                    batchSize: currentParams.batchSize, // Example batch size, you should set this dynamically
-                    validationSplit: 0.3,
-                    classWeight: classWeights,
-                    verbose: false,
-                    shuffle: false,
-                });
-                const evaluation = model.evaluate(xsTensor, ysTensor);
-                const loss = evaluation[0].arraySync();
-                const accuracy = evaluation[1].arraySync();
-                // Now, calculate precision, recall, and F1-score
-
-                const metrics = evaluateMetrics(ysTensor, model.predict(xsTensor, { training: false }));
-
-                // // Track the best performing hyperparameters based on k-fold cross-validation
-                if (metrics.f1Score > bestAccuracy) {
-                    bestAccuracy = metrics.f1Score;
-                    bestParams = {
-                        bestAccuracy: metrics.f1Score,
-                        epochs: currentParams.epochs,
-                        batchSize: currentParams.batchSizes,
-                        KFolds: currentParams.numKFolds,
-                        hiddenLayerNum: currentParams.hiddenLayers,
-                        learningRate: currentParams.learningRates,
-                        l2Reg: currentParams.l2Regs,
-                        dropoutReg: currentParams.dropoutRegs,
-                        kernalInitializer: currentParams.kernalInitializers,
-                        layerNeurons: currentParams.layerNeurons,
-                        decayFactor: currentParams.decayFactors,
-                        gameDecayThreshold: currentParams.gameDecayThresholds
-                    };
+    
+                    // Convert arrays to tensors
+                    const xsTensor = tf.tensor2d(xs);
+    
+                    const ysTensor = tf.tensor2d(ys, [ys.length, 1]);
+    
+                    // Flatten ysTensor to convert it to a 1D array
+                    const ysArray = await ysTensor.reshape([-1]).array();
+                    // Dynamically calculate class weights
+                    const classWeights = calculateClassWeights(ysArray);
+    
+                    // Create a fresh model for each hyperparameter combination
+                    const model = await createModel(currentParams.learningRates, currentParams.batchSizes, currentParams.epochs, currentParams.l2Regs, currentParams.dropoutRegs, currentParams.hiddenLayerNums, currentParams.kernalInitializers, currentParams.numKFolds, currentParams.layerNeurons, xs);
+                    // Perform K-Fold cross-validation with this hyperparameter combination
+                    //const avgAccuracy = await trainAndEvaluateKFold(model, KFolds, xsTensor, ysTensor, epoch, batchSize); // 5-fold cross-validation
+                    // Train the model on the current fold
+                    await model.fit(xsTensor, ysTensor, {
+                        epochs: currentParams.epoch, // Example epochs, you should set this dynamically
+                        batchSize: currentParams.batchSize, // Example batch size, you should set this dynamically
+                        validationSplit: 0.3,
+                        classWeight: classWeights,
+                        verbose: false,
+                        shuffle: false,
+                    });
+                    const evaluation = model.evaluate(xsTensor, ysTensor);
+                    const loss = evaluation[0].arraySync();
+                    const accuracy = evaluation[1].arraySync();
+                    // Now, calculate precision, recall, and F1-score
+    
+                    const metrics = evaluateMetrics(ysTensor, model.predict(xsTensor, { training: false }));
+    
+                    // // Track the best performing hyperparameters based on k-fold cross-validation
+                    if (metrics.f1Score > bestAccuracy) {
+                        bestAccuracy = metrics.f1Score;
+                        bestParams = {
+                            bestAccuracy: metrics.f1Score,
+                            epochs: currentParams.epochs,
+                            batchSize: currentParams.batchSizes,
+                            KFolds: currentParams.numKFolds,
+                            hiddenLayerNum: currentParams.hiddenLayers,
+                            learningRate: currentParams.learningRates,
+                            l2Reg: currentParams.l2Regs,
+                            dropoutReg: currentParams.dropoutRegs,
+                            kernalInitializer: currentParams.kernalInitializers,
+                            layerNeurons: currentParams.layerNeurons,
+                            decayFactor: currentParams.decayFactors,
+                            gameDecayThreshold: currentParams.gameDecayThresholds
+                        };
+                    }
+    
                 }
-
-            }
-            console.log('Best Hyperparameters:', bestParams);
-            console.log('Best Cross-Validation Accuracy:', bestAccuracy);
-            let currentSport = await Sport.findOne({ name: sport.name })
-
-            let accuracyComparison = currentSport?.hyperParameters?.bestAccuracy || 0
-
-            if (bestAccuracy > accuracyComparison) {
-                await Sport.findOneAndUpdate({ name: sport.name }, {
-                    ...sport,
-                    hyperParameters: bestParams
-                }, { upsert: true })
-
-                const modelPath = `./model_checkpoint/${sport.name}_model/model.json`;
-                try {
-                    fs.unlinkSync(modelPath);
-                    console.log('File deleted successfully');
-                } catch (err) {
-                    console.error('Error deleting file:', err);
+                console.log('Best Hyperparameters:', bestParams);
+                console.log('Best Cross-Validation Accuracy:', bestAccuracy);
+                let currentSport = await Sport.findOne({ name: sport.name })
+    
+                let accuracyComparison = currentSport?.hyperParameters?.bestAccuracy || 0
+    
+                if (bestAccuracy > accuracyComparison) {
+                    await Sport.findOneAndUpdate({ name: sport.name }, {
+                        ...sport,
+                        hyperParameters: bestParams
+                    }, { upsert: true })
+    
+                    const modelPath = `./model_checkpoint/${sport.name}_model/model.json`;
+                    try {
+                        fs.unlinkSync(modelPath);
+                        console.log('File deleted successfully');
+                    } catch (err) {
+                        console.error('Error deleting file:', err);
+                    }
                 }
             }
         }
+
 
     }
     console.log(`FINISHED HYPERPARAM SEARCH @ ${moment().format('HH:mm:ss')}`)
