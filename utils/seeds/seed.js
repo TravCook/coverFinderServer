@@ -532,8 +532,9 @@ const oddsSeed = async () => {
             const sportWeightDB = await Weights.findOne({ league: sport.name })
 
             let weightArray = sportWeightDB?.hiddenToOutputWeights
+            console.log(weightArray)
 
-            if (upcomingGames.length > 0 || weightArray !== undefined) {
+            if (upcomingGames.length > 0 || weightArray.length > 0) {
                 let model
                 await indexAdjuster(upcomingGames, sport, allPastGames, weightArray)
 
