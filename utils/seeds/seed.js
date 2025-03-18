@@ -534,7 +534,7 @@ const oddsSeed = async () => {
             let weightArray = sportWeightDB?.hiddenToOutputWeights
             console.log(weightArray)
 
-            if (upcomingGames.length > 0 || weightArray.length > 0) {
+            if (upcomingGames.length > 0 || weightArray.length !== undefined) {
                 let model
                 await indexAdjuster(upcomingGames, sport, allPastGames, weightArray)
 
@@ -543,7 +543,7 @@ const oddsSeed = async () => {
                 if (fs.existsSync(modelPath)) {
                     model = await tf.loadLayersModel(`file://./model_checkpoint/${sport.name}_model/model.json`);
                     model.compile({
-                        optimizer: tf.train.adam(sport.hyperParameters.learningRate),  // Use a smaller learning rate for testing
+                        optimizer: tf.train.adam(sport.hyperParameters.learningRate),
                         loss: 'binaryCrossentropy',
                         metrics: ['accuracy']
                     });
