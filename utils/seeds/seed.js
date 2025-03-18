@@ -533,7 +533,7 @@ const oddsSeed = async () => {
 
             let weightArray = sportWeightDB?.hiddenToOutputWeights
 
-            if (upcomingGames.length > 0) {
+            if (upcomingGames.length > 0 || weightArray !== undefined) {
                 let model
                 await indexAdjuster(upcomingGames, sport, allPastGames, weightArray)
 
@@ -910,5 +910,6 @@ const addShortNamestoGames = async () => {
 
 }
 
+oddsSeed()
 
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed, paramAndValueSeed }
