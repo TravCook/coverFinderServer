@@ -92,11 +92,14 @@ module.exports = {
                             if (outcome) {
                                 let currentSport = sports.find(arraySport => arraySport.name === gameData.sport_key)
                                 let sportSettings = currentSport.valueBetSettings.find((setting) => setting.bookmaker === req.body.sportsbook)
-                                let valueBetCheck = combinedCondition(gameData, outcome, sportSettings.settings.indexDiffSmallNum, sportSettings.settings.indexDiffRangeNum, sportSettings.settings.confidenceLowNum, sportSettings.settings.confidenceRangeNum)
+                                if(sportSettings !== undefined){
+                                    let valueBetCheck = combinedCondition(gameData, outcome, sportSettings.settings.indexDiffSmallNum, sportSettings.settings.indexDiffRangeNum, sportSettings.settings.confidenceLowNum, sportSettings.settings.confidenceRangeNum)
                                 
                                 if (valueBetCheck) {
                                     valueGames.push(gameData)
                                 }
+                                }
+                                
                             }
 
                         }

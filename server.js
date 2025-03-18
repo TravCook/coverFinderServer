@@ -47,7 +47,7 @@ const cronJobs = [
     timezone,
   },
   {
-    cronTime: '0 0 4-23 * * *', //every hour except 12-3 when ML train runs -- gets team stats and saves to db -- 2 min
+    cronTime: '0 30 4-23 * * *', //every hour, at the 30min mark, except 12-3 when ML train runs -- gets team stats and saves to db -- 2 min
     onTick: dataSeed.dataSeed,
     timezone
   },
