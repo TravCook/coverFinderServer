@@ -39,7 +39,7 @@ const mlModelTrainSeed = async () => {
             // Multi-year sports (e.g., NFL, NBA, NHL, etc.)
             if ((currentMonth >= sports[sport].startMonth && currentMonth <= 12) || (currentMonth >= 1 && currentMonth <= sports[sport].endMonth)) {
                 const pastGames = await PastGameOdds.find({ sport_key: sports[sport].name }).sort({ commence_time: -1 })
-                if (pastGames.length > 0) {
+                if (pastGames.length > 10) {
                     console.log(`${sports[sport].name} ML STARTING @ ${moment().format('HH:mm:ss')}`)
                     await trainSportModelKFold(sports[sport], pastGames)
                 } else {
@@ -53,7 +53,7 @@ const mlModelTrainSeed = async () => {
             // Single-year sports (e.g., MLB)
             if (currentMonth >= sports[sport].startMonth && currentMonth <= sports[sport].endMonth) {
                 const pastGames = await PastGameOdds.find({ sport_key: sports[sport].name }).sort({ commence_time: -1 })
-                if (pastGames.length > 0) {
+                if (pastGames.length > 10) {
                     console.log(`${sports[sport].name} ML STARTING @ ${moment().format('HH:mm:ss')}`)
                     await trainSportModelKFold(sports[sport], pastGames)
                 } else {
