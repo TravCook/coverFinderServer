@@ -564,21 +564,12 @@ const oddsSeed = async () => {
 }
 
 const removeSeed = async () => {
-    // console.log(process.memoryUsage());
-    const currentYear = new Date().getFullYear();
-    const startOfYear = `${currentYear}-01-01T00:00:00`;  // YYYY-MM-DDTHH:mm:ss format
-    const startOfNextYear = `${currentYear + 1}-01-01T00:00:00`; // YYYY-MM-DDTHH:mm:ss format
 
     // Get current date and calculate the date 7 days ago
     const currentDate = new Date();
-    const sevenDaysAgo = new Date(currentDate);
-    sevenDaysAgo.setDate(currentDate.getDate() - 7); // Subtract 7 days
 
     const yesterday = new Date(currentDate)
     yesterday.setDate(currentDate.getDate() - 1)
-
-    // Format the dates to match your query format
-    const startOfWeek = sevenDaysAgo.toISOString(); // This gives you the date 7 days ago in ISO format
 
     // Fetch current odds and past odds within the last week
     let currentOdds = await Odds.find();
@@ -590,12 +581,6 @@ const removeSeed = async () => {
         commence_time: { $gte: yesterday.toISOString(), $lt: currentDate.toISOString() }
     }).sort({ commence_time: -1, winPercent: 1 });
 
-
-
-    const currentData = Buffer.byteLength(JSON.stringify(currentOdds), 'utf8');
-    console.log(`Data size sent: ${currentData / 1024} KB ${moment().format('HH:mm:ss')} removeSeed current`);
-    const pastData = Buffer.byteLength(JSON.stringify(pastOdds), 'utf8');
-    console.log(`Data size sent: ${pastData / 1024} KB ${moment().format('HH:mm:ss')} removeSeed past`);
     await emitToClients('gameUpdate', currentOdds);
     await emitToClients('pastGameUpdate', pastOdds);
     currentOdds = null
@@ -910,5 +895,5 @@ const addShortNamestoGames = async () => {
 
 }
 
-
+oddsSeeds()
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed, paramAndValueSeed }
