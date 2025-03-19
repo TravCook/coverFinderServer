@@ -895,5 +895,5 @@ const addShortNamestoGames = async () => {
 
 }
 
-oddsSeeds()
+oddsSeed()
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed, paramAndValueSeed }
