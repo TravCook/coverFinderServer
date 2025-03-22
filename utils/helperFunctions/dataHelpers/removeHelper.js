@@ -1,6 +1,6 @@
 const moment = require('moment')
 const { Odds, PastGameOdds, UsaFootballTeam, BasketballTeam, BaseballTeam, HockeyTeam } = require('../../../models');
-const {cleanStats, getCommonStats} = require('./retrieveTeamsandStats')
+const { cleanStats, getCommonStats } = require('./retrieveTeamsandStats')
 const removePastGames = async (currentOdds) => {
     for (let game of currentOdds) {
 
@@ -75,105 +75,64 @@ const removePastGames = async (currentOdds) => {
                     // Fetch home team schedule from ESPN API
                     let homeTeamSchedule = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${game.sport}/${homeTeam.league}/teams/${homeTeam.espnID}/schedule`, { signal }, timeout = 10000);
                     let homeTeamSchedJSON = await homeTeamSchedule.json();
-                    // Loop through events in the home team schedule
-                    for (let event of homeTeamSchedJSON.events) {
-
-                        // Check if the event matches the current game's date
-                        if ((event.name === `${awayTeam.espnDisplayName} at ${homeTeam.espnDisplayName}` || event.shortName === `${awayTeam.abbreviation} @ ${homeTeam.abbreviation}` || event.shortName === `${homeTeam.abbreviation} VS ${awayTeam.abbreviation}`) && moment(event.date).isSame(moment(game.commence_time), 'day')) {
-                            if (event.competitions[0].status.type.completed === true) {
-                                let homeScore, awayScore, predictionCorrect, winner
-                                // Determine the scores and winner
-                                event.competitions[0].competitors.forEach((team) => {
-                                    if (team.homeAway === 'home') {
-                                        homeScore = team.score.value; // home score
-                                    } else if (team.homeAway === 'away') {
-                                        awayScore = team.score.value; // away score
-                                    }
-                                });
-
-                                // Determine winner
-                                winner = homeScore > awayScore ? 'home' : 'away';
-
-                                // Check if the prediction was correct
-                                if (game.predictedWinner === 'home') {
-                                    predictionCorrect = winner === game.predictedWinner;
-                                } else if (game.predictedWinner === 'away') {
-                                    predictionCorrect = winner === 'away';
+                    //find the event on the schedule
+                    const event = homeTeamSchedJSON.events.find((event) => (event.name === `${awayTeam.espnDisplayName} at ${homeTeam.espnDisplayName}`
+                        || event.shortName === `${awayTeam.abbreviation} @ ${homeTeam.abbreviation}`
+                        || event.shortName === `${homeTeam.abbreviation} VS ${awayTeam.abbreviation}`)
+                        && moment(event.date).isSame(moment(game.commence_time), 'day'))
+                    if (event) {
+                        if (event.competitions[0].status.type.completed === true) {
+                            let homeScore, awayScore, predictionCorrect, winner
+                            // Determine the scores and winner
+                            event.competitions[0].competitors.forEach((team) => {
+                                if (team.homeAway === 'home') {
+                                    homeScore = team.score.value; // home score
+                                } else if (team.homeAway === 'away') {
+                                    awayScore = team.score.value; // away score
                                 }
+                            });
 
-                                let existingGame = await PastGameOdds.findOne({
-                                    home_team: homeTeam.espnDisplayName,
-                                    away_team: awayTeam.espnDisplayName,
-                                    commence_time: game.commence_time
-                                });
-                                // Save the past game to the PastGameOdds collection
-                                // Check if the game already exists in the PastGameOdds collection
-                                if (!existingGame) {
-                                    try {
-                                        // Create a new record
-                                        await PastGameOdds.create({
-                                            ...newGame,
-                                            homeScore,
-                                            awayScore,
-                                            winner,
-                                            predictionCorrect: winner === game.predictedWinner,
-                                            homeTeamStats: cleanStats(getCommonStats(homeTeam)),
-                                            awayTeamStats: cleanStats(getCommonStats(awayTeam)),
-                                        });
+                            // Determine winner
+                            winner = homeScore > awayScore ? 'home' : 'away';
 
-                                        // Delete the game from the Odds collection
-                                        let deletedGame = await Odds.findOneAndDelete({ _id: game._doc._id });
-                                        if (deletedGame) {
-                                            console.log(`deleted game: ${deletedGame.home_team} vs ${deletedGame.away_team}`);
-                                            deletedGame = null;  // Nullify reference after use
-                                        }
-                                    } catch (error) {
-                                        console.error("Error during database operation", error);
-                                    }
-                                } else {
-                                    console.log('Game already exists in PastGameOdds');
+                            // Check if the prediction was correct
+                            if (game.predictedWinner === 'home') {
+                                predictionCorrect = winner === game.predictedWinner;
+                            } else if (game.predictedWinner === 'away') {
+                                predictionCorrect = winner === 'away';
+                            }
+
+                            let existingGame = await PastGameOdds.findOne({
+                                home_team: homeTeam.espnDisplayName,
+                                away_team: awayTeam.espnDisplayName,
+                                commence_time: game.commence_time
+                            });
+                            // Save the past game to the PastGameOdds collection
+                            // Check if the game already exists in the PastGameOdds collection
+                            if (!existingGame) {
+                                try {
+                                    // Create a new record
+                                    await PastGameOdds.create({
+                                        ...newGame,
+                                        homeScore,
+                                        awayScore,
+                                        winner,
+                                        predictionCorrect: winner === game.predictedWinner,
+                                        homeTeamStats: cleanStats(getCommonStats(homeTeam)),
+                                        awayTeamStats: cleanStats(getCommonStats(awayTeam)),
+                                    });
+
                                     // Delete the game from the Odds collection
                                     let deletedGame = await Odds.findOneAndDelete({ _id: game._doc._id });
                                     if (deletedGame) {
                                         console.log(`deleted game: ${deletedGame.home_team} vs ${deletedGame.away_team}`);
+                                        deletedGame = null;  // Nullify reference after use
                                     }
-                                    deletedGame = null
+                                } catch (error) {
+                                    console.error("Error during database operation", error);
                                 }
-
-                                existingGame = null
-                            } else if (event.competitions[0].status.type.description === 'In Progress' || event.competitions[0].status.type.description === 'Halftime' || event.competitions[0].status.type.description === 'End of Period') {
-                                let timeRemaining, homeScore, awayScore
-                                let currentScoreboard = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${game.sport}/${homeTeam.league}/scoreboard`)
-                                let scoreboardJSON = await currentScoreboard.json()
-                                for (let SBevent of scoreboardJSON.events) {
-                                    if (moment(SBevent.date).isSame(moment(game.commence_time), 'hour') && (SBevent.name === `${game.away_team} at ${game.home_team}` || SBevent.shortName === `${awayTeam.abbreviation} @ ${homeTeam.abbreviation}`)) {
-                                        // Determine the scores and winner
-                                        SBevent.competitions[0].competitors.forEach((team) => {
-                                            if (team.homeAway === 'home') {
-                                                homeScore = parseInt(team.score); // home score
-                                            } else if (team.homeAway === 'away') {
-                                                awayScore = parseInt(team.score); // away score
-                                            }
-                                        });
-
-                                        timeRemaining = SBevent.competitions[0].status.type.shortDetail
-                                        try {
-                                            await Odds.findOneAndUpdate({ _id: game._doc._id }, {
-                                                ...newGame,
-                                                homeScore: homeScore,
-                                                awayScore: awayScore,
-                                                timeRemaining: timeRemaining,
-                                            }, { new: true });
-
-                                        } catch (error) {
-                                            console.error('Error updating game:', error);
-                                        }
-
-                                    }
-
-
-                                }
-                            } else if (event.competitions[0].status.type.description === 'Postponed') {
+                            } else {
+                                console.log('Game already exists in PastGameOdds');
                                 // Delete the game from the Odds collection
                                 let deletedGame = await Odds.findOneAndDelete({ _id: game._doc._id });
                                 if (deletedGame) {
@@ -181,7 +140,55 @@ const removePastGames = async (currentOdds) => {
                                 }
                                 deletedGame = null
                             }
+
+                            existingGame = null
+                        } else if (event.competitions[0].status.type.description === 'In Progress' || event.competitions[0].status.type.description === 'Halftime' || event.competitions[0].status.type.description === 'End of Period') {
+                            let timeRemaining, homeScore, awayScore
+                            let currentScoreboard = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${game.sport}/${homeTeam.league}/scoreboard`)
+                            let scoreboardJSON = await currentScoreboard.json()
+                            for (let SBevent of scoreboardJSON.events) {
+                                if (moment(SBevent.date).isSame(moment(game.commence_time), 'hour') && (SBevent.name === `${game.away_team} at ${game.home_team}` || SBevent.shortName === `${awayTeam.abbreviation} @ ${homeTeam.abbreviation}`)) {
+                                    // Determine the scores and winner
+                                    SBevent.competitions[0].competitors.forEach((team) => {
+                                        if (team.homeAway === 'home') {
+                                            homeScore = parseInt(team.score); // home score
+                                        } else if (team.homeAway === 'away') {
+                                            awayScore = parseInt(team.score); // away score
+                                        }
+                                    });
+
+                                    timeRemaining = SBevent.competitions[0].status.type.shortDetail
+                                    try {
+                                        await Odds.findOneAndUpdate({ _id: game._doc._id }, {
+                                            ...newGame,
+                                            homeScore: homeScore,
+                                            awayScore: awayScore,
+                                            timeRemaining: timeRemaining,
+                                        }, { new: true });
+
+                                    } catch (error) {
+                                        console.error('Error updating game:', error);
+                                    }
+
+                                }
+
+
+                            }
+                        } else if (event.competitions[0].status.type.description === 'Postponed') {
+                            // Delete the game from the Odds collection
+                            let deletedGame = await Odds.findOneAndDelete({ _id: game._doc._id });
+                            if (deletedGame) {
+                                console.log(`deleted game: ${deletedGame.home_team} vs ${deletedGame.away_team}`);
+                            }
+                            deletedGame = null
                         }
+                    } else {
+                        // Delete the game from the Odds collection
+                        let deletedGame = await Odds.findOneAndDelete({ _id: game._doc._id });
+                        if (deletedGame) {
+                            console.log(`deleted game: ${deletedGame.home_team} vs ${deletedGame.away_team} for not existing`);
+                        }
+                        deletedGame = null
                     }
                 } catch (err) {
                     console.log(game.id)
@@ -199,4 +206,4 @@ const removePastGames = async (currentOdds) => {
     }
 }
 
-module.exports = {removePastGames}
+module.exports = { removePastGames }

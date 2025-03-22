@@ -39,7 +39,7 @@ const normalizeTeamName = (teamName, league) => {
         "Miss Valley State Delta Devils": "Mississippi Valley State Delta Devils",
         "Texas A&M-CC Islanders": "Texas A&M-Corpus Christi Islanders",
         "Maryland-Eastern Shore Hawks": "Maryland Eastern Shore Hawks",
-        "IU Indy Jaguars":"IU Indianapolis Jaguars"
+        "IU Indy Jaguars": "IU Indianapolis Jaguars"
 
     }
 
@@ -119,7 +119,7 @@ const normalizeTeamName = (teamName, league) => {
             teamName = 'East Tennessee State Bucs';
         }
     }
-    
+
 
     // // Replace hyphens with spaces
     // teamName = teamName.replace(/-/g, ' '); // Replace all hyphens with spaces
@@ -135,17 +135,32 @@ const getDynamicStatYear = (startMonth, endMonth, currentDate) => {
     const currentYear = currentDate.getFullYear();
     const currentMonth = currentDate.getMonth() + 1; // Months are 0-indexed, so add 1.
 
-    // For sports that start late in the year (e.g., NFL, NBA), we'll base the statYear on the start month.
-    if (currentMonth >= startMonth && currentMonth <= endMonth) {
-        // In season, statYear is the start year of the season.
-        return currentYear;
-    } else if (currentMonth < startMonth) {
-        // Before the season starts, we use the previous year as statYear.
-        return currentYear - 1;
-    } else {
-        // After the season ends, use the start year of the season.
-        return currentYear;
+    if (endMonth > startMonth) { //IF THE SPORT HAPPENS WITHIN ONE YEAR
+        if (currentMonth >= startMonth && currentMonth <= endMonth) {
+            // In season, statYear is the current year
+            return currentYear
+        } else if (currentMonth < startMonth) { //out of season, before season starts
+            return currentYear
+        } else if (currenMonth > endMonth) { // out of season after season happens
+            return currentYear + 1
+        }
+
+    } else { // IF THE SPORT SPANS TWO YEARS
+        // For sports that start late in the year (e.g., NFL, NBA), we'll base the statYear on the start month.
+        if (currentMonth >= startMonth && currentMonth <= 12) {
+            // In season, up to december
+            return currentYear + 1
+        } else if (currentMonth <= endMonth && currentMonth <= 1) {
+            // in season after Jan.
+            return currentYear
+        } else if (currentMonth >= endMonth && currentMonth <= startMonth) {
+            // out of season
+            return currentYear + 1
+        }
     }
+
+
+
 }
 const checkNaNValues = (data, game) => {
     data.forEach((row, index) => {
@@ -158,21 +173,21 @@ const checkNaNValues = (data, game) => {
 };
 
 const nameSearch = async () => {
-    let mensTeams = await BasketballTeam.find({league:'mens-college-basketball'})
-    let womensTeams = await BasketballTeam.find({league: 'womens-college-basketball'})
+    let mensTeams = await BasketballTeam.find({ league: 'mens-college-basketball' })
+    let womensTeams = await BasketballTeam.find({ league: 'womens-college-basketball' })
 
-    for(const mensTeam of mensTeams){
+    for (const mensTeam of mensTeams) {
         let matchingTeam = womensTeams.find((team) => team.espnID === mensTeam.espnID)
-        if(matchingTeam){
-            if(mensTeam.espnDisplayName !== matchingTeam.espnDisplayName){
+        if (matchingTeam) {
+            if (mensTeam.espnDisplayName !== matchingTeam.espnDisplayName) {
                 console.log(`Mens Team Name: ${mensTeam.espnDisplayName}`)
                 console.log(`Womens Team Name: ${matchingTeam.espnDisplayName}`)
             }
         }
-        else{
+        else {
             console.log(`No Matching Team for: ${mensTeam.espnDisplayName}`)
         }
     }
 }
 
-module.exports = {checkNaNValues, getDynamicStatYear, normalizeTeamName, nameSearch}
+module.exports = { checkNaNValues, getDynamicStatYear, normalizeTeamName, nameSearch }

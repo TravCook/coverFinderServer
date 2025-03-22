@@ -76,9 +76,9 @@ module.exports = {
                 let sports = await Sport.find({})
                 let odds = await Odds.find({}).sort({ commence_time: 1, winPercent: 1 })
                 let pastGames = await PastGameOdds.find({
-                    commence_time: { $gte: twoWeeksAgo.toISOString(), $lt: currentDate.toISOString() }
+                    commence_time: { $gte: oneMonthAgo.toISOString(), $lt: currentDate.toISOString() }
                 }).sort({ commence_time: -1, winPercent: 1 });
-                
+
                 try {
                     pastGames.map((gameData, idx) => {
                         const bookmaker = gameData?.bookmakers?.find(b => b.key === req.body.sportsbook);
@@ -88,18 +88,18 @@ module.exports = {
                             let outcome = marketData?.outcomes?.find(o => {
                                 return o.name === (gameData.predictedWinner === 'home' ? gameData.home_team : gameData.away_team)
                             });
-                            
+
                             if (outcome) {
                                 let currentSport = sports.find(arraySport => arraySport.name === gameData.sport_key)
                                 let sportSettings = currentSport.valueBetSettings.find((setting) => setting.bookmaker === req.body.sportsbook)
-                                if(sportSettings !== undefined){
+                                if (sportSettings !== undefined) {
                                     let valueBetCheck = combinedCondition(gameData, outcome, sportSettings.settings.indexDiffSmallNum, sportSettings.settings.indexDiffRangeNum, sportSettings.settings.confidenceLowNum, sportSettings.settings.confidenceRangeNum)
-                                
-                                if (valueBetCheck) {
-                                    valueGames.push(gameData)
+
+                                    if (valueBetCheck) {
+                                        valueGames.push(gameData)
+                                    }
                                 }
-                                }
-                                
+
                             }
 
                         }
@@ -156,11 +156,14 @@ module.exports = {
     },
 
     async getPastGames(req, res) {
+        const oneMonth = new Date();
+        oneMonth.setDate(oneMonth.getDate() - 30);
+        oneMonth.setHours(0, 0, 0, 0);  // Set time to midnight
         try {
-            let pastGames = await PastGameOdds.find({ predictedWinner: { $exists: true, $ne: null } }).sort({ commence_time: -1, winPercent: 1 });
-
+            let pastGames = await PastGameOdds.find({ predictedWinner: { $exists: true, $ne: null } }).select('-homeTeamStats -awayTeamStats').sort({ commence_time: -1, winPercent: 1 });
+            let filteredGames = pastGames.filter((game) => new Date(game.commence_time) > new Date(oneMonth))
             data = {
-                pastGames: pastGames
+                pastGames: filteredGames
             }
 
             const dataSize = Buffer.byteLength(JSON.stringify(data), 'utf8');
