@@ -156,12 +156,12 @@ module.exports = {
 
     async getPastGames(req, res) {
         console.log('route hit')
-        const oneMonth = new Date();
-        oneMonth.setDate(oneMonth.getDate() - 30);
-        oneMonth.setHours(0, 0, 0, 0);  // Set time to midnight
+        const twoWeeks = new Date();
+        twoWeeks.setDate(twoWeeks.getDate() - 15);
+        twoWeeks.setHours(0, 0, 0, 0);  // Set time to midnight
         try {
             pastGames = await PastGameOdds.find({ predictedWinner: { $exists: true, $ne: null } }).select('-homeTeamStats -awayTeamStats').sort({ commence_time: -1, winPercent: 1 });
-            let filteredGames = pastGames.filter((game) => new Date(game.commence_time) > new Date(oneMonth))
+            let filteredGames = pastGames.filter((game) => new Date(game.commence_time) > new Date(twoWeeks))
             data = {
                 pastGames: filteredGames
             }
