@@ -118,7 +118,6 @@ module.exports = {
             } else {
                 data = JSON.parse(data)
             }
-            const dataSize = Buffer.byteLength(JSON.stringify(data), 'utf8');
             console.log(`Data size sent: ${dataSize / 1024} KB upcomingGames`);
             return res.json(data)
         } catch (err) {
@@ -165,9 +164,6 @@ module.exports = {
             data = {
                 pastGames: filteredGames
             }
-
-            const dataSize = Buffer.byteLength(JSON.stringify(data), 'utf8');
-            console.log(`Data size sent: ${dataSize / 1024} KB pastGames`);
             return res.json(data);
         } catch (err) {
             return res.status(500).json({ message: err.message });
