@@ -119,7 +119,6 @@ module.exports = {
             } else {
                 data = JSON.parse(data)
             }
-            console.log(`Data size sent: ${dataSize / 1024} KB upcomingGames`);
             return res.json(data)
         } catch (err) {
             return res.status(500).json({ message: err.message });
