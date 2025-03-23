@@ -162,6 +162,7 @@ module.exports = {
         try {
             pastGames = await PastGameOdds.find({ predictedWinner: { $exists: true, $ne: null } }).select('-homeTeamStats -awayTeamStats').sort({ commence_time: -1, winPercent: 1 });
             let filteredGames = pastGames.filter((game) => new Date(game.commence_time) > new Date(twoWeeks))
+            console.log('returning: ', data)
             data = {
                 pastGames: filteredGames
             }
