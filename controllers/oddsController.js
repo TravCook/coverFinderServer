@@ -51,6 +51,7 @@ async function getCachedOdds(cacheKey, query, filterDays = 30) {
 
 module.exports = {
     async getAllOdds(req, res) {
+        console.log('route hit')
         try {
             let data = myCache.get('fullData'); // Check cache first
             if (data === undefined) {
@@ -155,16 +156,18 @@ module.exports = {
     },
 
     async getPastGames(req, res) {
+        console.log('route hit')
         const oneMonth = new Date();
         oneMonth.setDate(oneMonth.getDate() - 30);
         oneMonth.setHours(0, 0, 0, 0);  // Set time to midnight
         try {
-            let pastGames = await PastGameOdds.find({ predictedWinner: { $exists: true, $ne: null } }).select('-homeTeamStats -awayTeamStats').sort({ commence_time: -1, winPercent: 1 });
+            pastGames = await PastGameOdds.find({ predictedWinner: { $exists: true, $ne: null } }).select('-homeTeamStats -awayTeamStats').sort({ commence_time: -1, winPercent: 1 });
             let filteredGames = pastGames.filter((game) => new Date(game.commence_time) > new Date(oneMonth))
             data = {
                 pastGames: filteredGames
             }
             return res.json(data);
+            
         } catch (err) {
             return res.status(500).json({ message: err.message });
         }
