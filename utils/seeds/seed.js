@@ -531,7 +531,7 @@ const oddsSeed = async () => {
 
             const sportWeightDB = await Weights.findOne({ league: sport.name })
 
-            let weightArray = sportWeightDB?.hiddenToOutputWeights
+            let weightArray = sportWeightDB?.featureImportanceScores
 
             if (upcomingGames.length > 0 && weightArray !== undefined) {
                 let model
@@ -895,4 +895,5 @@ const addShortNamestoGames = async () => {
 
 }
 
+// pastGamesReIndex()
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed, paramAndValueSeed }
