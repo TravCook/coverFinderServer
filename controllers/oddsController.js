@@ -159,7 +159,7 @@ module.exports = {
     async getPastGames(req, res) {
         console.log(`REQUEST RECIEVED @ ${moment().format('HH:mm:ss')}`)
         const twoWeeks = new Date();
-        twoWeeks.setDate(twoWeeks.getDate() - 1);
+        twoWeeks.setDate(twoWeeks.getDate() - 7);
         twoWeeks.setHours(0, 0, 0, 0);  // Set time to midnight
         try {
             console.log(`fetching data @ ${moment().format('HH:mm:ss')}`)
