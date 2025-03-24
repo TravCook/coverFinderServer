@@ -161,8 +161,7 @@ module.exports = {
         twoWeeks.setDate(twoWeeks.getDate() - 15);
         twoWeeks.setHours(0, 0, 0, 0);  // Set time to midnight
         try {
-            pastGames = await PastGameOdds.find({ predictedWinner: { $exists: true, $ne: null }, commence_time: { $gte: twoWeeks.toISOString(), $lt: new Date().toISOString() } }).select('-homeTeamStats -awayTeamStats').sort({ commence_time: -1, winPercent: 1 });
-            console.log(pastGames.length)
+            pastGames = await PastGameOdds.find({ predictedWinner: { $exists: true, $ne: null }, commence_time: { $gte: twoWeeks.toISOString(), $lt: new Date().toISOString() } }).sort({ commence_time: -1, winPercent: 1 });
             data = {
                 pastGames: pastGames
             }
