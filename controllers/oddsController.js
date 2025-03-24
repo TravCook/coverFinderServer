@@ -165,12 +165,17 @@ module.exports = {
             console.log(`fetching data @ ${moment().format('HH:mm:ss')}`)
             pastGames = await PastGameOdds.find({ predictedWinner: { $exists: true, $ne: null }, commence_time: { $gte: twoWeeks.toISOString(), $lt: new Date().toISOString() } }).select('-homeTeamStats -awayTeamStats').sort({ commence_time: -1, winPercent: 1 });
             console.log(`data fetched @ ${moment().format('HH:mm:ss')}`)
+            const explainQuery = await PastGameOdds.find({ predictedWinner: { $exists: true, $ne: null }, commence_time: { $gte: twoWeeks.toISOString(), $lt: new Date().toISOString() } })
+                .select('-homeTeamStats -awayTeamStats')
+                .sort({ commence_time: -1, winPercent: 1 })
+                .explain('executionStats');
+            console.log(explainQuery);
             data = {
                 pastGames: pastGames
             }
             console.log(`RESPONSE SENT @ ${moment().format('HH:mm:ss')}`)
             return res.json(data);
-            
+
         } catch (err) {
             return res.status(500).json({ message: err.message });
         }
