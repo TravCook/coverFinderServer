@@ -76,7 +76,7 @@ module.exports = {
                 let sports = await Sport.find({})
                 let odds = await Odds.find({}).sort({ commence_time: 1, winPercent: 1 })
                 let pastGames = await PastGameOdds.find({
-                    commence_time: { $gte: oneMonthAgo.toISOString(), $lt: currentDate.toISOString() }
+                    commence_time: { $gte: twoWeeksAgo.toISOString(), $lt: currentDate.toISOString() }
                 }).sort({ commence_time: -1, winPercent: 1 });
 
                 try {
