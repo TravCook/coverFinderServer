@@ -158,7 +158,7 @@ module.exports = {
 
     async getPastGames(req, res) {
         const twoWeeks = new Date();
-        twoWeeks.setDate(twoWeeks.getDate() - 31);
+        twoWeeks.setDate(twoWeeks.getDate() - 15);
         twoWeeks.setHours(0, 0, 0, 0);  // Set time to midnight
         try {
             pastGames = await PastGameOdds.find({ predictedWinner: { $exists: true, $ne: null } }).select('-homeTeamStats -awayTeamStats').sort({ commence_time: -1, winPercent: 1 });
