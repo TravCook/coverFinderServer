@@ -54,30 +54,18 @@ module.exports = {
         try {
             let data = myCache.get('fullData'); // Check cache first
             if (data === undefined) {
-                const currentYear = new Date().getFullYear();
-                const startOfYear = `${currentYear}-01-01T00:00:00`;  // YYYY-MM-DDTHH:mm:ss format
-                const startOfNextYear = `${currentYear + 1}-01-01T00:00:00`; // YYYY-MM-DDTHH:mm:ss format
-                const startOfLastYear = `${currentYear - 1}-01-01T00:00:00`; // YYYY-MM-DDTHH:mm:ss format
 
                 // Get current date and calculate the date 7 days ago
                 const currentDate = new Date();
-                const twoWeeksAgo = new Date(currentDate);
-                twoWeeksAgo.setDate(currentDate.getDate() - 12); // Subtract 7 days
+                const oneWeekAgo = new Date(currentDate);
+                oneWeekAgo.setDate(currentDate.getDate() - 7); // Subtract 7 days
 
-                const yesterday = new Date(currentDate)
-                yesterday.setDate(currentDate.getDate() - 1)
-
-                // Format the dates to match your query format
-                const startOfWeek = twoWeeksAgo.toISOString(); // This gives you the date 7 days ago in ISO format
-
-                const oneMonthAgo = new Date(currentDate)
-                oneMonthAgo.setDate(currentDate.getDate() - 31)
                 let valueGames = []
                 let sports = await Sport.find({})
                 let odds = await Odds.find({}).sort({ commence_time: 1, winPercent: 1 })
                 let pastGames = await PastGameOdds.find({
-                    commence_time: { $gte: twoWeeksAgo.toISOString(), $lt: currentDate.toISOString() }
-                }).sort({ commence_time: -1, winPercent: 1 });
+                    commence_time: { $gte: oneWeekAgo.toISOString(), $lt: currentDate.toISOString() }
+                }).select('-homeTeamStats -awayTeamStats').sort({ commence_time: -1, winPercent: 1 });
 
                 try {
                     pastGames.map((gameData, idx) => {
@@ -158,13 +146,14 @@ module.exports = {
 
     async getPastGames(req, res) {
         const twoWeeks = new Date();
-        twoWeeks.setDate(twoWeeks.getDate() - 7);
+        twoWeeks.setDate(twoWeeks.getDate() - 15);
         twoWeeks.setHours(0, 0, 0, 0);  // Set time to midnight
         try {
             pastGames = await PastGameOdds.find({ predictedWinner: { $exists: true, $ne: null }, commence_time: { $gte: twoWeeks.toISOString(), $lt: new Date().toISOString() } }).select('-homeTeamStats -awayTeamStats').sort({ commence_time: -1});
             data = {
                 pastGames: pastGames
             }
+            pastGames = []
             return res.json(data);
 
         } catch (err) {

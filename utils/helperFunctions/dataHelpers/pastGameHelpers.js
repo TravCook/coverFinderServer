@@ -1,6 +1,12 @@
 // TODO: STORE FOR LATER
+const { Odds, PastGameOdds, UsaFootballTeam, BasketballTeam, BaseballTeam, HockeyTeam, Sport, Weights } = require('../../../models');
+const { extractSportFeatures, loadOrCreateModel } = require('../mlModelFuncs/trainingHelpers.js')
+const tf = require('@tensorflow/tfjs-node');
+
+
 const pastGamesRePredict = async () => {
-    sports.forEach(async (sport) => {
+    let allSports = await Sport.find()
+    allSports.forEach(async (sport) => {
         if (sport.name != 'americanfootball_ncaaf') {
             let pastGames = await PastGameOdds.find({
                 sport_key: sport.name,
@@ -12,18 +18,8 @@ const pastGamesRePredict = async () => {
             // Define the path to the model directory
             const modelDir = `./model_checkpoint/${sport.name}_model`;
 
-            // Define the model
-            const loadOrCreateModel = async () => {
-                try {
-                    if (sport.name != 'baseball_mlb') {
-                        return await tf.loadLayersModel(`file://./model_checkpoint/${sport.name}_model/model.json`);
-                    }
 
-                } catch (err) {
-                    console.log(err)
-                }
-            }
-            const model = await loadOrCreateModel()
+            
             // console.log(model)
             // model.compile({
             //     optimizer: tf.train.adam(.0001),
@@ -53,7 +49,7 @@ const pastGamesRePredict = async () => {
                         ff.push(features);  // Add the features for each game
                     }
                 }
-
+                const model = await loadOrCreateModel(ff, sport)
                 // Step 2: Create a Tensor for the features array
                 const ffTensor = tf.tensor2d(ff);
 
@@ -195,3 +191,5 @@ const pastGameWinPercent = async () => {
     }
     console.log('DONE')
 }
+
+module.exports = { pastGamesRePredict }

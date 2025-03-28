@@ -1,5 +1,6 @@
 const moment = require('moment')
 const { Odds, PastGameOdds, UsaFootballTeam, BasketballTeam, BaseballTeam, HockeyTeam, Sport, Weights } = require('../../../models');
+const { normalizeStat } = require('./trainingHelpers')
 
 let nflWeights = []
 let nbaWeights = []
@@ -12,287 +13,262 @@ let ncaawWeights = []
 //DETERMINE H2H INDEXES FOR EVERY GAME IN ODDS
 // Helper function to adjust indexes for football games
 const adjustnflStats = (homeTeam, awayTeam, homeIndex, awayIndex, weightArray) => {
-    homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += weightArray[0] : awayIndex += weightArray[0];
-    homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += weightArray[1] : awayIndex += weightArray[1];
-    homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += weightArray[2] : awayIndex += weightArray[2];
+    homeIndex += (normalizeStat('seasonWinLoss', homeTeam.seasonWinLoss.split("-")[0]) - normalizeStat('seasonWinLoss', awayTeam.seasonWinLoss.split("-")[0])) * weightArray[0];
+    awayIndex += (normalizeStat('seasonWinLoss', awayTeam.seasonWinLoss.split("-")[0]) - normalizeStat('seasonWinLoss', homeTeam.seasonWinLoss.split("-")[0])) * weightArray[0]
+    homeIndex += (normalizeStat('homeWinLoss', homeTeam.homeWinLoss.split("-")[0]) - normalizeStat('awayWinLoss', awayTeam.awayWinLoss.split("-")[0])) * weightArray[1];
+    awayIndex += (normalizeStat('awayWinLoss', awayTeam.homeWinLoss.split("-")[0]) - normalizeStat('homeWinLoss', homeTeam.awayWinLoss.split("-")[0])) * weightArray[1]
+    homeIndex += (normalizeStat('pointDiff', homeTeam.pointDiff) - normalizeStat('pointDiff', awayTeam.pointDiff)) * weightArray[2];
+    awayIndex += (normalizeStat('pointDiff', awayTeam.pointDiff) - normalizeStat('pointDiff', homeTeam.pointDiff)) * weightArray[2];
+    let nflWeightIndex = 3
+    const reverseComparisonStats = ['BSKBturnoversPerGame', 'BSKBfoulsPerGame', 'BKSBturnoverRatio'];
 
-    let nflWeightIndex = 3;
-    const reverseComparisonStats = ['totalPenyards', 'averagePenYardsPerGame', 'interceptions', 'giveaways'];
-
-    // Loop through homeTeam.stats to compare each stat
     for (const stat in homeTeam.stats) {
         if (homeTeam.stats.hasOwnProperty(stat)) {
             const homeStat = homeTeam.stats[stat];
             const awayStat = awayTeam.stats[stat];
 
-            // Check if the stat requires reversed comparison
-            if (reverseComparisonStats.includes(stat)) {
-                if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
-                    if (homeStat <= awayStat) {
-                        homeIndex += weightArray[nflWeightIndex];
-                    } else {
-                        awayIndex += weightArray[nflWeightIndex];
-                    }
-                    nflWeightIndex++;
-                }
-            } else {
-                if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
-                    if (homeStat >= awayStat) {
-                        homeIndex += weightArray[nflWeightIndex];
-                    } else {
-                        awayIndex += weightArray[nflWeightIndex];
-                    }
-                    nflWeightIndex++;
-                }
+            // Check if the stat is one that requires reve
+            // For reversed comparison, check if homeStat is less than or equal to awayStat
+            if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
+
+                homeIndex += (normalizeStat(stat, homeStat) - normalizeStat(stat, awayStat)) * weightArray[nflWeightIndex];
+
+                awayIndex += (normalizeStat(stat, awayStat) - normalizeStat(stat, homeStat)) * weightArray[nflWeightIndex];
+
+                nflWeightIndex++
             }
+
+            // For all other stats, check if homeStat is greater than or equal to awayStat
+
         }
     }
+
+
+
 
     return { homeIndex, awayIndex };
 }
 
 const adjustncaafStats = (homeTeam, awayTeam, homeIndex, awayIndex, weightArray) => {
-    homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += weightArray[0] : awayIndex += weightArray[0];
-    homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += weightArray[1] : awayIndex += weightArray[1];
-    homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += weightArray[2] : awayIndex += weightArray[2];
+    homeIndex += (normalizeStat('seasonWinLoss', homeTeam.seasonWinLoss.split("-")[0]) - normalizeStat('seasonWinLoss', awayTeam.seasonWinLoss.split("-")[0])) * weightArray[0];
+    awayIndex += (normalizeStat('seasonWinLoss', awayTeam.seasonWinLoss.split("-")[0]) - normalizeStat('seasonWinLoss', homeTeam.seasonWinLoss.split("-")[0])) * weightArray[0]
+    homeIndex += (normalizeStat('homeWinLoss', homeTeam.homeWinLoss.split("-")[0]) - normalizeStat('awayWinLoss', awayTeam.awayWinLoss.split("-")[0])) * weightArray[1];
+    awayIndex += (normalizeStat('awayWinLoss', awayTeam.homeWinLoss.split("-")[0]) - normalizeStat('homeWinLoss', homeTeam.awayWinLoss.split("-")[0])) * weightArray[1]
+    homeIndex += (normalizeStat('pointDiff', homeTeam.pointDiff) - normalizeStat('pointDiff', awayTeam.pointDiff)) * weightArray[2];
+    awayIndex += (normalizeStat('pointDiff', awayTeam.pointDiff) - normalizeStat('pointDiff', homeTeam.pointDiff)) * weightArray[2];
+    let ncaafWeightIndex = 3
+    const reverseComparisonStats = ['BSKBturnoversPerGame', 'BSKBfoulsPerGame', 'BKSBturnoverRatio'];
 
-    let ncaafWeightIndex = 3;
-    const reverseComparisonStats = ['totalPenyards', 'averagePenYardsPerGame', 'interceptions', 'giveaways'];
-
-    // Loop through homeTeam.stats to compare each stat
     for (const stat in homeTeam.stats) {
         if (homeTeam.stats.hasOwnProperty(stat)) {
             const homeStat = homeTeam.stats[stat];
             const awayStat = awayTeam.stats[stat];
 
-            // Check if the stat requires reversed comparison
-            if (reverseComparisonStats.includes(stat)) {
-                if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
-                    if (homeStat <= awayStat) {
-                        homeIndex += weightArray[ncaafWeightIndex];
-                    } else {
-                        awayIndex += weightArray[ncaafWeightIndex];
-                    }
-                    ncaafWeightIndex++;
-                }
-            } else {
-                if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
-                    if (homeStat >= awayStat) {
-                        homeIndex += weightArray[ncaafWeightIndex];
-                    } else {
-                        awayIndex += weightArray[ncaafWeightIndex];
-                    }
-                    ncaafWeightIndex++;
-                }
+            // Check if the stat is one that requires reve
+            // For reversed comparison, check if homeStat is less than or equal to awayStat
+            if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
+
+                homeIndex += (normalizeStat(stat, homeStat) - normalizeStat(stat, awayStat)) * weightArray[ncaafWeightIndex];
+
+                awayIndex += (normalizeStat(stat, awayStat) - normalizeStat(stat, homeStat)) * weightArray[ncaafWeightIndex];
+
+                ncaafWeightIndex++
             }
+
+            // For all other stats, check if homeStat is greater than or equal to awayStat
+
         }
     }
+
+
+
 
     return { homeIndex, awayIndex };
 }
 
 // Helper function to adjust indexes for hockey games
 const adjustnhlStats = (homeTeam, awayTeam, homeIndex, awayIndex, weightArray) => {
-    homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += weightArray[0] : awayIndex += weightArray[0];
-    homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += weightArray[1] : awayIndex += weightArray[1];
-    homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += weightArray[2] : awayIndex += weightArray[2];
+    homeIndex += (normalizeStat('seasonWinLoss', homeTeam.seasonWinLoss.split("-")[0]) - normalizeStat('seasonWinLoss', awayTeam.seasonWinLoss.split("-")[0])) * weightArray[0];
+    awayIndex += (normalizeStat('seasonWinLoss', awayTeam.seasonWinLoss.split("-")[0]) - normalizeStat('seasonWinLoss', homeTeam.seasonWinLoss.split("-")[0])) * weightArray[0]
+    homeIndex += (normalizeStat('homeWinLoss', homeTeam.homeWinLoss.split("-")[0]) - normalizeStat('awayWinLoss', awayTeam.awayWinLoss.split("-")[0])) * weightArray[1];
+    awayIndex += (normalizeStat('awayWinLoss', awayTeam.homeWinLoss.split("-")[0]) - normalizeStat('homeWinLoss', homeTeam.awayWinLoss.split("-")[0])) * weightArray[1]
+    homeIndex += (normalizeStat('pointDiff', homeTeam.pointDiff) - normalizeStat('pointDiff', awayTeam.pointDiff)) * weightArray[2];
+    awayIndex += (normalizeStat('pointDiff', awayTeam.pointDiff) - normalizeStat('pointDiff', homeTeam.pointDiff)) * weightArray[2];
+    let nhlWeightIndex = 3
+    const reverseComparisonStats = ['BSKBturnoversPerGame', 'BSKBfoulsPerGame', 'BKSBturnoverRatio'];
 
-    let nhlWeightIndex = 3;
-    const reverseComparisonStats = [];
-
-    // Loop through homeTeam.stats to compare each stat
     for (const stat in homeTeam.stats) {
         if (homeTeam.stats.hasOwnProperty(stat)) {
             const homeStat = homeTeam.stats[stat];
             const awayStat = awayTeam.stats[stat];
 
-            // Check if the stat requires reversed comparison
-            if (reverseComparisonStats.includes(stat)) {
-                if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
-                    if (homeStat <= awayStat) {
-                        homeIndex += weightArray[nhlWeightIndex];
-                    } else {
-                        awayIndex += weightArray[nhlWeightIndex];
-                    }
-                    nhlWeightIndex++;
-                }
-            } else {
-                if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
-                    if (homeStat >= awayStat) {
-                        homeIndex += weightArray[nhlWeightIndex];
-                    } else {
-                        awayIndex += weightArray[nhlWeightIndex];
-                    }
-                    nhlWeightIndex++;
-                }
+            // Check if the stat is one that requires reve
+            // For reversed comparison, check if homeStat is less than or equal to awayStat
+            if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
+
+                homeIndex += (normalizeStat(stat, homeStat) - normalizeStat(stat, awayStat)) * weightArray[nhlWeightIndex];
+
+                awayIndex += (normalizeStat(stat, awayStat) - normalizeStat(stat, homeStat)) * weightArray[nhlWeightIndex];
+
+                nhlWeightIndex++
             }
+
+            // For all other stats, check if homeStat is greater than or equal to awayStat
+
         }
     }
+
+
+
 
     return { homeIndex, awayIndex };
 }
 
-// Helper function to adjust indexes for basketball games
+// Helper function to adjust indexes for basketball games TODO: CHANGE OTHER SPORTS TO NORMALIZE STATS AND MULTIPLE BY FEATURE IMPORTANCE
 const adjustnbaStats = (homeTeam, awayTeam, homeIndex, awayIndex, weightArray) => {
-    homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += weightArray[0] : awayIndex += weightArray[0];
-    homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += weightArray[1] : awayIndex += weightArray[1];
-    homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += weightArray[2] : awayIndex += weightArray[2];
+    homeIndex += (normalizeStat('seasonWinLoss', homeTeam.seasonWinLoss.split("-")[0]) - normalizeStat('seasonWinLoss', awayTeam.seasonWinLoss.split("-")[0])) * weightArray[0];
+    awayIndex += (normalizeStat('seasonWinLoss', awayTeam.seasonWinLoss.split("-")[0]) - normalizeStat('seasonWinLoss', homeTeam.seasonWinLoss.split("-")[0])) * weightArray[0]
+    homeIndex += (normalizeStat('homeWinLoss', homeTeam.homeWinLoss.split("-")[0]) - normalizeStat('awayWinLoss', awayTeam.awayWinLoss.split("-")[0])) * weightArray[1];
+    awayIndex += (normalizeStat('awayWinLoss', awayTeam.homeWinLoss.split("-")[0]) - normalizeStat('homeWinLoss', homeTeam.awayWinLoss.split("-")[0])) * weightArray[1]
+    homeIndex += (normalizeStat('pointDiff', homeTeam.pointDiff) - normalizeStat('pointDiff', awayTeam.pointDiff)) * weightArray[2];
+    awayIndex += (normalizeStat('pointDiff', awayTeam.pointDiff) - normalizeStat('pointDiff', homeTeam.pointDiff)) * weightArray[2];
     let nbaWeightIndex = 3
     const reverseComparisonStats = ['BSKBturnoversPerGame', 'BSKBfoulsPerGame', 'BKSBturnoverRatio'];
-    
+
     for (const stat in homeTeam.stats) {
         if (homeTeam.stats.hasOwnProperty(stat)) {
             const homeStat = homeTeam.stats[stat];
             const awayStat = awayTeam.stats[stat];
 
-            // Check if the stat is one that requires reversed comparison
-            if (reverseComparisonStats.includes(stat)) {
-                // For reversed comparison, check if homeStat is less than or equal to awayStat
-                if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
-                    if (homeStat <= awayStat) {
-                        homeIndex += weightArray[nbaWeightIndex];
-                    } else {
-                        awayIndex += weightArray[nbaWeightIndex];
-                    }
-                    nbaWeightIndex++
-                }
+            // Check if the stat is one that requires reve
+            // For reversed comparison, check if homeStat is less than or equal to awayStat
+            if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
 
-            } else {
-                if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
-                    if (homeStat >= awayStat) {
-                        homeIndex += weightArray[nbaWeightIndex];
-                    } else {
-                        awayIndex += weightArray[nbaWeightIndex];
-                    }
-                    nbaWeightIndex++
-                }
-                // For all other stats, check if homeStat is greater than or equal to awayStat
+                homeIndex += (normalizeStat(stat, homeStat) - normalizeStat(stat, awayStat)) * weightArray[nbaWeightIndex];
 
+                awayIndex += (normalizeStat(stat, awayStat) - normalizeStat(stat, homeStat)) * weightArray[nbaWeightIndex];
+
+                nbaWeightIndex++
             }
-        }
 
+            // For all other stats, check if homeStat is greater than or equal to awayStat
+
+        }
     }
+
+
 
 
     return { homeIndex, awayIndex };
 }
 // Helper function to adjust indexes for baseball games
 const adjustmlbStats = (homeTeam, awayTeam, homeIndex, awayIndex, weightArray) => {
-    homeTeam.seasonWinLoss.split("-")[0] >= awayTeam.seasonWinLoss.split("-")[0] ? homeIndex += weightArray[0] : awayIndex += weightArray[0];
-    homeTeam.homeWinLoss.split("-")[0] >= awayTeam.awayWinLoss.split("-")[0] ? homeIndex += weightArray[1] : awayIndex += weightArray[1];
-    homeTeam.pointDiff >= awayTeam.pointDiff ? homeIndex += weightArray[2] : awayIndex += weightArray[2];
+    homeIndex += (normalizeStat('seasonWinLoss', homeTeam.seasonWinLoss.split("-")[0]) - normalizeStat('seasonWinLoss', awayTeam.seasonWinLoss.split("-")[0])) * weightArray[0];
+    awayIndex += (normalizeStat('seasonWinLoss', awayTeam.seasonWinLoss.split("-")[0]) - normalizeStat('seasonWinLoss', homeTeam.seasonWinLoss.split("-")[0])) * weightArray[0]
+    homeIndex += (normalizeStat('homeWinLoss', homeTeam.homeWinLoss.split("-")[0]) - normalizeStat('awayWinLoss', awayTeam.awayWinLoss.split("-")[0])) * weightArray[1];
+    awayIndex += (normalizeStat('awayWinLoss', awayTeam.homeWinLoss.split("-")[0]) - normalizeStat('homeWinLoss', homeTeam.awayWinLoss.split("-")[0])) * weightArray[1]
+    homeIndex += (normalizeStat('pointDiff', homeTeam.pointDiff) - normalizeStat('pointDiff', awayTeam.pointDiff)) * weightArray[2];
+    awayIndex += (normalizeStat('pointDiff', awayTeam.pointDiff) - normalizeStat('pointDiff', homeTeam.pointDiff)) * weightArray[2];
+    let mlbWeightIndex = 3
+    const reverseComparisonStats = ['BSKBturnoversPerGame', 'BSKBfoulsPerGame', 'BKSBturnoverRatio'];
 
-    let mlbWeightIndex = 3;
-    const reverseComparisonStats = ['fieldingErrors', 'oppOPS', 'oppSlugging', 'oppBattingAverage', 'walksHitsPerInningPitched', 'earnedRunAverage', 'walksPitchingTotal'];
-
-    // Loop through homeTeam.stats to compare each stat
     for (const stat in homeTeam.stats) {
         if (homeTeam.stats.hasOwnProperty(stat)) {
             const homeStat = homeTeam.stats[stat];
             const awayStat = awayTeam.stats[stat];
 
-            // Check if the stat requires reversed comparison
-            if (reverseComparisonStats.includes(stat)) {
-                if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
-                    if (homeStat <= awayStat) {
-                        homeIndex += weightArray[mlbWeightIndex];
-                    } else {
-                        awayIndex += weightArray[mlbWeightIndex];
-                    }
-                    mlbWeightIndex++;
-                }
-            } else {
-                if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
-                    if (homeStat >= awayStat) {
-                        homeIndex += weightArray[mlbWeightIndex];
-                    } else {
-                        awayIndex += weightArray[mlbWeightIndex];
-                    }
-                    mlbWeightIndex++;
-                }
+            // Check if the stat is one that requires reve
+            // For reversed comparison, check if homeStat is less than or equal to awayStat
+            if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
+
+                homeIndex += (normalizeStat(stat, homeStat) - normalizeStat(stat, awayStat)) * weightArray[mlbWeightIndex];
+
+                awayIndex += (normalizeStat(stat, awayStat) - normalizeStat(stat, homeStat)) * weightArray[mlbWeightIndex];
+
+                mlbWeightIndex++
             }
+
+            // For all other stats, check if homeStat is greater than or equal to awayStat
+
         }
     }
+
+
+
 
     return { homeIndex, awayIndex };
 }
 
 const adjustncaamStats = (homeTeam, awayTeam, homeIndex, awayIndex, weightArray) => {
-    homeTeam?.seasonWinLoss?.split("-")[0] >= awayTeam?.seasonWinLoss?.split("-")[0] ? homeIndex += weightArray[0] : awayIndex += weightArray[0];
-    homeTeam?.homeWinLoss?.split("-")[0] >= awayTeam?.awayWinLoss.split("-")[0] ? homeIndex += weightArray[1] : awayIndex += weightArray[1];
-    homeTeam?.pointDiff >= awayTeam?.pointDiff ? homeIndex += weightArray[2] : awayIndex += weightArray[2];
-
-    let ncaamWeightIndex = 3;
+    homeIndex += (normalizeStat('seasonWinLoss', homeTeam.seasonWinLoss.split("-")[0]) - normalizeStat('seasonWinLoss', awayTeam.seasonWinLoss.split("-")[0])) * weightArray[0];
+    awayIndex += (normalizeStat('seasonWinLoss', awayTeam.seasonWinLoss.split("-")[0]) - normalizeStat('seasonWinLoss', homeTeam.seasonWinLoss.split("-")[0])) * weightArray[0]
+    homeIndex += (normalizeStat('homeWinLoss', homeTeam.homeWinLoss.split("-")[0]) - normalizeStat('awayWinLoss', awayTeam.awayWinLoss.split("-")[0])) * weightArray[1];
+    awayIndex += (normalizeStat('awayWinLoss', awayTeam.homeWinLoss.split("-")[0]) - normalizeStat('homeWinLoss', homeTeam.awayWinLoss.split("-")[0])) * weightArray[1]
+    homeIndex += (normalizeStat('pointDiff', homeTeam.pointDiff) - normalizeStat('pointDiff', awayTeam.pointDiff)) * weightArray[2];
+    awayIndex += (normalizeStat('pointDiff', awayTeam.pointDiff) - normalizeStat('pointDiff', homeTeam.pointDiff)) * weightArray[2];
+    let ncaamWeightIndex = 3
     const reverseComparisonStats = ['BSKBturnoversPerGame', 'BSKBfoulsPerGame', 'BKSBturnoverRatio'];
 
-    // Loop through homeTeam.stats to compare each stat
     for (const stat in homeTeam.stats) {
         if (homeTeam.stats.hasOwnProperty(stat)) {
             const homeStat = homeTeam.stats[stat];
             const awayStat = awayTeam.stats[stat];
 
-            // Check if the stat requires reversed comparison
-            if (reverseComparisonStats.includes(stat)) {
-                if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
-                    if (homeStat <= awayStat) {
-                        homeIndex += weightArray[ncaamWeightIndex];
-                    } else {
-                        awayIndex += weightArray[ncaamWeightIndex];
-                    }
-                    ncaamWeightIndex++;
-                }
-            } else {
-                if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
-                    if (homeStat >= awayStat) {
-                        homeIndex += weightArray[ncaamWeightIndex];
-                    } else {
-                        awayIndex += weightArray[ncaamWeightIndex];
-                    }
-                    ncaamWeightIndex++;
-                }
+            // Check if the stat is one that requires reve
+            // For reversed comparison, check if homeStat is less than or equal to awayStat
+            if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
+
+                homeIndex += (normalizeStat(stat, homeStat) - normalizeStat(stat, awayStat)) * weightArray[ncaamWeightIndex];
+
+                awayIndex += (normalizeStat(stat, awayStat) - normalizeStat(stat, homeStat)) * weightArray[ncaamWeightIndex];
+
+                ncaamWeightIndex++
             }
+
+            // For all other stats, check if homeStat is greater than or equal to awayStat
+
         }
     }
+
+
+
 
     return { homeIndex, awayIndex };
 }
 
 const adjustwncaabStats = (homeTeam, awayTeam, homeIndex, awayIndex, weightArray) => {
-    homeTeam?.seasonWinLoss?.split("-")[0] >= awayTeam?.seasonWinLoss?.split("-")[0] ? homeIndex += weightArray[0] : awayIndex += weightArray[0];
-    homeTeam?.homeWinLoss?.split("-")[0] >= awayTeam?.awayWinLoss.split("-")[0] ? homeIndex += weightArray[1] : awayIndex += weightArray[1];
-    homeTeam?.pointDiff >= awayTeam?.pointDiff ? homeIndex += weightArray[2] : awayIndex += weightArray[2];
-
-    let ncaawWeightIndex = 3;
+    homeIndex += (normalizeStat('seasonWinLoss', homeTeam.seasonWinLoss.split("-")[0]) - normalizeStat('seasonWinLoss', awayTeam.seasonWinLoss.split("-")[0])) * weightArray[0];
+    awayIndex += (normalizeStat('seasonWinLoss', awayTeam.seasonWinLoss.split("-")[0]) - normalizeStat('seasonWinLoss', homeTeam.seasonWinLoss.split("-")[0])) * weightArray[0]
+    homeIndex += (normalizeStat('homeWinLoss', homeTeam.homeWinLoss.split("-")[0]) - normalizeStat('awayWinLoss', awayTeam.awayWinLoss.split("-")[0])) * weightArray[1];
+    awayIndex += (normalizeStat('awayWinLoss', awayTeam.homeWinLoss.split("-")[0]) - normalizeStat('homeWinLoss', homeTeam.awayWinLoss.split("-")[0])) * weightArray[1]
+    homeIndex += (normalizeStat('pointDiff', homeTeam.pointDiff) - normalizeStat('pointDiff', awayTeam.pointDiff)) * weightArray[2];
+    awayIndex += (normalizeStat('pointDiff', awayTeam.pointDiff) - normalizeStat('pointDiff', homeTeam.pointDiff)) * weightArray[2];
+    let wncaabWeightIndex = 3
     const reverseComparisonStats = ['BSKBturnoversPerGame', 'BSKBfoulsPerGame', 'BKSBturnoverRatio'];
 
-    // Loop through homeTeam.stats to compare each stat
     for (const stat in homeTeam.stats) {
         if (homeTeam.stats.hasOwnProperty(stat)) {
             const homeStat = homeTeam.stats[stat];
             const awayStat = awayTeam.stats[stat];
 
-            // Check if the stat requires reversed comparison
-            if (reverseComparisonStats.includes(stat)) {
-                if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
-                    if (homeStat <= awayStat) {
-                        homeIndex += weightArray[ncaawWeightIndex];
-                    } else {
-                        awayIndex += weightArray[ncaawWeightIndex];
-                    }
-                    ncaawWeightIndex++;
-                }
-            } else {
-                if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
-                    if (homeStat >= awayStat) {
-                        homeIndex += weightArray[ncaawWeightIndex];
-                    } else {
-                        awayIndex += weightArray[ncaawWeightIndex];
-                    }
-                    ncaawWeightIndex++;
-                }
+            // Check if the stat is one that requires reve
+            // For reversed comparison, check if homeStat is less than or equal to awayStat
+            if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
+
+                homeIndex += (normalizeStat(stat, homeStat) - normalizeStat(stat, awayStat)) * weightArray[wncaabWeightIndex];
+
+                awayIndex += (normalizeStat(stat, awayStat) - normalizeStat(stat, homeStat)) * weightArray[wncaabWeightIndex];
+
+                wncaabWeightIndex++
             }
+
+            // For all other stats, check if homeStat is greater than or equal to awayStat
+
         }
     }
+
+
+
 
     return { homeIndex, awayIndex };
 }
@@ -369,6 +345,7 @@ const indexAdjuster = async (currentOdds, sport, allPastGames, weightArray, past
 
             let homeIndex = 0;
             let awayIndex = 0;
+
             if (homeTeam && awayTeam && homeTeam.stats && awayTeam.stats && homeTeam.seasonWinLoss && awayTeam.seasonWinLoss) {
                 // Sport-specific conditions
                 if (game.sport_key === 'americanfootball_nfl') {
@@ -724,24 +701,13 @@ const indexAdjuster = async (currentOdds, sport, allPastGames, weightArray, past
             // Call the function
             const winrate = await calculateWinrate(allPastGames, sport, game.home_team, game.away_team, game.homeTeamIndex, game.awayTeamIndex, game.predictedWinner, game.predictionStrength);
 
-            let theoryMax = 0
-            let theoryMin = 0
-            weightArray.map((weight) => {
-                theoryMax += weight
-
-            })
-
-
-            let normalizedHomeIndex = (homeIndex - theoryMin) / (theoryMax - theoryMin)
-            let normalizedAwayIndex = (awayIndex - theoryMin) / (theoryMax - theoryMin)
-
             // Update the Odds database with the calculated indices
             if (sport.name === game.sport_key) {
                 if (past === true) {
                     try {
                         await PastGameOdds.findOneAndUpdate({ 'id': game.id }, {
-                            homeTeamIndex: (normalizedHomeIndex * 45),
-                            awayTeamIndex: (normalizedAwayIndex * 45),
+                            homeTeamIndex: homeIndex,
+                            awayTeamIndex: awayIndex,
                             homeTeamStats: homeTeam ? cleanStats(getCommonStats(homeTeam)) : 'no stat data',
                             awayTeamStats: awayTeam ? cleanStats(getCommonStats(awayTeam)) : 'no stat data',
                             homeTeamlogo: homeTeam ? homeTeam.logo : 'no logo data',
@@ -756,8 +722,8 @@ const indexAdjuster = async (currentOdds, sport, allPastGames, weightArray, past
                 } else {
                     try {
                         await Odds.findOneAndUpdate({ 'id': game.id }, {
-                            homeTeamIndex: ((homeIndex / (homeIndex > 0 ? theoryMax : theoryMin)) * 45),
-                            awayTeamIndex: ((awayIndex / (awayIndex > 0 ? theoryMax : theoryMin)) * 45),
+                            homeTeamIndex: homeIndex,
+                            awayTeamIndex: awayIndex,
                             homeTeamStats: homeTeam ? cleanStats(getCommonStats(homeTeam)) : 'no stat data',
                             awayTeamStats: awayTeam ? cleanStats(getCommonStats(awayTeam)) : 'no stat data',
                             homeTeamlogo: homeTeam ? homeTeam.logo : 'no logo data',
@@ -776,6 +742,79 @@ const indexAdjuster = async (currentOdds, sport, allPastGames, weightArray, past
         }
     }
 
+    let maxGame = await Odds.aggregate([
+        {
+            $match: {
+                sport_key: sport.name,
+                commence_time: { $gt: new Date().toISOString() }
+            }
+        }, // filter by sport
+        {
+            $project: {
+                sport_key: 1,
+                homeTeamIndex: 1,
+                awayTeamIndex: 1,
+                highestIndex: { $max: ['$homeTeamIndex', '$awayTeamIndex'] }, // calculate the max of homeIndex and awayIndex
+            },
+        },
+        { $sort: { highestIndex: -1 } }, // sort by the highest index
+        { $limit: 1 }, // limit to just one result
+    ]).exec()
+    let minGame = await Odds.aggregate([
+        {
+            $match: {
+                sport_key: sport.name,
+                commence_time: { $gt: new Date().toISOString() }
+            }
+        }, // filter by sport
+        {
+            $project: {
+                sport_key: 1,
+                homeTeamIndex: 1,
+                awayTeamIndex: 1,
+                lowestIndex: { $min: ['$homeTeamIndex', '$awayTeamIndex'] }, // calculate the min of homeIndex and awayIndex
+            },
+        },
+        { $sort: { lowestIndex: 1 } }, // sort by the lowest index
+        { $limit: 1 }, // limit to just one result
+    ]).exec()
+
+    let sportOdds = await Odds.find({ sport_key: sport.name })
+    let indexMin = minGame[0].lowestIndex
+    let indexMax = maxGame[0].highestIndex
+    console.log(indexMin)
+    console.log(indexMax)
+    for (const game of sportOdds) {
+        if (moment().isBefore(moment(game.commence_time)) || past === true) {
+            let normalizedHomeIndex = ((game.homeTeamIndex - indexMin) / (indexMax - indexMin)) * 45
+            let normalizedAwayIndex = ((game.awayTeamIndex - indexMin) / (indexMax - indexMin)) * 45
+            if (past === true) {
+                try {
+                    await PastGameOdds.findOneAndUpdate({ 'id': game.id }, {
+                        homeTeamIndex: normalizedHomeIndex,
+                        awayTeamIndex: normalizedAwayIndex,
+                    });
+                } catch (err) {
+                    console.log(err)
+                }
+            } else {
+                try {
+                    console.log('adjusted indexes: ', {
+                        homeTeamIndex: (normalizedHomeIndex),
+                        awayTeamIndex: (normalizedAwayIndex),
+                    })
+                    await Odds.findOneAndUpdate({ 'id': game.id }, {
+                        homeTeamIndex: normalizedHomeIndex,
+                        awayTeamIndex: normalizedAwayIndex,
+                    });
+                } catch (err) {
+                    console.log(err)
+                }
+            }
+        }
+
+    }
+    sportOdds = []
     console.log(`FINSHED INDEXING FOR ${sport.name} @ ${moment().format('HH:mm:ss')}`);
 }
 

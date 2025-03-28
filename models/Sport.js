@@ -125,6 +125,16 @@ const sportSchema = new Schema({
             bestTotalGames: {
                 type: Number,
                 required: false
+            },
+            bestConfidenceInterval: {
+                upper: {
+                    type: Number,
+                    required: false
+                },
+                lower: {
+                    type: Number,
+                    required: false
+                }
             }
         }
     }]

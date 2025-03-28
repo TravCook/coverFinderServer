@@ -11,7 +11,8 @@ const { indexAdjuster, pastGamesReIndex } = require('../helperFunctions/mlModelF
 const { predictions, trainSportModelKFold } = require('../helperFunctions/mlModelFuncs/trainingHelpers')
 const { normalizeTeamName } = require('../helperFunctions/dataHelpers/dataSanitizers')
 const { impliedProbCalc } = require('../helperFunctions/dataHelpers/impliedProbHelp')
-const { valueBetRandomSearch, hyperparameterRandSearch } = require('../helperFunctions/mlModelFuncs/searchHelpers')
+const { valueBetRandomSearch, hyperparameterRandSearch } = require('../helperFunctions/mlModelFuncs/searchHelpers');
+const { pastGamesRePredict } = require('../helperFunctions/dataHelpers/pastGameHelpers');
 // Suppress TensorFlow.js logging
 process.env.TF_CPP_MIN_LOG_LEVEL = '3'; // Suppress logs
 
@@ -736,5 +737,9 @@ const paramAndValueSeed = async () => {
     await mlModelTrainSeed()
 
 }
+
+//re index past games
+//re predict past games
+//re value and param search
 
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed, paramAndValueSeed }
