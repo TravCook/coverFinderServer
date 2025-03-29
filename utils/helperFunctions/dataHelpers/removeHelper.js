@@ -184,11 +184,11 @@ const removePastGames = async (currentOdds) => {
                         }
                     } else {
                         // Delete the game from the Odds collection
-                        let deletedGame = await Odds.findOneAndDelete({ _id: game._doc._id });
-                        if (deletedGame) {
+                        // let deletedGame = await Odds.findOneAndDelete({ _id: game._doc._id });
+                        // if (deletedGame) {
                             console.log(`deleted game: ${deletedGame.home_team} vs ${deletedGame.away_team} for not existing`);
-                        }
-                        deletedGame = null
+                        // }
+                        // deletedGame = null
                     }
                 } catch (err) {
                     console.log(game.id)
