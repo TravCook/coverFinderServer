@@ -275,7 +275,101 @@ const adjustwncaabStats = (homeTeam, awayTeam, homeIndex, awayIndex, weightArray
 
 const indexAdjuster = async (currentOdds, sport, allPastGames, weightArray, past) => {
     console.log(`STARTING INDEXING FOR ${sport.name} @ ${moment().format('HH:mm:ss')}`);
+
+
     for (const game of currentOdds) {
+        let maxGame = await PastGameOdds.aggregate([
+            {
+                $match: {
+                    sport_key: sport.name,
+                    commence_time: { $lte: game.commence_time },
+                    homeTeamIndex: { $ne: null }, // Ensure homeTeamIndex is not null
+                    awayTeamIndex: { $ne: null }  // Ensure awayTeamIndex is not null
+                }
+            }, // filter by sport
+            {
+                $project: {
+                    sport_key: 1,
+                    homeTeamIndex: 1,
+                    awayTeamIndex: 1,
+                    highestIndex: { $max: ['$homeTeamIndex', '$awayTeamIndex'] }, // calculate the max of homeIndex and awayIndex
+                },
+            },
+            { $sort: { commence_time: -1 } }, // Sort by date to ensure most recent games come first
+            { $limit: 30 }, // Limit to the last 15 games
+            { $sort: { highestIndex: -1 } }, // sort by the highest index
+            // { $limit: 1 }, // limit to just one result
+        ]).exec()
+        let minGame = await PastGameOdds.aggregate([
+            {
+                $match: {
+                    sport_key: sport.name,
+                    commence_time: { $lte: game.commence_time },
+                    homeTeamIndex: { $ne: null }, // Ensure homeTeamIndex is not null
+                    awayTeamIndex: { $ne: null }  // Ensure awayTeamIndex is not null
+                }
+            }, // filter by sport
+            {
+                $project: {
+                    sport_key: 1,
+                    homeTeamIndex: 1,
+                    awayTeamIndex: 1,
+                    lowestIndex: { $min: ['$homeTeamIndex', '$awayTeamIndex'] }, // calculate the min of homeIndex and awayIndex
+                },
+            },
+            { $sort: { commence_time: -1 } }, // Sort by date to ensure most recent games come first
+            { $limit: 30 }, // Limit to the last 15 games
+            { $sort: { lowestIndex: 1 } }, // sort by the highest index
+            // { $limit: 1 }, // limit to just one result
+        ]).exec()
+
+        if (!maxGame || maxGame.length === 0) {
+            // If no result for maxGame (edge case), fallback to the first 10 games
+            maxGame = await PastGameOdds.aggregate([
+                {
+                    $match: {
+                        sport_key: sport.name,
+                    }
+                }, // filter by sport
+                {
+                    $project: {
+                        sport_key: 1,
+                        homeTeamIndex: 1,
+                        awayTeamIndex: 1,
+                        highestIndex: { $max: ['$homeTeamIndex', '$awayTeamIndex'] }, // calculate the max of homeIndex and awayIndex
+                    },
+                },
+                { $sort: { commence_time: -1 } }, // Sort by date to ensure most recent games come first
+                { $limit: 15 }, // Limit to the last 15 games
+                { $sort: { highestIndex: -1 } }, // sort by the highest index
+                { $limit: 1 }, // limit to just one result
+            ]).exec();
+        }
+        if (!minGame || minGame.length === 0) {
+            // If no result for minGame (edge case), fallback to the first 10 games
+            minGame = await PastGameOdds.aggregate([
+                {
+                    $match: {
+                        sport_key: sport.name,
+                    }
+                }, // filter by sport
+                {
+                    $project: {
+                        sport_key: 1,
+                        homeTeamIndex: 1,
+                        awayTeamIndex: 1,
+                        lowestIndex: { $min: ['$homeTeamIndex', '$awayTeamIndex'] }, // calculate the min of homeIndex and awayIndex
+                    },
+                },
+                { $sort: { commence_time: -1 } }, // Sort by date to ensure most recent games come first
+                { $limit: 15 }, // Limit to the last 15 games
+                { $sort: { lowestIndex: -1 } }, // sort by the highest index
+                { $limit: 1 }, // limit to just one result
+            ]).exec();
+        }
+        let indexMin = minGame[0].lowestIndex
+        let indexMax = maxGame[0].highestIndex
+        
         // Check if the game is in the future
         if (moment().isBefore(moment(game.commence_time)) || past === true) {
 
@@ -697,10 +791,14 @@ const indexAdjuster = async (currentOdds, sport, allPastGames, weightArray, past
                 // Return both individual winrates, and weighted average
                 return average
             }
-
+            console.log('homeIndex', homeIndex)
+            console.log('awayIndex', awayIndex)
             // Call the function
             const winrate = await calculateWinrate(allPastGames, sport, game.home_team, game.away_team, game.homeTeamIndex, game.awayTeamIndex, game.predictedWinner, game.predictionStrength);
-
+            // let normalizedHomeIndex = ((game.homeTeamIndex - indexMin) / (indexMax - indexMin)) * 45
+            // let normalizedAwayIndex = ((game.awayTeamIndex - indexMin) / (indexMax - indexMin)) * 45
+            // console.log('normalizedHomeIndex', normalizedHomeIndex)
+            // console.log('normalizedAwayIndex', normalizedAwayIndex)
             // Update the Odds database with the calculated indices
             if (sport.name === game.sport_key) {
                 if (past === true) {
@@ -708,6 +806,8 @@ const indexAdjuster = async (currentOdds, sport, allPastGames, weightArray, past
                         await PastGameOdds.findOneAndUpdate({ 'id': game.id }, {
                             homeTeamIndex: homeIndex,
                             awayTeamIndex: awayIndex,
+                            // homeTeamScaledIndex: normalizedHomeIndex,
+                            // awayTeamScaledIndex: normalizedAwayIndex,
                             homeTeamStats: homeTeam ? cleanStats(getCommonStats(homeTeam)) : 'no stat data',
                             awayTeamStats: awayTeam ? cleanStats(getCommonStats(awayTeam)) : 'no stat data',
                             homeTeamlogo: homeTeam ? homeTeam.logo : 'no logo data',
@@ -724,6 +824,8 @@ const indexAdjuster = async (currentOdds, sport, allPastGames, weightArray, past
                         await Odds.findOneAndUpdate({ 'id': game.id }, {
                             homeTeamIndex: homeIndex,
                             awayTeamIndex: awayIndex,
+                            homeTeamScaledIndex: normalizedHomeIndex,
+                            awayTeamScaledIndex: normalizedAwayIndex,
                             homeTeamStats: homeTeam ? cleanStats(getCommonStats(homeTeam)) : 'no stat data',
                             awayTeamStats: awayTeam ? cleanStats(getCommonStats(awayTeam)) : 'no stat data',
                             homeTeamlogo: homeTeam ? homeTeam.logo : 'no logo data',
@@ -742,78 +844,6 @@ const indexAdjuster = async (currentOdds, sport, allPastGames, weightArray, past
         }
     }
 
-    let maxGame = await Odds.aggregate([
-        {
-            $match: {
-                sport_key: sport.name,
-                commence_time: { $gt: new Date().toISOString() }
-            }
-        }, // filter by sport
-        {
-            $project: {
-                sport_key: 1,
-                homeTeamIndex: 1,
-                awayTeamIndex: 1,
-                highestIndex: { $max: ['$homeTeamIndex', '$awayTeamIndex'] }, // calculate the max of homeIndex and awayIndex
-            },
-        },
-        { $sort: { highestIndex: -1 } }, // sort by the highest index
-        { $limit: 1 }, // limit to just one result
-    ]).exec()
-    let minGame = await Odds.aggregate([
-        {
-            $match: {
-                sport_key: sport.name,
-                commence_time: { $gt: new Date().toISOString() }
-            }
-        }, // filter by sport
-        {
-            $project: {
-                sport_key: 1,
-                homeTeamIndex: 1,
-                awayTeamIndex: 1,
-                lowestIndex: { $min: ['$homeTeamIndex', '$awayTeamIndex'] }, // calculate the min of homeIndex and awayIndex
-            },
-        },
-        { $sort: { lowestIndex: 1 } }, // sort by the lowest index
-        { $limit: 1 }, // limit to just one result
-    ]).exec()
-
-    let sportOdds = await Odds.find({ sport_key: sport.name })
-    let indexMin = minGame[0].lowestIndex
-    let indexMax = maxGame[0].highestIndex
-    console.log(indexMin)
-    console.log(indexMax)
-    for (const game of sportOdds) {
-        if (moment().isBefore(moment(game.commence_time)) || past === true) {
-            let normalizedHomeIndex = ((game.homeTeamIndex - indexMin) / (indexMax - indexMin)) * 45
-            let normalizedAwayIndex = ((game.awayTeamIndex - indexMin) / (indexMax - indexMin)) * 45
-            if (past === true) {
-                try {
-                    await PastGameOdds.findOneAndUpdate({ 'id': game.id }, {
-                        homeTeamIndex: normalizedHomeIndex,
-                        awayTeamIndex: normalizedAwayIndex,
-                    });
-                } catch (err) {
-                    console.log(err)
-                }
-            } else {
-                try {
-                    console.log('adjusted indexes: ', {
-                        homeTeamIndex: (normalizedHomeIndex),
-                        awayTeamIndex: (normalizedAwayIndex),
-                    })
-                    await Odds.findOneAndUpdate({ 'id': game.id }, {
-                        homeTeamIndex: normalizedHomeIndex,
-                        awayTeamIndex: normalizedAwayIndex,
-                    });
-                } catch (err) {
-                    console.log(err)
-                }
-            }
-        }
-
-    }
     sportOdds = []
     console.log(`FINSHED INDEXING FOR ${sport.name} @ ${moment().format('HH:mm:ss')}`);
 }

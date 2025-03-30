@@ -738,6 +738,7 @@ const paramAndValueSeed = async () => {
 
 }
 
+pastGamesReIndex()
 //re index past games
 //re predict past games
 //re value and param search

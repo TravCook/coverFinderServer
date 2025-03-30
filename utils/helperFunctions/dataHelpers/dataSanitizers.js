@@ -39,7 +39,8 @@ const normalizeTeamName = (teamName, league) => {
         "Miss Valley State Delta Devils": "Mississippi Valley State Delta Devils",
         "Texas A&M-CC Islanders": "Texas A&M-Corpus Christi Islanders",
         "Maryland-Eastern Shore Hawks": "Maryland Eastern Shore Hawks",
-        "IU Indy Jaguars": "IU Indianapolis Jaguars"
+        "IU Indy Jaguars": "IU Indianapolis Jaguars",
+        "Oakland Athletics": "Athletics Athletics"
 
     }
 

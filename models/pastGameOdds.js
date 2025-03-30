@@ -100,6 +100,14 @@ const pastGameOddsSchema = new Schema({
         type: Number,
         required: false
     },
+    homeTeamScaledIndex: {
+        type: Number,
+        required: false
+    },
+    awayTeamScaledIndex: {
+        type: Number,
+        required: false
+    },
     winner: {
         type: String,
         required: true

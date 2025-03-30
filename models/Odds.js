@@ -92,6 +92,14 @@ const oddsSchema = new Schema({
         type: Number,
         required: false
     },
+    homeTeamScaledIndex: {
+        type: Number,
+        required: false
+    },
+    awayTeamScaledIndex: {
+        type: Number,
+        required: false
+    },
     winPercent: {
         type: Number,
         required: false
