@@ -738,8 +738,7 @@ const paramAndValueSeed = async () => {
 
 }
 
-oddsSeed()
-//re index upcoming games || prod
+paramAndValueSeed()
 //re value and param search || prod || dev
 
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed, paramAndValueSeed }
