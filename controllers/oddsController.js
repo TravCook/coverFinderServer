@@ -61,7 +61,7 @@ module.exports = {
                 oneWeekAgo.setDate(currentDate.getDate() - 7); // Subtract 7 days
 
                 let valueGames = []
-                let sports = await Sport.find({})
+                let sports = await Sport.find({}).sort({name: 1})
                 let odds = await Odds.find({}).sort({ commence_time: 1, winPercent: 1 })
                 let pastGames = await PastGameOdds.find({
                     commence_time: { $gte: oneWeekAgo.toISOString(), $lt: currentDate.toISOString() }

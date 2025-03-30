@@ -739,8 +739,8 @@ const paramAndValueSeed = async () => {
 }
 
 pastGamesReIndex()
-//re index past games
-//re predict past games
-//re value and param search
+//re index past games with normalizer || prod || dev
+//re index upcoming games || prod || dev
+//re value and param search || prod || dev
 
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed, paramAndValueSeed }
