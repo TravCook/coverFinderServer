@@ -797,10 +797,10 @@ const indexAdjuster = async (currentOdds, sport, allPastGames, weightArray, past
             const winrate = await calculateWinrate(allPastGames, sport, game.home_team, game.away_team, game.homeTeamIndex, game.awayTeamIndex, game.predictedWinner, game.predictionStrength);
             let normalizedHomeIndex = ((game.homeTeamIndex - indexMin) / (indexMax - indexMin)) * 45
             let normalizedAwayIndex = ((game.awayTeamIndex - indexMin) / (indexMax - indexMin)) * 45
-            if(normalizedHomeIndex > 45 || normalizedHomeIndex < 0 || normalizedAwayIndex > 45 || normalizedAwayIndex < 0 ){
-                console.log('normalizedHomeIndex', normalizedHomeIndex)
-                console.log('normalizedAwayIndex', normalizedAwayIndex)
-            }
+            // if(normalizedHomeIndex > 45 || normalizedHomeIndex < 0 || normalizedAwayIndex > 45 || normalizedAwayIndex < 0 ){
+            //     console.log('normalizedHomeIndex', normalizedHomeIndex)
+            //     console.log('normalizedAwayIndex', normalizedAwayIndex)
+            // }
 
             // Update the Odds database with the calculated indices
             if (sport.name === game.sport_key) {
@@ -827,8 +827,8 @@ const indexAdjuster = async (currentOdds, sport, allPastGames, weightArray, past
                         await Odds.findOneAndUpdate({ 'id': game.id }, {
                             homeTeamIndex: homeIndex,
                             awayTeamIndex: awayIndex,
-                            homeTeamScaledIndex: normalizedHomeIndex,
-                            awayTeamScaledIndex: normalizedAwayIndex,
+                            // homeTeamScaledIndex: normalizedHomeIndex,
+                            // awayTeamScaledIndex: normalizedAwayIndex,
                             homeTeamStats: homeTeam ? cleanStats(getCommonStats(homeTeam)) : 'no stat data',
                             awayTeamStats: awayTeam ? cleanStats(getCommonStats(awayTeam)) : 'no stat data',
                             homeTeamlogo: homeTeam ? homeTeam.logo : 'no logo data',
