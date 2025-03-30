@@ -455,8 +455,8 @@ const valueBetRandomSearch = async (sports) => {
                             if (bookmaker) {
                                 const outcome = bookmaker.markets.find(market => market.key === 'h2h').outcomes;
                                 const lowerImpliedProbOutcome = outcome.find(o => (
-                                    ((game.predictedWinner === 'home' ? Math.abs(game.homeTeamIndex - game.awayTeamIndex) : Math.abs(game.awayTeamIndex - game.homeTeamIndex)) > (indexDifSmall) &&
-                                        (game.predictedWinner === 'home' ? Math.abs(game.homeTeamIndex - game.awayTeamIndex) : Math.abs(game.awayTeamIndex - game.homeTeamIndex)) < (indexDifSmall + indexDiffRange)) &&
+                                    ((game.predictedWinner === 'home' ? Math.abs(game.homeTeamScaledIndex - game.awayTeamScaledIndex) : Math.abs(game.awayTeamScaledIndex - game.homeTeamScaledIndex)) > (indexDifSmall) &&
+                                        (game.predictedWinner === 'home' ? Math.abs(game.homeTeamScaledIndex - game.awayTeamScaledIndex) : Math.abs(game.awayTeamScaledIndex - game.homeTeamScaledIndex)) < (indexDifSmall + indexDiffRange)) &&
                                     (game.predictionStrength > confidenceLow && game.predictionStrength < (confidenceLow + confidenceRange)) &&
                                     // (o.impliedProb * 100) < (game.winPercent + winPercentInc) &&
                                     (o.impliedProb * 100) < (game.winPercent) &&

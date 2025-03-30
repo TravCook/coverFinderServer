@@ -732,14 +732,14 @@ const paramAndValueSeed = async () => {
 
     await valueBetRandomSearch(sports)
 
-    await hyperparameterRandSearch(sports)
+    // await hyperparameterRandSearch(sports)
 
-    await mlModelTrainSeed()
+    // await mlModelTrainSeed()
 
 }
 
 oddsSeed()
-//re index upcoming games || prod || dev
+//re index upcoming games || prod
 //re value and param search || prod || dev
 
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed, paramAndValueSeed }
