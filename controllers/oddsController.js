@@ -80,7 +80,7 @@ module.exports = {
 
                             if (outcome) {
                                 let currentSport = sports.find(arraySport => arraySport.name === gameData.sport_key)
-                                let sportSettings = currentSport.valueBetSettings.find((setting) => setting.bookmaker === req.body.sportsbook)
+                                let sportSettings = currentSport.valueBetSettings?.find((setting) => setting.bookmaker === req.body.sportsbook)
                                 if (sportSettings !== undefined) {
                                     let valueBetCheck = combinedCondition(gameData, outcome, sportSettings.settings.indexDiffSmallNum, sportSettings.settings.indexDiffRangeNum, sportSettings.settings.confidenceLowNum, sportSettings.settings.confidenceRangeNum)
 
@@ -153,11 +153,12 @@ module.exports = {
         oneWeek.setDate(oneWeek.getDate() - 7);
         oneWeek.setHours(0, 0, 0, 0);  // Set time to midnight
         try {
-            pastGames = await PastGameOdds.find({ predictedWinner: { $exists: true, $ne: null }, commence_time: { $gte: oneWeek.toISOString(), $lt: new Date().toISOString() } }).select('-homeTeamStats -awayTeamStats').sort({ commence_time: -1});
+            pastGames = await PastGameOdds.find({ predictedWinner: { $exists: true, $ne: null }, commence_time: { $gte: oneWeek.toISOString() } }).select('-homeTeamStats -awayTeamStats').sort({ commence_time: -1});
             data = {
                 pastGames: pastGames
             }
             pastGames = []
+            console.log('sending data')
             return res.json(data);
 
         } catch (err) {
