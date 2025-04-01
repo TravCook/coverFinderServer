@@ -80,7 +80,7 @@ const indexCondition = (game, indexDifSmall, indexDiffRange) => {
       ? Math.abs(game.homeTeamScaledIndex - game.awayTeamScaledIndex)
       : Math.abs(game.awayTeamScaledIndex - game.homeTeamScaledIndex);
   
-    return indexDiff > indexDifSmall && indexDiff < (indexDifSmall + indexDiffRange);
+    return indexDiff >= indexDifSmall && indexDiff <= (indexDifSmall + indexDiffRange);
   };
   
   const strengthCondition = (game, confidenceLow, confidenceRange) => {

@@ -457,7 +457,6 @@ const valueBetRandomSearch = async (sports) => {
                                     ((game.predictedWinner === 'home' ? Math.abs(game.homeTeamScaledIndex - game.awayTeamScaledIndex) : Math.abs(game.awayTeamScaledIndex - game.homeTeamScaledIndex)) > (indexDifSmall) &&
                                         (game.predictedWinner === 'home' ? Math.abs(game.homeTeamScaledIndex - game.awayTeamScaledIndex) : Math.abs(game.awayTeamScaledIndex - game.homeTeamScaledIndex)) < (indexDifSmall + indexDiffRange)) &&
                                     (game.predictionStrength > confidenceLow && game.predictionStrength < (confidenceLow + confidenceRange)) &&
-                                    // (o.impliedProb * 100) < (game.winPercent + winPercentInc) &&
                                     (o.impliedProb * 100) < (game.winPercent) &&
                                     ((game.predictedWinner === 'home' && game.home_team === o.name) || (game.predictedWinner === 'away' && game.away_team === o.name))
                                 ));
@@ -497,7 +496,7 @@ const valueBetRandomSearch = async (sports) => {
                             };
                         }
                         let newCI
-                        if (totalGames.length > 10) {
+                        if (totalGames.length > (sportGames.length / 20)) {
                             newCI = calculateConfidenceInterval(winRate, totalGames.length, 90);
                             const SEPARATION_THRESHOLD = 0.02; // 2% gap
                             const MAX_CI_WIDTH = 0.15; // Maximum allowable CI width (15%)
@@ -511,7 +510,6 @@ const valueBetRandomSearch = async (sports) => {
                                 finalWinrate = winRate;
                                 finalTotalGames = totalGames.length;
                                 finalSettings.settings = {
-                                    // winPercentIncrease: winPercentInc,
                                     indexDiffSmallNum: indexDifSmall,
                                     indexDiffRangeNum: indexDiffRange,
                                     confidenceLowNum: confidenceLow,
