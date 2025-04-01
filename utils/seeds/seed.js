@@ -727,7 +727,7 @@ const espnSeed = async () => {
 
 //TAKES ABOUT 1 HOUR
 const paramAndValueSeed = async () => {
-    const { sports } = require('../constants')
+    const sports = await Sport.find({})
 
 
     await valueBetRandomSearch(sports)
@@ -737,6 +737,5 @@ const paramAndValueSeed = async () => {
     await mlModelTrainSeed()
 
 }
-
 
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed, paramAndValueSeed }

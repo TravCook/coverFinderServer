@@ -424,11 +424,10 @@ const valueBetRandomSearch = async (sports) => {
             && (currentMonth >= sport.startMonth && currentMonth <= sport.endMonth)) {
 
             let sportGames = usableGames.filter((game) => game.sport_key === sport.name);
-
-
             if (sportGames.length > 0) {
                 for (const sportsbook of sportsbooks) {
-                    let storeCI = sport.valueBetSettings?.sportsbook?.settings.bestConfidenceInterval ||  { lower: 0, upper: 0 }
+                    let sportsbookSettings = sport.valueBetSettings.find((setting) => setting.bookmaker === sportsbook)
+                    let storeCI = sportsbookSettings.settings.bestConfidenceInterval ||  { lower: 0, upper: 0 }
                     
                     let finalSettings = {
                         bookmaker: sportsbook,
@@ -466,7 +465,6 @@ const valueBetRandomSearch = async (sports) => {
                             }
                             return false;
                         });
-
                         let correctGames = totalGames.filter((game) => game.predictionCorrect === true);
                         let winRate = totalGames.length > 0 ? correctGames.length / totalGames.length : 0;
                         function calculateConfidenceInterval(winrate, sampleSize, confidenceLevel) {
@@ -575,11 +573,12 @@ const valueBetRandomSearch = async (sports) => {
                                         { arrayFilters: [{ "elem.bookmaker": sportsbook }], upsert: true, new: true } // upsert creates the document if it doesn't exist, new returns the updated doc
                                     );
                                 }
-
+                                console.log('New Best Settings: ', finalSettings)
                             }
                         }
 
                     }
+                    console.log(`Finished ${sportsbook} for ${sport.name}`)
                 }
             }
 

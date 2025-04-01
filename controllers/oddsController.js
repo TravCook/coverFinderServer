@@ -59,13 +59,14 @@ module.exports = {
                 const currentDate = new Date();
                 const oneWeekAgo = new Date(currentDate);
                 oneWeekAgo.setDate(currentDate.getDate() - 7); // Subtract 7 days
+                oneWeekAgo.setHours(0, 0, 0, 0);  // Set time to midnight
 
                 let valueGames = []
                 let sports = await Sport.find({}).sort({name: 1})
                 let odds = await Odds.find({}).sort({ commence_time: 1, winPercent: 1 })
                 let pastGames = await PastGameOdds.find({
-                    commence_time: { $gte: oneWeekAgo.toISOString(), $lt: currentDate.toISOString() }
-                }).select('-homeTeamStats -awayTeamStats').sort({ commence_time: -1, winPercent: 1 });
+                    commence_time: { $gte: oneWeekAgo.toISOString() }
+                }).select('-homeTeamStats -awayTeamStats').sort({ commence_time: -1 });
 
                 try {
                     pastGames.map((gameData, idx) => {
@@ -148,8 +149,11 @@ module.exports = {
         const twoWeeks = new Date();
         twoWeeks.setDate(twoWeeks.getDate() - 15);
         twoWeeks.setHours(0, 0, 0, 0);  // Set time to midnight
+        const oneWeek = new Date();
+        oneWeek.setDate(oneWeek.getDate() - 7);
+        oneWeek.setHours(0, 0, 0, 0);  // Set time to midnight
         try {
-            pastGames = await PastGameOdds.find({ predictedWinner: { $exists: true, $ne: null }, commence_time: { $gte: twoWeeks.toISOString(), $lt: new Date().toISOString() } }).select('-homeTeamStats -awayTeamStats').sort({ commence_time: -1});
+            pastGames = await PastGameOdds.find({ predictedWinner: { $exists: true, $ne: null }, commence_time: { $gte: oneWeek.toISOString(), $lt: new Date().toISOString() } }).select('-homeTeamStats -awayTeamStats').sort({ commence_time: -1});
             data = {
                 pastGames: pastGames
             }

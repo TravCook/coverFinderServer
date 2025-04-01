@@ -77,8 +77,8 @@ const sports = [
 // Calculate the index difference
 const indexCondition = (game, indexDifSmall, indexDiffRange) => {
     const indexDiff = game.predictedWinner === 'home'
-      ? Math.abs(game.homeTeamIndex - game.awayTeamIndex)
-      : Math.abs(game.awayTeamIndex - game.homeTeamIndex);
+      ? Math.abs(game.homeTeamScaledIndex - game.awayTeamScaledIndex)
+      : Math.abs(game.awayTeamScaledIndex - game.homeTeamScaledIndex);
   
     return indexDiff > indexDifSmall && indexDiff < (indexDifSmall + indexDiffRange);
   };
@@ -97,7 +97,7 @@ const indexCondition = (game, indexDifSmall, indexDiffRange) => {
   const combinedCondition = (game, o, indexDifSmall, indexDiffRange, confidenceLow, confidenceRange) => {
     return probabilityCondition(o, game)
      && indexCondition(game, indexDifSmall, indexDiffRange)
-    //  && strengthCondition(game, confidenceLow, confidenceRange)
+     && strengthCondition(game, confidenceLow, confidenceRange)
   };
   
 
