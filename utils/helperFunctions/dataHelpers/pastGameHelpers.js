@@ -10,7 +10,6 @@ const pastGamesRePredict = async () => {
         if (sport.name != 'americanfootball_ncaaf') {
             let pastGames = await PastGameOdds.find({
                 sport_key: sport.name,
-                commence_time: { $gte: '2025-01-14T00:40:00Z' }
             });
 
             // Define the path to the model
