@@ -426,8 +426,8 @@ const valueBetRandomSearch = async (sports) => {
             let sportGames = usableGames.filter((game) => game.sport_key === sport.name);
             if (sportGames.length > 0) {
                 for (const sportsbook of sportsbooks) {
-                    let sportsbookSettings = sport.valueBetSettings.find((setting) => setting.bookmaker === sportsbook)
-                    let storeCI = sportsbookSettings.settings.bestConfidenceInterval ||  { lower: 0, upper: 0 }
+                    let sportsbookSettings = sport.valueBetSettings?.find((setting) => setting.bookmaker === sportsbook)
+                    let storeCI = sportsbookSettings?.settings.bestConfidenceInterval ||  { lower: 0, upper: 0 }
                     
                     let finalSettings = {
                         bookmaker: sportsbook,
