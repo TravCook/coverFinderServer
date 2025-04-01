@@ -110,6 +110,7 @@ module.exports = {
             } else {
                 data = JSON.parse(data)
             }
+            console.log('sending data')
             return res.json(data)
         } catch (err) {
             return res.status(500).json({ message: err.message });
