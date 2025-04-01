@@ -738,5 +738,4 @@ const paramAndValueSeed = async () => {
 
 }
 
-pastGamesReIndex()
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed, paramAndValueSeed }
