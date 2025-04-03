@@ -796,6 +796,8 @@ const indexAdjuster = async (currentOdds, sport, allPastGames, weightArray, past
             const winrate = await calculateWinrate(allPastGames, sport, game.home_team, game.away_team, game.homeTeamIndex, game.awayTeamIndex, game.predictedWinner, game.predictionStrength);
             let normalizedHomeIndex = ((game.homeTeamIndex - indexMin) / (indexMax - indexMin)) * 45
             let normalizedAwayIndex = ((game.awayTeamIndex - indexMin) / (indexMax - indexMin)) * 45
+            console.log('homeIndex', homeIndex)
+            console.log('awayIndex', awayIndex)
             if(normalizedHomeIndex > 45 || normalizedHomeIndex < 0 || normalizedAwayIndex > 45 || normalizedAwayIndex < 0 ){
                 console.log('normalizedHomeIndex', normalizedHomeIndex)
                 console.log('normalizedAwayIndex', normalizedAwayIndex)
