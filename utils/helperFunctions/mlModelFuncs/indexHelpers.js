@@ -322,7 +322,6 @@ const indexAdjuster = async (currentOdds, sport, allPastGames, weightArray, past
             { $sort: { lowestIndex: 1 } }, // sort by the highest index
             // { $limit: 1 }, // limit to just one result
         ]).exec()
-        console.log(sport.indexGames)
         if (!maxGame || maxGame.length === 0) {
             // If no result for maxGame (edge case), fallback to the first 10 games
             maxGame = await PastGameOdds.aggregate([
@@ -369,8 +368,6 @@ const indexAdjuster = async (currentOdds, sport, allPastGames, weightArray, past
         }
         let indexMin = minGame[0].lowestIndex
         let indexMax = maxGame[0].highestIndex
-        console.log('indexMin', indexMin)
-        console.log('indexMax', indexMax)
         // Check if the game is in the future
         if (moment().isBefore(moment(game.commence_time)) || past === true) {
 
@@ -796,8 +793,6 @@ const indexAdjuster = async (currentOdds, sport, allPastGames, weightArray, past
             const winrate = await calculateWinrate(allPastGames, sport, game.home_team, game.away_team, game.homeTeamIndex, game.awayTeamIndex, game.predictedWinner, game.predictionStrength);
             let normalizedHomeIndex = ((game.homeTeamIndex - indexMin) / (indexMax - indexMin)) * 45
             let normalizedAwayIndex = ((game.awayTeamIndex - indexMin) / (indexMax - indexMin)) * 45
-            console.log('homeIndex', homeIndex)
-            console.log('awayIndex', awayIndex)
             if(normalizedHomeIndex > 45 || normalizedHomeIndex < 0 || normalizedAwayIndex > 45 || normalizedAwayIndex < 0 ){
                 console.log('normalizedHomeIndex', normalizedHomeIndex)
                 console.log('normalizedAwayIndex', normalizedAwayIndex)
