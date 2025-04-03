@@ -318,7 +318,7 @@ const indexAdjuster = async (currentOdds, sport, allPastGames, weightArray, past
                 },
             },
             { $sort: { commence_time: -1 } }, // Sort by date to ensure most recent games come first
-            { $limit: 60 }, // Limit to the last 15 games
+            { $limit: 30 }, // Limit to the last 15 games
             { $sort: { lowestIndex: 1 } }, // sort by the highest index
             // { $limit: 1 }, // limit to just one result
         ]).exec()
@@ -369,7 +369,8 @@ const indexAdjuster = async (currentOdds, sport, allPastGames, weightArray, past
         }
         let indexMin = minGame[0].lowestIndex
         let indexMax = maxGame[0].highestIndex
-        
+        console.log('indexMin', indexMin)
+        console.log('indexMax', indexMax)
         // Check if the game is in the future
         if (moment().isBefore(moment(game.commence_time)) || past === true) {
 
