@@ -34,6 +34,10 @@ const sportSchema = new Schema({
         type: Number,
         required: true
     },
+    indexGames: {
+        type: Number, 
+        required: false
+    },
     hyperParameters: {
         bestAccuracy: {
             type: Number,

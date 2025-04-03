@@ -296,7 +296,7 @@ const indexAdjuster = async (currentOdds, sport, allPastGames, weightArray, past
                 },
             },
             { $sort: { commence_time: -1 } }, // Sort by date to ensure most recent games come first
-            { $limit: 60 }, // Limit to the last 15 games
+            { $limit: 30 }, // Limit to the last 15 games
             { $sort: { highestIndex: -1 } }, // sort by the highest index
             // { $limit: 1 }, // limit to just one result
         ]).exec()
@@ -340,7 +340,7 @@ const indexAdjuster = async (currentOdds, sport, allPastGames, weightArray, past
                     },
                 },
                 { $sort: { commence_time: -1 } }, // Sort by date to ensure most recent games come first
-                { $limit: 15 }, // Limit to the last 15 games
+                { $limit: sport.indexGames }, // Limit to the last 15 games
                 { $sort: { highestIndex: -1 } }, // sort by the highest index
                 { $limit: 1 }, // limit to just one result
             ]).exec();
@@ -362,7 +362,7 @@ const indexAdjuster = async (currentOdds, sport, allPastGames, weightArray, past
                     },
                 },
                 { $sort: { commence_time: -1 } }, // Sort by date to ensure most recent games come first
-                { $limit: 15 }, // Limit to the last 15 games
+                { $limit: sport.indexGames }, // Limit to the last 15 games
                 { $sort: { lowestIndex: -1 } }, // sort by the highest index
                 { $limit: 1 }, // limit to just one result
             ]).exec();
