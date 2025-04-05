@@ -794,6 +794,7 @@ const indexAdjuster = async (currentOdds, sport, allPastGames, weightArray, past
             let normalizedHomeIndex = ((game.homeTeamIndex - indexMin) / (indexMax - indexMin)) * 45
             let normalizedAwayIndex = ((game.awayTeamIndex - indexMin) / (indexMax - indexMin)) * 45
             if (normalizedHomeIndex > 45 || normalizedHomeIndex < 0 || normalizedAwayIndex > 45 || normalizedAwayIndex < 0) {
+                console.log(sport.indexGames)
                 console.log('maxIndex', indexMax)
                 console.log('minIndex', indexMin)
                 console.log('homeIndex', homeIndex)
