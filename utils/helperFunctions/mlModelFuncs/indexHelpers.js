@@ -322,50 +322,50 @@ const indexAdjuster = async (currentOdds, sport, allPastGames, weightArray, past
             { $sort: { lowestIndex: 1 } }, // sort by the highest index
             // { $limit: 1 }, // limit to just one result
         ]).exec()
-        if (!maxGame || maxGame.length === 0) {
-            // If no result for maxGame (edge case), fallback to the first 10 games
-            maxGame = await PastGameOdds.aggregate([
-                {
-                    $match: {
-                        sport_key: sport.name,
-                    }
-                }, // filter by sport
-                {
-                    $project: {
-                        sport_key: 1,
-                        homeTeamIndex: 1,
-                        awayTeamIndex: 1,
-                        highestIndex: { $max: ['$homeTeamIndex', '$awayTeamIndex'] }, // calculate the max of homeIndex and awayIndex
-                    },
-                },
-                { $sort: { commence_time: -1 } }, // Sort by date to ensure most recent games come first
-                { $limit: sport.indexGames }, // Limit to the last 15 games
-                { $sort: { highestIndex: -1 } }, // sort by the highest index
-                { $limit: 1 }, // limit to just one result
-            ]).exec();
-        }
-        if (!minGame || minGame.length === 0) {
-            // If no result for minGame (edge case), fallback to the first 10 games
-            minGame = await PastGameOdds.aggregate([
-                {
-                    $match: {
-                        sport_key: sport.name,
-                    }
-                }, // filter by sport
-                {
-                    $project: {
-                        sport_key: 1,
-                        homeTeamIndex: 1,
-                        awayTeamIndex: 1,
-                        lowestIndex: { $min: ['$homeTeamIndex', '$awayTeamIndex'] }, // calculate the min of homeIndex and awayIndex
-                    },
-                },
-                { $sort: { commence_time: -1 } }, // Sort by date to ensure most recent games come first
-                { $limit: sport.indexGames }, // Limit to the last 15 games
-                { $sort: { lowestIndex: -1 } }, // sort by the highest index
-                { $limit: 1 }, // limit to just one result
-            ]).exec();
-        }
+        // if (!maxGame || maxGame.length === 0) {
+        //     // If no result for maxGame (edge case), fallback to the first 10 games
+        //     maxGame = await PastGameOdds.aggregate([
+        //         {
+        //             $match: {
+        //                 sport_key: sport.name,
+        //             }
+        //         }, // filter by sport
+        //         {
+        //             $project: {
+        //                 sport_key: 1,
+        //                 homeTeamIndex: 1,
+        //                 awayTeamIndex: 1,
+        //                 highestIndex: { $max: ['$homeTeamIndex', '$awayTeamIndex'] }, // calculate the max of homeIndex and awayIndex
+        //             },
+        //         },
+        //         { $sort: { commence_time: -1 } }, // Sort by date to ensure most recent games come first
+        //         { $limit: sport.indexGames }, // Limit to the last 15 games
+        //         { $sort: { highestIndex: -1 } }, // sort by the highest index
+        //         { $limit: 1 }, // limit to just one result
+        //     ]).exec();
+        // }
+        // if (!minGame || minGame.length === 0) {
+        //     // If no result for minGame (edge case), fallback to the first 10 games
+        //     minGame = await PastGameOdds.aggregate([
+        //         {
+        //             $match: {
+        //                 sport_key: sport.name,
+        //             }
+        //         }, // filter by sport
+        //         {
+        //             $project: {
+        //                 sport_key: 1,
+        //                 homeTeamIndex: 1,
+        //                 awayTeamIndex: 1,
+        //                 lowestIndex: { $min: ['$homeTeamIndex', '$awayTeamIndex'] }, // calculate the min of homeIndex and awayIndex
+        //             },
+        //         },
+        //         { $sort: { commence_time: -1 } }, // Sort by date to ensure most recent games come first
+        //         { $limit: sport.indexGames }, // Limit to the last 15 games
+        //         { $sort: { lowestIndex: -1 } }, // sort by the highest index
+        //         { $limit: 1 }, // limit to just one result
+        //     ]).exec();
+        // }
         let indexMin = minGame[0].lowestIndex
         let indexMax = maxGame[0].highestIndex
         // Check if the game is in the future
