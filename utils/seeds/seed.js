@@ -740,7 +740,7 @@ const paramAndValueSeed = async () => {
 
 }
 
-pastGamesReIndex()
+// pastGamesReIndex()
 //TODO: CONTINUE WORK ON PAST GAMES STATS POC TO ENSURE EVERY STAT FOR EVERY SPORT IS RECORDED PROPERLY, DATA HAS SHOWN THAT HAVING THE DATA FROM THE PAST IS BENEFICIAL IN EVERY SINGLE WAY. THIS IS THE ONLY PRIORITY YOU HAVE
 
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed, paramAndValueSeed }
