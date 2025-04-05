@@ -65,7 +65,6 @@ module.exports = {
                 let sports = await Sport.find({}).sort({name: 1})
                 let odds = await Odds.find({}).sort({ commence_time: 1, winPercent: 1 })
                 let pastGames = await PastGameOdds.find({
-                    commence_time: { $gte: oneWeekAgo.toISOString() }
                 }).select('-homeTeamStats -awayTeamStats').sort({ commence_time: -1 });
 
                 try {
@@ -110,7 +109,6 @@ module.exports = {
             } else {
                 data = JSON.parse(data)
             }
-            console.log('sending data')
             return res.json(data)
         } catch (err) {
             return res.status(500).json({ message: err.message });
@@ -154,12 +152,11 @@ module.exports = {
         oneWeek.setDate(oneWeek.getDate() - 7);
         oneWeek.setHours(0, 0, 0, 0);  // Set time to midnight
         try {
-            pastGames = await PastGameOdds.find({ predictedWinner: { $exists: true, $ne: null }, commence_time: { $gte: oneWeek.toISOString() } }).select('-homeTeamStats -awayTeamStats').sort({ commence_time: -1});
+            pastGames = await PastGameOdds.find({ predictedWinner: { $exists: true, $ne: null }, commence_time: { $gte: twoWeeks.toISOString() } }).select('-homeTeamStats -awayTeamStats').sort({ commence_time: -1});
             data = {
                 pastGames: pastGames
             }
             pastGames = []
-            console.log('sending data')
             return res.json(data);
 
         } catch (err) {

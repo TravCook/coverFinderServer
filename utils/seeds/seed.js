@@ -11,7 +11,7 @@ const { indexAdjuster, pastGamesReIndex } = require('../helperFunctions/mlModelF
 const { predictions, trainSportModelKFold } = require('../helperFunctions/mlModelFuncs/trainingHelpers')
 const { normalizeTeamName } = require('../helperFunctions/dataHelpers/dataSanitizers')
 const { impliedProbCalc } = require('../helperFunctions/dataHelpers/impliedProbHelp')
-const { valueBetRandomSearch, hyperparameterRandSearch } = require('../helperFunctions/mlModelFuncs/searchHelpers');
+const { valueBetRandomSearch, hyperparameterRandSearch, valueBetGridSearch } = require('../helperFunctions/mlModelFuncs/searchHelpers');
 const { pastGamesRePredict } = require('../helperFunctions/dataHelpers/pastGameHelpers');
 // Suppress TensorFlow.js logging
 process.env.TF_CPP_MIN_LOG_LEVEL = '3'; // Suppress logs
@@ -454,6 +454,8 @@ const oddsSeed = async () => {
                                         await Odds.findOneAndUpdate({ id: event.id }, {
                                             homeTeamIndex: oddExist.homeTeamIndex ? oddExist.homeTeamIndex : 0,
                                             awayTeamIndex: oddExist.awayTeamIndex ? oddExist.awayTeamIndex : 0,
+                                            homeTeamScaledIndex: oddExist.homeTeamScaledIndex ? oddExist.homeTeamScaledIndex : 0,
+                                            awayTeamScaledIndex: oddExist.awayTeamScaledIndex ? oddExist.awayTeamScaledIndex : 0,
                                             ...event,
                                             homeTeamStats: homeTeam ? cleanStats(getCommonStats(homeTeam)) : 'no stat data',
                                             awayTeamStats: awayTeam ? cleanStats(getCommonStats(awayTeam)) : 'no stat data',
@@ -730,7 +732,7 @@ const paramAndValueSeed = async () => {
     const sports = await Sport.find({})
 
 
-    await valueBetRandomSearch(sports)
+    await valueBetGridSearch(sports)
 
     await hyperparameterRandSearch(sports)
 
@@ -738,5 +740,6 @@ const paramAndValueSeed = async () => {
 
 }
 
+//TODO: CONTINUE WORK ON PAST GAMES STATS POC TO ENSURE EVERY STAT FOR EVERY SPORT IS RECORDED PROPERLY, DATA HAS SHOWN THAT HAVING THE DATA FROM THE PAST IS BENEFICIAL IN EVERY SINGLE WAY. THIS IS THE ONLY PRIORITY YOU HAVE
 
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed, paramAndValueSeed }
