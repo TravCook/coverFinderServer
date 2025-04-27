@@ -549,11 +549,8 @@ const retrieveTeamsandStats = async (sports) => {
     for (let sport of sports) {
         const currentDate = new Date();
         const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11, so we add 1 to make it 1-12
-
-        if (sport.multiYear
-            && ((currentMonth >= sport.startMonth && currentMonth <= 12) || (currentMonth >= 1 && currentMonth <= sport.endMonth))
-            || !sport.multiYear
-            && (currentMonth >= sport.startMonth && currentMonth <= sport.endMonth)) {
+        const sportGames = await Odds.find({sport_key: sport.name})
+        if (sportGames.length > 0) {
 
 
             console.log(`STARTING ${sport.name} TEAM SEEDING @ ${moment().format('HH:mm:ss')}`)

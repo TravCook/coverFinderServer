@@ -37,12 +37,12 @@ app.use(routes);
 const timezone = 'America/Denver';
 const cronJobs = [
   {
-    cronTime: '0 */5 * * * *', //every 5 minutes 1.2 mb -- removes old games
+    cronTime: '0 */1 * * * *', //every 5 minutes 1.2 mb -- removes old games && updates live scores 
     onTick: dataSeed.removeSeed,
     timezone
   },
   {
-    cronTime: '0 0 8,14,21 * * *', // Runs at 8:00 AM, 2:00 PM, and 9:00 PM -- retrieves odds from the-odds-api -- 53 sec
+    cronTime: '0 0 4,6,8,10,12,14,16,18,20,22 * * *', // Runs at 8:00 AM, 2:00 PM, and 9:00 PM -- retrieves odds from the-odds-api -- 53 sec TODO: MAYBE SET IT UP FOR EVER 2 HOURS WITH THE OTHER 4 ENV VARIABLES
     onTick: dataSeed.oddsSeed,
     timezone,
   },
@@ -57,7 +57,7 @@ const cronJobs = [
     timezone
   },
   {
-    cronTime: '0 0 2 * * */7', // Once a week at 2 am -- complete random searches for params and value bets
+    cronTime: '0 0 0 * * */7', // Once a week at 12 am -- complete random searches for params and value bets
     onTick: dataSeed.paramAndValueSeed,
     timezone,
   },

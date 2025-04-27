@@ -547,7 +547,7 @@ const mlModelTraining = async (gameData, xs, ys, sport) => {
         const correctPrediction = game.winner === 'home' ? 1 : 0;
         checkNaNValues(features, game);  // Check features
         if (features.some(isNaN)) {
-            console.error('NaN detected in features:', features);
+            console.error('NaN detected in features:', game.id);
             // Handle NaN values (you could skip this data, replace NaN with a default value, etc.)
         } else {
             xs.push(features);
@@ -562,16 +562,16 @@ const mlModelTraining = async (gameData, xs, ys, sport) => {
     });
 
     // Check if xs contains NaN values
-    if (xs.some(row => row.some(isNaN))) {
-        console.error('NaN detected in xs:', xs);
-        // Handle NaN values (skip, replace, or log)
-    }
+    // if (xs.some(row => row.some(isNaN))) {
+    //     console.error('NaN detected in xs:', xs);
+    //     // Handle NaN values (skip, replace, or log)
+    // }
 
-    // Check if ys contains NaN values
-    if (ys.some(isNaN)) {
-        console.error('NaN detected in ys:', ys);
-        // Handle NaN values
-    }
+    // // Check if ys contains NaN values
+    // if (ys.some(isNaN)) {
+    //     console.error('NaN detected in ys:', ys);
+    //     // Handle NaN values
+    // }
 
     // Convert arrays to tensors
     const xsTensor = tf.tensor2d(xs);

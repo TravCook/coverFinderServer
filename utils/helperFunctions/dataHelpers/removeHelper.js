@@ -79,7 +79,7 @@ const removePastGames = async (currentOdds) => {
                     const event = homeTeamSchedJSON.events.find((event) => (event.name === `${awayTeam.espnDisplayName} at ${homeTeam.espnDisplayName}`
                         || event.shortName === `${awayTeam.abbreviation} @ ${homeTeam.abbreviation}`
                         || event.shortName === `${homeTeam.abbreviation} VS ${awayTeam.abbreviation}`)
-                        && moment(event.date).isSame(moment(game.commence_time), 'day'))
+                        && moment(event.date).isSame(moment(game.commence_time), 'hour'))
                     if (event) {
                         if (event.competitions[0].status.type.completed === true) {
                             let homeScore, awayScore, predictionCorrect, winner
@@ -118,8 +118,6 @@ const removePastGames = async (currentOdds) => {
                                         awayScore,
                                         winner,
                                         predictionCorrect: winner === game.predictedWinner,
-                                        homeTeamStats: cleanStats(getCommonStats(homeTeam)),
-                                        awayTeamStats: cleanStats(getCommonStats(awayTeam)),
                                     });
 
                                     // Delete the game from the Odds collection
@@ -192,6 +190,7 @@ const removePastGames = async (currentOdds) => {
                     }
                 } catch (err) {
                     console.log(game.id)
+                    console.log(`https://site.api.espn.com/apis/site/v2/sports/${game.sport}/${homeTeam.league}/scoreboard`)
                     console.log(err); // Log any errors encountered during the API call or processing
                     controller.abort();
                 }

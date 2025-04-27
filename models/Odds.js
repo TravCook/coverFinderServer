@@ -21,7 +21,7 @@ const oddsSchema = new Schema({
         required: true
     },
     commence_time: {
-        type: String,
+        type: Date,
         required: true
     },
     home_team: {

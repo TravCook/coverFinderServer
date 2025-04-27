@@ -1,13 +1,20 @@
-const pastGameStatsPoC = async () => {
-    let pastYears = [
-        // '2024', '2023',
-        '2022',
-        '2021'
-    ]
+const { Odds, PastGameOdds, UsaFootballTeam, BasketballTeam, BaseballTeam, HockeyTeam, Sport, Weights } = require('../../../models')
 
+const pastGameStatsPoC = async () => {
+    const sports = await Sport.find({})
+    let pastYears = [
+        '2025',
+        // '2024',
+        // '2023',
+        // '2022',
+        // '2021'
+    ]
+    let existingGames = 0
     let statMap = {}
     for (const year of pastYears) {
         for (const sport of sports) {
+
+
             let teams = [];
 
             // Get teams from the database based on the sport
@@ -442,22 +449,16 @@ const pastGameStatsPoC = async () => {
                 let oldTeamSchedJSON;
 
                 // Get the team's schedule based on sport and year
-                if ((sport.name === 'americanfootball_nfl' || sport.name === 'americanfootball_ncaaf') && year === '2024') {
-                    // oldTeamSched = await fetch(...); // Get the schedule (not used in this version)
-                } else {
-                    oldTeamSched = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport.espnSport}/${sport.league}/teams/${team.espnID}/schedule?season=${year}`);
-                    // if (!oldTeamSched.ok) {
-                    //     console.error(`Error: Received status code ${oldTeamSched.status}`);
-                    //     const errorText = await oldTeamSched.text();  // Log the error content (HTML or other)
-                    //     console.error("Error response body:", errorText);
-                    // }
-                    oldTeamSchedJSON = await oldTeamSched.json();
-                }
+
+                oldTeamSched = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport.espnSport}/${sport.league}/teams/${team.espnID}/schedule?season=${year}`);
+                oldTeamSchedJSON = await oldTeamSched.json();
+
 
                 // Process each event from the team's schedule
                 if (oldTeamSchedJSON !== undefined) {
                     for (const event of oldTeamSchedJSON.events) {
-                        if (event.competitions[0].competitors[0].score && event.competitions[0].competitors[1].score) {
+                        // event.competitions[0].competitors[0].score && event.competitions[0].competitors[1].score &&
+                        if (event.competitions[0].status.type.completed === true) {
                             upcomingGames.push(event);
                         }
 
@@ -468,12 +469,13 @@ const pastGameStatsPoC = async () => {
             // Sort upcoming games by date
             if (upcomingGames.length > 0) {
                 upcomingGames.sort((a, b) => new Date(a.date) - new Date(b.date));
-
                 // Loop through each event
                 for (const event of upcomingGames) {
                     let homeTeam, awayTeam;
                     let homeScore, awayScore;
                     let gameWinner;
+
+
                     try {
                         // Check if the game has already been processed
                         if (!doneGames.some((game) => game.id === event.id)) {
@@ -481,7 +483,7 @@ const pastGameStatsPoC = async () => {
                             for (const competitor of event.competitions[0].competitors) {
                                 if (competitor.homeAway === 'home') {
                                     homeTeam = teams.find(t => t.espnID === competitor.id);
-                                    if (sport.espnSport === 'hockey') {
+                                    if (sport.espnSport === 'hockey') { //utah hockey club fix
                                         if (competitor.id === '24') {
                                             homeTeam = teams.find(t => t.espnID === '129764');
                                         }
@@ -490,14 +492,11 @@ const pastGameStatsPoC = async () => {
 
                                     // Fetch stats for the event
                                     const oldEvent = await fetch(`https://sports.core.api.espn.com/v2/sports/${sport.espnSport}/leagues/${sport.league}/events/${event.id}/competitions/${event.id}/competitors/${competitor.id}/statistics`);
-
-                                    // if (!oldEvent.ok) {
-                                    //     console.error(`Error: Received status code ${oldEvent.status}`);
-                                    //     const errorText = await oldEvent.text();  // Log the error content (HTML or other)
-                                    //     console.error("Error response body:", errorText);
-                                    // }
+                                    //TODO: CHECK EACH SPORT AND MAKE SURE STATS ARE ACCUMULATING PROPERLY
                                     const oldEventJSON = await oldEvent.json();
                                     if (homeTeam != undefined) {
+                                        let homeGamesSplit = homeTeam?.stats.seasonWinLoss.split('-')
+                                        let homeGamesTotal = parseInt(homeGamesSplit[0]) + parseInt(homeGamesSplit[1]) > 0 ? parseInt(homeGamesSplit[0]) + parseInt(homeGamesSplit[1]) : 1
                                         // Process stats
                                         if (oldEventJSON.splits) {
                                             for (const category of oldEventJSON.splits.categories) {
@@ -505,6 +504,7 @@ const pastGameStatsPoC = async () => {
                                                     if (statMap[stat.name]) {
                                                         for (const statInfo of statMap[stat.name]) {
                                                             const statKey = statInfo.modelField;
+                                                            // Accumulate stats for the home team
                                                             if (category.name === statInfo.category) {
                                                                 if (statInfo.isPerGame || statInfo.isDisplayValue) {
                                                                     homeTeam.stats[statKey] = stat.value === null || stat.value === undefined ? 0 : stat.value;
@@ -516,6 +516,19 @@ const pastGameStatsPoC = async () => {
                                                         }
                                                     }
                                                 }
+                                            }
+                                            if (sport.name === 'icehockey_nhl') {
+                                                homeTeam.stats['HKYgoalsPerGame'] = homeTeam.stats['HKYgoals'] > 0 ? homeTeam.stats['HKYgoals'] / homeGamesTotal : 0
+                                                homeTeam.stats['HKYtotalShotsPerGame'] = homeTeam.stats['HKYtotalShots'] > 0 ? homeTeam.stats['HKYtotalShots'] / homeGamesTotal : 0
+                                                homeTeam.stats['HKYgoalsAgainstPerGame'] = homeTeam.stats['HKYgoalsAgainst'] > 0 ? homeTeam.stats['HKYgoalsAgainst'] / homeGamesTotal : 0
+                                                homeTeam.stats['HKYpenaltyKillPct'] = oldEventJSON.splits.categories[3].stats[0].value > 0 ?  oldEventJSON.splits.categories[3].stats[0].value * (oldEventJSON.splits.categories[0].stats[2].value / 100) / oldEventJSON.splits.categories[3].stats[0].value : 0
+                                                homeTeam.stats['HKYshotsAgainstPerGame'] = homeTeam.stats['HKYshotsAgainst'] > 0 ? homeTeam.stats['HKYshotsAgainst'] / homeGamesTotal : 0
+                                            } else if (sport.name === ('americanfootball_nfl' || 'americanfootball_ncaaf')) {
+                                                homeTeam.stats['USFBkickReturnsPerGame'] = homeTeam.stats['USFBkickReturns'] > 0 ? homeTeam.stats['USFBkickReturns'] / homeGamesTotal : 0
+                                                homeTeam.stats['USFBkickReturnYardsPerGame'] = homeTeam.stats['USFBkickReturnYards'] > 0 ? homeTeam.stats['USFBkickReturnYards'] / homeGamesTotal : 0
+                                                homeTeam.stats['USFBstuffsPerGame'] = homeTeam.stats['USFBstuffs'] > 0 ? homeTeam.stats['USFBstuffs'] / homeGamesTotal : 0
+                                            } else if (sport.name === ('basketball_nba' || 'basketball_ncaab' || 'basketball_wncaab')) {
+                                                homeTeam.stats['BSKBassistRatio'] = (homeTeam.stats['BSKBassists'] + homeTeam.stats['BSKBfieldGoalsAttempted'] + homeTeam.stats['BSKBturnoversPerGame']) > 0 ? (100 * homeTeam.stats['BSKBassists']) / (homeTeam.stats['BSKBassists'] + homeTeam.stats['BSKBfieldGoalsAttempted'] + (homeTeam.stats['BSKBturnoversPerGame'] * homeGamesTotal) + (.44 * homeTeam.stats['BSKBfieldGoalsAttempted'])) : 0
                                             }
                                         }
                                     }
@@ -538,6 +551,8 @@ const pastGameStatsPoC = async () => {
                                     // }
                                     const oldEventJSON = await oldEvent.json();
                                     if (awayTeam != undefined) {
+                                        let awayGamesSplit = awayTeam?.stats.seasonWinLoss.split('-')
+                                        let awayGamesTotal = parseInt(awayGamesSplit[0]) + parseInt(awayGamesSplit[1]) > 0 ? parseInt(awayGamesSplit[0]) + parseInt(awayGamesSplit[1]) : 1
                                         // Process stats
                                         if (oldEventJSON.splits) {
                                             for (const category of oldEventJSON.splits.categories) {
@@ -557,6 +572,19 @@ const pastGameStatsPoC = async () => {
                                                         }
                                                     }
                                                 }
+                                            }
+                                            if (sport.name === 'icehockey_nhl') {
+                                                awayTeam.stats['HKYgoalsPerGame'] = awayTeam.stats['HKYgoals'] > 0 ? awayTeam.stats['HKYgoals'] / awayGamesTotal : 0
+                                                awayTeam.stats['HKYtotalShotsPerGame'] = awayTeam.stats['HKYtotalShots'] > 0 ? awayTeam.stats['HKYtotalShots'] / awayGamesTotal : 0
+                                                awayTeam.stats['HKYgoalsAgainstPerGame'] = awayTeam.stats['HKYgoalsAgainst'] > 0 ? awayTeam.stats['HKYgoalsAgainst'] / awayGamesTotal : 0
+                                                awayTeam.stats['HKYpenaltyKillPct'] = oldEventJSON.splits.categories[3].stats[0].value > 0 ? oldEventJSON.splits.categories[3].stats[0].value * (oldEventJSON.splits.categories[0].stats[2].value / 100) / oldEventJSON.splits.categories[3].stats[0].value : 0
+                                                awayTeam.stats['HKYshotsAgainstPerGame'] = awayTeam.stats['HKYshotsAgainst'] > 0 ? awayTeam.stats['HKYshotsAgainst'] / awayGamesTotal : 0
+                                            } else if (sport.name === ('americanfootball_nfl' || 'americanfootball_ncaaf')) {
+                                                awayTeam.stats['USFBkickReturnsPerGame'] = awayTeam.stats['USFBkickReturns'] > 0 ? awayTeam.stats['USFBkickReturns'] / awayGamesTotal : 0
+                                                awayTeam.stats['USFBkickReturnYardsPerGame'] = awayTeam.stats['USFBkickReturnYards'] > 0 ? awayTeam.stats['USFBkickReturnYards'] / awayGamesTotal : 0
+                                                awayTeam.stats['USFBstuffsPerGame'] = awayTeam.stats['USFBstuffs'] > 0 ? awayTeam.stats['USFBstuffs'] / awayGamesTotal : 0
+                                            } else if (sport.name === ('basketball_nba' || 'basketball_ncaab' || 'basketball_wncaab')) {
+                                                awayTeam.stats['BSKBassistRatio'] = (awayTeam.stats['BSKBassists'] + awayTeam.stats['BSKBfieldGoalsAttempted'] + awayTeam.stats['BSKBturnoversPerGame']) > 0 ? (100 * awayTeam.stats['BSKBassists']) / (awayTeam.stats['BSKBassists'] + awayTeam.stats['BSKBfieldGoalsAttempted'] + (awayTeam.stats['BSKBturnoversPerGame'] * awayGamesTotal) + (.44 * awayTeam.stats['BSKBfieldGoalsAttempted'])) : 0
                                             }
                                         }
                                     }
@@ -591,33 +619,85 @@ const pastGameStatsPoC = async () => {
                                 homeTeam.stats.homeWinLoss = incrementWinLoss(homeTeam.stats.homeWinLoss, false);     // Increment home losses for home
                                 homeTeam.stats.pointDiff = (homeTeam.stats.pointDiff || 0) + (homeScore - awayScore); // Update point difference for home
                             }
+                            // let gameExist = await PastGameOdds.aggregate([
+                            //     {
+                            //       $project: {
+                            //         // Ensure commence_time is already treated as a date
+                            //         commence_time_as_date: "$commence_time",  // No need for $toDate anymore
 
-                            if (event.id === "401423177") {
-                                console.log({
-                                    id: event.id,
-                                    sport_key: sport.name,
-                                    sport_title: sport.league,
-                                    commence_time: event.date,
-                                    home_team: homeTeam.espnDisplayName,
-                                    away_team: awayTeam.espnDisplayName,
-                                    awayTeamAbbr: awayTeam.abbreviation,
-                                    homeTeamAbbr: homeTeam.abbreviation,
-                                    homeTeamlogo: homeTeam.logo,
-                                    awayTeamlogo: awayTeam.logo,
-                                    homeTeamShort: homeTeam.teamName,
-                                    awayTeamShort: awayTeam.teamName,
-                                    sport: sport.espnSport,
-                                    winner: gameWinner || 'draw',
-                                    homeScore: homeScore,
-                                    awayScore: awayScore,
-                                    homeTeamStats: homeTeam.stats,
-                                    awayTeamStats: awayTeam.stats,
-                                    predictionCorrect: false
-                                })
-                            }
-
-                            if (homeTeam && awayTeam && (homeScore !== undefined && homeScore !== null) && (awayScore !== undefined && awayScore !== null)) {
-                                // Use findOneAndUpdate to either update or create the game odds record
+                            //         // Truncate commence_time to the nearest 10-minute interval
+                            //         roundedCommenceTime: {
+                            //           $dateTrunc: {
+                            //             date: "$commence_time",  // Already a Date, no need for $toDate
+                            //             unit: "hour",  // Truncate to minute level
+                            //             binSize: 2  // 10-minute intervals
+                            //           }
+                            //         },
+                            //         home_team: 1,
+                            //         away_team: 1,
+                            //         sport_key: 1,
+                            //         id: 1,
+                            //         homeScore: 1,
+                            //         awayScore: 1
+                            //       }
+                            //     },
+                            //     {
+                            //       $match: {
+                            //         sport_key: sport.name,  // Replace with the dynamic sport variable
+                            //         home_team: homeTeam.espnDisplayName,  // Replace with the dynamic homeTeam
+                            //         away_team: awayTeam.espnDisplayName,  // Replace with the dynamic awayTeam
+                            //         roundedCommenceTime: new Date(event.date)  // Assuming event.commence_time is also a Date
+                            //       }
+                            //     },
+                            //     {
+                            //       $group: {
+                            //         _id: {
+                            //           commence_time: "$roundedCommenceTime",
+                            //           home_team: "$home_team",
+                            //           away_team: "$away_team",
+                            //           sport_key: "$sport_key",
+                            //           homeScore: "$homeScore",
+                            //           awayScore: "$awayScore"
+                            //         },
+                            //         count: { $sum: 1 },  // Count how many documents match this group
+                            //         ids: { $push: "$id" }
+                            //       }
+                            //     },
+                            //   ]);
+                            let gameExist = []
+                            if (gameExist.length > 0 && (homeScore !== undefined && homeScore !== null) && (awayScore !== undefined && awayScore !== null)) {
+                                existingGames++
+                                // try {
+                                //     await PastGameOdds.findOneAndUpdate(
+                                //         { id: gameExist[0].ids[0] },  // Match on event ID
+                                //         {
+                                //             $set: {
+                                //                 id: event.id,
+                                //                 sport_key: sport.name,
+                                //                 sport_title: sport.league,
+                                //                 commence_time: event.date,
+                                //                 home_team: homeTeam.espnDisplayName,
+                                //                 away_team: awayTeam.espnDisplayName,
+                                //                 awayTeamAbbr: awayTeam.abbreviation,
+                                //                 homeTeamAbbr: homeTeam.abbreviation,
+                                //                 homeTeamShort: homeTeam.teamName,
+                                //                 awayTeamShort: awayTeam.teamName,
+                                //                 homeTeamlogo: homeTeam.logo,
+                                //                 awayTeamlogo: awayTeam.logo,
+                                //                 sport: sport.espnSport,
+                                //                 winner: gameWinner || 'draw',
+                                //                 homeScore: homeScore,
+                                //                 awayScore: awayScore,
+                                //                 homeTeamStats: homeTeam.stats,
+                                //                 awayTeamStats: awayTeam.stats,
+                                //             }
+                                //         },
+                                //         { upsert: true }  // If not found, insert a new document
+                                //     );
+                                // } catch (err) {
+                                //     console.log(err)
+                                // }
+                            } else if ((homeScore !== undefined && homeScore !== null) && (awayScore !== undefined && awayScore !== null) && homeTeam && awayTeam) {
                                 try {
                                     await PastGameOdds.findOneAndUpdate(
                                         { id: event.id },  // Match on event ID
@@ -641,15 +721,14 @@ const pastGameStatsPoC = async () => {
                                                 awayScore: awayScore,
                                                 homeTeamStats: homeTeam.stats,
                                                 awayTeamStats: awayTeam.stats,
-                                                predictionCorrect: false
                                             }
                                         },
                                         { upsert: true }  // If not found, insert a new document
                                     );
                                 } catch (err) {
-                                    console.log(err)
+                                    console.log(homeTeam)
+                                    console.log(awayTeam)
                                 }
-
                             }
 
 
@@ -663,13 +742,12 @@ const pastGameStatsPoC = async () => {
 
                 }
             }
+
             console.log(`${year} ${sport.league} finished @ ${new Date().toLocaleString()}`)
         }
         console.log(`${year} finished @ ${new Date().toLocaleString()}`)
     }
-
-
-
+    console.log(existingGames)
 }
 
 module.exports = { pastGameStatsPoC }

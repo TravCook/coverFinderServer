@@ -21,7 +21,7 @@ const pastGameOddsSchema = new Schema({
         required: true
     },
     commence_time: {
-        type: String,
+        type: Date,
         required: true
     },
     home_team: {
@@ -134,7 +134,7 @@ const pastGameOddsSchema = new Schema({
     },
     predictionCorrect: {
         type: Boolean,
-        required: true
+        required: false
     },
     homeTeamStats: {
         type: Schema.Types.Mixed,

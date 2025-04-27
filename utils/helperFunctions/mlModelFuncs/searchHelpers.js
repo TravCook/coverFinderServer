@@ -1,6 +1,7 @@
 const moment = require('moment')
 const { Odds, PastGameOdds, UsaFootballTeam, BasketballTeam, BaseballTeam, HockeyTeam, Sport, Weights } = require('../../../models');
 const { extractSportFeatures, trainSportModelKFold, handleSportWeights, evaluateMetrics, trainSportModel } = require('../../helperFunctions/mlModelFuncs/trainingHelpers')
+const { indexAdjuster } = require('../../helperFunctions/mlModelFuncs/indexHelpers')
 const { normalizeTeamName, checkNaNValues } = require('../../helperFunctions/dataHelpers/dataSanitizers')
 const fs = require('fs')
 const tf = require('@tensorflow/tfjs-node');
@@ -116,151 +117,155 @@ const hyperparameterRandSearch = async (sports) => {
         };
         console.log(`--------------- ${sport.name}-------------------`)
         let gameData = await PastGameOdds.find({ sport_key: sport.name })
-        if (gameData.length > 0) {
-            if (sport.multiYear
-                && ((currentMonth >= sport.startMonth && currentMonth <= 12) || (currentMonth >= 1 && currentMonth <= sport.endMonth))
-                || !sport.multiYear
-                && (currentMonth >= sport.startMonth && currentMonth <= sport.endMonth)) {
+        let upcomingGames = await Odds.find({ sport_key: sport.name })
+        if (gameData.length > 0 && upcomingGames.length > 0) {
 
-                for (let iterations = 0; iterations < 100; iterations++) {
-                    let currentParams = {}
+            for (let iterations = 0; iterations < 100; iterations++) {
+                let currentParams = {}
 
-                    for (const param in paramSpace) {
-                        const values = paramSpace[param]
+                for (const param in paramSpace) {
+                    const values = paramSpace[param]
 
-                        const randomIndex = Math.floor(Math.random() * values.length)
-                        currentParams[param] = values[randomIndex]
-                    }
-
-
-
-
-
-                    function decayCalcByGames(gamesProcessed, decayFactor) { //FOR USE TO DECAY BY GAMES PROCESSED
-                        // Full strength for the last 25 games
-                        const gamesDecayThreshold = currentParams.gameDecayThresholds;
-                        if (gamesProcessed <= gamesDecayThreshold) {
-                            return 1; // No decay for the most recent 25 games
-                        } else {
-                            // Apply decay based on the number of games processed
-                            const decayFactorAdjusted = decayFactor;  // Use a default decay factor if none is provided
-                            const decayAmount = Math.pow(decayFactorAdjusted, (gamesProcessed - gamesDecayThreshold));
-                            return decayAmount;  // Decay decreases as the games processed increases
-                        }
-                    }
-                    let xs = []
-                    let ys = []
-                    let gamesProcessed = 0; // Track how many games have been processed
-                    // FOR USE TO DECAY BY GAMES PROCESSED
-                    gameData.forEach(game => {
-                        const homeStats = game.homeTeamStats;
-                        const awayStats = game.awayTeamStats;
-
-                        // Extract features based on sport
-                        let features = extractSportFeatures(homeStats, awayStats, sport.name);
-                        // Calculate decay based on the number of games processed
-                        const decayWeight = decayCalcByGames(gamesProcessed, currentParams.decayFactors);  // get the decay weight based on gamesProcessed
-
-                        // Apply decay to each feature
-                        features = features.map(feature => feature * decayWeight);
-
-                        // Set label to 1 if home team wins, 0 if away team wins
-                        const correctPrediction = game.winner === 'home' ? 1 : 0;
-                        checkNaNValues(features, game);  // Check features
-
-                        xs.push(features);
-                        ys.push(correctPrediction);
-
-                        gamesProcessed++;  // Increment the counter for games processed
-                    });
-                    // Function to calculate dynamic class weights
-                    const calculateClassWeights = (ys) => {
-
-                        const homeWins = ys.filter(y => y === 1).length;   // Count the home wins (ys = 1)
-                        const homeLosses = ys.filter(y => y === 0).length; // Count the home losses (ys = 0)
-
-
-                        const totalExamples = homeWins + homeLosses;
-                        const classWeightWin = totalExamples / (2 * homeWins);   // Weight for home wins
-                        const classWeightLoss = totalExamples / (2 * homeLosses); // Weight for home losses
-
-                        return {
-                            0: classWeightLoss, // Weight for home losses
-                            1: classWeightWin   // Weight for home wins
-                        };
-                    };
-
-                    // Convert arrays to tensors
-                    const xsTensor = tf.tensor2d(xs);
-
-                    const ysTensor = tf.tensor2d(ys, [ys.length, 1]);
-
-                    // Flatten ysTensor to convert it to a 1D array
-                    const ysArray = await ysTensor.reshape([-1]).array();
-                    // Dynamically calculate class weights
-                    const classWeights = calculateClassWeights(ysArray);
-
-                    // Create a fresh model for each hyperparameter combination
-                    const model = await createModel(currentParams.learningRates, currentParams.batchSizes, currentParams.epochs, currentParams.l2Regs, currentParams.dropoutRegs, currentParams.hiddenLayerNums, currentParams.kernalInitializers, currentParams.numKFolds, currentParams.layerNeurons, xs);
-                    // Perform K-Fold cross-validation with this hyperparameter combination
-                    //const avgAccuracy = await trainAndEvaluateKFold(model, KFolds, xsTensor, ysTensor, epoch, batchSize); // 5-fold cross-validation
-                    // Train the model on the current fold
-                    await model.fit(xsTensor, ysTensor, {
-                        epochs: currentParams.epoch, // Example epochs, you should set this dynamically
-                        batchSize: currentParams.batchSize, // Example batch size, you should set this dynamically
-                        validationSplit: 0.3,
-                        classWeight: classWeights,
-                        verbose: false,
-                        shuffle: false,
-                    });
-                    const evaluation = model.evaluate(xsTensor, ysTensor);
-                    const loss = evaluation[0].arraySync();
-                    const accuracy = evaluation[1].arraySync();
-                    // Now, calculate precision, recall, and F1-score
-
-                    const metrics = evaluateMetrics(ysTensor, model.predict(xsTensor, { training: false }));
-
-                    // // Track the best performing hyperparameters based on k-fold cross-validation
-                    if (metrics.f1Score > bestAccuracy) {
-                        bestAccuracy = metrics.f1Score;
-                        bestParams = {
-                            bestAccuracy: metrics.f1Score,
-                            epochs: currentParams.epochs,
-                            batchSize: currentParams.batchSizes,
-                            KFolds: currentParams.numKFolds,
-                            hiddenLayerNum: currentParams.hiddenLayers,
-                            learningRate: currentParams.learningRates,
-                            l2Reg: currentParams.l2Regs,
-                            dropoutReg: currentParams.dropoutRegs,
-                            kernalInitializer: currentParams.kernalInitializers,
-                            layerNeurons: currentParams.layerNeurons,
-                            decayFactor: currentParams.decayFactors,
-                            gameDecayThreshold: currentParams.gameDecayThresholds
-                        };
-                    }
-
+                    const randomIndex = Math.floor(Math.random() * values.length)
+                    currentParams[param] = values[randomIndex]
                 }
-                console.log('Best Hyperparameters:', bestParams);
-                console.log('Best Cross-Validation Accuracy:', bestAccuracy);
-                let currentSport = await Sport.findOne({ name: sport.name })
 
-                let accuracyComparison = currentSport?.hyperParameters?.bestAccuracy || 0
 
-                if (bestAccuracy > accuracyComparison) {
-                    await Sport.findOneAndUpdate({ name: sport.name }, {
-                        ...sport,
-                        hyperParameters: bestParams
-                    }, { upsert: true })
 
-                    const modelPath = `./model_checkpoint/${sport.name}_model/model.json`;
-                    try {
-                        fs.unlinkSync(modelPath);
-                        console.log('File deleted successfully');
-                    } catch (err) {
-                        console.error('Error deleting file:', err);
+
+
+                function decayCalcByGames(gamesProcessed, decayFactor) { //FOR USE TO DECAY BY GAMES PROCESSED
+                    // Full strength for the last 25 games
+                    const gamesDecayThreshold = currentParams.gameDecayThresholds;
+                    if (gamesProcessed <= gamesDecayThreshold) {
+                        return 1; // No decay for the most recent 25 games
+                    } else {
+                        // Apply decay based on the number of games processed
+                        const decayFactorAdjusted = decayFactor;  // Use a default decay factor if none is provided
+                        const decayAmount = Math.pow(decayFactorAdjusted, (gamesProcessed - gamesDecayThreshold));
+                        return decayAmount;  // Decay decreases as the games processed increases
                     }
+                }
+                let xs = []
+                let ys = []
+                let gamesProcessed = 0; // Track how many games have been processed
+                // FOR USE TO DECAY BY GAMES PROCESSED
+                gameData.forEach(game => {
+                    const homeStats = game.homeTeamStats;
+                    const awayStats = game.awayTeamStats;
+
+                    // Extract features based on sport
+                    let features = extractSportFeatures(homeStats, awayStats, sport.name);
+                    // Calculate decay based on the number of games processed
+                    const decayWeight = decayCalcByGames(gamesProcessed, currentParams.decayFactors);  // get the decay weight based on gamesProcessed
+
+                    // Apply decay to each feature
+                    features = features.map(feature => feature * decayWeight);
+
+                    // Set label to 1 if home team wins, 0 if away team wins
+                    const correctPrediction = game.winner === 'home' ? 1 : 0;
+                    checkNaNValues(features, game);  // Check features
+
+                    xs.push(features);
+                    ys.push(correctPrediction);
+
+                    gamesProcessed++;  // Increment the counter for games processed
+                });
+                // Function to calculate dynamic class weights
+                const calculateClassWeights = (ys) => {
+
+                    const homeWins = ys.filter(y => y === 1).length;   // Count the home wins (ys = 1)
+                    const homeLosses = ys.filter(y => y === 0).length; // Count the home losses (ys = 0)
+
+
+                    const totalExamples = homeWins + homeLosses;
+                    const classWeightWin = totalExamples / (2 * homeWins);   // Weight for home wins
+                    const classWeightLoss = totalExamples / (2 * homeLosses); // Weight for home losses
+
+                    return {
+                        0: classWeightLoss, // Weight for home losses
+                        1: classWeightWin   // Weight for home wins
+                    };
+                };
+
+                // Convert arrays to tensors
+                const xsTensor = tf.tensor2d(xs);
+
+                const ysTensor = tf.tensor2d(ys, [ys.length, 1]);
+
+                // Flatten ysTensor to convert it to a 1D array
+                const ysArray = await ysTensor.reshape([-1]).array();
+                // Dynamically calculate class weights
+                const classWeights = calculateClassWeights(ysArray);
+
+                // Create a fresh model for each hyperparameter combination
+                const model = await createModel(currentParams.learningRates, currentParams.batchSizes, currentParams.epochs, currentParams.l2Regs, currentParams.dropoutRegs, currentParams.hiddenLayerNums, currentParams.kernalInitializers, currentParams.numKFolds, currentParams.layerNeurons, xs);
+                // Perform K-Fold cross-validation with this hyperparameter combination
+                //const avgAccuracy = await trainAndEvaluateKFold(model, KFolds, xsTensor, ysTensor, epoch, batchSize); // 5-fold cross-validation
+                // Train the model on the current fold
+                await model.fit(xsTensor, ysTensor, {
+                    epochs: currentParams.epoch, // Example epochs, you should set this dynamically
+                    batchSize: currentParams.batchSize, // Example batch size, you should set this dynamically
+                    validationSplit: 0.3,
+                    classWeight: classWeights,
+                    verbose: false,
+                    shuffle: false,
+                });
+                const evaluation = model.evaluate(xsTensor, ysTensor);
+                const loss = evaluation[0].arraySync();
+                const accuracy = evaluation[1].arraySync();
+                // Now, calculate precision, recall, and F1-score
+
+                const metrics = evaluateMetrics(ysTensor, model.predict(xsTensor, { training: false }));
+
+                // // Track the best performing hyperparameters based on k-fold cross-validation
+                if (metrics.f1Score > bestAccuracy) {
+                    bestAccuracy = metrics.f1Score;
+                    bestParams = {
+                        bestAccuracy: metrics.f1Score,
+                        epochs: currentParams.epochs,
+                        batchSize: currentParams.batchSizes,
+                        KFolds: currentParams.numKFolds,
+                        hiddenLayerNum: currentParams.hiddenLayers,
+                        learningRate: currentParams.learningRates,
+                        l2Reg: currentParams.l2Regs,
+                        dropoutReg: currentParams.dropoutRegs,
+                        kernalInitializer: currentParams.kernalInitializers,
+                        layerNeurons: currentParams.layerNeurons,
+                        decayFactor: currentParams.decayFactors,
+                        gameDecayThreshold: currentParams.gameDecayThresholds
+                    };
+                }
+
+            }
+            console.log('Best Hyperparameters:', bestParams);
+            console.log('Best Cross-Validation Accuracy:', bestAccuracy);
+            let currentSport = await Sport.findOne({ name: sport.name })
+
+            let accuracyComparison = currentSport?.hyperParameters?.bestAccuracy || 0
+
+            if (bestAccuracy > accuracyComparison) {
+                await Sport.findOneAndUpdate({ name: sport.name }, {
+                    ...sport,
+                    hyperParameters: bestParams
+                }, { upsert: true })
+
+                try {
+
+                    currentSport = await Sport.findOne({ name: sport.name })
+                    const pastGames = await PastGameOdds.find({ sport_key: currentSport.name }).sort({ commence_time: -1 })
+                    await trainSportModelKFold(currentSport, pastGames)
+                    console.log('Model Retrained Successfully');
+
+                    const sportWeightDB = await Weights.findOne({ league: sport.name })
+                    let weightArray = sportWeightDB?.featureImportanceScores
+                    await indexAdjuster(pastGames, sport, pastGames, weightArray, true)
+                    console.log('Past Games Re-Indexed');
+                } catch (err) {
+                    console.error('Error deleting file:', err);
                 }
             }
+
         }
 
 
@@ -303,9 +308,9 @@ const valueBetGridSearch = async (sports) => {
 
         if (sportGames.length > 0) {
             // Parallelize across sportsbooks
-            for(const sportsbook of sportsbooks){
+            for (const sportsbook of sportsbooks) {
                 let sportsbookSettings = sport.valueBetSettings?.find((setting) => setting.bookmaker === sportsbook)
-                let storeCI = sportsbookSettings?.settings.bestConfidenceInterval ||  { lower: 0, upper: 0 }
+                let storeCI = sportsbookSettings?.settings.bestConfidenceInterval || { lower: 0, upper: 0 }
                 let finalSettings = {
                     bookmaker: sportsbook,
                     settings: {
@@ -317,143 +322,143 @@ const valueBetGridSearch = async (sports) => {
                     }
 
                 };
-                    for (const indexDifSmall of indexDiffSmallNum) {
-                        for (const indexDiffRange of indexDiffRangeNum) {
-                            for (const confidenceLow of confidenceLowNum) {
-                                for (const confidenceRange of confidenceRangeNum) {
-                                    let totalGames = sportGames.filter((game) => {
-                                        const bookmaker = game.bookmakers.find(bookmaker => bookmaker.key === sportsbook);
-                                        if (bookmaker) {
-                                            const outcome = bookmaker.markets.find(market => market.key === 'h2h').outcomes;
-                                            const lowerImpliedProbOutcome = outcome.find(o => (
-                                                ((game.predictedWinner === 'home' ? Math.abs(game.homeTeamScaledIndex - game.awayTeamScaledIndex) : Math.abs(game.awayTeamScaledIndex - game.homeTeamScaledIndex)) > (indexDifSmall) &&
-                                                    (game.predictedWinner === 'home' ? Math.abs(game.homeTeamScaledIndex - game.awayTeamScaledIndex) : Math.abs(game.awayTeamScaledIndex - game.homeTeamScaledIndex)) < (indexDifSmall + indexDiffRange)) &&
-                                                (game.predictionStrength > confidenceLow && game.predictionStrength < (confidenceLow + confidenceRange)) &&
-                                                (o.impliedProb * 100) < (game.winPercent) &&
-                                                ((game.predictedWinner === 'home' && game.home_team === o.name) || (game.predictedWinner === 'away' && game.away_team === o.name))
-                                            ));
-                                            return lowerImpliedProbOutcome !== undefined;
-                                        }
-                                        return false;
-                                    });
-                                    let correctGames = totalGames.filter((game) => game.predictionCorrect === true);
-                                    let winRate = totalGames.length > 0 ? correctGames.length / totalGames.length : 0;
-                                    function calculateConfidenceInterval(winrate, sampleSize, confidenceLevel) {
-                                        // Define z-scores for common confidence levels
-                                        const zScores = {
-                                            90: 1.645,  // Z-score for 90% confidence
-                                            95: 1.96,   // Z-score for 95% confidence
-                                            99: 2.576   // Z-score for 99% confidence
-                                        };
-            
-                                        // Check if the confidence level is valid
-                                        if (!zScores[confidenceLevel]) {
-                                            throw new Error('Invalid confidence level. Use 90, 95, or 99.');
-                                        }
-            
-                                        // Calculate the z-score for the given confidence level
-                                        const z = zScores[confidenceLevel];
-            
-                                        // Calculate the margin of error
-                                        const marginOfError = z * Math.sqrt((winrate * (1 - winrate)) / sampleSize);
-            
-                                        // Calculate the confidence interval
-                                        const lowerBound = winrate - marginOfError;
-                                        const upperBound = winrate + marginOfError;
-            
-                                        // Return the result as an object
-                                        return {
-                                            lower: lowerBound,
-                                            upper: upperBound
-                                        };
+                for (const indexDifSmall of indexDiffSmallNum) {
+                    for (const indexDiffRange of indexDiffRangeNum) {
+                        for (const confidenceLow of confidenceLowNum) {
+                            for (const confidenceRange of confidenceRangeNum) {
+                                let totalGames = sportGames.filter((game) => {
+                                    const bookmaker = game.bookmakers.find(bookmaker => bookmaker.key === sportsbook);
+                                    if (bookmaker) {
+                                        const outcome = bookmaker.markets.find(market => market.key === 'h2h').outcomes;
+                                        const lowerImpliedProbOutcome = outcome.find(o => (
+                                            ((game.predictedWinner === 'home' ? Math.abs(game.homeTeamScaledIndex - game.awayTeamScaledIndex) : Math.abs(game.awayTeamScaledIndex - game.homeTeamScaledIndex)) > (indexDifSmall) &&
+                                                (game.predictedWinner === 'home' ? Math.abs(game.homeTeamScaledIndex - game.awayTeamScaledIndex) : Math.abs(game.awayTeamScaledIndex - game.homeTeamScaledIndex)) < (indexDifSmall + indexDiffRange)) &&
+                                            (game.predictionStrength > confidenceLow && game.predictionStrength < (confidenceLow + confidenceRange)) &&
+                                            (o.impliedProb * 100) < (game.winPercent) &&
+                                            ((game.predictedWinner === 'home' && game.home_team === o.name) || (game.predictedWinner === 'away' && game.away_team === o.name))
+                                        ));
+                                        return lowerImpliedProbOutcome !== undefined;
                                     }
-                                    let newCI
-                                    if (totalGames.length > 10) {
-                                        newCI = calculateConfidenceInterval(winRate, totalGames.length, 90);
-                                        const SEPARATION_THRESHOLD = 0.02; // 2% gap
-                                        const MAX_CI_WIDTH = 0.15; // Maximum allowable CI width (15%)
-                                        if (
-                                            newCI.upper > storeCI.lower + SEPARATION_THRESHOLD &&  // Ensure a clear upper bound gap
-                                            (newCI.upper - newCI.lower) < MAX_CI_WIDTH &&         // Ensure the CI is not too wide
-                                            newCI.upper > storeCI.upper   // Ensure the new CI's upper bound is better                   
-                                        ) {
-                                            storeCI = newCI
-                                            finalWinrate = winRate;
-                                            finalTotalGames = totalGames.length;
-                                            finalSettings.settings = {
-                                                indexDiffSmallNum: indexDifSmall,
-                                                indexDiffRangeNum: indexDiffRange,
-                                                confidenceLowNum: confidenceLow,
-                                                confidenceRangeNum: confidenceRange,
-                                                bestWinrate: winRate,
-                                                bestTotalGames: totalGames.length,
-                                                bestConfidenceInterval: storeCI
-                                            };
-                                            let sportExist = await Sport.find({
-                                                name: sport.name,
-                                                valueBetSettings: {
-                                                    $elemMatch: {
-                                                        bookmaker: sportsbook
-                                                    }
+                                    return false;
+                                });
+                                let correctGames = totalGames.filter((game) => game.predictionCorrect === true);
+                                let winRate = totalGames.length > 0 ? correctGames.length / totalGames.length : 0;
+                                function calculateConfidenceInterval(winrate, sampleSize, confidenceLevel) {
+                                    // Define z-scores for common confidence levels
+                                    const zScores = {
+                                        90: 1.645,  // Z-score for 90% confidence
+                                        95: 1.96,   // Z-score for 95% confidence
+                                        99: 2.576   // Z-score for 99% confidence
+                                    };
+
+                                    // Check if the confidence level is valid
+                                    if (!zScores[confidenceLevel]) {
+                                        throw new Error('Invalid confidence level. Use 90, 95, or 99.');
+                                    }
+
+                                    // Calculate the z-score for the given confidence level
+                                    const z = zScores[confidenceLevel];
+
+                                    // Calculate the margin of error
+                                    const marginOfError = z * Math.sqrt((winrate * (1 - winrate)) / sampleSize);
+
+                                    // Calculate the confidence interval
+                                    const lowerBound = winrate - marginOfError;
+                                    const upperBound = winrate + marginOfError;
+
+                                    // Return the result as an object
+                                    return {
+                                        lower: lowerBound,
+                                        upper: upperBound
+                                    };
+                                }
+                                let newCI
+                                if (totalGames.length > 10) {
+                                    newCI = calculateConfidenceInterval(winRate, totalGames.length, 90);
+                                    const SEPARATION_THRESHOLD = 0.02; // 2% gap
+                                    const MAX_CI_WIDTH = 0.15; // Maximum allowable CI width (15%)
+                                    if (
+                                        newCI.upper > storeCI.lower + SEPARATION_THRESHOLD &&  // Ensure a clear upper bound gap
+                                        (newCI.upper - newCI.lower) < MAX_CI_WIDTH &&         // Ensure the CI is not too wide
+                                        newCI.upper > storeCI.upper   // Ensure the new CI's upper bound is better                   
+                                    ) {
+                                        storeCI = newCI
+                                        finalWinrate = winRate;
+                                        finalTotalGames = totalGames.length;
+                                        finalSettings.settings = {
+                                            indexDiffSmallNum: indexDifSmall,
+                                            indexDiffRangeNum: indexDiffRange,
+                                            confidenceLowNum: confidenceLow,
+                                            confidenceRangeNum: confidenceRange,
+                                            bestWinrate: winRate,
+                                            bestTotalGames: totalGames.length,
+                                            bestConfidenceInterval: storeCI
+                                        };
+                                        let sportExist = await Sport.find({
+                                            name: sport.name,
+                                            valueBetSettings: {
+                                                $elemMatch: {
+                                                    bookmaker: sportsbook
                                                 }
-                                            });
-                                            if (sportExist.length === 0) {
-                                                await Sport.findOneAndUpdate(
-                                                    { name: sport.name }, // Find the sport by name
-                                                    {
-                                                        // Update the main fields (statYear, decayFactor, etc.)
-                                                        $set: {
-                                                            name: sport.name,
-                                                            espnSport: sport.espnSport,
-                                                            league: sport.league,
-                                                            startMonth: sport.startMonth,
-                                                            endMonth: sport.endMonth,
-                                                            multiYear: sport.multiYear,
-                                                            statYear: sport.statYear,
-                                                        },
-                                                        $addToSet: {
-                                                            valueBetSettings: {
-                                                                bookmaker: sportsbook,
-                                                                settings: finalSettings.settings
-                                                            }
-                                                        }
-                                                    },
-                                                    { upsert: true, new: true } // upsert creates the document if it doesn't exist, new returns the updated doc
-                                                );
-                                            } else {
-                                                await Sport.findOneAndUpdate(
-                                                    { name: sport.name }, // Find the sport by name
-                                                    {
-                                                        // Update the main fields (statYear, decayFactor, etc.)
-                                                        $set: {
-                                                            name: sport.name,
-                                                            espnSport: sport.espnSport,
-                                                            league: sport.league,
-                                                            startMonth: sport.startMonth,
-                                                            endMonth: sport.endMonth,
-                                                            multiYear: sport.multiYear,
-                                                            statYear: sport.statYear,
-                                                        },
-                                                        $set: {
-                                                            // Update the settings for the specific bookmaker using the $[] positional operator
-                                                            "valueBetSettings.$[elem].settings": finalSettings.settings
-                                                        }
-                                                    },
-                                                    { arrayFilters: [{ "elem.bookmaker": sportsbook }], upsert: true, new: true } // upsert creates the document if it doesn't exist, new returns the updated doc
-                                                );
                                             }
-                                            console.log('New Best Settings: ', finalSettings)
+                                        });
+                                        if (sportExist.length === 0) {
+                                            await Sport.findOneAndUpdate(
+                                                { name: sport.name }, // Find the sport by name
+                                                {
+                                                    // Update the main fields (statYear, decayFactor, etc.)
+                                                    $set: {
+                                                        name: sport.name,
+                                                        espnSport: sport.espnSport,
+                                                        league: sport.league,
+                                                        startMonth: sport.startMonth,
+                                                        endMonth: sport.endMonth,
+                                                        multiYear: sport.multiYear,
+                                                        statYear: sport.statYear,
+                                                    },
+                                                    $addToSet: {
+                                                        valueBetSettings: {
+                                                            bookmaker: sportsbook,
+                                                            settings: finalSettings.settings
+                                                        }
+                                                    }
+                                                },
+                                                { upsert: true, new: true } // upsert creates the document if it doesn't exist, new returns the updated doc
+                                            );
+                                        } else {
+                                            await Sport.findOneAndUpdate(
+                                                { name: sport.name }, // Find the sport by name
+                                                {
+                                                    // Update the main fields (statYear, decayFactor, etc.)
+                                                    $set: {
+                                                        name: sport.name,
+                                                        espnSport: sport.espnSport,
+                                                        league: sport.league,
+                                                        startMonth: sport.startMonth,
+                                                        endMonth: sport.endMonth,
+                                                        multiYear: sport.multiYear,
+                                                        statYear: sport.statYear,
+                                                    },
+                                                    $set: {
+                                                        // Update the settings for the specific bookmaker using the $[] positional operator
+                                                        "valueBetSettings.$[elem].settings": finalSettings.settings
+                                                    }
+                                                },
+                                                { arrayFilters: [{ "elem.bookmaker": sportsbook }], upsert: true, new: true } // upsert creates the document if it doesn't exist, new returns the updated doc
+                                            );
                                         }
+                                        console.log('New Best Settings: ', finalSettings)
                                     }
                                 }
                             }
                         }
                     }
-                
+                }
 
-                console.log('Sport', sport.name);
-                console.log('Sportsbook: ', sportsbook);
-                console.log('Best Settings: ', finalSettings);
+
+                // console.log('Sport', sport.name);
+                // console.log('Sportsbook: ', sportsbook);
+                // console.log('Best Settings: ', finalSettings);
 
             };
         }
