@@ -521,7 +521,7 @@ const oddsSeed = async () => {
         }
         return false;
     }));
-    const allPastGames = await PastGameOdds.find({})
+    const allPastGames = await PastGameOdds.find({}).sort({ commence_time: -1 })
 
     for (const sport of sports) {
         const currentDate = new Date();
