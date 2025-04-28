@@ -58,15 +58,17 @@ module.exports = {
                 // Get current date and calculate the date 7 days ago
                 const currentDate = new Date();
                 const oneWeekAgo = new Date(currentDate);
-                oneWeekAgo.setDate(currentDate.getDate() - 7); // Subtract 7 days
+                oneWeekAgo.setDate(currentDate.getDate() - 14); // Subtract 7 days
                 oneWeekAgo.setHours(0, 0, 0, 0);  // Set time to midnight
 
                 let valueGames = []
-                let sports = await Sport.find({}).sort({name: 1})
+                let sports = await Sport.find({}).sort({ name: 1 })
                 let odds = await Odds.find({}).sort({ commence_time: 1, winPercent: 1 })
                 let pastGames = await PastGameOdds.find({
+                    predictionCorrect: { $exists: true },
                 }).select('-homeTeamStats -awayTeamStats').sort({ commence_time: -1 });
-
+                let allTimeProfit = 0
+                let allTimeValueProfit = 0
                 try {
                     pastGames.map((gameData, idx) => {
                         const bookmaker = gameData?.bookmakers?.find(b => b.key === req.body.sportsbook);
@@ -85,21 +87,34 @@ module.exports = {
 
                                     if (valueBetCheck) {
                                         valueGames.push(gameData)
+                                        let valuewagerDecOdds = outcome.price > 0 ? (parseFloat(outcome.price) / 100) + 1 : (-100 / parseFloat(outcome.price)) + 1
+                                        if (gameData.predictionCorrect === true) {
+                                            allTimeValueProfit += (valuewagerDecOdds * 1) - 1
+                                        } else if (gameData.predictionCorrect === false) {
+                                            allTimeValueProfit -= 1
+                                        }
                                     }
                                 }
 
                             }
-
+                            let wagerDecOdds = outcome.price > 0 ? (parseFloat(outcome.price) / 100) + 1 : (-100 / parseFloat(outcome.price)) + 1
+                            if (gameData.predictionCorrect === true) {
+                                allTimeProfit += (wagerDecOdds * 1) - 1
+                            } else if (gameData.predictionCorrect === false) {
+                                allTimeProfit -= 1
+                            }
                         }
                     })
                 } catch (err) {
                     console.log(err)
                 }
-
                 data = {
+                    allTimeProfit: allTimeProfit,
+                    allTimeValueProfit: allTimeValueProfit,
                     odds: odds,
                     valueGames: valueGames,
                     sports: sports,
+                    pastGames: pastGames
                 }
                 pastGames = []
                 odds = []
@@ -154,7 +169,7 @@ module.exports = {
         const today = new Date();
         today.setHours(0, 0, 0, 0);  // Set time to midnight
         try {
-            pastGames = await PastGameOdds.find({  commence_time: { $gte: oneWeek.toISOString() } }).select('-homeTeamStats -awayTeamStats').sort({ commence_time: -1});
+            pastGames = await PastGameOdds.find({ commence_time: { $gte: oneWeek.toISOString() } }).select('-homeTeamStats -awayTeamStats').sort({ commence_time: -1 });
             data = {
                 pastGames: pastGames
             }
