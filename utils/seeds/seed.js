@@ -454,6 +454,7 @@ const oddsSeed = async () => {
                                     // Update the existing odds with normalized team names and sport type
 
                                     try {
+
                                         await Odds.findOneAndUpdate({ id: event.id }, {
                                             homeTeamIndex: oddExist.homeTeamIndex ? oddExist.homeTeamIndex : 0,
                                             awayTeamIndex: oddExist.awayTeamIndex ? oddExist.awayTeamIndex : 0,
@@ -473,6 +474,63 @@ const oddsSeed = async () => {
                                             bookmakers: updatedBookmakers, // Include the updated bookmakers with normalized outcomes
                                             sport: scheduleSport,
                                         });
+                                        try {
+                                            // Loop over all bookmakers
+                                            await Promise.all(event.bookmakers.map(async (bookmaker) => {
+                                                // Loop over all markets for each bookmaker
+                                                await Promise.all(bookmaker.markets.map(async (market) => {
+                                                    // Loop over all outcomes for each market
+                                                    await Promise.all(market.outcomes.map(async (outcome) => {
+                                                        // Perform the update using arrayFilters to target the correct outcome
+                                                        if (outcome.price < 0) {
+                                                            try {
+                                                                await Odds.findOneAndUpdate(
+                                                                    { 'id': event.id }, // Filter by game id
+                                                                    {
+                                                                        $set: {
+                                                                            'bookmakers.$[bookmaker].markets.$[market].outcomes.$[outcome].impliedProb': Math.abs(outcome.price) / (Math.abs(outcome.price) + 100)
+                                                                        }
+                                                                    },
+                                                                    {
+                                                                        arrayFilters: [
+                                                                            { 'bookmaker.key': bookmaker.key }, // Match bookmaker by key
+                                                                            { 'market.key': market.key }, // Match market by key
+                                                                            { 'outcome.name': outcome.name} // Match outcome by its _id
+                                                                        ]
+                                                                    }
+                                                                );
+                                                            } catch (err) {
+                                                                console.log(err)
+                                                            }
+                                
+                                                        } else {
+                                                            try {
+                                                                await Odds.findOneAndUpdate(
+                                                                    { 'id': event.id }, // Filter by game id
+                                                                    {
+                                                                        $set: {
+                                                                            'bookmakers.$[bookmaker].markets.$[market].outcomes.$[outcome].impliedProb': 100 / (outcome.price + 100)
+                                                                        }
+                                                                    },
+                                                                    {
+                                                                        arrayFilters: [
+                                                                            { 'bookmaker.key': bookmaker.key }, // Match bookmaker by key
+                                                                            { 'market.key': market.key }, // Match market by key
+                                                                            { 'outcome.name': outcome.name } // Match outcome by its _id
+                                                                        ]
+                                                                    }
+                                                                );
+                                                            } catch (err) {
+                                                                console.log(err)
+                                                            }
+                                
+                                                        }
+                                                    }));
+                                                }));
+                                            }));
+                                        } catch (error) {
+                                            console.error('Error updating implied probability:', error);
+                                        }
                                     } catch (err) {
                                         console.log(err)
                                     }
@@ -495,6 +553,63 @@ const oddsSeed = async () => {
                                         bookmakers: updatedBookmakers, // Include the updated bookmakers with normalized outcomes
                                         sport: scheduleSport,
                                     });
+                                    try {
+                                        // Loop over all bookmakers
+                                        await Promise.all(event.bookmakers.map(async (bookmaker) => {
+                                            // Loop over all markets for each bookmaker
+                                            await Promise.all(bookmaker.markets.map(async (market) => {
+                                                // Loop over all outcomes for each market
+                                                await Promise.all(market.outcomes.map(async (outcome) => {
+                                                    // Perform the update using arrayFilters to target the correct outcome
+                                                    if (outcome.price < 0) {
+                                                        try {
+                                                            await Odds.findOneAndUpdate(
+                                                                { 'id': event.id }, // Filter by game id
+                                                                {
+                                                                    $set: {
+                                                                        'bookmakers.$[bookmaker].markets.$[market].outcomes.$[outcome].impliedProb': Math.abs(outcome.price) / (Math.abs(outcome.price) + 100)
+                                                                    }
+                                                                },
+                                                                {
+                                                                    arrayFilters: [
+                                                                        { 'bookmaker.key': bookmaker.key }, // Match bookmaker by key
+                                                                        { 'market.key': market.key }, // Match market by key
+                                                                        { 'outcome.name': outcome.name} // Match outcome by its _id
+                                                                    ]
+                                                                }
+                                                            );
+                                                        } catch (err) {
+                                                            console.log(err)
+                                                        }
+                            
+                                                    } else {
+                                                        try {
+                                                            await Odds.findOneAndUpdate(
+                                                                { 'id': event.id }, // Filter by game id
+                                                                {
+                                                                    $set: {
+                                                                        'bookmakers.$[bookmaker].markets.$[market].outcomes.$[outcome].impliedProb': 100 / (outcome.price + 100)
+                                                                    }
+                                                                },
+                                                                {
+                                                                    arrayFilters: [
+                                                                        { 'bookmaker.key': bookmaker.key }, // Match bookmaker by key
+                                                                        { 'market.key': market.key }, // Match market by key
+                                                                        { 'outcome.name': outcome.name } // Match outcome by its _id
+                                                                    ]
+                                                                }
+                                                            );
+                                                        } catch (err) {
+                                                            console.log(err)
+                                                        }
+                            
+                                                    }
+                                                }));
+                                            }));
+                                        }));
+                                    } catch (error) {
+                                        console.error('Error updating implied probability:', error);
+                                    }
                                 }
                             }
                         }
@@ -563,8 +678,8 @@ const oddsSeed = async () => {
 
     }
 
-    const currentOdds = await Odds.find({})
-    await impliedProbCalc(currentOdds)
+    // const currentOdds = await Odds.find({})
+    // await impliedProbCalc(currentOdds)
     console.log(`ODDS FETCHED AND STORED @ ${moment().format('HH:mm:ss')}`)
 
 }
