@@ -172,14 +172,15 @@ const removePastGames = async (currentOdds) => {
 
 
                             }
-                        } else if (event.competitions[0].status.type.description === 'Postponed') {
-                            // Delete the game from the Odds collection
-                            let deletedGame = await Odds.findOneAndDelete({ _id: game._doc._id });
-                            if (deletedGame) {
-                                console.log(`deleted game: ${deletedGame.home_team} vs ${deletedGame.away_team}`);
-                            }
-                            deletedGame = null
                         }
+                        //  else if (event.competitions[0].status.type.description === 'Postponed') {
+                        //     // Delete the game from the Odds collection
+                        //     let deletedGame = await Odds.findOneAndDelete({ _id: game._doc._id });
+                        //     if (deletedGame) {
+                        //         console.log(`deleted game: ${deletedGame.home_team} vs ${deletedGame.away_team}`);
+                        //     }
+                        //     deletedGame = null
+                        // }
                     } else {
                         // Delete the game from the Odds collection
                         let deletedGame = await Odds.findOneAndDelete({ _id: game._doc._id });
