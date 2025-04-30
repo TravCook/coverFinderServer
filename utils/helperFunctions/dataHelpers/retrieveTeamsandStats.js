@@ -464,7 +464,7 @@ const fetchAllTeamData = async (sport, teams, statYear, TeamModel) => {
             updateTeamRecord(team, teamRecordJson);
 
             // Fetch team stats
-            const teamStatResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/${sport.espnSport}/leagues/${sport.league}/seasons/${statYear}/types/2/teams/${team.espnID}/statistics?lang=en&region=us`, { signal: AbortSignal.timeout(20000) });
+            const teamStatResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/${sport.espnSport}/leagues/${sport.league}/seasons/${statYear}/types/2/teams/${team.espnID}/statistics?lang=en&region=us`);
             const teamStatJson = await teamStatResponse.json();
             if (teamStatJson.splits) {
                 for (const category of teamStatJson.splits.categories) {
@@ -510,7 +510,7 @@ const fetchAllTeamData = async (sport, teams, statYear, TeamModel) => {
         }
     };
 
-    const MAX_CONCURRENT_REQUESTS = 20; // You can adjust this number to control concurrency
+    const MAX_CONCURRENT_REQUESTS = 30; // You can adjust this number to control concurrency
     const promises = [];
 
     try {
@@ -555,6 +555,8 @@ const retrieveTeamsandStats = async (sports) => {
 
             console.log(`STARTING ${sport.name} TEAM SEEDING @ ${moment().format('HH:mm:ss')}`)
             let TeamModel;
+            let sportArr = sport.name.split('_')
+            let leagueAbbr = sportArr[1]
             switch (sport.espnSport) {
                 case 'football':
                     TeamModel = UsaFootballTeam;
@@ -573,7 +575,7 @@ const retrieveTeamsandStats = async (sports) => {
                     return;
             }
             let teams
-            teams = await TeamModel.find({})
+            teams = await TeamModel.find({league: leagueAbbr})
             // Helper function to get the team record URL based on the current month
 
             await fetchAllTeamData(sport, teams, sport.statYear, TeamModel)
