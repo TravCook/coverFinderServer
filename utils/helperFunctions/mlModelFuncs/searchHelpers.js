@@ -311,8 +311,8 @@ const valueBetGridSearch = async (sports) => {
             for (const sportsbook of sportsbooks) {
                 let sportsbookSettings = sport.valueBetSettings?.find((setting) => setting.bookmaker === sportsbook)
                 let storeCI = 
-                    sportsbookSettings?.settings.bestConfidenceInterval
-                    || { lower: 0, upper: 0 }
+                    // sportsbookSettings?.settings.bestConfidenceInterval ||
+                     { lower: 0, upper: 0 }
                 let finalSettings = {
                     bookmaker: sportsbook,
                     settings: {
@@ -375,6 +375,7 @@ const valueBetGridSearch = async (sports) => {
                                     };
                                 }
                                 let newCI
+
                                 if (totalGames.length > 10) {
                                     newCI = calculateConfidenceInterval(winRate, totalGames.length, 90);
                                     const SEPARATION_THRESHOLD = 0.02; // 2% gap
@@ -449,13 +450,14 @@ const valueBetGridSearch = async (sports) => {
                                                 { arrayFilters: [{ "elem.bookmaker": sportsbook }], upsert: true, new: true } // upsert creates the document if it doesn't exist, new returns the updated doc
                                             );
                                         }
-                                        console.log('New Best Settings: ', finalSettings)
+
                                     }
                                 }
                             }
                         }
                     }
                 }
+                console.log('New Best Settings: ', finalSettings)
             };
         }
     }

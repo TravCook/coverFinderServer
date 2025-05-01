@@ -275,7 +275,10 @@ const adjustwncaabStats = (homeTeam, awayTeam, homeIndex, awayIndex, weightArray
 
 const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray, past) => {
     console.log(`STARTING INDEXING FOR ${initalsport.name} @ ${moment().format('HH:mm:ss')}`);
-
+    const currentDate = new Date();
+    const oneYearAgo = new Date(currentDate);
+    oneYearAgo.setDate(currentDate.getDate() - 365); // Subtract 365 days
+    oneYearAgo.setHours(0, 0, 0, 0);  // Set time to midnight
     let sport = await Sport.findOne({ name: initalsport.name }).exec()
     let indexGames = sport.indexGames  || 15
     let outlierGames = []
@@ -284,6 +287,7 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
             {
                 $match: {
                     sport_key: sport.name,
+                    commence_time: { $gte: oneYearAgo }, // Filter by date range
                     homeTeamIndex: { $ne: null },
                     awayTeamIndex: { $ne: null }
                 }
