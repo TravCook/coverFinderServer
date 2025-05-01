@@ -686,8 +686,7 @@ const oddsSeed = async () => {
 
 const removeSeed = async () => {
 
-    // Get current date and calculate the date 7 days ago
-    const currentDate = new Date();
+
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);  // Set time to midnight
@@ -699,7 +698,7 @@ const removeSeed = async () => {
     currentOdds = await Odds.find({}).sort({ commence_time: 1, winPercent: 1 });
 
     let pastOdds = await PastGameOdds.find({
-        commence_time: { $gte: today.toISOString(), $lt: currentDate.toISOString() }
+        commence_time: { $gte: today}
     }).sort({ commence_time: -1, winPercent: 1 });
 
     await emitToClients('gameUpdate', currentOdds);
@@ -855,6 +854,7 @@ const paramAndValueSeed = async () => {
     await hyperparameterRandSearch(sports)
 
 }
+
 
 // TODO: IF EVERYTHING RUNS FINE, WAIT UNTIL MIDNIGHT AND EXPORT PASTGAMEODDS AND ODDS DB COLLECTIONS TO PRODUCTION DB
 // TODO: PUSH CODE TO PRODUCTION EC2 INSTANCE

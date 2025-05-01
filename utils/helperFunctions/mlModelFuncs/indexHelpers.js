@@ -280,54 +280,71 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
     let indexGames = sport.indexGames  || 15
     let outlierGames = []
     do {
+        let extremes = await PastGameOdds.aggregate([
+            {
+                $match: {
+                    sport_key: sport.name,
+                    homeTeamIndex: { $ne: null },
+                    awayTeamIndex: { $ne: null }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    maxIndex: { $max: { $max: ['$homeTeamIndex', '$awayTeamIndex'] } },
+                    minIndex: { $min: { $min: ['$homeTeamIndex', '$awayTeamIndex'] } }
+                }
+            }
+        ]).exec();
         outlierGames = []
         for (const game of currentOdds) {
-            let maxGame = await PastGameOdds.aggregate([
-                {
-                    $match: {
-                        sport_key: sport.name,
-                        commence_time: { $lte: game.commence_time },
-                        homeTeamIndex: { $ne: null }, // Ensure homeTeamIndex is not null
-                        awayTeamIndex: { $ne: null }  // Ensure awayTeamIndex is not null
-                    }
-                }, // filter by sport
-                {
-                    $project: {
-                        sport_key: 1,
-                        homeTeamIndex: 1,
-                        awayTeamIndex: 1,
-                        highestIndex: { $max: ['$homeTeamIndex', '$awayTeamIndex'] }, // calculate the max of homeIndex and awayIndex
-                    },
-                },
-                { $sort: { commence_time: -1 } }, // Sort by date to ensure most recent games come first
-                { $limit: indexGames }, // Limit to the last 15 games
-                { $sort: { highestIndex: -1 } }, // sort by the highest index
-                { $limit: 1 }, // limit to just one result
-            ]).exec()
-            let minGame = await PastGameOdds.aggregate([
-                {
-                    $match: {
-                        sport_key: sport.name,
-                        commence_time: { $lte: game.commence_time },
-                        homeTeamIndex: { $ne: null }, // Ensure homeTeamIndex is not null
-                        awayTeamIndex: { $ne: null }  // Ensure awayTeamIndex is not null
-                    }
-                }, // filter by sport
-                {
-                    $project: {
-                        sport_key: 1,
-                        homeTeamIndex: 1,
-                        awayTeamIndex: 1,
-                        lowestIndex: { $min: ['$homeTeamIndex', '$awayTeamIndex'] }, // calculate the min of homeIndex and awayIndex
-                    },
-                },
-                { $sort: { commence_time: -1 } }, // Sort by date to ensure most recent games come first
-                { $limit: indexGames }, // Limit to the last 15 games
-                { $sort: { lowestIndex: 1 } }, // sort by the highest index
-                { $limit: 1 }, // limit to just one result
-            ]).exec()
-            let indexMin = minGame[0].lowestIndex
-            let indexMax = maxGame[0].highestIndex
+            // let maxGame = await PastGameOdds.aggregate([
+            //     {
+            //         $match: {
+            //             sport_key: sport.name,
+            //             commence_time: { $lte: game.commence_time },
+            //             homeTeamIndex: { $ne: null }, // Ensure homeTeamIndex is not null
+            //             awayTeamIndex: { $ne: null }  // Ensure awayTeamIndex is not null
+            //         }
+            //     }, // filter by sport
+            //     {
+            //         $project: {
+            //             sport_key: 1,
+            //             homeTeamIndex: 1,
+            //             awayTeamIndex: 1,
+            //             highestIndex: { $max: ['$homeTeamIndex', '$awayTeamIndex'] }, // calculate the max of homeIndex and awayIndex
+            //         },
+            //     },
+            //     { $sort: { commence_time: -1 } }, // Sort by date to ensure most recent games come first
+            //     { $limit: indexGames }, // Limit to the last 15 games
+            //     { $sort: { highestIndex: -1 } }, // sort by the highest index
+            //     { $limit: 1 }, // limit to just one result
+            // ]).exec()
+            // let minGame = await PastGameOdds.aggregate([
+            //     {
+            //         $match: {
+            //             sport_key: sport.name,
+            //             commence_time: { $lte: game.commence_time },
+            //             homeTeamIndex: { $ne: null }, // Ensure homeTeamIndex is not null
+            //             awayTeamIndex: { $ne: null }  // Ensure awayTeamIndex is not null
+            //         }
+            //     }, // filter by sport
+            //     {
+            //         $project: {
+            //             sport_key: 1,
+            //             homeTeamIndex: 1,
+            //             awayTeamIndex: 1,
+            //             lowestIndex: { $min: ['$homeTeamIndex', '$awayTeamIndex'] }, // calculate the min of homeIndex and awayIndex
+            //         },
+            //     },
+            //     { $sort: { commence_time: -1 } }, // Sort by date to ensure most recent games come first
+            //     { $limit: indexGames }, // Limit to the last 15 games
+            //     { $sort: { lowestIndex: 1 } }, // sort by the highest index
+            //     { $limit: 1 }, // limit to just one result
+            // ]).exec()
+            
+            let indexMin = extremes[0].minIndex
+            let indexMax = extremes[0].maxIndex
             // Check if the game is in the future
             if (moment().isBefore(moment(game.commence_time)) || past === true) {
 

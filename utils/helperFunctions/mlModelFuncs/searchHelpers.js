@@ -310,7 +310,9 @@ const valueBetGridSearch = async (sports) => {
             // Parallelize across sportsbooks
             for (const sportsbook of sportsbooks) {
                 let sportsbookSettings = sport.valueBetSettings?.find((setting) => setting.bookmaker === sportsbook)
-                let storeCI = sportsbookSettings?.settings.bestConfidenceInterval || { lower: 0, upper: 0 }
+                let storeCI = 
+                    sportsbookSettings?.settings.bestConfidenceInterval
+                    || { lower: 0, upper: 0 }
                 let finalSettings = {
                     bookmaker: sportsbook,
                     settings: {
@@ -454,12 +456,6 @@ const valueBetGridSearch = async (sports) => {
                         }
                     }
                 }
-
-
-                // console.log('Sport', sport.name);
-                // console.log('Sportsbook: ', sportsbook);
-                // console.log('Best Settings: ', finalSettings);
-
             };
         }
     }
