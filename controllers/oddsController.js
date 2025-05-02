@@ -169,7 +169,7 @@ module.exports = {
         const today = new Date();
         today.setHours(0, 0, 0, 0);  // Set time to midnight
         try {
-            pastGames = await PastGameOdds.find({ commence_time: { $gte: oneWeek.toISOString() } }).select('-homeTeamStats -awayTeamStats').sort({ commence_time: -1 });
+            pastGames = await PastGameOdds.find({ predictedWinner: {$exists: true} }).select('-homeTeamStats -awayTeamStats').sort({ commence_time: -1 });
             data = {
                 pastGames: pastGames
             }
