@@ -275,9 +275,6 @@ const hyperparameterRandSearch = async (sports) => {
 //TODO: STORE THIS FOR LATER
 const valueBetGridSearch = async (sports) => {
     console.log(`STARTING VALUE BET SEARCH @ ${moment().format('HH:mm:ss')}`)
-    let pastGames = await PastGameOdds.find();
-    let usableGames = pastGames.filter((game) => game.predictedWinner === 'home' || game.predictedWinner === 'away');
-
     const sportsbooks = [
         'betonlineag',
         'betmgm',
@@ -304,7 +301,7 @@ const valueBetGridSearch = async (sports) => {
     let confidenceRangeNum = [0, .05, .10, .15, .20, .25, .30, .35, .40, .45, .50];
 
     for (const sport of sports) {
-        let sportGames = usableGames.filter((game) => game.sport_key === sport.name);
+        let sportGames = await PastGameOdds.find({ sport_key: sport.name, predictedWinner: { $in: ['home', 'away'] } });
 
         if (sportGames.length > 0) {
             // Parallelize across sportsbooks
