@@ -374,6 +374,7 @@ const valueBetGridSearch = async (sports) => {
                                 let newCI
 
                                 if (totalGames.length > 10) {
+                                    
                                     newCI = calculateConfidenceInterval(winRate, totalGames.length, 90);
                                     const SEPARATION_THRESHOLD = 0.02; // 2% gap
                                     const MAX_CI_WIDTH = 0.15; // Maximum allowable CI width (15%)
@@ -454,7 +455,11 @@ const valueBetGridSearch = async (sports) => {
                         }
                     }
                 }
-                console.log('New Best Settings: ', finalSettings)
+                if(sportsbook === 'fanduel'){
+                    console.log(sport.name)
+                    console.log('New Best Settings: ', finalSettings)
+                }
+                
             };
         }
     }
