@@ -432,8 +432,8 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
             }
         }
 
-        
-    }       
+
+    }
 
     console.log('Base indexes found and applied')
     let extremes = await PastGameOdds.aggregate([
@@ -453,46 +453,48 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
             }
         }
     ]).exec();
-    if(past === true) {
-        currentOdds = await PastGameOdds.find({ sport_key: sport.name}).sort({ commence_time: -1 })
-    }else{
-        currentOdds = await Odds.find({ sport_key: sport.name}).sort({ commence_time: -1 })
+    if (past === true) {
+        currentOdds = await PastGameOdds.find({ sport_key: sport.name }).sort({ commence_time: 1 })
+    } else {
+        currentOdds = await Odds.find({ sport_key: sport.name }).sort({ commence_time: 1 })
     }
     for (const game of currentOdds) {
-        let homeIndex = game.homeTeamIndex;
-        let awayIndex = game.awayTeamIndex;
-        let indexMin = extremes[0].minIndex
-        let indexMax = extremes[0].maxIndex
-        let normalizedHomeIndex = ((homeIndex - indexMin) / (indexMax - indexMin)) * 45
-        let normalizedAwayIndex = ((awayIndex - indexMin) / (indexMax - indexMin)) * 4
-         // Update the Odds database with the calculated indices
-         if (sport.name === game.sport_key) {
-            if (past === true) {
-                try {
-                    await PastGameOdds.findOneAndUpdate({ 'id': game.id }, {
-                        homeTeamScaledIndex: normalizedHomeIndex,
-                        awayTeamScaledIndex: normalizedAwayIndex,
-                    });
-                } catch (err) {
-                    // console.log(err)
-                    console.log(game.commence_time)
-                    console.log('normalizedHomeIndex', normalizedHomeIndex)
-                    console.log('normalizedAwayIndex', normalizedAwayIndex)
+        if (moment().isBefore(moment(game.commence_time)) || past === true) {
+            let homeIndex = game.homeTeamIndex;
+            let awayIndex = game.awayTeamIndex;
+            let indexMin = extremes[0].minIndex
+            let indexMax = extremes[0].maxIndex
+            let normalizedHomeIndex = ((homeIndex - indexMin) / (indexMax - indexMin)) * 45
+            let normalizedAwayIndex = ((awayIndex - indexMin) / (indexMax - indexMin)) * 45
+            // Update the Odds database with the calculated indices
+            if (sport.name === game.sport_key) {
+                if (past === true) {
+                    try {
+                        await PastGameOdds.findOneAndUpdate({ 'id': game.id }, {
+                            homeTeamScaledIndex: normalizedHomeIndex,
+                            awayTeamScaledIndex: normalizedAwayIndex,
+                        });
+                    } catch (err) {
+                        // console.log(err)
+                        console.log(game.commence_time)
+                        console.log('normalizedHomeIndex', normalizedHomeIndex)
+                        console.log('normalizedAwayIndex', normalizedAwayIndex)
+                    }
+                } else {
+                    try {
+                        await Odds.findOneAndUpdate({ 'id': game.id }, {
+                            homeTeamScaledIndex: normalizedHomeIndex,
+                            awayTeamScaledIndex: normalizedAwayIndex,
+                        });
+                    } catch (err) {
+                        console.log(game.commence_time)
+                        console.log('normalizedHomeIndex', normalizedHomeIndex)
+                        console.log('normalizedAwayIndex', normalizedAwayIndex)
+                    }
                 }
-            } else {
-                try {
-                    await Odds.findOneAndUpdate({ 'id': game.id }, {
-                        homeTeamScaledIndex: normalizedHomeIndex,
-                        awayTeamScaledIndex: normalizedAwayIndex,
-                    });
-                } catch (err) {
-                    console.log(game.commence_time)
-                    console.log('normalizedHomeIndex', normalizedHomeIndex)
-                    console.log('normalizedAwayIndex', normalizedAwayIndex)
-                }
+
+
             }
-
-
         }
     }
     console.log('Normalized indexes found and applied')
