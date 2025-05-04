@@ -280,28 +280,11 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
     oneYearAgo.setDate(currentDate.getDate() - 365); // Subtract 365 days
     oneYearAgo.setHours(0, 0, 0, 0);  // Set time to midnight
     let sport = await Sport.findOne({ name: initalsport.name }).exec()
-    let extremes = await PastGameOdds.aggregate([
-        {
-            $match: {
-                sport_key: sport.name,
-                commence_time: { $gte: oneYearAgo }, // Filter by date range
-                homeTeamIndex: { $ne: null },
-                awayTeamIndex: { $ne: null }
-            }
-        },
-        {
-            $group: {
-                _id: null,
-                maxIndex: { $max: { $max: ['$homeTeamIndex', '$awayTeamIndex'] } },
-                minIndex: { $min: { $min: ['$homeTeamIndex', '$awayTeamIndex'] } }
-            }
-        }
-    ]).exec();
+
     for (const game of currentOdds) {
 
 
-        let indexMin = extremes[0].minIndex
-        let indexMax = extremes[0].maxIndex
+
         // Check if the game is in the future
         if (moment().isBefore(moment(game.commence_time)) || past === true) {
 
@@ -415,9 +398,6 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
             }
 
             const winrate = await calculateWinrate(allPastGames, sport, game.home_team, game.away_team, game.homeTeamScaledIndex, game.awayTeamScaledIndex, game.predictedWinner, game.predictionStrength);
-            let normalizedHomeIndex = ((homeIndex - indexMin) / (indexMax - indexMin)) * 45
-            let normalizedAwayIndex = ((awayIndex - indexMin) / (indexMax - indexMin)) * 45
-
             // Update the Odds database with the calculated indices
             if (sport.name === game.sport_key) {
                 if (past === true) {
@@ -425,37 +405,25 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
                         await PastGameOdds.findOneAndUpdate({ 'id': game.id }, {
                             homeTeamIndex: homeIndex,
                             awayTeamIndex: awayIndex,
-                            homeTeamScaledIndex: normalizedHomeIndex,
-                            awayTeamScaledIndex: normalizedAwayIndex,
                             // winPercent: winrate
                         });
                     } catch (err) {
                         // console.log(err)
                         console.log(game.commence_time)
-                        console.log('maxIndex', indexMax)
-                        console.log('minIndex', indexMin)
                         console.log('homeIndex', homeIndex)
                         console.log('awayIndex', awayIndex)
-                        console.log('normalizedHomeIndex', normalizedHomeIndex)
-                        console.log('normalizedAwayIndex', normalizedAwayIndex)
                     }
                 } else {
                     try {
                         await Odds.findOneAndUpdate({ 'id': game.id }, {
                             homeTeamIndex: homeIndex,
                             awayTeamIndex: awayIndex,
-                            homeTeamScaledIndex: normalizedHomeIndex,
-                            awayTeamScaledIndex: normalizedAwayIndex,
                             winPercent: winrate
                         });
                     } catch (err) {
                         console.log(game.commence_time)
-                        console.log('maxIndex', indexMax)
-                        console.log('minIndex', indexMin)
                         console.log('homeIndex', homeIndex)
                         console.log('awayIndex', awayIndex)
-                        console.log('normalizedHomeIndex', normalizedHomeIndex)
-                        console.log('normalizedAwayIndex', normalizedAwayIndex)
                         // console.log(err)
                     }
                 }
@@ -464,8 +432,70 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
             }
         }
 
+        
+    }       
 
+    console.log('Base indexes found and applied')
+    let extremes = await PastGameOdds.aggregate([
+        {
+            $match: {
+                sport_key: sport.name,
+                commence_time: { $gte: oneYearAgo }, // Filter by date range
+                homeTeamIndex: { $ne: null },
+                awayTeamIndex: { $ne: null }
+            }
+        },
+        {
+            $group: {
+                _id: null,
+                maxIndex: { $max: { $max: ['$homeTeamIndex', '$awayTeamIndex'] } },
+                minIndex: { $min: { $min: ['$homeTeamIndex', '$awayTeamIndex'] } }
+            }
+        }
+    ]).exec();
+    if(past === true) {
+        currentOdds = await PastGameOdds.find({ sport_key: sport.name}).sort({ commence_time: -1 })
+    }else{
+        currentOdds = await Odds.find({ sport_key: sport.name}).sort({ commence_time: -1 })
     }
+    for (const game of currentOdds) {
+        let homeIndex = game.homeTeamIndex;
+        let awayIndex = game.awayTeamIndex;
+        let indexMin = extremes[0].minIndex
+        let indexMax = extremes[0].maxIndex
+        let normalizedHomeIndex = ((homeIndex - indexMin) / (indexMax - indexMin)) * 45
+        let normalizedAwayIndex = ((awayIndex - indexMin) / (indexMax - indexMin)) * 4
+         // Update the Odds database with the calculated indices
+         if (sport.name === game.sport_key) {
+            if (past === true) {
+                try {
+                    await PastGameOdds.findOneAndUpdate({ 'id': game.id }, {
+                        homeTeamScaledIndex: normalizedHomeIndex,
+                        awayTeamScaledIndex: normalizedAwayIndex,
+                    });
+                } catch (err) {
+                    // console.log(err)
+                    console.log(game.commence_time)
+                    console.log('normalizedHomeIndex', normalizedHomeIndex)
+                    console.log('normalizedAwayIndex', normalizedAwayIndex)
+                }
+            } else {
+                try {
+                    await Odds.findOneAndUpdate({ 'id': game.id }, {
+                        homeTeamScaledIndex: normalizedHomeIndex,
+                        awayTeamScaledIndex: normalizedAwayIndex,
+                    });
+                } catch (err) {
+                    console.log(game.commence_time)
+                    console.log('normalizedHomeIndex', normalizedHomeIndex)
+                    console.log('normalizedAwayIndex', normalizedAwayIndex)
+                }
+            }
+
+
+        }
+    }
+    console.log('Normalized indexes found and applied')
     console.log(`FINSHED INDEXING FOR ${initalsport.name} @ ${moment().format('HH:mm:ss')}`);
 }
 
@@ -548,14 +578,9 @@ const pastGamesReIndex = async () => {
 
             let pastGames = await PastGameOdds.find({ sport_key: sport.name }).sort({ commence_time: 1 })
             const sportWeightDB = await Weights.findOne({ league: sport.name })
-
             let weightArray = sportWeightDB?.featureImportanceScores
-
-            let usableGames = pastGames
-            console.log(usableGames.length)
-            await indexAdjuster(usableGames, sport, pastGames, weightArray, true)
+            await indexAdjuster(pastGames, sport, pastGames, weightArray, true)
             pastGames = []
-            usableGames = []
 
         }
 

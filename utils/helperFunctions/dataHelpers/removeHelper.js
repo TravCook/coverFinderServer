@@ -181,14 +181,15 @@ const removePastGames = async (currentOdds) => {
                             }
                             deletedGame = null
                         }
-                    } else {
-                        // Delete the game from the Odds collection
-                        let deletedGame = await Odds.findOneAndDelete({ _id: game._doc._id });
-                        if (deletedGame) {
-                            console.log(`deleted game: ${game.home_team} vs ${game.away_team} for not existing`);
-                        }
-                        deletedGame = null
                     }
+                    //  else {
+                    //     // Delete the game from the Odds collection
+                    //     let deletedGame = await Odds.findOneAndDelete({ _id: game._doc._id });
+                    //     if (deletedGame) {
+                    //         console.log(`deleted game: ${game.home_team} vs ${game.away_team} for not existing`);
+                    //     }
+                    //     deletedGame = null
+                    // }
                 } catch (err) {
                     console.log(game.id)
                     console.log(`https://site.api.espn.com/apis/site/v2/sports/${game.sport}/${homeTeam.league}/scoreboard`)
