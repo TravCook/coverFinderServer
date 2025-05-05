@@ -404,49 +404,49 @@ const valueBetGridSearch = async (sports) => {
                                             }
                                         });
                                         if (sportExist.length === 0) {
-                                            await Sport.findOneAndUpdate(
-                                                { name: sport.name }, // Find the sport by name
-                                                {
-                                                    // Update the main fields (statYear, decayFactor, etc.)
-                                                    $set: {
-                                                        name: sport.name,
-                                                        espnSport: sport.espnSport,
-                                                        league: sport.league,
-                                                        startMonth: sport.startMonth,
-                                                        endMonth: sport.endMonth,
-                                                        multiYear: sport.multiYear,
-                                                        statYear: sport.statYear,
-                                                    },
-                                                    $addToSet: {
-                                                        valueBetSettings: {
-                                                            bookmaker: sportsbook,
-                                                            settings: finalSettings.settings
-                                                        }
-                                                    }
-                                                },
-                                                { upsert: true, new: true } // upsert creates the document if it doesn't exist, new returns the updated doc
-                                            );
+                                            // await Sport.findOneAndUpdate(
+                                            //     { name: sport.name }, // Find the sport by name
+                                            //     {
+                                            //         // Update the main fields (statYear, decayFactor, etc.)
+                                            //         $set: {
+                                            //             name: sport.name,
+                                            //             espnSport: sport.espnSport,
+                                            //             league: sport.league,
+                                            //             startMonth: sport.startMonth,
+                                            //             endMonth: sport.endMonth,
+                                            //             multiYear: sport.multiYear,
+                                            //             statYear: sport.statYear,
+                                            //         },
+                                            //         $addToSet: {
+                                            //             valueBetSettings: {
+                                            //                 bookmaker: sportsbook,
+                                            //                 settings: finalSettings.settings
+                                            //             }
+                                            //         }
+                                            //     },
+                                            //     { upsert: true, new: true } // upsert creates the document if it doesn't exist, new returns the updated doc
+                                            // );
                                         } else {
-                                            await Sport.findOneAndUpdate(
-                                                { name: sport.name }, // Find the sport by name
-                                                {
-                                                    // Update the main fields (statYear, decayFactor, etc.)
-                                                    $set: {
-                                                        name: sport.name,
-                                                        espnSport: sport.espnSport,
-                                                        league: sport.league,
-                                                        startMonth: sport.startMonth,
-                                                        endMonth: sport.endMonth,
-                                                        multiYear: sport.multiYear,
-                                                        statYear: sport.statYear,
-                                                    },
-                                                    $set: {
-                                                        // Update the settings for the specific bookmaker using the $[] positional operator
-                                                        "valueBetSettings.$[elem].settings": finalSettings.settings
-                                                    }
-                                                },
-                                                { arrayFilters: [{ "elem.bookmaker": sportsbook }], upsert: true, new: true } // upsert creates the document if it doesn't exist, new returns the updated doc
-                                            );
+                                            // await Sport.findOneAndUpdate(
+                                            //     { name: sport.name }, // Find the sport by name
+                                            //     {
+                                            //         // Update the main fields (statYear, decayFactor, etc.)
+                                            //         $set: {
+                                            //             name: sport.name,
+                                            //             espnSport: sport.espnSport,
+                                            //             league: sport.league,
+                                            //             startMonth: sport.startMonth,
+                                            //             endMonth: sport.endMonth,
+                                            //             multiYear: sport.multiYear,
+                                            //             statYear: sport.statYear,
+                                            //         },
+                                            //         $set: {
+                                            //             // Update the settings for the specific bookmaker using the $[] positional operator
+                                            //             "valueBetSettings.$[elem].settings": finalSettings.settings
+                                            //         }
+                                            //     },
+                                            //     { arrayFilters: [{ "elem.bookmaker": sportsbook }], upsert: true, new: true } // upsert creates the document if it doesn't exist, new returns the updated doc
+                                            // );
                                         }
 
                                     }
