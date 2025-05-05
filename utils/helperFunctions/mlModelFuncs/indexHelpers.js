@@ -469,11 +469,14 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
             // Update the Odds database with the calculated indices
             if(normalizedHomeIndex > 45) {
                 normalizedHomeIndex = 45
-            } else if(normalizedHomeIndex < 0) {
+            }
+            if(normalizedHomeIndex < 0) {
                 normalizedHomeIndex = 0
-            } else if(normalizedAwayIndex > 45) {
+            }
+            if(normalizedAwayIndex > 45) {
                 normalizedAwayIndex = 45
-            } else if(normalizedAwayIndex < 0) {
+            }
+            if(normalizedAwayIndex < 0) {
                 normalizedAwayIndex = 0
             }
             if (sport.name === game.sport_key) {
