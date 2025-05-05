@@ -277,7 +277,7 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
     console.log(`STARTING INDEXING FOR ${initalsport.name} @ ${moment().format('HH:mm:ss')}`);
     const currentDate = new Date();
     const oneYearAgo = new Date(currentDate);
-    oneYearAgo.setDate(currentDate.getDate() - 365); // Subtract 365 days
+    oneYearAgo.setDate(currentDate.getDate() - 182); // Subtract 365 days
     oneYearAgo.setHours(0, 0, 0, 0);  // Set time to midnight
     let sport = await Sport.findOne({ name: initalsport.name }).exec()
 
