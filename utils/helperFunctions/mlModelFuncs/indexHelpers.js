@@ -1,14 +1,6 @@
 const moment = require('moment')
-const { Odds, PastGameOdds, UsaFootballTeam, BasketballTeam, BaseballTeam, HockeyTeam, Sport, Weights } = require('../../../models');
+const { Odds, PastGameOdds, Sport, Weights } = require('../../../models');
 const { normalizeStat } = require('./trainingHelpers')
-
-let nflWeights = []
-let nbaWeights = []
-let mlbWeights = []
-let nhlWeights = []
-let ncaafWeights = []
-let ncaamWeights = []
-let ncaawWeights = []
 
 //DETERMINE H2H INDEXES FOR EVERY GAME IN ODDS
 // Helper function to adjust indexes for football games
