@@ -75,11 +75,16 @@ const removePastGames = async (currentOdds) => {
                     // Fetch home team schedule from ESPN API
                     let homeTeamSchedule = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${game.sport}/${homeTeam.league}/teams/${homeTeam.espnID}/schedule`, { signal }, timeout = 10000);
                     let homeTeamSchedJSON = await homeTeamSchedule.json();
+                    const eventTime = moment(event.date);
+                    const gameTime = moment(game.commence_time);
+
+                    const diffInMinutes = Math.abs(eventTime.diff(gameTime, 'minutes'));
+
                     //find the event on the schedule
                     const event = homeTeamSchedJSON.events.find((event) => (event.name === `${awayTeam.espnDisplayName} at ${homeTeam.espnDisplayName}`
                         || event.shortName === `${awayTeam.abbreviation} @ ${homeTeam.abbreviation}`
                         || event.shortName === `${homeTeam.abbreviation} VS ${awayTeam.abbreviation}`)
-                        && moment(event.date).isSame(moment(game.commence_time), 'hour'))
+                        && diffInMinutes <= 30)
                     if (event) {
                         if (event.competitions[0].status.type.completed === true) {
                             let homeScore, awayScore, predictionCorrect, winner
@@ -173,7 +178,7 @@ const removePastGames = async (currentOdds) => {
 
                             }
                         }
-                         else if (event.competitions[0].status.type.description === 'Postponed') {
+                        else if (event.competitions[0].status.type.description === 'Postponed') {
                             // Delete the game from the Odds collection
                             let deletedGame = await Odds.findOneAndDelete({ _id: game._doc._id });
                             if (deletedGame) {
