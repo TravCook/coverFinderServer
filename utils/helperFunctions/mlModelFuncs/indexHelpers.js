@@ -344,11 +344,28 @@ const calculateWinrate = (games, sport, homeTeam, awayTeam, homeTeamIndex, awayT
     return average
 }
 
+function sigmoidNormalize(value, midpoint, sharpness) {
+    const sigmoid = 1 / (1 + Math.exp(-sharpness * (value - midpoint)));
+    return sigmoid * 45; // map to 0–45 for HSL
+}
+
+function calculateIQRSharpness(indexes) {
+    const sorted = indexes.slice().sort((a, b) => a - b);
+    const q1 = sorted[Math.floor(sorted.length * 0.25)];
+    const q3 = sorted[Math.floor(sorted.length * 0.75)];
+    const iqr = q3 - q1;
+
+    if (iqr === 0) return 1; // prevent divide-by-zero, fallback value
+
+    const sharpness = Math.log(9) / iqr;
+    return sharpness;
+}
+
 const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray, past) => {
     console.log(`STARTING INDEXING FOR ${initalsport.name} @ ${moment().format('HH:mm:ss')}`);
     const currentDate = new Date();
     const oneYearAgo = new Date(currentDate);
-    oneYearAgo.setDate(currentDate.getDate() - 182); // Subtract 365 days
+    oneYearAgo.setDate(currentDate.getDate() - 365); // Subtract 365 days
     oneYearAgo.setHours(0, 0, 0, 0);  // Set time to midnight
     let sport = await Sport.findOne({ name: initalsport.name })
     let updates = [];
@@ -383,11 +400,6 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
             if (sport.name === game.sport_key) {
                 if (past === true) {
                     try {
-                        // await PastGameOdds.findOneAndUpdate({ 'id': game.id }, {
-                        //     homeTeamIndex: homeIndex,
-                        //     awayTeamIndex: awayIndex,
-                        //     // winPercent: winrate
-                        // });
                         updates.push({
                             updateOne: {
                                 filter: { id: game.id },
@@ -401,18 +413,12 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
                             }
                         });
                     } catch (err) {
-                        // console.log(err)
                         console.log(game.commence_time)
                         console.log('homeIndex', homeIndex)
                         console.log('awayIndex', awayIndex)
                     }
                 } else {
                     try {
-                        // await Odds.findOneAndUpdate({ 'id': game.id }, {
-                        //     homeTeamIndex: homeIndex,
-                        //     awayTeamIndex: awayIndex,
-                        //     winPercent: winrate
-                        // });
                         updates.push({
                             updateOne: {
                                 filter: { id: game.id },
@@ -429,32 +435,32 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
                         console.log(game.commence_time)
                         console.log('homeIndex', homeIndex)
                         console.log('awayIndex', awayIndex)
-                        // console.log(err)
                     }
                 }
             }
         }
     }
-    await Odds.bulkWrite(updates);
+    if(past === true){
+        await PastGameOdds.bulkWrite(updates);
+    }else{
+        await Odds.bulkWrite(updates);
+    }
     currentOdds = null
     console.log('Base indexes found and applied')
-    let extremes = await PastGameOdds.aggregate([
-        {
-            $match: {
-                sport_key: sport.name,
-                commence_time: { $gte: oneYearAgo }, // Filter by date range
-                homeTeamIndex: { $ne: null },
-                awayTeamIndex: { $ne: null }
-            }
-        },
-        {
-            $group: {
-                _id: null,
-                maxIndex: { $max: { $max: ['$homeTeamIndex', '$awayTeamIndex'] } },
-                minIndex: { $min: { $min: ['$homeTeamIndex', '$awayTeamIndex'] } }
-            }
-        }
+    let avgIndex = await PastGameOdds.aggregate([
+        { $match: { sport_key: sport.name, commence_time: { $gte: oneYearAgo } } },
+        { $project: { indexes: ["$homeTeamIndex", "$awayTeamIndex"] } },
+        { $unwind: "$indexes" },
+        { $group: { _id: null, avgIndex: { $avg: "$indexes" } } }
     ])
+    let interquartileRange = await PastGameOdds.aggregate([
+        { $match: { sport_key: sport.name, commence_time: { $gte: oneYearAgo } } },
+        { $project: { indexes: ["$homeTeamIndex", "$awayTeamIndex"] } },
+        { $unwind: "$indexes" },
+        { $sort: { indexes: 1 } },
+        { $group: { _id: null, indexArray: { $push: "$indexes" } } }
+    ])
+
     if (past === true) {
         currentOdds = await PastGameOdds.find({ sport_key: sport.name }).sort({ commence_time: 1 })
     } else {
@@ -463,32 +469,14 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
     updates = []
     for (const game of currentOdds) {
         if (moment().isBefore(moment(game.commence_time)) || past === true) {
-            let homeIndex = game.homeTeamIndex;
-            let awayIndex = game.awayTeamIndex;
-            let indexMin = extremes[0].minIndex
-            let indexMax = extremes[0].maxIndex
-            let normalizedHomeIndex = ((homeIndex - indexMin) / (indexMax - indexMin)) * 45
-            let normalizedAwayIndex = ((awayIndex - indexMin) / (indexMax - indexMin)) * 45
+
+
+            let normalizedHomeIndex = sigmoidNormalize(game.homeTeamIndex, avgIndex[0].avgIndex, calculateIQRSharpness(interquartileRange[0].indexArray))
+            let normalizedAwayIndex = sigmoidNormalize(game.awayTeamIndex, avgIndex[0].avgIndex, calculateIQRSharpness(interquartileRange[0].indexArray))
             // Update the Odds database with the calculated indices
-            if (normalizedHomeIndex > 45) {
-                normalizedHomeIndex = 45
-            }
-            if (normalizedHomeIndex < 0) {
-                normalizedHomeIndex = 0
-            }
-            if (normalizedAwayIndex > 45) {
-                normalizedAwayIndex = 45
-            }
-            if (normalizedAwayIndex < 0) {
-                normalizedAwayIndex = 0
-            }
             if (sport.name === game.sport_key) {
                 if (past === true) {
                     try {
-                        // await PastGameOdds.findOneAndUpdate({ 'id': game.id }, {
-                        //     homeTeamScaledIndex: normalizedHomeIndex,
-                        //     awayTeamScaledIndex: normalizedAwayIndex,
-                        // });
                         updates.push({
                             updateOne: {
                                 filter: { id: game.id },
@@ -508,10 +496,6 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
                     }
                 } else {
                     try {
-                        // await Odds.findOneAndUpdate({ 'id': game.id }, {
-                        //     homeTeamScaledIndex: normalizedHomeIndex,
-                        //     awayTeamScaledIndex: normalizedAwayIndex,
-                        // });
                         updates.push({
                             updateOne: {
                                 filter: { id: game.id },
@@ -523,6 +507,7 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
                                 }
                             }
                         });
+
                     } catch (err) {
                         console.log(game.commence_time)
                         console.log('normalizedHomeIndex', normalizedHomeIndex)
@@ -534,7 +519,11 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
             }
         }
     }
-    await Odds.bulkWrite(updates);
+    if(past === true){
+        await PastGameOdds.bulkWrite(updates);
+    }else{
+        await Odds.bulkWrite(updates);
+    }
     updates = []
     extremes = null
     console.log('Normalized indexes found and applied')

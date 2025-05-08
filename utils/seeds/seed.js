@@ -1,6 +1,5 @@
 require('dotenv').config()
 const { Odds, PastGameOdds, UsaFootballTeam, BasketballTeam, BaseballTeam, HockeyTeam, Sport, Weights } = require('../../models');
-const axios = require('axios')
 const moment = require('moment')
 const fs = require('fs')
 const tf = require('@tensorflow/tfjs-node');
@@ -9,11 +8,8 @@ const { retrieveTeamsandStats } = require('../helperFunctions/dataHelpers/retrie
 const { removePastGames } = require('../helperFunctions/dataHelpers/removeHelper')
 const { indexAdjuster, pastGamesReIndex } = require('../helperFunctions/mlModelFuncs/indexHelpers')
 const { predictions, trainSportModelKFold } = require('../helperFunctions/mlModelFuncs/trainingHelpers')
-const { normalizeTeamName } = require('../helperFunctions/dataHelpers/dataSanitizers')
-const { impliedProbCalc } = require('../helperFunctions/dataHelpers/impliedProbHelp')
-const { valueBetRandomSearch, hyperparameterRandSearch, valueBetGridSearch } = require('../helperFunctions/mlModelFuncs/searchHelpers');
-const { pastGamesRePredict } = require('../helperFunctions/dataHelpers/pastGameHelpers');
-const { pastGameStatsPoC } = require('../helperFunctions/dataHelpers/pastGamesHelper');
+const { hyperparameterRandSearch, valueBetGridSearch } = require('../helperFunctions/mlModelFuncs/searchHelpers');
+
 // Suppress TensorFlow.js logging
 process.env.TF_CPP_MIN_LOG_LEVEL = '3'; // Suppress logs
 
@@ -22,9 +18,6 @@ const dataSeed = async () => {
     // UPDATE TEAMS WITH MOST RECENT STATS // WORKING AS LONG AS DYNAMIC STAT YEAR CAN WORK CORRECTLY
     let sports = await Sport.find({})
     await retrieveTeamsandStats(sports)
-
-
-
     console.info(`Full Seeding complete! 🌱 @ ${moment().format('HH:mm:ss')}`);
     sports = []
 }
@@ -33,9 +26,6 @@ const mlModelTrainSeed = async () => {
     console.log("DB CONNECTED ------------------------------------------------- STARTING ML SEED")
     const sports = await Sport.find({})
     for (sport = 0; sport < sports.length; sport++) {
-
-        const currentDate = new Date();
-        const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11, so we add 1 to make it 1-12
         // Assuming the sport object is already defined
         // retrieve upcoming games
         const upcomingGames = await Odds.find({ sport_key: sports[sport].name })
@@ -45,7 +35,6 @@ const mlModelTrainSeed = async () => {
             if (pastGames.length > 10) {
                 console.log(`${sports[sport].name} ML STARTING @ ${moment().format('HH:mm:ss')}`)
                 await trainSportModelKFold(sports[sport], pastGames)
-                
             } else {
                 console.log(`NOT ENOUGH ${sports[sport].name} DATA`)
             }
@@ -677,35 +666,23 @@ const oddsSeed = async () => {
         }
 
     }
-
-    // const currentOdds = await Odds.find({})
-    // await impliedProbCalc(currentOdds)
     console.log(`ODDS FETCHED AND STORED @ ${moment().format('HH:mm:ss')}`)
-
 }
 
 const removeSeed = async () => {
-
-
-
     const today = new Date();
     today.setHours(0, 0, 0, 0);  // Set time to midnight
-
     // Fetch current odds and past odds within the last week
     let currentOdds = await Odds.find();
     await removePastGames(currentOdds);
-
     currentOdds = await Odds.find({}).sort({ commence_time: 1, winPercent: 1 });
-
     let pastOdds = await PastGameOdds.find({
         commence_time: { $gte: today}
     }).sort({ commence_time: -1, winPercent: 1 });
-
     await emitToClients('gameUpdate', currentOdds);
     await emitToClients('pastGameUpdate', pastOdds);
     currentOdds = null
     pastOdds = null
-
 }
 
 const espnSeed = async () => {
@@ -847,18 +824,11 @@ const espnSeed = async () => {
 //TAKES ABOUT 1 HOUR
 const paramAndValueSeed = async () => {
     const sports = await Sport.find({})
-
-
     await valueBetGridSearch(sports)
-
     await hyperparameterRandSearch(sports)
-
 }
 
-// mlModelTrainSeed()
-
-// TODO: IF EVERYTHING RUNS FINE, WAIT UNTIL MIDNIGHT AND EXPORT PASTGAMEODDS AND ODDS DB COLLECTIONS TO PRODUCTION DB
-// TODO: PUSH CODE TO PRODUCTION EC2 INSTANCE
+mlModelTrainSeed()
 // TODO: START CODE ON EC2 INSTANCE AND MONITOR ***** THIS INCLUDES WATCHING THE FREE TIER PAGE TO MAKE SURE YOU DONT RUN OVER ON DATA USAGE
 
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed, paramAndValueSeed }

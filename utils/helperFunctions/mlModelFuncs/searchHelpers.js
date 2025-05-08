@@ -380,7 +380,7 @@ const valueBetGridSearch = async (sports) => {
                                     const MAX_CI_WIDTH = 0.15; // Maximum allowable CI width (15%)
                                     if (
                                         newCI.upper > storeCI.lower + SEPARATION_THRESHOLD &&  // Ensure a clear upper bound gap
-                                        (newCI.upper - newCI.lower) < MAX_CI_WIDTH &&         // Ensure the CI is not too wide
+                                        // (newCI.upper - newCI.lower) < MAX_CI_WIDTH &&         // Ensure the CI is not too wide
                                         newCI.upper > storeCI.upper   // Ensure the new CI's upper bound is better                   
                                     ) {
                                         storeCI = newCI
