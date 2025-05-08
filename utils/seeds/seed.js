@@ -28,10 +28,10 @@ const mlModelTrainSeed = async () => {
     for (sport = 0; sport < sports.length; sport++) {
         // Assuming the sport object is already defined
         // retrieve upcoming games
-        const upcomingGames = await Odds.find({ sport_key: sports[sport].name })
+        let upcomingGames = await Odds.find({ sport_key: sports[sport].name })
         // Multi-year sports (e.g., NFL, NBA, NHL, etc.)
         if (upcomingGames.length > 0) {
-            const pastGames = await PastGameOdds.find({ sport_key: sports[sport].name }).sort({ commence_time: -1 })
+            let pastGames = await PastGameOdds.find({ sport_key: sports[sport].name }).sort({ commence_time: -1 })
             if (pastGames.length > 10) {
                 console.log(`${sports[sport].name} ML STARTING @ ${moment().format('HH:mm:ss')}`)
                 await trainSportModelKFold(sports[sport], pastGames)
@@ -44,6 +44,7 @@ const mlModelTrainSeed = async () => {
         }
 
     }
+    pastGames = []
     await pastGamesReIndex()
 }
 
