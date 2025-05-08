@@ -440,26 +440,47 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
             }
         }
     }
-    if(past === true){
+    if (past === true) {
         await PastGameOdds.bulkWrite(updates);
-    }else{
+    } else {
         await Odds.bulkWrite(updates);
     }
     currentOdds = null
     console.log('Base indexes found and applied')
-    let avgIndex = await PastGameOdds.aggregate([
+    let result = await PastGameOdds.aggregate([
         { $match: { sport_key: sport.name, commence_time: { $gte: oneYearAgo } } },
-        { $project: { indexes: ["$homeTeamIndex", "$awayTeamIndex"] } },
+        {
+            $project: {
+                indexes: ["$homeTeamIndex", "$awayTeamIndex"]
+            }
+        },
         { $unwind: "$indexes" },
-        { $group: { _id: null, avgIndex: { $avg: "$indexes" } } }
+        {
+            $facet: {
+                avgIndex: [
+                    {
+                        $group: {
+                            _id: null,
+                            avgIndex: { $avg: "$indexes" }
+                        }
+                    }
+                ],
+                interquartileRange: [
+                    { $sort: { indexes: 1 } },
+                    {
+                        $group: {
+                            _id: null,
+                            indexArray: { $push: "$indexes" }
+                        }
+                    }
+                ]
+            }
+        }
     ])
-    let interquartileRange = await PastGameOdds.aggregate([
-        { $match: { sport_key: sport.name, commence_time: { $gte: oneYearAgo } } },
-        { $project: { indexes: ["$homeTeamIndex", "$awayTeamIndex"] } },
-        { $unwind: "$indexes" },
-        { $sort: { indexes: 1 } },
-        { $group: { _id: null, indexArray: { $push: "$indexes" } } }
-    ])
+    let avgIndex = result[0].avgIndex[0]?.avgIndex;
+    let indexArray = result[0].interquartileRange[0]?.indexArray;
+    // You can compute Q1 and Q3 from indexArray manually afterward
+
 
     if (past === true) {
         currentOdds = await PastGameOdds.find({ sport_key: sport.name }).sort({ commence_time: 1 })
@@ -471,8 +492,8 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
         if (moment().isBefore(moment(game.commence_time)) || past === true) {
 
 
-            let normalizedHomeIndex = sigmoidNormalize(game.homeTeamIndex, avgIndex[0].avgIndex, calculateIQRSharpness(interquartileRange[0].indexArray))
-            let normalizedAwayIndex = sigmoidNormalize(game.awayTeamIndex, avgIndex[0].avgIndex, calculateIQRSharpness(interquartileRange[0].indexArray))
+            let normalizedHomeIndex = sigmoidNormalize(game.homeTeamIndex, avgIndex, calculateIQRSharpness(indexArray))
+            let normalizedAwayIndex = sigmoidNormalize(game.awayTeamIndex, avgIndex, calculateIQRSharpness(indexArray))
             // Update the Odds database with the calculated indices
             if (sport.name === game.sport_key) {
                 if (past === true) {
@@ -519,9 +540,9 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
             }
         }
     }
-    if(past === true){
+    if (past === true) {
         await PastGameOdds.bulkWrite(updates);
-    }else{
+    } else {
         await Odds.bulkWrite(updates);
     }
     updates = []

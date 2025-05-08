@@ -693,9 +693,7 @@ const predictions = async (sportOdds, ff, model, sport) => {
         }
 
         // Step 4: Convert predictions tensor to array
-        const probabilities = await predictions.array();  // Resolves to an array
-
-        console.log(probabilities)
+        let probabilities = await predictions.array();  // Resolves to an array
 
         // Step 5: Loop through each game and update with predicted probabilities
         for (let index = 0; index < sportOdds.length; index++) {
@@ -723,6 +721,8 @@ const predictions = async (sportOdds, ff, model, sport) => {
 
             }
         }
+
+        probabilites = null
     }
     console.info(`FINSIHED PREDICTIONS FOR ${sport.name} @ ${moment().format('HH:mm:ss')}`);
 }
