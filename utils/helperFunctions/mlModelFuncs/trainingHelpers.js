@@ -888,7 +888,7 @@ const trainSportModelKFold = async (sport, gameData) => {
         hiddenToOutputWeights: hiddenToOutputWeights, // Store the 128x1 vector
         featureImportanceScores: featureImportanceScores,  // Store the importance scores
     }, { upsert: true })
-
+    currentOdds = []
 };
 
 const trainSportModel = async (sport, gameData) => {
