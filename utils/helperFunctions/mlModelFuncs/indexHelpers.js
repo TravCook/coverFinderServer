@@ -525,6 +525,7 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
         await Odds.bulkWrite(updates);
     }
     updates = []
+    currentOdds = null
     avgIndex = null
     interquartileRange = null
     console.log('Normalized indexes found and applied')
