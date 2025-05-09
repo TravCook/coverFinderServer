@@ -657,6 +657,10 @@ const mlModelTraining = async (gameData, xs, ys, sport) => {
     // Save model specific to the sport
     await model.save(`file://./model_checkpoint/${sport.name}_model`);
 
+    xs = null
+    ys = null
+    
+
     return { model }
     // Log loss and accuracy
 
@@ -723,6 +727,10 @@ const predictions = async (sportOdds, ff, model, sport) => {
         }
 
         probabilites = null
+        ffTensor.dispose();
+        logits.dispose();
+        predictions.dispose();
+        ff = null
     }
     console.info(`FINSIHED PREDICTIONS FOR ${sport.name} @ ${moment().format('HH:mm:ss')}`);
 }
@@ -877,11 +885,11 @@ const trainSportModelKFold = async (sport, gameData) => {
 
 
     // Get the input-to-hidden weights (40 features × 128 neurons)
-    const inputToHiddenWeights = finalModel.layers[0].getWeights()[0].arraySync();  // Shape: 40x128
+    let inputToHiddenWeights = finalModel.layers[0].getWeights()[0].arraySync();  // Shape: 40x128
     // Get the hidden-to-output weights (128 neurons × 1 output)
-    const hiddenToOutputWeights = finalModel.layers[finalModel.layers.length - 1].getWeights()[0].arraySync();  // Shape: 128x1
+    let hiddenToOutputWeights = finalModel.layers[finalModel.layers.length - 1].getWeights()[0].arraySync();  // Shape: 128x1
     // Calculate the importance scores
-    const featureImportanceScores = calculateFeatureImportance(inputToHiddenWeights, hiddenToOutputWeights);
+    let featureImportanceScores = calculateFeatureImportance(inputToHiddenWeights, hiddenToOutputWeights);
 
     await Weights.findOneAndUpdate({ league: sport.name }, {
         inputToHiddenWeights: inputToHiddenWeights,  // Store the 40x128 matrix
@@ -889,6 +897,11 @@ const trainSportModelKFold = async (sport, gameData) => {
         featureImportanceScores: featureImportanceScores,  // Store the importance scores
     }, { upsert: true })
     currentOdds = []
+    allFolds = []
+    foldResults = []
+    inputToHiddenWeights = []
+    hiddenToOutputWeights = []
+    featureImportanceScores = []
 };
 
 const trainSportModel = async (sport, gameData) => {
