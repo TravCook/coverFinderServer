@@ -440,6 +440,7 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
             }
         }
     }
+    allPastGames = null
     if (past === true) {
         await PastGameOdds.bulkWrite(updates);
     } else {
@@ -547,8 +548,9 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
     }
     updates = []
     currentOdds = null
+    result = null
+    indexArray = null
     avgIndex = null
-    interquartileRange = null
     console.log('Normalized indexes found and applied')
     console.log(`FINSHED INDEXING FOR ${initalsport.name} @ ${moment().format('HH:mm:ss')}`);
 }
