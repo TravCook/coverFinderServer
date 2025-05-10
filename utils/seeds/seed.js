@@ -832,7 +832,7 @@ const paramAndValueSeed = async () => {
     await hyperparameterRandSearch(sports)
 }
 
-mlModelTrainSeed()
+// mlModelTrainSeed()
 //TODO: ANALYZE ML MODEL TRAIN SEED AND ADDRESS RAM ISSUES ON EC2 INSTANCE
 
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed, paramAndValueSeed }
