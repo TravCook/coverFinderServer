@@ -871,17 +871,16 @@ const trainSportModelKFold = async (sport, gameData) => {
     const totalTrueNegatives = foldResults.reduce((sum, fold) => sum + fold.trueNegatives, 0)
     const totalFalseNegatives = foldResults.reduce((sum, fold) => sum + fold.falseNegatives, 0)
 
-    console.log(`--- Overall Performance ---`);
+    console.log(`--- Overall Performance Avg F1-Score: ${avgF1Score} ---`);
 
     console.log(`truePositives: ${totalTruePositives}`);
     console.log(`falsePositives: ${totalFalsePositives}`);
     console.log(`falseNegatives: ${totalFalseNegatives}`);
     console.log(`trueNegatives: ${totalTrueNegatives}`);
-    console.log(`Avg F1-Score: ${avgF1Score}`);
-    console.log(`Avg Loss: ${avgLoss}`);
-    console.log(`Avg Accuracy: ${avgAccuracy}`);
-    console.log(`Avg Precision: ${avgPrecision}`);
-    console.log(`Avg Recall: ${avgRecall}`);
+    // console.log(`Avg Loss: ${avgLoss}`);
+    // console.log(`Avg Accuracy: ${avgAccuracy}`);
+    // console.log(`Avg Precision: ${avgPrecision}`);
+    // console.log(`Avg Recall: ${avgRecall}`);
 
 
     // Get the input-to-hidden weights (40 features × 128 neurons)

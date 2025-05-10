@@ -22,30 +22,32 @@ const dataSeed = async () => {
     await retrieveTeamsandStats(sports)
     console.info(`Full Seeding complete! 🌱 @ ${moment().format('HH:mm:ss')}`);
     sports = []
+    if (global.gc) global.gc();
 }
 
 const mlModelTrainSeed = async () => {
     console.log("DB CONNECTED ------------------------------------------------- STARTING ML SEED")
     const sports = await Sport.find({})
-    for (sport = 0; sport < sports.length; sport++) {
-        // Assuming the sport object is already defined
+    const odds = await Odds.find()
+    for(let sport of sports) {
         // retrieve upcoming games
-        let upcomingGames = await Odds.find({ sport_key: sports[sport].name })
+        let upcomingGames = odds.filter((game) => game.sport_key === sport.name)
         // Multi-year sports (e.g., NFL, NBA, NHL, etc.)
         if (upcomingGames.length > 0) {
-            let pastGames = await PastGameOdds.find({ sport_key: sports[sport].name }).sort({ commence_time: -1 })
+            let pastGames = await PastGameOdds.find({ sport_key: sport.name }).sort({ commence_time: -1 })
             if (pastGames.length > 10) {
-                console.log(`${sports[sport].name} ML STARTING @ ${moment().format('HH:mm:ss')}`)
-                await trainSportModelKFold(sports[sport], pastGames)
+                console.log(`${sport.name} ML STARTING @ ${moment().format('HH:mm:ss')}`)
+                await trainSportModelKFold(sport, pastGames)
             } else {
-                console.log(`NOT ENOUGH ${sports[sport].name} DATA`)
+                console.log(`NOT ENOUGH ${sport.name} DATA`)
             }
-            console.log(`${sports[sport].name} ML DONE @ ${moment().format('HH:mm:ss')}`)
+            console.log(`${sport.name} ML DONE @ ${moment().format('HH:mm:ss')}`)
         } else {
-            console.log(`${sports[sport].name} NOT IN SEASON`)
+            console.log(`${sport.name} NOT IN SEASON`)
         }
 
     }
+    if (global.gc) global.gc();
     upcomingGames = []
     pastGames = []
     await pastGamesReIndex()
@@ -829,10 +831,11 @@ const espnSeed = async () => {
 const paramAndValueSeed = async () => {
     const sports = await Sport.find({})
     await valueBetGridSearch(sports)
+    if (global.gc) global.gc();
     await hyperparameterRandSearch(sports)
+    if (global.gc) global.gc();
 }
 
-// mlModelTrainSeed()
 //TODO: ANALYZE ML MODEL TRAIN SEED AND ADDRESS RAM ISSUES ON EC2 INSTANCE
 
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed, paramAndValueSeed }

@@ -448,8 +448,13 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
     }
     currentOdds = null
     console.log('Base indexes found and applied')
-    let result = await PastGameOdds.aggregate([
-        { $match: { sport_key: sport.name, commence_time: { $gte: oneYearAgo } } },
+    let avgResult = await PastGameOdds.aggregate([
+        {
+            $match: {
+                sport_key: sport.name,
+                commence_time: { $gte: oneYearAgo }
+            }
+        },
         {
             $project: {
                 indexes: ["$homeTeamIndex", "$awayTeamIndex"]
@@ -457,44 +462,64 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
         },
         { $unwind: "$indexes" },
         {
-            $facet: {
-                avgIndex: [
-                    {
-                        $group: {
-                            _id: null,
-                            avgIndex: { $avg: "$indexes" }
-                        }
-                    }
-                ],
-                interquartileRange: [
-                    { $sort: { indexes: 1 } },
-                    {
-                        $group: {
-                            _id: null,
-                            indexArray: { $push: "$indexes" }
-                        }
-                    }
-                ]
+            $group: {
+                _id: null,
+                avgIndex: { $avg: "$indexes" }
             }
         }
-    ])
-    let avgIndex = result[0].avgIndex[0]?.avgIndex;
-    let indexArray = result[0].interquartileRange[0]?.indexArray;
+    ]);
+    
+    let avgIndex = avgResult[0]?.avgIndex ?? null;
+    let indexArrayResult = await PastGameOdds.aggregate([
+        {
+            $match: {
+                sport_key: sport.name,
+                commence_time: { $gte: oneYearAgo }
+            }
+        },
+        {
+            $project: {
+                indexes: ["$homeTeamIndex", "$awayTeamIndex"]
+            }
+        },
+        { $unwind: "$indexes" },
+        { $sort: { indexes: 1 } },
+        {
+            $group: {
+                _id: null,
+                indexArray: { $push: "$indexes" }
+            }
+        }
+    ]);
+    
+    let indexArray = indexArrayResult[0]?.indexArray ?? [];
+    
+    console.log('DB queried for Avg and Array')
     // You can compute Q1 and Q3 from indexArray manually afterward
 
 
     if (past === true) {
-        currentOdds = await PastGameOdds.find({ sport_key: sport.name }).sort({ commence_time: 1 })
+        currentOdds = await PastGameOdds.find(
+            { sport_key: sport.name },
+            { homeTeamIndex: 1, awayTeamIndex: 1, commence_time: 1, id: 1, sport_key: 1 }
+        ).sort({ commence_time: 1 })
+        
     } else {
-        currentOdds = await Odds.find({ sport_key: sport.name }).sort({ commence_time: 1 })
+        currentOdds = await Odds.find(
+            { sport_key: sport.name },
+            { homeTeamIndex: 1, awayTeamIndex: 1, commence_time: 1, id: 1, sport_key: 1 }
+        ).sort({ commence_time: 1 })
+        
     }
+    console.log('DB re-queried for games to update')
     updates = []
+    const iqrSharpness = calculateIQRSharpness(indexArray);
     for (const game of currentOdds) {
         if (moment().isBefore(moment(game.commence_time)) || past === true) {
 
 
-            let normalizedHomeIndex = sigmoidNormalize(game.homeTeamIndex, avgIndex, calculateIQRSharpness(indexArray))
-            let normalizedAwayIndex = sigmoidNormalize(game.awayTeamIndex, avgIndex, calculateIQRSharpness(indexArray))
+            let normalizedHomeIndex = sigmoidNormalize(game.homeTeamIndex, avgIndex, iqrSharpness)
+            let normalizedAwayIndex = sigmoidNormalize(game.awayTeamIndex, avgIndex, iqrSharpness)
             // Update the Odds database with the calculated indices
             if (sport.name === game.sport_key) {
                 if (past === true) {
@@ -551,6 +576,7 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
     result = null
     indexArray = null
     avgIndex = null
+    if (global.gc) global.gc();
     console.log('Normalized indexes found and applied')
     console.log(`FINSHED INDEXING FOR ${initalsport.name} @ ${moment().format('HH:mm:ss')}`);
 }
