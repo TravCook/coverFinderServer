@@ -836,7 +836,7 @@ const paramAndValueSeed = async () => {
     if (global.gc) global.gc();
 }
 
-paramAndValueSeed()
+// paramAndValueSeed()
 //TODO: ANALYZE ML MODEL TRAIN SEED AND ADDRESS RAM ISSUES ON EC2 INSTANCE
 
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed, paramAndValueSeed }
