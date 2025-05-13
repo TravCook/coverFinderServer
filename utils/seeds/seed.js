@@ -51,6 +51,8 @@ const mlModelTrainSeed = async () => {
     upcomingGames = []
     pastGames = []
     await pastGamesReIndex()
+    await valueBetGridSearch(sports)
+    if (global.gc) global.gc();
 }
 
 const oddsSeed = async () => {
@@ -832,12 +834,12 @@ const paramAndValueSeed = async () => {
     const sports = await Sport.find({})
     await valueBetGridSearch(sports)
     if (global.gc) global.gc();
-    await hyperparameterRandSearch(sports)
+    // await hyperparameterRandSearch(sports)
     if (global.gc) global.gc();
 }
 
 // paramAndValueSeed()
-// mlModelTrainSeed()
+mlModelTrainSeed()
 //TODO: ANALYZE ML MODEL TRAIN SEED AND ADDRESS RAM ISSUES ON EC2 INSTANCE
 
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed, paramAndValueSeed }
