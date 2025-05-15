@@ -1,6 +1,7 @@
 const moment = require('moment')
 const { Odds, PastGameOdds, Sport, Weights } = require('../../../models');
 const { normalizeStat } = require('./trainingHelpers')
+const cliProgress = require('cli-progress');
 
 //DETERMINE H2H INDEXES FOR EVERY GAME IN ODDS
 // Helper function to adjust indexes for football games
@@ -12,7 +13,6 @@ const adjustnflStats = (homeTeam, awayTeam, homeIndex, awayIndex, weightArray) =
     homeIndex += (normalizeStat('pointDiff', homeTeam.pointDiff) - normalizeStat('pointDiff', awayTeam.pointDiff)) * weightArray[2];
     awayIndex += (normalizeStat('pointDiff', awayTeam.pointDiff) - normalizeStat('pointDiff', homeTeam.pointDiff)) * weightArray[2];
     let nflWeightIndex = 3
-    const reverseComparisonStats = ['BSKBturnoversPerGame', 'BSKBfoulsPerGame', 'BKSBturnoverRatio'];
 
     for (const stat in homeTeam.stats) {
         if (homeTeam.stats.hasOwnProperty(stat)) {
@@ -363,12 +363,16 @@ function calculateIQRSharpness(indexes) {
 
 const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray, past) => {
     console.log(`STARTING INDEXING FOR ${initalsport.name} @ ${moment().format('HH:mm:ss')}`);
+    const bar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
+    const total = 100
     const currentDate = new Date();
     const oneYearAgo = new Date(currentDate);
     oneYearAgo.setDate(currentDate.getDate() - 274); // Subtract 365 days
     oneYearAgo.setHours(0, 0, 0, 0);  // Set time to midnight
     let sport = await Sport.findOne({ name: initalsport.name })
     let updates = [];
+    bar.start(total, 0);
+    let progress = 0
     for (const game of currentOdds) {
         // Check if the game is in the future
         if (moment().isBefore(moment(game.commence_time)) || past === true) {
@@ -438,6 +442,13 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
                     }
                 }
             }
+        }
+        progress = Math.floor((updates.length / currentOdds.length) * 100);
+        bar.update(progress)
+        if (progress >= total) {
+            clearInterval(interval);
+            bar.stop();
+            console.log('Done!');
         }
     }
     allPastGames = null
@@ -514,6 +525,8 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
     console.log('DB re-queried for games to update')
     updates = []
     const iqrSharpness = calculateIQRSharpness(indexArray);
+    bar.start(total, 0);
+    progress = 0
     for (const game of currentOdds) {
         if (moment().isBefore(moment(game.commence_time)) || past === true) {
 
@@ -564,6 +577,13 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
 
 
             }
+        }
+        progress = Math.floor((updates.length / currentOdds.length) * 100);
+        bar.update(progress)
+        if (progress >= total) {
+            clearInterval(interval);
+            bar.stop();
+            console.log('Done!');
         }
     }
     if (past === true) {

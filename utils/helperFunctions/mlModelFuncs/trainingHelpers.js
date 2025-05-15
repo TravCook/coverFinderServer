@@ -4,6 +4,7 @@ const { checkNaNValues } = require('../dataHelpers/dataSanitizers')
 const fs = require('fs')
 const tf = require('@tensorflow/tfjs-node');
 const moment = require('moment')
+const cliProgress = require('cli-progress');
 
 const getStat = (stats, statName, fallbackValue = 0) => {
     return stats && stats[statName] !== undefined ? stats[statName] : fallbackValue;
@@ -798,6 +799,8 @@ const trainSportModelKFold = async (sport, gameData) => {
     currentOdds = await Odds.find({ sport_key: sport.name }).sort({ commence_time: -1 }) //USE THIS TO POPULATE UPCOMING GAME ODDS
     const numFolds = sport.hyperParameters.KFolds;  // Number of folds (you can adjust based on your data)
     const foldSize = Math.floor(gameData.length / numFolds);  // Size of each fold
+    const bar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
+    const total = 100
 
     let allFolds = [];
 
@@ -811,8 +814,11 @@ const trainSportModelKFold = async (sport, gameData) => {
 
     let foldResults = [];
     let finalModel
+    bar.start(total, 0);
+    progress = 0
     // Perform training and testing on each fold
     for (let foldIndex = 0; foldIndex < allFolds.length; foldIndex++) {
+
         const testFold = allFolds[foldIndex];
         const trainingData = [];
         const testData = [];
@@ -858,13 +864,16 @@ const trainSportModelKFold = async (sport, gameData) => {
             trueNegatives: metrics.trueNegatives,
             falseNegatives: metrics.falseNegatives
         });
+        progress = Math.floor((foldIndex / allFolds.length) * 100);
+        bar.update(progress)
+        if (progress >= total) {
+            clearInterval(interval);
+            bar.stop();
+            console.log('Done!');
+        }
     }
     await predictions(currentOdds, [], finalModel, sport)
     // After all folds, calculate and log the overall performance
-    const avgLoss = foldResults.reduce((sum, fold) => sum + fold.loss, 0) / foldResults.length;
-    const avgAccuracy = foldResults.reduce((sum, fold) => sum + fold.accuracy, 0) / foldResults.length;
-    const avgPrecision = foldResults.reduce((sum, fold) => sum + fold.precision, 0) / foldResults.length;
-    const avgRecall = foldResults.reduce((sum, fold) => sum + fold.recall, 0) / foldResults.length;
     const avgF1Score = foldResults.reduce((sum, fold) => sum + fold.f1Score, 0) / foldResults.length;
     const totalTruePositives = foldResults.reduce((sum, fold) => sum + fold.truePositives, 0)
     const totalFalsePositives = foldResults.reduce((sum, fold) => sum + fold.falsePositives, 0)
@@ -877,11 +886,6 @@ const trainSportModelKFold = async (sport, gameData) => {
     console.log(`falsePositives: ${totalFalsePositives}`);
     console.log(`falseNegatives: ${totalFalseNegatives}`);
     console.log(`trueNegatives: ${totalTrueNegatives}`);
-    // console.log(`Avg Loss: ${avgLoss}`);
-    // console.log(`Avg Accuracy: ${avgAccuracy}`);
-    // console.log(`Avg Precision: ${avgPrecision}`);
-    // console.log(`Avg Recall: ${avgRecall}`);
-
 
     // Get the input-to-hidden weights (40 features × 128 neurons)
     let inputToHiddenWeights = finalModel.layers[0].getWeights()[0].arraySync();  // Shape: 40x128
@@ -901,6 +905,7 @@ const trainSportModelKFold = async (sport, gameData) => {
     inputToHiddenWeights = []
     hiddenToOutputWeights = []
     featureImportanceScores = []
+    if (global.gc) global.gc()
 };
 
 const trainSportModel = async (sport, gameData) => {
