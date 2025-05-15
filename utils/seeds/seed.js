@@ -473,7 +473,7 @@ const oddsSeed = async () => {
                                         });
                                         try {
                                             // Loop over all bookmakers
-                                            await Promise.all(event.bookmakers.map(async (bookmaker) => {
+                                            await Promise.all(updatedBookmakers.map(async (bookmaker) => {
                                                 // Loop over all markets for each bookmaker
                                                 await Promise.all(bookmaker.markets.map(async (market) => {
                                                     // Loop over all outcomes for each market
@@ -552,7 +552,7 @@ const oddsSeed = async () => {
                                     });
                                     try {
                                         // Loop over all bookmakers
-                                        await Promise.all(event.bookmakers.map(async (bookmaker) => {
+                                        await Promise.all(updatedBookmakers.map(async (bookmaker) => {
                                             // Loop over all markets for each bookmaker
                                             await Promise.all(bookmaker.markets.map(async (market) => {
                                                 // Loop over all outcomes for each market
@@ -691,6 +691,7 @@ const removeSeed = async () => {
     await emitToClients('pastGameUpdate', pastOdds);
     currentOdds = null
     pastOdds = null
+    if (global.gc) global.gc();
 }
 
 const espnSeed = async () => {
