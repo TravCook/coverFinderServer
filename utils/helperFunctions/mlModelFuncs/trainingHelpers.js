@@ -800,7 +800,7 @@ const trainSportModelKFold = async (sport, gameData) => {
     const numFolds = sport.hyperParameters.KFolds;  // Number of folds (you can adjust based on your data)
     const foldSize = Math.floor(gameData.length / numFolds);  // Size of each fold
     const bar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
-    const total = 100
+    
 
     let allFolds = [];
 
@@ -811,7 +811,7 @@ const trainSportModelKFold = async (sport, gameData) => {
         allFolds.push(gameData.slice(foldStart, foldEnd));
     }
 
-
+    const total =  allFolds.length
     let foldResults = [];
     let finalModel
     bar.start(total, 0);
@@ -864,7 +864,7 @@ const trainSportModelKFold = async (sport, gameData) => {
             trueNegatives: metrics.trueNegatives,
             falseNegatives: metrics.falseNegatives
         });
-        progress = Math.floor((foldIndex / allFolds.length) * 100);
+        progress += 1
         bar.update(progress)
         if (progress >= total) {
             bar.stop();

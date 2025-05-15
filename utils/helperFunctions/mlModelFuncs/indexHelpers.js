@@ -364,10 +364,10 @@ function calculateIQRSharpness(indexes) {
 const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray, past) => {
     console.log(`STARTING INDEXING FOR ${initalsport.name} @ ${moment().format('HH:mm:ss')}`);
     const bar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
-    const total = 100
+    let total = currentOdds.length
     const currentDate = new Date();
     const oneYearAgo = new Date(currentDate);
-    oneYearAgo.setDate(currentDate.getDate() - 274); // Subtract 365 days
+    oneYearAgo.setDate(currentDate.getDate() - 30); // Subtract 365 days
     oneYearAgo.setHours(0, 0, 0, 0);  // Set time to midnight
     let sport = await Sport.findOne({ name: initalsport.name })
     let updates = [];
@@ -443,11 +443,10 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
                 }
             }
         }
-        progress = Math.floor((updates.length / currentOdds.filter((game) => moment().isBefore(moment(game.commence_time))).length) * 100);
+        progress += 1;
         bar.update(progress)
         if (progress >= total) {
             bar.stop();
-            console.log('Done!');
         }
     }
     allPastGames = null
@@ -521,6 +520,7 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
         ).sort({ commence_time: 1 })
         
     }
+    total = currentOdds.length
     console.log('DB re-queried for games to update')
     updates = []
     const iqrSharpness = calculateIQRSharpness(indexArray);
@@ -577,11 +577,10 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
 
             }
         }
-        progress = Math.floor((updates.length / currentOdds.filter((game) => moment().isBefore(moment(game.commence_time))).length) * 100);
+        progress += 1;
         bar.update(progress)
         if (progress >= total) {
             bar.stop();
-            console.log('Done!');
         }
     }
     if (past === true) {
