@@ -443,10 +443,9 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
                 }
             }
         }
-        progress = Math.floor((updates.length / currentOdds.length) * 100);
+        progress = Math.floor((updates.length / currentOdds.filter((game) => moment().isBefore(moment(game.commence_time))).length) * 100);
         bar.update(progress)
         if (progress >= total) {
-            clearInterval(interval);
             bar.stop();
             console.log('Done!');
         }
@@ -578,10 +577,9 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
 
             }
         }
-        progress = Math.floor((updates.length / currentOdds.length) * 100);
+        progress = Math.floor((updates.length / currentOdds.filter((game) => moment().isBefore(moment(game.commence_time))).length) * 100);
         bar.update(progress)
         if (progress >= total) {
-            clearInterval(interval);
             bar.stop();
             console.log('Done!');
         }

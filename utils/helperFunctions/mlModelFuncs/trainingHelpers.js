@@ -867,7 +867,6 @@ const trainSportModelKFold = async (sport, gameData) => {
         progress = Math.floor((foldIndex / allFolds.length) * 100);
         bar.update(progress)
         if (progress >= total) {
-            clearInterval(interval);
             bar.stop();
             console.log('Done!');
         }
