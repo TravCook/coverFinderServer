@@ -54,97 +54,21 @@ module.exports = {
         try {
             let data = myCache.get('fullData'); // Check cache first
             if (data === undefined) {
-
-                // Get current date and calculate the date 7 days ago
-                const currentDate = new Date();
-                const oneWeekAgo = new Date(currentDate);
-                oneWeekAgo.setDate(currentDate.getDate() - 14); // Subtract 7 days
-                oneWeekAgo.setHours(0, 0, 0, 0);  // Set time to midnight
-
-                let valueGames = []
                 let sports = await Sport.find({}).sort({ name: 1 })
                 let odds = await Odds.find({}).sort({ commence_time: 1, winPercent: 1 })
-                let pastGames = await PastGameOdds.find({
-                    predictionCorrect: { $exists: true },
-                }).select('-homeTeamStats -awayTeamStats').sort({ commence_time: -1 });
-                let allTimeProfit = 0
-                let allTimeValueProfit = 0
-                try {
-                    pastGames.map((gameData, idx) => {
-                        const bookmaker = gameData?.bookmakers?.find(b => b.key === req.body.sportsbook);
-                        if (bookmaker) {
-                            const marketData = bookmaker?.markets?.find(m => m.key === 'h2h');
 
-                            let outcome = marketData?.outcomes?.find(o => {
-                                return o.name === (gameData.predictedWinner === 'home' ? gameData.home_team : gameData.away_team)
-                            });
-
-                            if (outcome) {
-                                let currentSport = sports.find(arraySport => arraySport.name === gameData.sport_key)
-                                let sportSettings = currentSport.valueBetSettings?.find((setting) => setting.bookmaker === req.body.sportsbook)
-                                if (sportSettings !== undefined) {
-                                    let valueBetCheck = combinedCondition(gameData, outcome, sportSettings.settings.indexDiffSmallNum, sportSettings.settings.indexDiffRangeNum, sportSettings.settings.confidenceLowNum, sportSettings.settings.confidenceRangeNum)
-
-                                    if (valueBetCheck) {
-                                        valueGames.push(gameData)
-                                        let valuewagerDecOdds = outcome.price > 0 ? (parseFloat(outcome.price) / 100) + 1 : (-100 / parseFloat(outcome.price)) + 1
-                                        if (gameData.predictionCorrect === true) {
-                                            allTimeValueProfit += (valuewagerDecOdds * 1) - 1
-                                        } else if (gameData.predictionCorrect === false) {
-                                            allTimeValueProfit -= 1
-                                        }
-                                    }
-                                }
-
-                            }
-                            let wagerDecOdds = outcome.price > 0 ? (parseFloat(outcome.price) / 100) + 1 : (-100 / parseFloat(outcome.price)) + 1
-                            if (gameData.predictionCorrect === true) {
-                                allTimeProfit += (wagerDecOdds * 1) - 1
-                            } else if (gameData.predictionCorrect === false) {
-                                allTimeProfit -= 1
-                            }
-                        }
-                    })
-                } catch (err) {
-                    console.log(err)
-                }
                 data = {
-                    allTimeProfit: allTimeProfit,
-                    allTimeValueProfit: allTimeValueProfit,
                     odds: odds,
-                    valueGames: valueGames,
                     sports: sports,
-                    pastGames: pastGames
                 }
-                pastGames = []
                 odds = []
                 sports = []
-                valueGames = []
                 myCache.set('fullData', JSON.stringify(data), 60);
+
             } else {
                 data = JSON.parse(data)
             }
             return res.json(data)
-        } catch (err) {
-            return res.status(500).json({ message: err.message });
-        }
-    },
-
-    async getQuickOdds(req, res) {
-        try {
-            let odds = await Odds.findOne({ id: req.params.id });
-
-            // If no odds are found, search in pastGameOdds
-            if (!odds) {
-                odds = await PastGameOdds.findOne({ id: req.params.id });
-            }
-
-            // If still no odds are found, return a 404 error
-            if (!odds) {
-                return res.status(404).json({ message: 'Game odds not found' });
-            }
-
-            return res.json(odds);
         } catch (err) {
             return res.status(500).json({ message: err.message });
         }
@@ -160,16 +84,8 @@ module.exports = {
     },
 
     async getPastGames(req, res) {
-        const twoWeeks = new Date();
-        twoWeeks.setDate(twoWeeks.getDate() - 15);
-        twoWeeks.setHours(0, 0, 0, 0);  // Set time to midnight
-        const oneWeek = new Date();
-        oneWeek.setDate(oneWeek.getDate() - 7);
-        oneWeek.setHours(0, 0, 0, 0);  // Set time to midnight
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);  // Set time to midnight
         try {
-            pastGames = await PastGameOdds.find({ predictedWinner: {$exists: true} }).select('-homeTeamStats -awayTeamStats').sort({ commence_time: -1 });
+            pastGames = await PastGameOdds.find({ predictedWinner: { $exists: true } }).select('-homeTeamStats -awayTeamStats').sort({ commence_time: -1 });
             data = {
                 pastGames: pastGames
             }
@@ -181,64 +97,4 @@ module.exports = {
         }
     },
 
-    async getUpcomingMatchups(req, res) {
-        try {
-            let nextNFL = [], nextNCAAF = [], nextNHL = [], nextNBA = [], nextMLB = [];
-            const odds = await Odds.find({});
-            let sortedOdds = odds.sort((a, b) => moment(a.commence_time) - moment(b.commence_time));
-
-            // Check if team logos are in cache, if not fetch from DB
-            for (let game of sortedOdds) {
-                let homeTeam, awayTeam;
-
-                if (game.sport_title === 'NFL' && nextNFL.length < 3) {
-                    homeTeam = await UsaFootballTeam.findOne({ espnDisplayName: game.home_team });
-                    awayTeam = await UsaFootballTeam.findOne({ espnDisplayName: game.away_team });
-                    nextNFL.push({
-                        homeTeamLogo: homeTeam.logo,
-                        awayTeamLogo: awayTeam.logo
-                    });
-                } else if (game.sport_title === 'NCAAF' && nextNCAAF.length < 3) {
-                    homeTeam = await UsaFootballTeam.findOne({ espnDisplayName: game.home_team });
-                    awayTeam = await UsaFootballTeam.findOne({ espnDisplayName: game.away_team });
-                    nextNCAAF.push({
-                        homeTeamLogo: homeTeam.logo,
-                        awayTeamLogo: awayTeam.logo
-                    });
-                } else if (game.sport_title === 'NBA' && nextNBA.length < 3) {
-                    homeTeam = await BasketballTeam.findOne({ espnDisplayName: game.home_team });
-                    awayTeam = await BasketballTeam.findOne({ espnDisplayName: game.away_team });
-                    nextNBA.push({
-                        homeTeamLogo: homeTeam.logo,
-                        awayTeamLogo: awayTeam.logo
-                    });
-                } else if (game.sport_title === 'NHL' && nextNHL.length < 3) {
-                    homeTeam = await HockeyTeam.findOne({ espnDisplayName: game.home_team });
-                    awayTeam = await HockeyTeam.findOne({ espnDisplayName: game.away_team });
-                    nextNHL.push({
-                        homeTeamLogo: homeTeam.logo,
-                        awayTeamLogo: awayTeam.logo
-                    });
-                } else if (game.sport_title === 'MLB' && nextMLB.length < 3) {
-                    homeTeam = await BaseballTeam.findOne({ espnDisplayName: game.home_team });
-                    awayTeam = await BaseballTeam.findOne({ espnDisplayName: game.away_team });
-                    nextMLB.push({
-                        homeTeamLogo: homeTeam.logo,
-                        awayTeamLogo: awayTeam.logo
-                    });
-                }
-            }
-
-            let responseOBJ = {
-                nextNFLGames: nextNFL,
-                nextNCAAFGames: nextNCAAF,
-                nextNBAGames: nextNBA,
-                nextNHLGames: nextNHL,
-                nextMLBGames: nextMLB,
-            };
-            res.json(responseOBJ);
-        } catch (err) {
-            return res.status(500).json({ message: err.message });
-        }
-    }
 };
