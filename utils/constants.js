@@ -1,4 +1,6 @@
 const {getDynamicStatYear} = require('./helperFunctions/dataHelpers/dataSanitizers')
+const nodemailer = require('nodemailer');
+require('dotenv').config();
 
 const sports = [
     {
@@ -100,6 +102,17 @@ const indexCondition = (game, indexDifSmall, indexDiffRange) => {
      && strengthCondition(game, confidenceLow, confidenceRange)
   };
   
+  const transporter = nodemailer.createTransport({
+    service: 'Gmail', // or your SMTP provider
+    auth: {
+      type: 'OAuth2',
+      user: process.env.NODEMAILER_SENDER, // Your email address
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      refreshToken: process.env.GOOGLE_REFRESH_TOKEN,
+    },
+  });
 
 
-module.exports = {sports, combinedCondition}
+
+module.exports = {sports, combinedCondition, transporter}

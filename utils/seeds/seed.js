@@ -11,6 +11,7 @@ const { indexAdjuster, pastGamesReIndex } = require('../helperFunctions/mlModelF
 const { predictions, trainSportModelKFold } = require('../helperFunctions/mlModelFuncs/trainingHelpers')
 const { hyperparameterRandSearch, valueBetGridSearch } = require('../helperFunctions/mlModelFuncs/searchHelpers');
 const { normalizeTeamName } = require('../helperFunctions/dataHelpers/dataSanitizers')
+const { transporter } = require('../constants')
 
 // Suppress TensorFlow.js logging
 process.env.TF_CPP_MIN_LOG_LEVEL = '3'; // Suppress logs
@@ -29,29 +30,89 @@ const mlModelTrainSeed = async () => {
     console.log("DB CONNECTED ------------------------------------------------- STARTING ML SEED")
     const sports = await Sport.find({})
     const odds = await Odds.find()
-    for(let sport of sports) {
-        // retrieve upcoming games
-        let upcomingGames = odds.filter((game) => game.sport_key === sport.name)
-        // Multi-year sports (e.g., NFL, NBA, NHL, etc.)
-        if (upcomingGames.length > 0) {
-            let pastGames = await PastGameOdds.find({ sport_key: sport.name }).sort({ commence_time: -1 })
-            if (pastGames.length > 10) {
-                console.log(`${sport.name} ML STARTING @ ${moment().format('HH:mm:ss')}`)
-                await trainSportModelKFold(sport, pastGames)
-            } else {
-                console.log(`NOT ENOUGH ${sport.name} DATA`)
-            }
-            console.log(`${sport.name} ML DONE @ ${moment().format('HH:mm:ss')}`)
-        } else {
-            console.log(`${sport.name} NOT IN SEASON`)
-        }
+    // for (let sport of sports) {
+    //     // retrieve upcoming games
+    //     let upcomingGames = odds.filter((game) => game.sport_key === sport.name)
+    //     // Multi-year sports (e.g., NFL, NBA, NHL, etc.)
+    //     if (upcomingGames.length > 0) {
+    //         let pastGames = await PastGameOdds.find({ sport_key: sport.name }).sort({ commence_time: -1 })
+    //         if (pastGames.length > 10) {
+    //             console.log(`${sport.name} ML STARTING @ ${moment().format('HH:mm:ss')}`)
+    //             await trainSportModelKFold(sport, pastGames)
+    //         } else {
+    //             console.log(`NOT ENOUGH ${sport.name} DATA`)
+    //         }
+    //         console.log(`${sport.name} ML DONE @ ${moment().format('HH:mm:ss')}`)
+    //     } else {
+    //         console.log(`${sport.name} NOT IN SEASON`)
+    //     }
 
-    }
-    if (global.gc) global.gc();
-    upcomingGames = []
-    pastGames = []
-    await pastGamesReIndex()
-    await valueBetGridSearch(sports)
+    // }
+    // if (global.gc) global.gc();
+    // upcomingGames = []
+    // pastGames = []
+    // await pastGamesReIndex()
+    // await valueBetGridSearch(sports)
+    const currentDate = new Date();
+    const yesterday = new Date(currentDate);
+    yesterday.setDate(currentDate.getDate() - 1);
+    yesterday.setHours(0, 0, 0, 0);
+    let yesterdayGames = await PastGameOdds.find({ commence_time: { $gte: yesterday } })
+    const stats = {
+        date: new Date().toLocaleDateString(),
+        totalPredictions: yesterdayGames.length,
+        wins: yesterdayGames.filter((game) => game.predictionCorrect === true).length,
+        losses: yesterdayGames.filter((game) => game.predictionCorrect === false).length,
+        //TODO ADD SPORTS BREAKDOWN STATS
+        //TODO ADD BIGGEST WIN
+    };
+
+    const html = `
+        <h2>📊 Daily Sports Prediction Report - ${stats.date}</h2>
+        <p>This is your automated status report. App is running (PM2 active).</p>
+        <hr />
+        <h3>🏁 Overall Summary</h3>
+        <ul>
+          <li>Total Predictions: <strong>${stats.totalPredictions}</strong></li>
+          <li>Wins: <strong style="color:green">${stats.wins}</strong></li>
+          <li>Losses: <strong style="color:red">${stats.losses}</strong></li>
+          <li>Win Rate: <strong>${((stats.wins / stats.totalPredictions) * 100).toFixed(1)}%</strong></li>
+        </ul>
+      
+        <hr />
+        <p style="color:gray;font-size:0.9em;">App check-in via PM2 successful — ${new Date().toLocaleTimeString()}</p>
+      `;
+
+    //   <h3>🏀 Wins by Sport</h3>
+    //   <table border="1" cellpadding="5" cellspacing="0" style="border-collapse:collapse;">
+    //     <tr><th>Sport</th><th>Wins</th><th>Losses</th></tr>
+    //     ${Object.entries(stats.sportsBreakdown).map(([sport, {wins, losses}]) => `
+    //       <tr>
+    //         <td>${sport}</td>
+    //         <td style="color:green">${wins}</td>
+    //         <td style="color:red">${losses}</td>
+    //       </tr>
+    //     `).join('')}
+    //   </table>
+
+    //   <h3>💥 Biggest Win</h3>
+    //   <p>
+    //     <strong>${stats.biggestWin.matchup}</strong> (${stats.biggestWin.sport}) <br />
+    //     Odds: ${stats.biggestWin.odds} <br />
+    //     Result: <strong style="color:green">${stats.biggestWin.result}</strong>
+    //   </p>
+
+    const mailOptions = {
+        from: '"SportsBot" betterbetsApp@gmail.com',
+        to: process.env.NODEMAILER_RECIPIENT,
+        subject: `Daily Sports Report - ${stats.date}`,
+        html,
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+
+    console.log("Message sent:", info.messageId);
+
     if (global.gc) global.gc();
 }
 
@@ -492,14 +553,14 @@ const oddsSeed = async () => {
                                                                         arrayFilters: [
                                                                             { 'bookmaker.key': bookmaker.key }, // Match bookmaker by key
                                                                             { 'market.key': market.key }, // Match market by key
-                                                                            { 'outcome.name': outcome.name} // Match outcome by its _id
+                                                                            { 'outcome.name': outcome.name } // Match outcome by its _id
                                                                         ]
                                                                     }
                                                                 );
                                                             } catch (err) {
                                                                 console.log(err)
                                                             }
-                                
+
                                                         } else {
                                                             try {
                                                                 await Odds.findOneAndUpdate(
@@ -520,7 +581,7 @@ const oddsSeed = async () => {
                                                             } catch (err) {
                                                                 console.log(err)
                                                             }
-                                
+
                                                         }
                                                     }));
                                                 }));
@@ -571,14 +632,14 @@ const oddsSeed = async () => {
                                                                     arrayFilters: [
                                                                         { 'bookmaker.key': bookmaker.key }, // Match bookmaker by key
                                                                         { 'market.key': market.key }, // Match market by key
-                                                                        { 'outcome.name': outcome.name} // Match outcome by its _id
+                                                                        { 'outcome.name': outcome.name } // Match outcome by its _id
                                                                     ]
                                                                 }
                                                             );
                                                         } catch (err) {
                                                             console.log(err)
                                                         }
-                            
+
                                                     } else {
                                                         try {
                                                             await Odds.findOneAndUpdate(
@@ -599,7 +660,7 @@ const oddsSeed = async () => {
                                                         } catch (err) {
                                                             console.log(err)
                                                         }
-                            
+
                                                     }
                                                 }));
                                             }));
@@ -633,7 +694,7 @@ const oddsSeed = async () => {
         }
         return false;
     }));
-    const allPastGames = await PastGameOdds.find({predictionCorrect: { $exists: true }}).sort({ commence_time: -1 })
+    const allPastGames = await PastGameOdds.find({ predictionCorrect: { $exists: true } }).sort({ commence_time: -1 })
 
     for (const sport of sports) {
         const currentDate = new Date();
@@ -685,7 +746,7 @@ const removeSeed = async () => {
     await removePastGames(currentOdds);
     currentOdds = await Odds.find({}).sort({ commence_time: 1, winPercent: 1 });
     let pastOdds = await PastGameOdds.find({
-        commence_time: { $gte: today}
+        commence_time: { $gte: today }
     }).sort({ commence_time: -1, winPercent: 1 });
     await emitToClients('gameUpdate', currentOdds);
     await emitToClients('pastGameUpdate', pastOdds);
