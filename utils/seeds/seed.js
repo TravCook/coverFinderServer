@@ -103,7 +103,7 @@ const mlModelTrainSeed = async () => {
     //   </p>
 
     const mailOptions = {
-        from: '"SportsBot" betterbetsApp@gmail.com',
+        from: '"BetterBetsAPI" betterbetsApp@gmail.com',
         to: process.env.NODEMAILER_RECIPIENT,
         subject: `Daily Sports Report - ${stats.date}`,
         html,
