@@ -52,7 +52,7 @@ const cronJobs = [
     timezone
   },
   {
-    cronTime: '0 0 0 * * 1-6', //once a day at midnight, not sunday -- train ML model to past games
+    cronTime: '0 0 0 * * 1-7', //once a day at midnight, not sunday -- train ML model to past games
     onTick: dataSeed.mlModelTrainSeed,
     timezone
   },
