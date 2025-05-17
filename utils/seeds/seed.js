@@ -30,29 +30,29 @@ const mlModelTrainSeed = async () => {
     console.log("DB CONNECTED ------------------------------------------------- STARTING ML SEED")
     const sports = await Sport.find({})
     const odds = await Odds.find()
-    // for (let sport of sports) {
-    //     // retrieve upcoming games
-    //     let upcomingGames = odds.filter((game) => game.sport_key === sport.name)
-    //     // Multi-year sports (e.g., NFL, NBA, NHL, etc.)
-    //     if (upcomingGames.length > 0) {
-    //         let pastGames = await PastGameOdds.find({ sport_key: sport.name }).sort({ commence_time: -1 })
-    //         if (pastGames.length > 10) {
-    //             console.log(`${sport.name} ML STARTING @ ${moment().format('HH:mm:ss')}`)
-    //             await trainSportModelKFold(sport, pastGames)
-    //         } else {
-    //             console.log(`NOT ENOUGH ${sport.name} DATA`)
-    //         }
-    //         console.log(`${sport.name} ML DONE @ ${moment().format('HH:mm:ss')}`)
-    //     } else {
-    //         console.log(`${sport.name} NOT IN SEASON`)
-    //     }
+    for (let sport of sports) {
+        // retrieve upcoming games
+        let upcomingGames = odds.filter((game) => game.sport_key === sport.name)
+        // Multi-year sports (e.g., NFL, NBA, NHL, etc.)
+        if (upcomingGames.length > 0) {
+            let pastGames = await PastGameOdds.find({ sport_key: sport.name }).sort({ commence_time: -1 })
+            if (pastGames.length > 10) {
+                console.log(`${sport.name} ML STARTING @ ${moment().format('HH:mm:ss')}`)
+                await trainSportModelKFold(sport, pastGames)
+            } else {
+                console.log(`NOT ENOUGH ${sport.name} DATA`)
+            }
+            console.log(`${sport.name} ML DONE @ ${moment().format('HH:mm:ss')}`)
+        } else {
+            console.log(`${sport.name} NOT IN SEASON`)
+        }
 
-    // }
-    // if (global.gc) global.gc();
-    // upcomingGames = []
-    // pastGames = []
-    // await pastGamesReIndex()
-    // await valueBetGridSearch(sports)
+    }
+    if (global.gc) global.gc();
+    upcomingGames = []
+    pastGames = []
+    await pastGamesReIndex()
+    await valueBetGridSearch(sports)
     const currentDate = new Date();
     const yesterday = new Date(currentDate);
     yesterday.setDate(currentDate.getDate() - 1);
