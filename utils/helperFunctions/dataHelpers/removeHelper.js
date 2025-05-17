@@ -82,7 +82,7 @@ const removePastGames = async (currentOdds) => {
                     const event = homeTeamSchedJSON.events.find((event) => (event.name === `${awayTeam.espnDisplayName} at ${homeTeam.espnDisplayName}`
                         || event.shortName === `${awayTeam.abbreviation} @ ${homeTeam.abbreviation}`
                         || event.shortName === `${homeTeam.abbreviation} VS ${awayTeam.abbreviation}`)
-                        &&  Math.abs(moment(event.date).diff(gameTime, 'minutes')) <= 60)
+                        &&  Math.abs(moment(event.date).diff(gameTime, 'minutes')) <= 90)
                     if (event) {
                         if (event.competitions[0].status.type.completed === true) {
                             let homeScore, awayScore, predictionCorrect, winner
@@ -148,7 +148,7 @@ const removePastGames = async (currentOdds) => {
                             let currentScoreboard = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${game.sport}/${homeTeam.league}/scoreboard`)
                             let scoreboardJSON = await currentScoreboard.json()
                             for (let SBevent of scoreboardJSON.events) {
-                                if ( Math.abs(moment(event.date).diff(gameTime, 'minutes')) <= 60 && (SBevent.name === `${game.away_team} at ${game.home_team}` || SBevent.shortName === `${awayTeam.abbreviation} @ ${homeTeam.abbreviation}`)) {
+                                if ( Math.abs(moment(event.date).diff(gameTime, 'minutes')) <= 90 && (SBevent.name === `${game.away_team} at ${game.home_team}` || SBevent.shortName === `${awayTeam.abbreviation} @ ${homeTeam.abbreviation}`)) {
                                     // Determine the scores and winner
                                     SBevent.competitions[0].competitors.forEach((team) => {
                                         if (team.homeAway === 'home') {
