@@ -795,13 +795,12 @@ function calculateFeatureImportance(inputToHiddenWeights, hiddenToOutputWeights)
 }
 
 
-const trainSportModelKFold = async (sport, gameData) => {
+const trainSportModelKFold = async (sport, gameData, search) => {
     currentOdds = await Odds.find({ sport_key: sport.name }).sort({ commence_time: -1 }) //USE THIS TO POPULATE UPCOMING GAME ODDS
     const numFolds = sport.hyperParameters.KFolds;  // Number of folds (you can adjust based on your data)
     const foldSize = Math.floor(gameData.length / numFolds);  // Size of each fold
     const bar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
     
-
     let allFolds = [];
 
     // Split gameData into `numFolds` folds
@@ -871,7 +870,8 @@ const trainSportModelKFold = async (sport, gameData) => {
             console.log('Done!');
         }
     }
-    await predictions(currentOdds, [], finalModel, sport)
+    if(!search) await predictions(currentOdds, [], finalModel, sport)
+    
     // After all folds, calculate and log the overall performance
     const avgF1Score = foldResults.reduce((sum, fold) => sum + fold.f1Score, 0) / foldResults.length;
     const totalTruePositives = foldResults.reduce((sum, fold) => sum + fold.truePositives, 0)
@@ -880,7 +880,7 @@ const trainSportModelKFold = async (sport, gameData) => {
     const totalFalseNegatives = foldResults.reduce((sum, fold) => sum + fold.falseNegatives, 0)
 
     console.log(`--- Overall Performance Avg F1-Score: ${avgF1Score} ---`);
-
+    if(search) return avgF1Score
     console.log(`truePositives: ${totalTruePositives}`);
     console.log(`falsePositives: ${totalFalsePositives}`);
     console.log(`falseNegatives: ${totalFalseNegatives}`);

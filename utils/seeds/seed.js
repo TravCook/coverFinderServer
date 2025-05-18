@@ -893,10 +893,10 @@ const espnSeed = async () => {
 
 //TAKES ABOUT 1 HOUR
 const paramAndValueSeed = async () => {
-    const sports = await Sport.find({})
-    await valueBetGridSearch(sports)
-    if (global.gc) global.gc();
-    // await hyperparameterRandSearch(sports)
+    const sports = await Sport.find({}).sort({name: 1}).lean()
+    // await valueBetGridSearch(sports)
+    // if (global.gc) global.gc();
+    await hyperparameterRandSearch(sports)
     if (global.gc) global.gc();
 }
 

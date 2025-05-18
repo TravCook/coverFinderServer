@@ -19,108 +19,44 @@ const hyperparameterRandSearch = async (sports) => {
     // const layerNeurons = [16, 32, 64, 128, 256, 512, 1000]
 
     const paramSpace = {
-        learningRates: [.00001, .0001, .001, .01, .1],
-        batchSizes: [16, 32, 64, 128, 256],
-        epochs: [10, 50, 100, 200],
-        l2Regs: [.00001, .0001, .001, .01, .1],
-        dropoutRegs: [.2, .25, .3, .35, .4, .45, .5],
-        hiddenLayers: [2, 3, 4, 5, 6, 7, 8, 9, 10],
-        kernalInitializers: ['glorotNormal', 'glorotUniform', 'heNormal', 'heUniform'],
-        numKFolds: [2, 3, 4, 5, 6, 7, 8, 9, 10],
-        layerNeurons: [16, 32, 64, 128, 256, 512, 1000],
-        decayFactors: [1, .75, .5, .25],
-        gameDecayThresholds: [10, 50, 100, 250]
+        //ALL REAL VALUES FOR HYPERPARAMS -- UNTESTABLE FOR NOW
+        // learningRate: [.00001, .0001, .001, .01, .1],             
+        // hiddenLayerNum: [2, 3, 4, 5, 6, 7, 8, 9, 10],                    
+        // layerNeurons: [16, 32, 64, 128, 256, 512, 1000],                 
+        // kernalInitializer: ['glorotNormal', 'heNormal', 'heUniform', 'glorotNormal'],
+        // batchSize: [16, 32, 64, 128, 256],                     
+        // l2Reg: [.00001, .0001, .001, .01, .1],                       
+        // dropoutReg: [.2, .25, .3, .35, .4, .45, .5],                
+        // KFolds: [2, 3, 4, 5, 6, 7, 8, 9, 10],                            
+        // epochs: [10, 50, 100, 200],                            
+        // decayFactor: [1, .75, .5, .25],
+        // gameDecayThreshold: [10, 50, 100, 250]
+        //TRIMMED VALUES FOR BASELINE HYPERPARAMS
+        learningRate: [0.001, 0.01, 0.1],             
+        batchSize: [32, 64, 128],                     
+        epochs: [50, 100],                            
+        l2Reg: [0.0001, 0.001],                       
+        dropoutReg: [0.25, 0.3, 0.35],                
+        hiddenLayerNum: [4, 6, 8],                    
+        kernalInitializer: ['glorotNormal', 'heNormal'], 
+        KFolds: [5],                                  
+        layerNeurons: [64, 128, 256],                 
+        decayFactor: [1, 0.75],                       
+        gameDecayThreshold: [10, 50, 100]                     
     }
 
-    const createModel = async (learningRate, batchSize, epochs, l2Reg, dropoutReg, hiddenLayerNum, kernalinitializer, numKFolds, layerNeurons, xs) => {
-        const model = tf.sequential()
-        const l2Regularizer = tf.regularizers.l2({ l2: l2Reg });  // Adjust the value to suit your needs
-        model.add(tf.layers.dense({ units: xs[0].length, inputShape: [xs[0].length], activation: 'relu', kernelInitializer: kernalinitializer, kernelRegularizer: l2Regularizer, biasInitializer: 'zeros' }));
-        for (i = 0; i < hiddenLayerNum; i++) {
-            model.add(tf.layers.dense({ units: layerNeurons, activation: 'relu', kernelInitializer: kernalinitializer, kernelRegularizer: l2Regularizer, biasInitializer: 'zeros' }));
-            model.add(tf.layers.dropout({ rate: dropoutReg }));
-        }
-        model.add(tf.layers.dense({ units: 1, activation: 'sigmoid', kernelInitializer: kernalinitializer, kernelRegularizer: l2Regularizer, biasInitializer: 'zeros' }));
-
-        model.compile({
-            optimizer: tf.train.adam(learningRate),
-            loss: 'binaryCrossentropy',
-            metrics: ['accuracy']
-        });
-
-        return model
-    }
-
-    // Function to split data into k folds
-    function getKFoldData(k, data) {
-        const folds = [];
-        const foldSize = Math.floor(data.length / k);
-
-        for (let i = 0; i < k; i++) {
-            const start = i * foldSize;
-            const end = (i + 1) * foldSize;
-            const fold = data.slice(start, end); // Get the i-th fold
-            folds.push(fold);
-        }
-
-        return folds;
-    }
-
-    // Function to perform training and validation on each fold
-    async function trainAndEvaluateKFold(model, k, X_train, y_train, epoch, batchSize) {
-        const xArray = X_train.arraySync();  // Convert tensor to array
-        const yArray = y_train.arraySync();  // Convert tensor to array
-
-
-        const folds = getKFoldData(k, xArray);
-        let foldAccuracies = [];
-
-        for (let i = 0; i < k; i++) {
-            const valFold = folds[i];
-            const trainFolds = [...folds.slice(0, i), ...folds.slice(i + 1)].flat(); // Combine the remaining folds for training
-
-            // Split into inputs and targets for this fold
-            const [X_train_fold, y_train_fold] = [trainFolds.map(d => d[0]), trainFolds.map(d => d[1])];
-            const [X_val_fold, y_val_fold] = [valFold.map(d => d[0]), valFold.map(d => d[1])];
-
-            console.log(model)
-
-
-            // Evaluate the model performance on the validation fold
-            const evalResult = model.evaluate(X_val_fold, y_val_fold);
-            const accuracy = evalResult[1].dataSync()[0]; // Get the accuracy score
-            foldAccuracies.push(accuracy);
-        }
-
-        // Return the average accuracy across all folds
-        const avgAccuracy = foldAccuracies.reduce((a, b) => a + b, 0) / foldAccuracies.length;
-        return avgAccuracy;
-    }
-    const currentDate = new Date();
-    const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11, so we add 1 to make it 1-12
-
+    let upcomingGames = await Odds.find()
 
     for (let sport of sports) {
-        let bestAccuracy = 0;
-        let bestParams = {
-            epochs: 10,
-            batchSize: 16,
-            KFolds: 2,
-            hiddenLayerNum: 2,
-            learningRate: .00001,
-            l2Reg: .00001,
-            dropoutReg: .2,
-            layerNeurons: 16,
-            kernalInitializer: 'glorotNormal',
-            decayFactor: 1,
-            gameDecayThreshold: 10
-        };
-        console.log(`--------------- ${sport.name}-------------------`)
-        let gameData = await PastGameOdds.find({ sport_key: sport.name })
-        let upcomingGames = await Odds.find({ sport_key: sport.name })
-        if (gameData.length > 0 && upcomingGames.length > 0) {
-
-            for (let iterations = 0; iterations < 100; iterations++) {
+        let bestAccuracy= 0
+        let bestParams = {}
+        console.log(`--------------- ${sport.name} @ ${moment().format('HH:mm:ss')}-------------------`)
+        let gameData = await PastGameOdds.find({ sport_key: sport.name }).sort({ commence_time: -1 })
+        let sportGames = upcomingGames.filter((game) => game.sport_key === sport.name)
+        console.log(`Upcoming Games: ${sportGames.length}`)
+        if (gameData.length > 0 && sportGames.length > 0) {
+            // 1296
+            for (let iterations = 0; iterations < 10; iterations++) {
                 let currentParams = {}
 
                 for (const param in paramSpace) {
@@ -130,140 +66,27 @@ const hyperparameterRandSearch = async (sports) => {
                     currentParams[param] = values[randomIndex]
                 }
 
-
-
-
-
-                function decayCalcByGames(gamesProcessed, decayFactor) { //FOR USE TO DECAY BY GAMES PROCESSED
-                    // Full strength for the last 25 games
-                    const gamesDecayThreshold = currentParams.gameDecayThresholds;
-                    if (gamesProcessed <= gamesDecayThreshold) {
-                        return 1; // No decay for the most recent 25 games
-                    } else {
-                        // Apply decay based on the number of games processed
-                        const decayFactorAdjusted = decayFactor;  // Use a default decay factor if none is provided
-                        const decayAmount = Math.pow(decayFactorAdjusted, (gamesProcessed - gamesDecayThreshold));
-                        return decayAmount;  // Decay decreases as the games processed increases
-                    }
+                let testSport = {
+                    ...sport,
+                    hyperParameters: currentParams
                 }
-                let xs = []
-                let ys = []
-                let gamesProcessed = 0; // Track how many games have been processed
-                // FOR USE TO DECAY BY GAMES PROCESSED
-                gameData.forEach(game => {
-                    const homeStats = game.homeTeamStats;
-                    const awayStats = game.awayTeamStats;
 
-                    // Extract features based on sport
-                    let features = extractSportFeatures(homeStats, awayStats, sport.name);
-                    // Calculate decay based on the number of games processed
-                    const decayWeight = decayCalcByGames(gamesProcessed, currentParams.decayFactors);  // get the decay weight based on gamesProcessed
-
-                    // Apply decay to each feature
-                    features = features.map(feature => feature * decayWeight);
-
-                    // Set label to 1 if home team wins, 0 if away team wins
-                    const correctPrediction = game.winner === 'home' ? 1 : 0;
-                    checkNaNValues(features, game);  // Check features
-
-                    xs.push(features);
-                    ys.push(correctPrediction);
-
-                    gamesProcessed++;  // Increment the counter for games processed
-                });
-                // Function to calculate dynamic class weights
-                const calculateClassWeights = (ys) => {
-
-                    const homeWins = ys.filter(y => y === 1).length;   // Count the home wins (ys = 1)
-                    const homeLosses = ys.filter(y => y === 0).length; // Count the home losses (ys = 0)
-
-
-                    const totalExamples = homeWins + homeLosses;
-                    const classWeightWin = totalExamples / (2 * homeWins);   // Weight for home wins
-                    const classWeightLoss = totalExamples / (2 * homeLosses); // Weight for home losses
-
-                    return {
-                        0: classWeightLoss, // Weight for home losses
-                        1: classWeightWin   // Weight for home wins
-                    };
-                };
-
-                // Convert arrays to tensors
-                const xsTensor = tf.tensor2d(xs);
-
-                const ysTensor = tf.tensor2d(ys, [ys.length, 1]);
-
-                // Flatten ysTensor to convert it to a 1D array
-                const ysArray = await ysTensor.reshape([-1]).array();
-                // Dynamically calculate class weights
-                const classWeights = calculateClassWeights(ysArray);
-
-                // Create a fresh model for each hyperparameter combination
-                const model = await createModel(currentParams.learningRates, currentParams.batchSizes, currentParams.epochs, currentParams.l2Regs, currentParams.dropoutRegs, currentParams.hiddenLayerNums, currentParams.kernalInitializers, currentParams.numKFolds, currentParams.layerNeurons, xs);
-                // Perform K-Fold cross-validation with this hyperparameter combination
-                //const avgAccuracy = await trainAndEvaluateKFold(model, KFolds, xsTensor, ysTensor, epoch, batchSize); // 5-fold cross-validation
-                // Train the model on the current fold
-                await model.fit(xsTensor, ysTensor, {
-                    epochs: currentParams.epoch, // Example epochs, you should set this dynamically
-                    batchSize: currentParams.batchSize, // Example batch size, you should set this dynamically
-                    validationSplit: 0.3,
-                    classWeight: classWeights,
-                    verbose: false,
-                    shuffle: false,
-                });
-                const evaluation = model.evaluate(xsTensor, ysTensor);
-                const loss = evaluation[0].arraySync();
-                const accuracy = evaluation[1].arraySync();
-                // Now, calculate precision, recall, and F1-score
-
-                const metrics = evaluateMetrics(ysTensor, model.predict(xsTensor, { training: false }));
-
-                // // Track the best performing hyperparameters based on k-fold cross-validation
-                if (metrics.f1Score > bestAccuracy) {
-                    bestAccuracy = metrics.f1Score;
-                    bestParams = {
-                        bestAccuracy: metrics.f1Score,
-                        epochs: currentParams.epochs,
-                        batchSize: currentParams.batchSizes,
-                        KFolds: currentParams.numKFolds,
-                        hiddenLayerNum: currentParams.hiddenLayers,
-                        learningRate: currentParams.learningRates,
-                        l2Reg: currentParams.l2Regs,
-                        dropoutReg: currentParams.dropoutRegs,
-                        kernalInitializer: currentParams.kernalInitializers,
-                        layerNeurons: currentParams.layerNeurons,
-                        decayFactor: currentParams.decayFactors,
-                        gameDecayThreshold: currentParams.gameDecayThresholds
-                    };
+                // console.log(testSport)
+                let avgF1Score = await trainSportModelKFold(testSport, gameData, true)
+                console.log(avgF1Score)
+                if(avgF1Score > bestAccuracy) {
+                    bestAccuracy = avgF1Score
+                    bestParams = currentParams
                 }
 
             }
-            console.log('Best Hyperparameters:', bestParams);
-            console.log('Best Cross-Validation Accuracy:', bestAccuracy);
-            let currentSport = await Sport.findOne({ name: sport.name })
-
-            let accuracyComparison = currentSport?.hyperParameters?.bestAccuracy || 0
-
+            let accuracyComparison = sport?.hyperParameters?.bestAccuracy || 0
+            console.log('Current Accuracy:', accuracyComparison);
+            console.log('Best Accuracy:', bestAccuracy);
             if (bestAccuracy > accuracyComparison) {
                 await Sport.findOneAndUpdate({ name: sport.name }, {
-                    ...sport,
                     hyperParameters: bestParams
                 }, { upsert: true })
-
-                try {
-
-                    currentSport = await Sport.findOne({ name: sport.name })
-                    const pastGames = await PastGameOdds.find({ sport_key: currentSport.name }).sort({ commence_time: -1 })
-                    await trainSportModelKFold(currentSport, pastGames)
-                    console.log('Model Retrained Successfully');
-
-                    const sportWeightDB = await Weights.findOne({ league: sport.name })
-                    let weightArray = sportWeightDB?.featureImportanceScores
-                    await indexAdjuster(pastGames, sport, pastGames, weightArray, true)
-                    console.log('Past Games Re-Indexed');
-                } catch (err) {
-                    console.error('Error deleting file:', err);
-                }
             }
 
         }
@@ -307,9 +130,9 @@ const valueBetGridSearch = async (sports) => {
             // Parallelize across sportsbooks
             for (const sportsbook of sportsbooks) {
                 let sportsbookSettings = sport.valueBetSettings?.find((setting) => setting.bookmaker === sportsbook)
-                let storeCI = 
+                let storeCI =
                     // sportsbookSettings?.settings.bestConfidenceInterval ||
-                     { lower: 0, upper: 0 }
+                    { lower: 0, upper: 0 }
                 let finalSettings = {
                     bookmaker: sportsbook,
                     settings: {
@@ -374,7 +197,7 @@ const valueBetGridSearch = async (sports) => {
                                 let newCI
 
                                 if (totalGames.length > 10) {
-                                    
+
                                     newCI = calculateConfidenceInterval(winRate, totalGames.length, 90);
                                     const SEPARATION_THRESHOLD = 0.02; // 2% gap
                                     const MAX_CI_WIDTH = 0.15; // Maximum allowable CI width (15%)
@@ -455,11 +278,11 @@ const valueBetGridSearch = async (sports) => {
                         }
                     }
                 }
-                if(sportsbook === 'fanduel'){
+                if (sportsbook === 'fanduel') {
                     console.log(sport.name)
                     console.log('New Best Settings: ', finalSettings)
                 }
-                
+
             };
         }
     }

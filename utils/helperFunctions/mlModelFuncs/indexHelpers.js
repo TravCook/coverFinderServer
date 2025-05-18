@@ -515,7 +515,9 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
 
     if (past === true) {
         currentOdds = await PastGameOdds.find(
-            { sport_key: sport.name },
+            { sport_key: sport.name,
+            predictedWinner: { $exists: true },
+             },
             { homeTeamIndex: 1, awayTeamIndex: 1, commence_time: 1, id: 1, sport_key: 1 }
         ).sort({ commence_time: 1 })
         
