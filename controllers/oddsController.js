@@ -51,15 +51,21 @@ async function getCachedOdds(cacheKey, query, filterDays = 30) {
 
 module.exports = {
     async getAllOdds(req, res) {
+        let sevenDaysAgo = new Date()
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+        sevenDaysAgo.setHours(0, 0, 0, 0)
+
         try {
             let data = myCache.get('fullData'); // Check cache first
             if (data === undefined) {
                 let sports = await Sport.find({}).sort({ name: 1 })
                 let odds = await Odds.find({}).sort({ commence_time: 1, winPercent: 1 })
+                let pastGames = await PastGameOdds.find({ predictedWinner: { $exists: true }, commence_time: {$gte: sevenDaysAgo} }).select('-homeTeamStats -awayTeamStats').sort({ commence_time: -1 });
 
                 data = {
                     odds: odds,
                     sports: sports,
+                    pastGames: pastGames
                 }
                 odds = []
                 sports = []
