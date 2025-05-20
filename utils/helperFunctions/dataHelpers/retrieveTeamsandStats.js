@@ -583,7 +583,7 @@ const retrieveTeamsandStats = async (sports) => {
             teams = []
         }
     }
-
+    sportGames = null
     console.log(`Finished TEAM SEEDING @ ${moment().format('HH:mm:ss')}`)
 }
 const getCommonStats = (team) => ({
