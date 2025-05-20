@@ -1,34 +1,24 @@
 const moment = require('moment')
-const { Odds, PastGameOdds, UsaFootballTeam, BasketballTeam, BaseballTeam, HockeyTeam, Sport, Weights } = require('../../../models');
-const { extractSportFeatures, trainSportModelKFold, handleSportWeights, evaluateMetrics, trainSportModel } = require('../../helperFunctions/mlModelFuncs/trainingHelpers')
-const { indexAdjuster } = require('../../helperFunctions/mlModelFuncs/indexHelpers')
-const { normalizeTeamName, checkNaNValues } = require('../../helperFunctions/dataHelpers/dataSanitizers')
-const fs = require('fs')
-const tf = require('@tensorflow/tfjs-node');
+const { Odds, PastGameOdds, Sport } = require('../../../models');
+const { trainSportModelKFold } = require('../../helperFunctions/mlModelFuncs/trainingHelpers')
+const fs = require('fs');
+
 // TODO:COMBINE THIS RANDOM SEARCH WITH VALUE BET RANDOM SEARCH TO RUN ONCE A WEEK TO DETERMINE OPTIMAL SETTINGS
 const hyperparameterRandSearch = async (sports) => {
     console.log(`STARTING HYPERPARAM SEARCH @ ${moment().format('HH:mm:ss')}`)
-    // const learningRates = [.00001, .0001, .001, .01, .1]
-    // const batchSizes = [16, 32, 64, 128, 256]
-    // const epochs = [10, 50, 100, 200]
-    // const l2Regs = [.00001, .0001, .001, .01, .1]
-    // const dropoutRegs = [.2, .25, .3, .35, .4, .45, .5]
-    // const hiddenLayers = [2, 3, 4, 5, 6, 7, 8, 9, 10]
-    // const kernalInitializers = ['glorotNormal', 'glorotUniform', 'heNormal', 'heUniform']
-    // const numKFolds = [2, 3, 4, 5, 6, 7, 8, 9, 10]
-    // const layerNeurons = [16, 32, 64, 128, 256, 512, 1000]
+
 
     const paramSpace = {
         //ALL REAL VALUES FOR HYPERPARAMS -- UNTESTABLE FOR NOW
-        // learningRate: [.00001, .0001, .001, .01, .1],             
-        // hiddenLayerNum: [2, 3, 4, 5, 6, 7, 8, 9, 10],                    
-        // layerNeurons: [16, 32, 64, 128, 256, 512, 1000],                 
-        // kernalInitializer: ['glorotNormal', 'heNormal', 'heUniform', 'glorotNormal'],
-        // batchSize: [16, 32, 64, 128, 256],                     
-        // l2Reg: [.00001, .0001, .001, .01, .1],                       
-        // dropoutReg: [.2, .25, .3, .35, .4, .45, .5],                
-        // KFolds: [2, 3, 4, 5, 6, 7, 8, 9, 10],                            
-        // epochs: [10, 50, 100, 200],                            
+        // learningRate: [.00001, .0001, .001, .01, .1],  
+        // batchSize: [32, 64, 128],  
+        // epochs: [50, 100, 200],   
+        // l2Reg: [.00001, .0001, .001, .01, .1],
+        // dropoutReg: [.2, .25, .3, .35, .4, .45, .5],       
+        // hiddenLayerNum: [4, 6, 8, 10],
+        // kernalInitializer: ['glorotNormal', 'heNormal', 'heUniform', 'glorotNormal'],   
+        // KFolds: [2, 5, 8, 10],                  
+        // layerNeurons: [64, 128, 256],                                        
         // decayFactor: [1, .75, .5, .25],
         // gameDecayThreshold: [10, 50, 100, 250]
         //TRIMMED VALUES FOR BASELINE HYPERPARAMS
@@ -87,6 +77,10 @@ const hyperparameterRandSearch = async (sports) => {
                 await Sport.findOneAndUpdate({ name: sport.name }, {
                     hyperParameters: bestParams
                 }, { upsert: true })
+
+                const modelDir = `./model_checkpoint/${sport.name}_model`;
+
+                fs.rmdirSync(modelDir, { recursive: true });
             }
 
         }
