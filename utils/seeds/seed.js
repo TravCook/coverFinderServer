@@ -743,8 +743,8 @@ const removeSeed = async () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);  // Set time to midnight
     // Fetch current odds and past odds within the last week
-    // let currentOdds = await Odds.find();
-    // await removePastGames(currentOdds);
+    let currentOdds = await Odds.find();
+    await removePastGames(currentOdds);
     currentOdds = await Odds.find({}).sort({ commence_time: 1, winPercent: 1 });
     let pastOdds = await PastGameOdds.find({
         commence_time: { $gte: today }
