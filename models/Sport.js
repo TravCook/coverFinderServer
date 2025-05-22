@@ -38,6 +38,14 @@ const sportSchema = new Schema({
         type: Number, 
         required: false
     },
+    sigmoidIQRSharpness: {
+        type: Number,
+        required: false
+    },
+    averageIndex: {
+        type: Number,
+        required: false
+    },
     hyperParameters: {
         bestAccuracy: {
             type: Number,

@@ -797,6 +797,7 @@ function calculateFeatureImportance(inputToHiddenWeights, hiddenToOutputWeights)
 
 const trainSportModelKFold = async (sport, gameData, search) => {
     currentOdds = await Odds.find({ sport_key: sport.name }).sort({ commence_time: -1 }) //USE THIS TO POPULATE UPCOMING GAME ODDS
+
     const numFolds = sport.hyperParameters.KFolds;  // Number of folds (you can adjust based on your data)
     const foldSize = Math.floor(gameData.length / numFolds);  // Size of each fold
     const bar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
@@ -809,7 +810,7 @@ const trainSportModelKFold = async (sport, gameData, search) => {
         const foldEnd = i === numFolds - 1 ? gameData.length : (i + 1) * foldSize;
         allFolds.push(gameData.slice(foldStart, foldEnd));
     }
-
+   
     const total =  allFolds.length
     let foldResults = [];
     let finalModel
@@ -870,7 +871,8 @@ const trainSportModelKFold = async (sport, gameData, search) => {
             console.log('Done!');
         }
     }
-    if(!search) await predictions(currentOdds, [], finalModel, sport)
+
+    if(!search && currentOdds.length > 0) await predictions(currentOdds, [], finalModel, sport)
     
     // After all folds, calculate and log the overall performance
     const avgF1Score = foldResults.reduce((sum, fold) => sum + fold.f1Score, 0) / foldResults.length;

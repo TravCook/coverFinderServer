@@ -1,4 +1,4 @@
-const { Odds, PastGameOdds, UsaFootballTeam, BasketballTeam, HockeyTeam, BaseballTeam, Sport } = require('../models');
+const { Odds, PastGameOdds, UsaFootballTeam, BasketballTeam, HockeyTeam, BaseballTeam, Sport, Weights } = require('../models');
 const moment = require('moment');
 const NodeCache = require('node-cache');
 const { combinedCondition } = require('../utils/constants');
@@ -61,11 +61,13 @@ module.exports = {
                 let sports = await Sport.find({}).sort({ name: 1 })
                 let odds = await Odds.find({}).sort({ commence_time: 1, winPercent: 1 })
                 let pastGames = await PastGameOdds.find({ predictedWinner: { $exists: true }, commence_time: {$gte: sevenDaysAgo} }).select('-homeTeamStats -awayTeamStats').sort({ commence_time: -1 });
+                let mlModelWeights = await Weights.find()
 
                 data = {
                     odds: odds,
                     sports: sports,
-                    pastGames: pastGames
+                    pastGames: pastGames,
+                    mlModelWeights: mlModelWeights
                 }
                 odds = []
                 sports = []
