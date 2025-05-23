@@ -69,7 +69,7 @@ module.exports = {
                 myCache.set('fullData', JSON.stringify(data), 300); // Don't stringify unless needed
             }
 
-            return res.json(data);
+            return res.json(JSON.parse(data));
         } catch (err) {
             return res.status(500).json({ message: err.message });
         }
