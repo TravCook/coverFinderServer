@@ -67,9 +67,11 @@ module.exports = {
 
                 data = { odds, sports, pastGames, mlModelWeights };
                 myCache.set('fullData', JSON.stringify(data), 300); // Don't stringify unless needed
+            }else{
+                data = JSON.parse(data);
             }
 
-            return res.json(JSON.parse(data));
+            return res.json(data);
         } catch (err) {
             return res.status(500).json({ message: err.message });
         }
