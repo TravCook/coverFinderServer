@@ -51,8 +51,9 @@ async function getCachedOdds(cacheKey, query, filterDays = 30) {
 
 module.exports = {
     async getAllOdds(req, res) {
-        const now = new Date()
-        const sevenDaysAgo = now.getDate() - 7;
+        const today = new Date()
+        const sevenDaysAgo = new Date(today);
+        sevenDaysAgo.setDate(today.getDate() - 7); // 7 days ago
         sevenDaysAgo.setHours(0, 0, 0, 0); // Set to midnight 
         try {
             let data = myCache.get('fullData');
