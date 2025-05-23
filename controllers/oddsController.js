@@ -66,6 +66,7 @@ module.exports = {
                 ]);
 
                 data = { odds, sports, pastGames, mlModelWeights };
+                console.log(data)
                 myCache.set('fullData', data, 300); // Don't stringify unless needed
             }
 
