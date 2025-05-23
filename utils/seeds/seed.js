@@ -735,6 +735,8 @@ const oddsSeed = async () => {
         }
 
     }
+    sportWeightDB = null
+    upcomingGames = null
     allPastGames = null
     console.log(`ODDS FETCHED AND STORED @ ${moment().format('HH:mm:ss')}`)
 }

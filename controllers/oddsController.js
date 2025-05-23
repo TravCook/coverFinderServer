@@ -51,36 +51,26 @@ async function getCachedOdds(cacheKey, query, filterDays = 30) {
 
 module.exports = {
     async getAllOdds(req, res) {
-        let sevenDaysAgo = new Date()
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-        sevenDaysAgo.setHours(0, 0, 0, 0)
-
         try {
-            let data = myCache.get('fullData'); // Check cache first
-            if (data === undefined) {
-                let sports = await Sport.find({}).sort({ name: 1 })
-                let odds = await Odds.find({}).sort({ commence_time: 1, winPercent: 1 })
-                let pastGames = await PastGameOdds.find({ predictedWinner: { $exists: true }, commence_time: {$gte: sevenDaysAgo} }).select('-homeTeamStats -awayTeamStats').sort({ commence_time: -1 });
-                let mlModelWeights = await Weights.find()
+            let data = myCache.get('fullData');
+            if (!data) {
+                const [sports, odds, pastGames, mlModelWeights] = await Promise.all([
+                    Sport.find({}).sort({ name: 1 }),
+                    Odds.find({}).sort({ commence_time: 1, winPercent: 1 }),
+                    PastGameOdds.find({ predictedWinner: { $exists: true }, commence_time: { $gte: sevenDaysAgo } }).select('-homeTeamStats -awayTeamStats').sort({ commence_time: -1 }),
+                    Weights.find()
+                ]);
 
-                data = {
-                    odds: odds,
-                    sports: sports,
-                    pastGames: pastGames,
-                    mlModelWeights: mlModelWeights
-                }
-                odds = []
-                sports = []
-                myCache.set('fullData', JSON.stringify(data), 60);
-
-            } else {
-                data = JSON.parse(data)
+                data = { odds, sports, pastGames, mlModelWeights };
+                myCache.set('fullData', data, 300); // Don't stringify unless needed
             }
-            return res.json(data)
+
+            return res.json(data);
         } catch (err) {
             return res.status(500).json({ message: err.message });
         }
     },
+    
 
     async getOddsBySport(req, res) {
         try {
