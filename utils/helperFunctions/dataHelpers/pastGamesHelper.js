@@ -1,4 +1,6 @@
 const { Odds, PastGameOdds, UsaFootballTeam, BasketballTeam, BaseballTeam, HockeyTeam, Sport, Weights } = require('../../../models')
+const cliProgress = require('cli-progress');
+const fs = require('fs');
 
 const pastGameStatsPoC = async () => {
     const sports = await Sport.find({})
@@ -521,7 +523,7 @@ const pastGameStatsPoC = async () => {
                                                 homeTeam.stats['HKYgoalsPerGame'] = homeTeam.stats['HKYgoals'] > 0 ? homeTeam.stats['HKYgoals'] / homeGamesTotal : 0
                                                 homeTeam.stats['HKYtotalShotsPerGame'] = homeTeam.stats['HKYtotalShots'] > 0 ? homeTeam.stats['HKYtotalShots'] / homeGamesTotal : 0
                                                 homeTeam.stats['HKYgoalsAgainstPerGame'] = homeTeam.stats['HKYgoalsAgainst'] > 0 ? homeTeam.stats['HKYgoalsAgainst'] / homeGamesTotal : 0
-                                                homeTeam.stats['HKYpenaltyKillPct'] = oldEventJSON.splits.categories[3].stats[0].value > 0 ?  oldEventJSON.splits.categories[3].stats[0].value * (oldEventJSON.splits.categories[0].stats[2].value / 100) / oldEventJSON.splits.categories[3].stats[0].value : 0
+                                                homeTeam.stats['HKYpenaltyKillPct'] = oldEventJSON.splits.categories[3].stats[0].value > 0 ? oldEventJSON.splits.categories[3].stats[0].value * (oldEventJSON.splits.categories[0].stats[2].value / 100) / oldEventJSON.splits.categories[3].stats[0].value : 0
                                                 homeTeam.stats['HKYshotsAgainstPerGame'] = homeTeam.stats['HKYshotsAgainst'] > 0 ? homeTeam.stats['HKYshotsAgainst'] / homeGamesTotal : 0
                                             } else if (sport.name === ('americanfootball_nfl' || 'americanfootball_ncaaf')) {
                                                 homeTeam.stats['USFBkickReturnsPerGame'] = homeTeam.stats['USFBkickReturns'] > 0 ? homeTeam.stats['USFBkickReturns'] / homeGamesTotal : 0
@@ -750,4 +752,125 @@ const pastGameStatsPoC = async () => {
     console.log(existingGames)
 }
 
-module.exports = { pastGameStatsPoC }
+const statMinMax = async () => {
+    console.log('Retrieving Games from DB....');
+    const allPastGames = await PastGameOdds.find();
+    console.log('Games Retrieved: ', allPastGames.length);
+    let minMaxStats = {}
+
+    const gameProgBar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
+    let total = allPastGames.length
+    gameProgBar.start(total, 0);
+    let progress = 0
+
+    // Loop through all past games to find min and max stats
+    allPastGames.forEach(game => {
+        let statArr = Object.keys(game.homeTeamStats);
+        for (const stat of statArr) {
+            if (!minMaxStats[stat]) {
+                minMaxStats[stat] = { min: Infinity, max: -Infinity };
+            }
+            
+            if (game.homeTeamStats[stat] !== undefined) {
+                if (stat === 'seasonWinLoss') {
+                    let homeWinsSplit = game.homeTeamStats.seasonWinLoss.split('-');
+                    let homeWins = parseInt(homeWinsSplit[0]);
+                    let awayWinsSplit = game.awayTeamStats.seasonWinLoss.split('-');
+                    let awayWins = parseInt(awayWinsSplit[0]);
+                    if (!minMaxStats[stat] || homeWins - awayWins < minMaxStats[stat].min) {
+                        minMaxStats[stat].min = homeWins - awayWins;
+                    }
+                    if (!minMaxStats[stat] || homeWins - awayWins > minMaxStats[stat].max) {
+                        minMaxStats[stat].max = homeWins - awayWins;
+                    }
+                } else if (stat === 'homeWinLoss') {
+                    let homeWinsSplit = game.homeTeamStats.homeWinLoss.split('-');
+                    let homeWins = parseInt(homeWinsSplit[0]);
+                    let awayWinsSplit = game.awayTeamStats.awayWinLoss.split('-');
+                    let awayWins = parseInt(awayWinsSplit[0]);
+                    if (!minMaxStats[stat] || homeWins - awayWins < minMaxStats[stat].min) {
+                        minMaxStats[stat].min = homeWins - awayWins;
+                    }
+                    if (!minMaxStats[stat] || homeWins - awayWins > minMaxStats[stat].max) {
+                        minMaxStats[stat].max = homeWins - awayWins;
+                    }
+                } else if (stat === 'awayWinLoss') {
+                    let homeWinsSplit = game.homeTeamStats.awayWinLoss.split('-');
+                    let homeWins = parseInt(homeWinsSplit[0]);
+                    let awayWinsSplit = game.awayTeamStats.homeWinLoss.split('-');
+                    let awayWins = parseInt(awayWinsSplit[0]);
+                    if (!minMaxStats[stat] || homeWins - awayWins < minMaxStats[stat].min) {
+                        minMaxStats[stat].min = homeWins - awayWins;
+                    }
+                    if (!minMaxStats[stat] || homeWins - awayWins > minMaxStats[stat].max) {
+                        minMaxStats[stat].max = homeWins - awayWins;
+                    }
+                } else {
+                    if (!minMaxStats[stat] || game.homeTeamStats[stat] - game.awayTeamStats[stat] < minMaxStats[stat].min) {
+                        minMaxStats[stat].min = game.homeTeamStats[stat] - game.awayTeamStats[stat];
+                    }
+                    if (!minMaxStats[stat] || game.homeTeamStats[stat] - game.awayTeamStats[stat] > minMaxStats[stat].max) {
+                        minMaxStats[stat].max = game.homeTeamStats[stat] - game.awayTeamStats[stat];
+                    }
+                }
+
+            }
+            if (game.awayTeamStats[stat] !== undefined) {
+                if (stat === 'seasonWinLoss') {
+                    let awayWinsSplit = game.awayTeamStats.seasonWinLoss.split('-');
+                    let awayWins = parseInt(awayWinsSplit[0]);
+                    let homeWinsSplit = game.homeTeamStats.seasonWinLoss.split('-');
+                    let homeWins = parseInt(homeWinsSplit[0]);
+                    if (!minMaxStats[stat] || awayWins - homeWins < minMaxStats[stat].min) {
+                        minMaxStats[stat].min = awayWins  - homeWins;
+                    }
+                    if (!minMaxStats[stat] || awayWins  - homeWins > minMaxStats[stat].max) {
+                        minMaxStats[stat].max = awayWins - homeWins;
+                    }
+                } else if (stat === 'homeWinLoss') {
+                    let awayWinsSplit = game.awayTeamStats.homeWinLoss.split('-');
+                    let awayWins = parseInt(awayWinsSplit[0]);
+                    let homeWinsSplit = game.homeTeamStats.awayWinLoss.split('-');
+                    let homeWins = parseInt(homeWinsSplit[0]);
+                    if (!minMaxStats[stat] || awayWins - homeWins < minMaxStats[stat].min) {
+                        minMaxStats[stat].min = awayWins - homeWins;
+                    }
+                    if (!minMaxStats[stat] || awayWins - homeWins > minMaxStats[stat].max) {
+                        minMaxStats[stat].max = awayWins - homeWins;
+                    }
+                } else if (stat === 'awayWinLoss') {
+                    let awayWinsSplit = game.awayTeamStats.awayWinLoss.split('-');
+                    let awayWins = parseInt(awayWinsSplit[0]);
+                    let homeWinsSplit = game.homeTeamStats.homeWinLoss.split('-');
+                    let homeWins = parseInt(homeWinsSplit[0]);
+                    if (!minMaxStats[stat] || awayWins - homeWins < minMaxStats[stat].min) {
+                        minMaxStats[stat].min = awayWins - homeWins;
+                    }
+                    if (!minMaxStats[stat] || awayWins - homeWins > minMaxStats[stat].max) {
+                        minMaxStats[stat].max = awayWins - homeWins;
+                    }
+                } else {
+                    if (!minMaxStats[stat] || game.awayTeamStats[stat] - game.homeTeamStats[stat] < minMaxStats[stat].min) {
+                        minMaxStats[stat].min = game.awayTeamStats[stat] - game.homeTeamStats[stat];
+                    }
+                    if (!minMaxStats[stat] || game.awayTeamStats[stat] - game.homeTeamStats[stat] > minMaxStats[stat].max) {
+                        minMaxStats[stat].max = game.awayTeamStats[stat] - game.homeTeamStats[stat];
+                    }
+                }
+
+            }
+        }
+        progress += 1;
+        gameProgBar.update(progress)
+        if (progress >= total) {
+            gameProgBar.stop();
+        }
+    });
+
+    // Save min and max stats to a JSON file
+    fs.writeFileSync('./utils/seeds/sampledGlobalStats.json', JSON.stringify(minMaxStats));
+
+    console.log('Min and Max stats saved to minMaxStats.json');
+}
+
+module.exports = { pastGameStatsPoC, statMinMax }

@@ -1,910 +1,902 @@
 {
-  "seasonWinLoss": {
-    "min": 0,
-    "max": 111
-  },
-  "homeWinLoss": {
-    "min": 0,
-    "max": 58
-  },
-  "awayWinLoss": {
-    "min": 0,
-    "max": 54
-  },
-  "pointDiff": {
-    "min": -850,
-    "max": 1098
-  },
-  "BSKBtotalPoints": {
-    "min": 0,
-    "max": 10219
-  },
-  "BSKBpointsPerGame": {
-    "min": 0,
-    "max": 176
-  },
-  "BSKBassists": {
-    "min": 0,
-    "max": 2549
-  },
-  "BSKBassistsPerGame": {
-    "min": 0,
-    "max": 50
-  },
-  "HKYgoals": {
-    "min": 0,
-    "max": 337
-  },
-  "HKYgoalsPerGame": {
-    "min": 0,
-    "max": 3.682926829268293
-  },
-  "HKYassists": {
-    "min": 0,
-    "max": 575
-  },
-  "HKYassistsPerGame": {
-    "min": 0,
-    "max": 22
-  },
-  "HKYfaceoffs": {
-    "min": 47,
-    "max": 5027
-  },
-  "HKYfaceoffsPerGame": {
-    "min": 35,
-    "max": 87
-  },
-  "HKYfaceoffsWon": {
-    "min": 17,
-    "max": 2644
-  },
-  "HKYfaceoffsWonPerGame": {
-    "min": 9,
-    "max": 52
-  },
-  "HKYfaceoffsLost": {
-    "min": 17,
-    "max": 2614
-  },
-  "HKYfaceoffsLostPerGame": {
-    "min": 9,
-    "max": 52
-  },
-  "HKYfaceoffPct": {
-    "min": 32.203,
-    "max": 4518.915999999999
-  },
-  "HKYfaceoffPctPerGame": {
-    "min": 19.355,
-    "max": 80.645
-  },
-  "USFBtotalFirstDowns": {
-    "min": 0,
-    "max": 419
-  },
-  "USFBthirdDownEfficiency": {
-    "min": -33.333336,
-    "max": 866.63
-  },
-  "USFBpassingYards": {
-    "min": 0,
-    "max": 5572
-  },
-  "USFBreceivingYards": {
-    "min": 4,
-    "max": 5650
-  },
-  "USFBrushingYards": {
-    "min": -57,
-    "max": 4319
-  },
-  "USFBsacksPerGame": {
-    "min": 0,
-    "max": 26
-  },
-  "USFBfieldGoalsMade": {
-    "min": 0,
-    "max": 40
-  },
-  "USFBtotalTouchdowns": {
-    "min": 0,
-    "max": 279
-  },
-  "USFBtouchdownsPerGame": {
-    "min": 0,
-    "max": 65
-  },
-  "USFBtotalPoints": {
-    "min": 0,
-    "max": 3463
-  },
-  "USFBpointsPerGame": {
-    "min": 0,
-    "max": 2165.241
-  },
-  "USFBtotalPenyards": {
-    "min": 0,
-    "max": 1120
-  },
-  "USFBaveragePenYardsPerGame": {
-    "min": 0,
-    "max": 186
-  },
-  "USFBgiveaways": {
-    "min": 0,
-    "max": 37
-  },
-  "USFBtakeaways": {
-    "min": 0,
-    "max": 42
-  },
-  "USFBturnoverDiff": {
-    "min": -23,
-    "max": 26
-  },
-  "BSKBassistRatio": {
-    "min": 0,
-    "max": 21.329
-  },
-  "BSKBeffectiveFgPercent": {
-    "min": 0,
-    "max": 59.273
-  },
-  "BSKBfieldGoalPercent": {
-    "min": 0,
-    "max": 4206.846992492676
-  },
-  "BSKBfieldGoalsAttempted": {
-    "min": 0,
-    "max": 7739
-  },
-  "BSKBfieldGoalsMade": {
-    "min": 0,
-    "max": 3890
-  },
-  "BSKBfieldGoalsPerGame": {
-    "min": 0,
-    "max": 65
-  },
-  "BSKBfreeThrowPercent": {
-    "min": 0,
-    "max": 6846.4019775390625
-  },
-  "BSKBfreeThrowsAttempted": {
-    "min": 0,
-    "max": 2182
-  },
-  "BSKBfreeThrowsMade": {
-    "min": 0,
-    "max": 1719
-  },
-  "BSKBfreeThrowsMadePerGame": {
-    "min": 0,
-    "max": 50
-  },
-  "BSKBoffensiveRebounds": {
-    "min": 0,
-    "max": 1159
-  },
-  "BSKBoffensiveReboundsPerGame": {
-    "min": 0,
-    "max": 51
-  },
-  "BSKBoffensiveReboundRate": {
-    "min": 0,
-    "max": 22.781871239999997
-  },
-  "BSKBoffensiveTurnovers": {
-    "min": 0,
-    "max": 1287
-  },
-  "BSKBturnoversPerGame": {
-    "min": 0,
-    "max": 1287
-  },
-  "BSKBturnoverRatio": {
-    "min": 0,
-    "max": 15.732
-  },
-  "BSKBthreePointPct": {
-    "min": 0,
-    "max": 100
-  },
-  "BSKBthreePointsAttempted": {
-    "min": 0,
-    "max": 3540
-  },
-  "BSKBthreePointsMade": {
-    "min": 0,
-    "max": 1363
-  },
-  "BSKBtrueShootingPct": {
-    "min": 0,
-    "max": 61.969
-  },
-  "BSKBpace": {
-    "min": 0,
-    "max": 108.099
-  },
-  "BSKBpointsInPaint": {
-    "min": 0,
-    "max": 4790
-  },
-  "BSKBshootingEfficiency": {
-    "min": 0,
-    "max": 47.996458350000005
-  },
-  "BSKBscoringEfficiency": {
-    "min": 0,
-    "max": 113.17590740000001
-  },
-  "HKYshotsIn1st": {
-    "min": 2,
-    "max": 1015
-  },
-  "HKYshotsIn1stPerGame": {
-    "min": 0,
-    "max": 27
-  },
-  "HKYshotsIn2nd": {
-    "min": 2,
-    "max": 1098
-  },
-  "HKYshotsIn2ndPerGame": {
-    "min": 0,
-    "max": 29
-  },
-  "HKYshotsIn3rd": {
-    "min": 3,
-    "max": 950
-  },
-  "HKYshotsIn3rdPerGame": {
-    "min": 0,
-    "max": 41
-  },
-  "HKYtotalShots": {
-    "min": 17,
-    "max": 3062
-  },
-  "HKYtotalShotsPerGame": {
-    "min": 0,
-    "max": 33.75609756097561
-  },
-  "HKYshotsMissed": {
-    "min": 15,
-    "max": 2731
-  },
-  "HKYshotsMissedPerGame": {
-    "min": 7,
-    "max": 64
-  },
-  "HKYppgGoals": {
-    "min": 0,
-    "max": 89
-  },
-  "HKYppgGoalsPerGame": {
-    "min": 0,
-    "max": 5
-  },
-  "HKYppassists": {
-    "min": 0,
-    "max": 169
-  },
-  "HKYppassistsPerGame": {
-    "min": 0,
-    "max": 10
-  },
-  "HKYpowerplayPct": {
-    "min": 0,
-    "max": 2606.7430000000004
-  },
-  "HKYshortHandedGoals": {
-    "min": 0,
-    "max": 17
-  },
-  "HKYshortHandedGoalsPerGame": {
-    "min": 0,
-    "max": 3
-  },
-  "HKYshootingPct": {
-    "min": 0,
-    "max": 1042.4090000000003
-  },
-  "HKYgiveaways": {
-    "min": 1,
-    "max": 1046
-  },
-  "HKYshotDifferential": {
-    "min": -881,
-    "max": 720
-  },
-  "HKYshotDifferentialPerGame": {
-    "min": -42,
-    "max": 42
-  },
-  "HKYgoalDifferentialPerGame": {
-    "min": -9,
-    "max": 9
-  },
-  "BSKBblocks": {
-    "min": 0,
-    "max": 538
-  },
-  "BSKBblocksPerGame": {
-    "min": 0,
-    "max": 19
-  },
-  "BSKBdefensiveRebounds": {
-    "min": 0,
-    "max": 3074
-  },
-  "BSKBdefensiveReboundsPerGame": {
-    "min": 0,
-    "max": 60
-  },
-  "BSKBsteals": {
-    "min": 0,
-    "max": 800
-  },
-  "BSKBstealsPerGame": {
-    "min": 0,
-    "max": 800
-  },
-  "BSKBreboundRate": {
-    "min": 0,
-    "max": 53.148
-  },
-  "BSKBreboundsPerGame": {
-    "min": 0,
-    "max": 74
-  },
-  "BSKBfoulsPerGame": {
-    "min": 0,
-    "max": 43
-  },
-  "BSKBteamAssistToTurnoverRatio": {
-    "min": 0,
-    "max": 347
-  },
-  "HKYgoalsAgainst": {
-    "min": 0,
-    "max": 326
-  },
-  "HKYgoalsAgainstPerGame": {
-    "min": 0,
-    "max": 3.976
-  },
-  "HKYshotsAgainst": {
-    "min": 17,
-    "max": 3195
-  },
-  "HKYshotsAgainstPerGame": {
-    "min": 0,
-    "max": 35.1219512195122
-  },
-  "HKYpenaltyKillPct": {
-    "min": 0,
-    "max": 7370.002000000002
-  },
-  "HKYpenaltyKillPctPerGame": {
-    "min": 0,
-    "max": 100
-  },
-  "HKYppGoalsAgainst": {
-    "min": 0,
-    "max": 91
-  },
-  "HKYppGoalsAgainstPerGame": {
-    "min": 0,
-    "max": 5
-  },
-  "HKYshutouts": {
-    "min": 0,
-    "max": 11
-  },
-  "HKYsaves": {
-    "min": 15,
-    "max": 2872
-  },
-  "HKYsavesPerGame": {
-    "min": 7,
-    "max": 64
-  },
-  "HKYsavePct": {
-    "min": 0.75,
-    "max": 5166.737
-  },
-  "HKYblockedShots": {
-    "min": 6,
-    "max": 1552
-  },
-  "HKYblockedShotsPerGame": {
-    "min": 1,
-    "max": 38
-  },
-  "HKYhits": {
-    "min": 8,
-    "max": 2470
-  },
-  "HKYhitsPerGame": {
-    "min": 4,
-    "max": 60
-  },
-  "HKYtakeaways": {
-    "min": 1,
-    "max": 801
-  },
-  "HKYtakeawaysPerGame": {
-    "min": 0,
-    "max": 28
-  },
-  "USFBtacklesforLoss": {
-    "min": 0,
-    "max": 114
-  },
-  "USFBtacklesforLossPerGame": {
-    "min": 0,
-    "max": 18
-  },
-  "USFBinterceptions": {
-    "min": 0,
-    "max": 37
-  },
-  "USFByardsPerInterception": {
-    "min": -5,
-    "max": 337
-  },
-  "USFBsacksTotal": {
-    "min": 0,
-    "max": 114
-  },
-  "USFBsackYards": {
-    "min": 0,
-    "max": 491
-  },
-  "USFBsackYardsPerGame": {
-    "min": 0,
-    "max": 102
-  },
-  "USFBstuffs": {
-    "min": -2,
-    "max": 102
-  },
-  "USFBstuffsPerGame": {
-    "min": -2,
-    "max": 15
-  },
-  "USFBstuffYards": {
-    "min": 0,
-    "max": 287
-  },
-  "USFBpassesDefended": {
-    "min": 0,
-    "max": 99
-  },
-  "USFBpassesDefendedPerGame": {
-    "min": 0,
-    "max": 16
-  },
-  "USFBsafties": {
-    "min": 0,
-    "max": 4
-  },
-  "USFBcompletionPercent": {
-    "min": 14.286,
-    "max": 1203.0720000000001
-  },
-  "USFBcompletions": {
-    "min": 1,
-    "max": 499
-  },
-  "USFBcompletionsPerGame": {
-    "min": 0,
-    "max": 56
-  },
-  "USFBnetPassingYards": {
-    "min": 4,
-    "max": 5650
-  },
-  "USFBnetPassingYardsPerGame": {
-    "min": -18,
-    "max": 647
-  },
-  "USFBpassingFirstDowns": {
-    "min": 0,
-    "max": 273
-  },
-  "USFBpassingTouchdowns": {
-    "min": 0,
-    "max": 124
-  },
-  "USFBpassingYardsPerGame": {
-    "min": 0,
-    "max": 300
-  },
-  "USFBpassingAttempts": {
-    "min": 3,
-    "max": 751
-  },
-  "USFBpassingAttemptsPerGame": {
-    "min": 0,
-    "max": 81
-  },
-  "USFByardsPerPassAttempt": {
-    "min": 0.286,
-    "max": 172.38100000000003
-  },
-  "USFBreceivingFirstDowns": {
-    "min": 0,
-    "max": 242
-  },
-  "USFBreceivingTouchdowns": {
-    "min": 0,
-    "max": 122
-  },
-  "USFBreceivingYardsPerGame": {
-    "min": 4,
-    "max": 5650
-  },
-  "USFBreceivingYardsPerReception": {
-    "min": 0.8,
-    "max": 290.082
-  },
-  "USFBreceivingYardsAfterCatch": {
-    "min": 0,
-    "max": 2850
-  },
-  "USFBreceivingYardsAfterCatchPerGame": {
-    "min": 0,
-    "max": 2850
-  },
-  "USFBrushingAttempts": {
-    "min": 10,
-    "max": 781
-  },
-  "USFBrushingFirstDowns": {
-    "min": 0,
-    "max": 214
-  },
-  "USFBrushingTouchdowns": {
-    "min": 0,
-    "max": 94
-  },
-  "USFBrushingYardsPerGame": {
-    "min": -57,
-    "max": 582
-  },
-  "USFByardsPerRushAttempt": {
-    "min": -2.591,
-    "max": 92.259
-  },
-  "USFBaverageKickoffYards": {
-    "min": -30,
-    "max": 839.742
-  },
-  "USFBaverageKickoffYardsPerGame": {
-    "min": -30,
-    "max": 72
-  },
-  "USFBextraPointAttempts": {
-    "min": 0,
-    "max": 89
-  },
-  "USFBextraPointAttemptsPerGame": {
-    "min": 0,
-    "max": 13
-  },
-  "USFBextraPointsMade": {
-    "min": 0,
-    "max": 87
-  },
-  "USFBextraPointsMadePerGame": {
-    "min": 0,
-    "max": 13
-  },
-  "USFBextraPointPercent": {
-    "min": 0,
-    "max": 1700
-  },
-  "USFBextraPointPercentPerGame": {
-    "min": 0,
-    "max": 100
-  },
-  "USFBfieldGoalAttempts": {
-    "min": 0,
-    "max": 44
-  },
-  "USFBfieldGoalAttemptsPerGame": {
-    "min": 0,
-    "max": 7
-  },
-  "USFBfieldGoalsMadePerGame": {
-    "min": 0,
-    "max": 6
-  },
-  "USFBfieldGoalPct": {
-    "min": 0,
-    "max": 1616.67
-  },
-  "USFBfieldGoalPercentPerGame": {
-    "min": 0,
-    "max": 100
-  },
-  "USFBtouchbacks": {
-    "min": 0,
-    "max": 99
-  },
-  "USFBtouchbacksPerGame": {
-    "min": 0,
-    "max": 10
-  },
-  "USFBtouchBackPercentage": {
-    "min": 0,
-    "max": 1540.44
-  },
-  "USFBkickReturns": {
-    "min": 0,
-    "max": 61
-  },
-  "USFBkickReturnsPerGame": {
-    "min": 0,
-    "max": 11
-  },
-  "USFBkickReturnYards": {
-    "min": -36,
-    "max": 1400
-  },
-  "USFBkickReturnYardsPerGame": {
-    "min": -38,
-    "max": 279
-  },
-  "USFBpuntReturns": {
-    "min": 0,
-    "max": 102
-  },
-  "USFBpuntReturnsPerGame": {
-    "min": 0,
-    "max": 30
-  },
-  "USFBpuntReturnFairCatchPct": {
-    "min": 0,
-    "max": 1070.0000060000002
-  },
-  "USFBpuntReturnYards": {
-    "min": -64,
-    "max": 1054
-  },
-  "USFBpuntReturnYardsPerGame": {
-    "min": -44,
-    "max": 262
-  },
-  "USFByardsPerReturn": {
-    "min": -2,
-    "max": 396.960713
-  },
-  "BSBbattingStrikeouts": {
-    "min": 0,
-    "max": 3083
-  },
-  "BSBrunsBattedIn": {
-    "min": 0,
-    "max": 1242
-  },
-  "BSBsacrificeHits": {
-    "min": 0,
-    "max": 48
-  },
-  "BSBHitsTotal": {
-    "min": 0,
-    "max": 2843
-  },
-  "BSBwalks": {
-    "min": 0,
-    "max": 1170
-  },
-  "BSBruns": {
-    "min": 0,
-    "max": 1615
-  },
-  "BSBhomeRuns": {
-    "min": 0,
-    "max": 471
-  },
-  "BSBdoubles": {
-    "min": 0,
-    "max": 636
-  },
-  "BSBtotalBases": {
-    "min": 0,
-    "max": 2803
-  },
-  "BSBextraBaseHits": {
-    "min": 0,
-    "max": 623
-  },
-  "BSBbattingAverage": {
-    "min": 0,
-    "max": 43.66043578900001
-  },
-  "BSBsluggingPercentage": {
-    "min": 0,
-    "max": 79.52107489999997
-  },
-  "BSBonBasePercentage": {
-    "min": 0,
-    "max": 54.56713312000003
-  },
-  "BSBonBasePlusSlugging": {
-    "min": 0,
-    "max": 134.08820896000006
-  },
-  "BSBgroundToFlyRatio": {
-    "min": 0,
-    "max": 283.67378062
-  },
-  "BSBatBatsPerHomeRun": {
-    "min": 0,
-    "max": 3208.166668
-  },
-  "BSBstolenBasePercentage": {
-    "min": 0,
-    "max": 101.13333353999997
-  },
-  "BSBbatterWalkToStrikeoutRatio": {
-    "min": 0,
-    "max": 97.77271952000002
-  },
-  "BSBsaves": {
-    "min": 0,
-    "max": 56
-  },
-  "BSBpitcherStrikeouts": {
-    "min": 0,
-    "max": 3083
-  },
-  "BSBhitsGivenUp": {
-    "min": 0,
-    "max": 2843
-  },
-  "BSBearnedRuns": {
-    "min": 0,
-    "max": 910
-  },
-  "BSBbattersWalked": {
-    "min": 0,
-    "max": 1170
-  },
-  "BSBrunsAllowed": {
-    "min": 0,
-    "max": 1615
-  },
-  "BSBhomeRunsAllowed": {
-    "min": 0,
-    "max": 471
-  },
-  "BSBwins": {
-    "min": 0,
-    "max": 111
-  },
-  "BSBshutouts": {
-    "min": 0,
-    "max": 4
-  },
-  "BSBearnedRunAverage": {
-    "min": 0,
-    "max": 964.8277206
-  },
-  "BSBwalksHitsPerInningPitched": {
-    "min": 0,
-    "max": 251.1462580000001
-  },
-  "BSBwinPct": {
-    "min": 0,
-    "max": 111
-  },
-  "BSBpitcherCaughtStealingPct": {
-    "min": 0,
-    "max": 29.05000006
-  },
-  "BSBpitchesPerInning": {
-    "min": 0,
-    "max": 2900.017082999999
-  },
-  "BSBrunSupportAverage": {
-    "min": 0,
-    "max": 954.6989088
-  },
-  "BSBopponentBattingAverage": {
-    "min": 0,
-    "max": 45.51033545000001
-  },
-  "BSBopponentSlugAverage": {
-    "min": 0,
-    "max": 76.98584773999993
-  },
-  "BSBopponentOnBasePct": {
-    "min": 0,
-    "max": 57.16363258000004
-  },
-  "BSBopponentOnBasePlusSlugging": {
-    "min": 0,
-    "max": 134.14948088
-  },
-  "BSBsavePct": {
-    "min": 0,
-    "max": 53.5
-  },
-  "BSBstrikeoutsPerNine": {
-    "min": 0,
-    "max": 1646.5291212
-  },
-  "BSBpitcherStrikeoutToWalkRatio": {
-    "min": 0,
-    "max": 688.6142862300002
-  },
-  "BSBdoublePlays": {
-    "min": 0,
-    "max": 473
-  },
-  "BSBerrors": {
-    "min": 0,
-    "max": 123
-  },
-  "BSBpassedBalls": {
-    "min": 0,
-    "max": 17
-  },
-  "BSBassists": {
-    "min": 0,
-    "max": 1701
-  },
-  "BSBputouts": {
-    "min": 0,
-    "max": 4368
-  },
-  "BSBcatcherCaughtStealing": {
-    "min": 0,
-    "max": 49
-  },
-  "BSBcatcherCaughtStealingPct": {
-    "min": 0,
-    "max": 29.05000006
-  },
-  "BSBcatcherStolenBasesAllowed": {
-    "min": 0,
-    "max": 170
-  },
-  "BSBfieldingPercentage": {
-    "min": 0,
-    "max": 160.46644378000002
-  },
-  "BSBrangeFactor": {
-    "min": 0,
-    "max": 6003.736410000001
-  },
-  "HKYpimDifferential": {
-    "min": -140,
-    "max": 232
-  },
-  "HKYpimDifferentialPerGame": {
-    "min": -42,
-    "max": 42
-  },
-  "HKYtotalPenalties": {
-    "min": 1,
-    "max": 440
-  },
-  "HKYpenaltiesPerGame": {
-    "min": 0,
-    "max": 19
-  },
-  "HKYpenaltyMinutes": {
-    "min": 2,
-    "max": 1108
-  },
-  "HKYpenaltyMinutesPerGame": {
-    "min": 0,
-    "max": 90
-  }
+    "BSKBtotalPoints": {
+        "min": -2912,
+        "max": 2912
+    },
+    "BSKBpointsPerGame": {
+        "min": -95,
+        "max": 95
+    },
+    "BSKBassists": {
+        "min": -632,
+        "max": 632
+    },
+    "BSKBassistsPerGame": {
+        "min": -37,
+        "max": 37
+    },
+    "BSKBassistRatio": {
+        "min": -8.013843771571619,
+        "max": 8.013843771571619
+    },
+    "BSKBeffectiveFgPercent": {
+        "min": -5.866,
+        "max": 5.866
+    },
+    "BSKBfieldGoalPercent": {
+        "min": -1352.0607888698578,
+        "max": 1352.0607888698578
+    },
+    "BSKBfieldGoalsAttempted": {
+        "min": -2070,
+        "max": 2070
+    },
+    "BSKBfieldGoalsMade": {
+        "min": -1053,
+        "max": 1053
+    },
+    "BSKBfieldGoalsPerGame": {
+        "min": -42,
+        "max": 42
+    },
+    "BSKBfreeThrowPercent": {
+        "min": -1958.1600368022919,
+        "max": 1958.1600368022919
+    },
+    "BSKBfreeThrowsAttempted": {
+        "min": -753,
+        "max": 753
+    },
+    "BSKBfreeThrowsMade": {
+        "min": -517,
+        "max": 517
+    },
+    "BSKBfreeThrowsMadePerGame": {
+        "min": -36,
+        "max": 36
+    },
+    "BSKBoffensiveRebounds": {
+        "min": -414,
+        "max": 414
+    },
+    "BSKBoffensiveReboundsPerGame": {
+        "min": -43,
+        "max": 43
+    },
+    "BSKBoffensiveReboundRate": {
+        "min": -10.122524260000002,
+        "max": 10.122524260000002
+    },
+    "BSKBoffensiveTurnovers": {
+        "min": -444,
+        "max": 444
+    },
+    "BSKBturnoversPerGame": {
+        "min": -444,
+        "max": 444
+    },
+    "BSKBturnoverRatio": {
+        "min": -4.545999999999999,
+        "max": 4.545999999999999
+    },
+    "BSKBthreePointsAttempted": {
+        "min": -1142,
+        "max": 1142
+    },
+    "BSKBthreePointsMade": {
+        "min": -536,
+        "max": 536
+    },
+    "BSKBtrueShootingPct": {
+        "min": -5.384999999999998,
+        "max": 5.384999999999998
+    },
+    "BSKBpace": {
+        "min": -6.897999999999996,
+        "max": 6.897999999999996
+    },
+    "BSKBpointsInPaint": {
+        "min": -1148,
+        "max": 1148
+    },
+    "BSKBshootingEfficiency": {
+        "min": -14.817204369999999,
+        "max": 14.817204369999999
+    },
+    "BSKBscoringEfficiency": {
+        "min": -39.56691610000001,
+        "max": 39.56691610000001
+    },
+    "BSKBblocks": {
+        "min": -234,
+        "max": 234
+    },
+    "BSKBblocksPerGame": {
+        "min": -17,
+        "max": 17
+    },
+    "BSKBdefensiveRebounds": {
+        "min": -914,
+        "max": 914
+    },
+    "BSKBdefensiveReboundsPerGame": {
+        "min": -40,
+        "max": 40
+    },
+    "BSKBsteals": {
+        "min": -349,
+        "max": 349
+    },
+    "BSKBstealsPerGame": {
+        "min": -349,
+        "max": 349
+    },
+    "BSKBreboundRate": {
+        "min": -4.0419999999999945,
+        "max": 4.0419999999999945
+    },
+    "BSKBreboundsPerGame": {
+        "min": -57,
+        "max": 57
+    },
+    "BSKBfoulsPerGame": {
+        "min": -26,
+        "max": 26
+    },
+    "BSKBteamAssistToTurnoverRatio": {
+        "min": -80.89279771999998,
+        "max": 80.89279771999998
+    },
+    "seasonWinLoss": {
+        "min": -55,
+        "max": 55
+    },
+    "homeWinLoss": {
+        "min": -25,
+        "max": 33
+    },
+    "awayWinLoss": {
+        "min": -33,
+        "max": 25
+    },
+    "pointDiff": {
+        "min": -1798,
+        "max": 1798
+    },
+    "HKYgoals": {
+        "min": -119,
+        "max": 119
+    },
+    "HKYgoalsPerGame": {
+        "min": -8.5,
+        "max": 8.5
+    },
+    "HKYassists": {
+        "min": -211,
+        "max": 211
+    },
+    "HKYassistsPerGame": {
+        "min": -20,
+        "max": 20
+    },
+    "HKYshotsIn1st": {
+        "min": -284,
+        "max": 284
+    },
+    "HKYshotsIn1stPerGame": {
+        "min": -25,
+        "max": 25
+    },
+    "HKYshotsIn2nd": {
+        "min": -306,
+        "max": 306
+    },
+    "HKYshotsIn2ndPerGame": {
+        "min": -25,
+        "max": 25
+    },
+    "HKYshotsIn3rd": {
+        "min": -243,
+        "max": 243
+    },
+    "HKYshotsIn3rdPerGame": {
+        "min": -25,
+        "max": 25
+    },
+    "HKYtotalShots": {
+        "min": -749,
+        "max": 749
+    },
+    "HKYtotalShotsPerGame": {
+        "min": -57,
+        "max": 57
+    },
+    "HKYshotsMissed": {
+        "min": -677,
+        "max": 677
+    },
+    "HKYshotsMissedPerGame": {
+        "min": -44,
+        "max": 44
+    },
+    "HKYppgGoals": {
+        "min": -53,
+        "max": 53
+    },
+    "HKYppgGoalsPerGame": {
+        "min": -5,
+        "max": 5
+    },
+    "HKYppassists": {
+        "min": -100,
+        "max": 100
+    },
+    "HKYppassistsPerGame": {
+        "min": -10,
+        "max": 10
+    },
+    "HKYpowerplayPct": {
+        "min": -1457.1420000000003,
+        "max": 1457.1420000000003
+    },
+    "HKYshortHandedGoals": {
+        "min": -14,
+        "max": 14
+    },
+    "HKYshortHandedGoalsPerGame": {
+        "min": -3,
+        "max": 3
+    },
+    "HKYshootingPct": {
+        "min": -306.0959999999999,
+        "max": 306.0959999999999
+    },
+    "HKYfaceoffs": {
+        "min": -713,
+        "max": 713
+    },
+    "HKYfaceoffsPerGame": {
+        "min": -6.975999999999999,
+        "max": 6.975999999999999
+    },
+    "HKYfaceoffsWon": {
+        "min": -606,
+        "max": 606
+    },
+    "HKYfaceoffsWonPerGame": {
+        "min": -38,
+        "max": 38
+    },
+    "HKYfaceoffsLost": {
+        "min": -545,
+        "max": 545
+    },
+    "HKYfaceoffsLostPerGame": {
+        "min": -38,
+        "max": 38
+    },
+    "HKYfaceoffPct": {
+        "min": -752.2639999999988,
+        "max": 752.2639999999988
+    },
+    "HKYfaceoffPctPerGame": {
+        "min": -61.28999999999999,
+        "max": 61.28999999999999
+    },
+    "HKYgiveaways": {
+        "min": -468,
+        "max": 468
+    },
+    "HKYgoalsAgainst": {
+        "min": -128,
+        "max": 128
+    },
+    "HKYgoalsAgainstPerGame": {
+        "min": -8,
+        "max": 8
+    },
+    "HKYshotsAgainst": {
+        "min": -918,
+        "max": 918
+    },
+    "HKYshotsAgainstPerGame": {
+        "min": -53,
+        "max": 53
+    },
+    "HKYpenaltyKillPct": {
+        "min": -12.86099999999999,
+        "max": 12.86099999999999
+    },
+    "HKYpenaltyKillPctPerGame": {
+        "min": -100,
+        "max": 100
+    },
+    "HKYppGoalsAgainst": {
+        "min": -53,
+        "max": 53
+    },
+    "HKYppGoalsAgainstPerGame": {
+        "min": -5,
+        "max": 5
+    },
+    "HKYshutouts": {
+        "min": -10,
+        "max": 10
+    },
+    "HKYsaves": {
+        "min": -843,
+        "max": 843
+    },
+    "HKYsavesPerGame": {
+        "min": -44,
+        "max": 44
+    },
+    "HKYsavePct": {
+        "min": -1356.8980000000001,
+        "max": 1356.8980000000001
+    },
+    "HKYblockedShots": {
+        "min": -560,
+        "max": 560
+    },
+    "HKYblockedShotsPerGame": {
+        "min": -31,
+        "max": 31
+    },
+    "HKYhits": {
+        "min": -1124,
+        "max": 1124
+    },
+    "HKYhitsPerGame": {
+        "min": -44,
+        "max": 44
+    },
+    "HKYtakeaways": {
+        "min": -331,
+        "max": 331
+    },
+    "HKYtakeawaysPerGame": {
+        "min": -20,
+        "max": 20
+    },
+    "HKYshotDifferential": {
+        "min": -1475,
+        "max": 1475
+    },
+    "HKYshotDifferentialPerGame": {
+        "min": -84,
+        "max": 84
+    },
+    "HKYgoalDifferentialPerGame": {
+        "min": -18,
+        "max": 18
+    },
+    "HKYpimDifferential": {
+        "min": -325,
+        "max": 325
+    },
+    "HKYpimDifferentialPerGame": {
+        "min": -84,
+        "max": 84
+    },
+    "HKYtotalPenalties": {
+        "min": -192,
+        "max": 192
+    },
+    "HKYpenaltiesPerGame": {
+        "min": -9,
+        "max": 9
+    },
+    "HKYpenaltyMinutes": {
+        "min": -523,
+        "max": 523
+    },
+    "HKYpenaltyMinutesPerGame": {
+        "min": -42,
+        "max": 42
+    },
+    "BSBbattingStrikeouts": {
+        "min": -517,
+        "max": 517
+    },
+    "BSBrunsBattedIn": {
+        "min": -275,
+        "max": 275
+    },
+    "BSBsacrificeHits": {
+        "min": -32,
+        "max": 32
+    },
+    "BSBHitsTotal": {
+        "min": -292,
+        "max": 292
+    },
+    "BSBwalks": {
+        "min": -276,
+        "max": 276
+    },
+    "BSBruns": {
+        "min": -283,
+        "max": 283
+    },
+    "BSBhomeRuns": {
+        "min": -156,
+        "max": 156
+    },
+    "BSBdoubles": {
+        "min": -130,
+        "max": 130
+    },
+    "BSBtotalBases": {
+        "min": -618,
+        "max": 618
+    },
+    "BSBextraBaseHits": {
+        "min": -167,
+        "max": 167
+    },
+    "BSBbattingAverage": {
+        "min": -6.727457142999988,
+        "max": 6.727457142999988
+    },
+    "BSBsluggingPercentage": {
+        "min": -16.62326392999998,
+        "max": 16.62326392999998
+    },
+    "BSBonBasePercentage": {
+        "min": -7.914936230000009,
+        "max": 7.914936230000009
+    },
+    "BSBonBasePlusSlugging": {
+        "min": -21.364655390000067,
+        "max": 21.364655390000067
+    },
+    "BSBgroundToFlyRatio": {
+        "min": -62.99143649999989,
+        "max": 62.99143649999989
+    },
+    "BSBatBatsPerHomeRun": {
+        "min": -899.5833349999998,
+        "max": 899.5833349999998
+    },
+    "BSBstolenBasePercentage": {
+        "min": -47.38333353999997,
+        "max": 47.38333353999997
+    },
+    "BSBbatterWalkToStrikeoutRatio": {
+        "min": -48.15531069899998,
+        "max": 48.15531069899998
+    },
+    "BSBsaves": {
+        "min": -33,
+        "max": 33
+    },
+    "BSBpitcherStrikeouts": {
+        "min": -431,
+        "max": 431
+    },
+    "BSBhitsGivenUp": {
+        "min": -409,
+        "max": 409
+    },
+    "BSBearnedRuns": {
+        "min": -355,
+        "max": 355
+    },
+    "BSBbattersWalked": {
+        "min": -268,
+        "max": 268
+    },
+    "BSBrunsAllowed": {
+        "min": -362,
+        "max": 362
+    },
+    "BSBhomeRunsAllowed": {
+        "min": -91,
+        "max": 91
+    },
+    "BSBwins": {
+        "min": -55,
+        "max": 55
+    },
+    "BSBshutouts": {
+        "min": -6,
+        "max": 6
+    },
+    "BSBearnedRunAverage": {
+        "min": -379.40100943,
+        "max": 379.40100943
+    },
+    "BSBwalksHitsPerInningPitched": {
+        "min": -65.59242857000021,
+        "max": 65.59242857000021
+    },
+    "BSBwinPct": {
+        "min": -55,
+        "max": 55
+    },
+    "BSBpitcherCaughtStealingPct": {
+        "min": -14.91666666,
+        "max": 14.91666666
+    },
+    "BSBpitchesPerInning": {
+        "min": -290.0495060000003,
+        "max": 290.0495060000003
+    },
+    "BSBrunSupportAverage": {
+        "min": -276.33570307000014,
+        "max": 276.33570307000014
+    },
+    "BSBopponentBattingAverage": {
+        "min": -10.148202306000037,
+        "max": 10.148202306000037
+    },
+    "BSBopponentSlugAverage": {
+        "min": -19.19777406299997,
+        "max": 19.19777406299997
+    },
+    "BSBopponentOnBasePct": {
+        "min": -10.56842786,
+        "max": 10.56842786
+    },
+    "BSBopponentOnBasePlusSlugging": {
+        "min": -28.102502763999993,
+        "max": 28.102502763999993
+    },
+    "BSBsavePct": {
+        "min": -30.5,
+        "max": 30.5
+    },
+    "BSBstrikeoutsPerNine": {
+        "min": -403.74725709999984,
+        "max": 403.74725709999984
+    },
+    "BSBpitcherStrikeoutToWalkRatio": {
+        "min": -254.2002157600001,
+        "max": 254.2002157600001
+    },
+    "BSBdoublePlays": {
+        "min": -196,
+        "max": 196
+    },
+    "BSBerrors": {
+        "min": -58,
+        "max": 58
+    },
+    "BSBpassedBalls": {
+        "min": -17,
+        "max": 17
+    },
+    "BSBassists": {
+        "min": -416,
+        "max": 416
+    },
+    "BSBputouts": {
+        "min": -316,
+        "max": 316
+    },
+    "BSBcatcherCaughtStealing": {
+        "min": -30,
+        "max": 30
+    },
+    "BSBcatcherCaughtStealingPct": {
+        "min": -14.71666672,
+        "max": 14.71666672
+    },
+    "BSBcatcherStolenBasesAllowed": {
+        "min": -92,
+        "max": 92
+    },
+    "BSBfieldingPercentage": {
+        "min": -8.754461600000006,
+        "max": 8.754461600000006
+    },
+    "BSBrangeFactor": {
+        "min": -920.5481110000001,
+        "max": 920.5481110000001
+    },
+    "USFBcompletionPercent": {
+        "min": -621.495,
+        "max": 621.495
+    },
+    "USFBcompletions": {
+        "min": -317,
+        "max": 317
+    },
+    "USFBcompletionsPerGame": {
+        "min": -38,
+        "max": 38
+    },
+    "USFBnetPassingYards": {
+        "min": -3098,
+        "max": 3098
+    },
+    "USFBnetPassingYardsPerGame": {
+        "min": -484,
+        "max": 484
+    },
+    "USFBpassingFirstDowns": {
+        "min": -142,
+        "max": 142
+    },
+    "USFBpassingTouchdowns": {
+        "min": -48,
+        "max": 48
+    },
+    "USFBpassingAttempts": {
+        "min": -419,
+        "max": 419
+    },
+    "USFBpassingAttemptsPerGame": {
+        "min": -58,
+        "max": 58
+    },
+    "USFByardsPerPassAttempt": {
+        "min": -91.98800000000003,
+        "max": 91.98800000000003
+    },
+    "USFBrushingAttempts": {
+        "min": -441,
+        "max": 441
+    },
+    "USFBrushingFirstDowns": {
+        "min": -200,
+        "max": 200
+    },
+    "USFBrushingTouchdowns": {
+        "min": -34,
+        "max": 34
+    },
+    "USFBrushingYards": {
+        "min": -2927,
+        "max": 2927
+    },
+    "USFBrushingYardsPerGame": {
+        "min": -478,
+        "max": 478
+    },
+    "USFByardsPerRushAttempt": {
+        "min": -46.288999999999994,
+        "max": 46.288999999999994
+    },
+    "USFBreceivingFirstDowns": {
+        "min": 0,
+        "max": 0
+    },
+    "USFBreceivingTouchdowns": {
+        "min": -48,
+        "max": 48
+    },
+    "USFBreceivingYards": {
+        "min": -3098,
+        "max": 3098
+    },
+    "USFBreceivingYardsPerGame": {
+        "min": -3098,
+        "max": 3098
+    },
+    "USFBreceivingYardsPerReception": {
+        "min": -164.296,
+        "max": 164.296
+    },
+    "USFBreceivingYardsAfterCatch": {
+        "min": -1143,
+        "max": 1143
+    },
+    "USFBreceivingYardsAfterCatchPerGame": {
+        "min": -1143,
+        "max": 1143
+    },
+    "USFBtotalTouchdowns": {
+        "min": -53,
+        "max": 53
+    },
+    "USFBtouchdownsPerGame": {
+        "min": -18,
+        "max": 18
+    },
+    "USFBtotalPoints": {
+        "min": -2452,
+        "max": 2452
+    },
+    "USFBpointsPerGame": {
+        "min": -395.06600000000003,
+        "max": 395.06600000000003
+    },
+    "USFBtacklesforLoss": {
+        "min": -75,
+        "max": 75
+    },
+    "USFBtacklesforLossPerGame": {
+        "min": -17,
+        "max": 17
+    },
+    "USFBinterceptions": {
+        "min": -17,
+        "max": 17
+    },
+    "USFByardsPerInterception": {
+        "min": -267.16700000000003,
+        "max": 267.16700000000003
+    },
+    "USFBsacksTotal": {
+        "min": -42,
+        "max": 42
+    },
+    "USFBsacksPerGame": {
+        "min": -23,
+        "max": 23
+    },
+    "USFBsackYards": {
+        "min": -298,
+        "max": 298
+    },
+    "USFBsackYardsPerGame": {
+        "min": -102,
+        "max": 102
+    },
+    "USFBstuffs": {
+        "min": -45,
+        "max": 45
+    },
+    "USFBstuffsPerGame": {
+        "min": -17,
+        "max": 17
+    },
+    "USFBstuffYards": {
+        "min": 0,
+        "max": 0
+    },
+    "USFBpassesDefended": {
+        "min": -46,
+        "max": 46
+    },
+    "USFBpassesDefendedPerGame": {
+        "min": -15,
+        "max": 15
+    },
+    "USFBsafties": {
+        "min": -4,
+        "max": 4
+    },
+    "USFBaverageKickoffYards": {
+        "min": -827.784,
+        "max": 827.784
+    },
+    "USFBaverageKickoffYardsPerGame": {
+        "min": -84,
+        "max": 84
+    },
+    "USFBextraPointAttempts": {
+        "min": -49,
+        "max": 49
+    },
+    "USFBextraPointAttemptsPerGame": {
+        "min": -13,
+        "max": 13
+    },
+    "USFBextraPointsMade": {
+        "min": -52,
+        "max": 52
+    },
+    "USFBextraPointsMadePerGame": {
+        "min": -13,
+        "max": 13
+    },
+    "USFBextraPointPercent": {
+        "min": -1050,
+        "max": 1050
+    },
+    "USFBextraPointPercentPerGame": {
+        "min": -100,
+        "max": 100
+    },
+    "USFBfieldGoalAttempts": {
+        "min": -24,
+        "max": 24
+    },
+    "USFBfieldGoalAttemptsPerGame": {
+        "min": -7,
+        "max": 7
+    },
+    "USFBfieldGoalsMadePerGame": {
+        "min": -7,
+        "max": 7
+    },
+    "USFBfieldGoalPercentPerGame": {
+        "min": -100,
+        "max": 100
+    },
+    "USFBtouchbacks": {
+        "min": -61,
+        "max": 61
+    },
+    "USFBtouchbacksPerGame": {
+        "min": -12,
+        "max": 12
+    },
+    "USFBtouchBackPercentage": {
+        "min": -921.27,
+        "max": 921.27
+    },
+    "USFBkickReturns": {
+        "min": -52,
+        "max": 52
+    },
+    "USFBkickReturnsPerGame": {
+        "min": -10,
+        "max": 10
+    },
+    "USFBkickReturnYards": {
+        "min": -1242,
+        "max": 1242
+    },
+    "USFBkickReturnYardsPerGame": {
+        "min": -265,
+        "max": 265
+    },
+    "USFBpuntReturns": {
+        "min": -50,
+        "max": 50
+    },
+    "USFBpuntReturnsPerGame": {
+        "min": -30,
+        "max": 30
+    },
+    "USFBpuntReturnFairCatchPct": {
+        "min": -738.33334,
+        "max": 738.33334
+    },
+    "USFBpuntReturnYards": {
+        "min": -551,
+        "max": 551
+    },
+    "USFBpuntReturnYardsPerGame": {
+        "min": -262,
+        "max": 262
+    },
+    "USFByardsPerReturn": {
+        "min": -197.73849099999998,
+        "max": 197.73849099999998
+    },
+    "USFBthirdDownEfficiency": {
+        "min": -423.87899999999996,
+        "max": 423.87899999999996
+    },
+    "USFBtotalPenyards": {
+        "min": -635,
+        "max": 635
+    },
+    "USFBaveragePenYardsPerGame": {
+        "min": -175,
+        "max": 175
+    },
+    "USFBgiveaways": {
+        "min": -27,
+        "max": 27
+    },
+    "USFBtakeaways": {
+        "min": -26,
+        "max": 26
+    },
+    "USFBturnoverDiff": {
+        "min": -35,
+        "max": 35
+    },
+    "USFBtotalFirstDowns": {
+        "min": -257,
+        "max": 257
+    },
+    "undefined": {
+        "min": -484,
+        "max": 484
+    },
+    "USFBfieldGoalPct": {
+        "min": -900,
+        "max": 900
+    },
+    "USFBfieldGoalsMade": {
+        "min": -24,
+        "max": 24
+    }
 }

@@ -12,6 +12,7 @@ const { predictions, trainSportModelKFold } = require('../helperFunctions/mlMode
 const { hyperparameterRandSearch, valueBetGridSearch } = require('../helperFunctions/mlModelFuncs/searchHelpers');
 const { normalizeTeamName } = require('../helperFunctions/dataHelpers/dataSanitizers')
 const { transporter } = require('../constants')
+const { statMinMax } = require('../helperFunctions/dataHelpers/pastGamesHelper');
 
 // Suppress TensorFlow.js logging
 process.env.TF_CPP_MIN_LOG_LEVEL = '3'; // Suppress logs
@@ -904,7 +905,8 @@ const paramAndValueSeed = async () => {
 }
 
 // paramAndValueSeed()
-mlModelTrainSeed()
+// mlModelTrainSeed()
+// statMinMax()
 //TODO: ANALYZE ML MODEL TRAIN SEED AND ADDRESS RAM ISSUES ON EC2 INSTANCE
 
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed, paramAndValueSeed }
