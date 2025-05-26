@@ -898,5 +898,9 @@
     "USFBfieldGoalsMade": {
         "min": -24,
         "max": 24
+    },
+    "BSKBthreePointPct": {
+        "min": 0,
+        "max": 100
     }
 }
