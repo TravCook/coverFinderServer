@@ -905,7 +905,7 @@ const paramAndValueSeed = async () => {
 }
 
 // paramAndValueSeed()
-mlModelTrainSeed()
+// mlModelTrainSeed()
 // statMinMax()
 //TODO: ANALYZE ML MODEL TRAIN SEED AND ADDRESS RAM ISSUES ON EC2 INSTANCE
 
