@@ -93,7 +93,7 @@ module.exports = {
             data = {
                 pastGames: pastGames
             }
-            pastGames = []
+            pastGames = null
             return res.json(data);
 
         } catch (err) {
