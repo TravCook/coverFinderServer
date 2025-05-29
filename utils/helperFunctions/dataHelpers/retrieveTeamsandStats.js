@@ -1,5 +1,5 @@
 const moment = require('moment')
-const { Odds, PastGameOdds, UsaFootballTeam, BasketballTeam, BaseballTeam, HockeyTeam, Sport, Weights } = require('../../../models_sql');
+const { Odds, PastGameOdds, UsaFootballTeam, BasketballTeam, BaseballTeam, HockeyTeam, Sport, Weights } = require('../../../models');
 
 const getTeamRecordUrl = (month, startMonth, endMonth, espnSport, league, statYear, espnID) => {
     let type = 2; // Default type

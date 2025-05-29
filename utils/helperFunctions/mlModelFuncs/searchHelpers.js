@@ -1,5 +1,5 @@
 const moment = require('moment')
-const { Odds, PastGameOdds, Sport } = require('../../../models_sql');
+const { Odds, PastGameOdds, Sport } = require('../../../models');
 const { trainSportModelKFold } = require('../../helperFunctions/mlModelFuncs/trainingHelpers')
 const fs = require('fs');
 
