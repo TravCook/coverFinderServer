@@ -1,5 +1,5 @@
 require('dotenv').config()
-const { Odds, PastGameOdds, UsaFootballTeam, BasketballTeam, BaseballTeam, HockeyTeam, Sport, Weights } = require('../../models_sql');
+const { Odds, PastGameOdds, UsaFootballTeam, BasketballTeam, BaseballTeam, HockeyTeam, Sport, Weights } = require('../../models');
 const axios = require('axios');
 const moment = require('moment')
 const fs = require('fs')
