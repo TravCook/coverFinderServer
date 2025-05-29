@@ -1,5 +1,5 @@
 require('dotenv').config()
-const { Odds, PastGameOdds, UsaFootballTeam, BasketballTeam, BaseballTeam, HockeyTeam, Sport, Weights } = require('../../models');
+const { Odds, PastGameOdds, UsaFootballTeam, BasketballTeam, BaseballTeam, HockeyTeam, Sport, Weights } = require('../../models_sql');
 const axios = require('axios');
 const moment = require('moment')
 const fs = require('fs')
@@ -114,6 +114,16 @@ const mlModelTrainSeed = async () => {
 
     console.log("Message sent:", info.messageId);
 
+    if (global.gc) global.gc();
+
+    let currentOdds = await Odds.find({}).sort({ commence_time: 1, winPercent: 1 });
+    let pastOdds = await PastGameOdds.find({
+        commence_time: { $gte: today }
+    }).sort({ commence_time: -1, winPercent: 1 });
+    await emitToClients('gameUpdate', currentOdds);
+    await emitToClients('pastGameUpdate', pastOdds);
+    currentOdds = null
+    pastOdds = null
     if (global.gc) global.gc();
 }
 

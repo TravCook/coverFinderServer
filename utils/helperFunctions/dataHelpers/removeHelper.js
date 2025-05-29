@@ -1,5 +1,5 @@
 const moment = require('moment')
-const { Odds, PastGameOdds, UsaFootballTeam, BasketballTeam, BaseballTeam, HockeyTeam } = require('../../../models');
+const { Odds, PastGameOdds, UsaFootballTeam, BasketballTeam, BaseballTeam, HockeyTeam } = require('../../../models_sql');
 const { cleanStats, getCommonStats } = require('./retrieveTeamsandStats')
 const removePastGames = async (currentOdds) => {
     for (let game of currentOdds) {

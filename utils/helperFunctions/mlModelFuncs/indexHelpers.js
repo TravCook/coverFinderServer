@@ -1,5 +1,5 @@
 const moment = require('moment')
-const { Odds, PastGameOdds, Sport, Weights } = require('../../../models');
+const { Odds, PastGameOdds, Sport, Weights } = require('../../../models_sql');
 const { normalizeStat } = require('./trainingHelpers')
 const cliProgress = require('cli-progress');
 

@@ -1,4 +1,4 @@
-const { Odds, PastGameOdds, Weights } = require('../../../models');
+const { Odds, PastGameOdds, Weights } = require('../../../models_sql');
 const statsMinMax = require('../../seeds/sampledGlobalStats.json')
 const { checkNaNValues } = require('../dataHelpers/dataSanitizers')
 const fs = require('fs')
