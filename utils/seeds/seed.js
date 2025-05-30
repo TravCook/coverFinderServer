@@ -1,5 +1,6 @@
 require('dotenv').config()
 const { Odds, PastGameOdds, UsaFootballTeam, BasketballTeam, BaseballTeam, HockeyTeam, Sport, Weights } = require('../../models');
+const db = require('../../models_sql');
 const axios = require('axios');
 const moment = require('moment')
 const fs = require('fs')
@@ -115,7 +116,8 @@ const mlModelTrainSeed = async () => {
     console.log("Message sent:", info.messageId);
 
     if (global.gc) global.gc();
-
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);  // Set time to midnight
     let currentOdds = await Odds.find({}).sort({ commence_time: 1, winPercent: 1 });
     let pastOdds = await PastGameOdds.find({
         commence_time: { $gte: today }
@@ -907,13 +909,120 @@ const espnSeed = async () => {
 
 //TAKES ABOUT 1 HOUR
 const paramAndValueSeed = async () => {
-    const sports = await Sport.find({}).sort({name: 1}).lean()
+    const sports = await Sport.find({}).sort({ name: 1 }).lean()
     // await valueBetGridSearch(sports)
     // if (global.gc) global.gc();
     await hyperparameterRandSearch(sports)
     if (global.gc) global.gc();
 }
 
+const dbSwitcher = async () => {
+    // try {
+    //     await db.sequelize.sync({ force: true }).then(() => {
+    //         console.log(`Connected to the SQL database`);
+    //     })
+    // } catch (e) {
+    //     console.error('Error connecting to the database:', e);
+    // }
+    let sports = await Sport.find({}).sort({ name: 1 }).lean()
+
+    for (let sport of sports) {
+        let weights = await Weights.findOne({ league: sport.name }).sort({ league: 1 }).lean()
+        const [SQLsport, created] = await db.Sports.upsert({
+            name: sport.name,
+            espnSport: sport.espnSport,
+            league: sport.league,
+            startMonth: sport.startMonth,
+            endMonth: sport.endMonth,
+            multiYear: sport.multiYear,
+            statYear: sport.statYear,
+            prevStatYear: sport.prevStatYear,
+            sigmoidIQRSharpness: sport.sigmoidIQRSharpness,
+            averageIndex: sport.averageIndex,
+        }, {
+            where: { name: sport.name }
+        })
+        const [hyperParams, createdHP] = await db.HyperParams.upsert({
+            bestAccuracy: sport.hyperParameters.bestAccuracy,
+            epochs: sport.hyperParameters.epochs,
+            batchSize: sport.hyperParameters.batchSize,
+            kFolds: sport.hyperParameters.kFolds,
+            hiddenLayers: sport.hyperParameters.hiddenLayers,
+            learningRate: sport.hyperParameters.learningRate,
+            l2Reg: sport.hyperParameters.l2Reg,
+            dropoutReg: sport.hyperParameters.dropoutReg,
+            kernalInitializer: sport.hyperParameters.kernalInitializer,
+            layerNeurons: sport.hyperParameters.layerNeurons,
+            decayFactor: sport.hyperParameters.decayFactor,
+            gameDecayThreshold: sport.hyperParameters.gameDecayThreshold,
+            sport: SQLsport.id
+        }, {
+            where: { sport: SQLsport.id }
+        })
+        const [weightsSQL, createdWeights] = await db.MlModelWeights.upsert({
+            sport: SQLsport.id,
+            featureImportanceScores: weights?.featureImportanceScores,
+            hiddenToOutputWeights: weights?.hiddenToOutputWeights,
+            inputToHiddenWeights: weights?.inputToHiddenWeights,
+        }, {
+            where: { sport: SQLsport.id }
+        })
+        for (let valueBetSettings of sport.valueBetSettings) {
+            const [valueBetSQL, createdValueBet] = await db.ValueBetSettings.upsert({
+                sport: SQLsport.id,
+                bookmaker: valueBetSettings.bookmaker,
+                indexDiffSmall: valueBetSettings.settings.indexDiffSmallNum,
+                indexDiffRange: valueBetSettings.settings.indexDiffRangeNum,
+                confidenceSmall: valueBetSettings.settings.confidenceSmallNum,
+                confidenceRange: valueBetSettings.settings.confidenceRangeNum,
+                bestWinrate: valueBetSettings.settings.bestWinrate,
+                bestTotalGames: valueBetSettings.settings.bestTotalGames,
+                bestConfidenceInterval: valueBetSettings.settings.bestConfidenceInterval,
+            }, {
+                where: { sport: SQLsport.id, bookmaker: valueBetSettings.bookmaker }
+            })
+        }
+        let TeamModel
+        switch (sport.league) {
+            case 'college-football':
+            case 'nfl':
+                TeamModel = UsaFootballTeam;
+                break;
+            case 'nba':
+            case 'mens-college-basketball':
+            case 'womens-college-basketball':
+                TeamModel = BasketballTeam;
+                break;
+            case 'nhl':
+                TeamModel = HockeyTeam;
+                break;
+            case 'mlb':
+                TeamModel = BaseballTeam;
+                break;
+            default:
+                console.error("Unsupported sport:", sport.league);
+                continue; // Skip unsupported sports
+        }
+        let allTeams = await TeamModel.find({}).lean()
+        
+        for (let team of allTeams) {
+
+        }
+    }
+
+
+
+
+
+
+    //MOVE GAMES TO SQL
+    //MOVE PAST GAMES TO SQL
+    //MOVE STATS TO SQL
+}
+
+
+
+// dbSwitcher()
 // paramAndValueSeed()
 // mlModelTrainSeed()
 // statMinMax()

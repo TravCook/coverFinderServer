@@ -1,6 +1,6 @@
 require('dotenv').config();
 
-module.export = {
+const config = {
   development: {
     username: "root",
     password: process.env.MYSQL_PASSWORD,
@@ -23,3 +23,5 @@ module.export = {
     dialect: "mysql"
   }
 }
+
+module.exports = config[process.env.NODE_ENV || 'development'];

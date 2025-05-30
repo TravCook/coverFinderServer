@@ -1,8 +1,31 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../database/connection');
+module.exports = (sequelize, DataTypes) => {
 
-const Sports = sequelize.define('Sports', {
+    const Markets = sequelize.define('Markets', {
+        id: {
+            type: DataTypes.INTEGER,
+            primaryKey: true,
+            autoIncrement: true,
+        },
+        bookmakerID: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+        },
+        key: {
+            type: DataTypes.STRING,
+            allowNull: false,
+        }
+    });
 
-});
+    Markets.associate = (models) => {
+        Markets.belongsTo(models.Bookmakers, {
+            foreignKey: 'bookmakerID',
+            as: 'bookmakerDetails'
+        });
 
-module.exports = Sports;
+        Markets.hasMany(models.Outcomes, {
+            foreignKey: 'marketID',
+            as: 'outcomes'
+        });
+    };
+    return Markets;
+}

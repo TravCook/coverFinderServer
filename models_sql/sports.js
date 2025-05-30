@@ -1,63 +1,78 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../database/connection');
+module.exports = (sequelize, DataTypes) => {
+    const Sports = sequelize.define('Sports', {
+        id: {
+            type: DataTypes.INTEGER,
+            primaryKey: true,
+            autoIncrement: true,
+        },
+        name: {
+            type: DataTypes.STRING,
+            allowNull: false,
+            unique: true,
+        },
+        espnSport: {
+            type: DataTypes.STRING,
+            allowNull: false,
+        },
+        league: {
+            type: DataTypes.STRING,
+            allowNull: false,
+        },
+        startMonth: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+        },
+        endMonth: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+        },
+        multiYear: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+        },
+        statYear: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+        },
+        prevStatYear: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+        },
+        sigmoidIQRSharpness: {
+            type: DataTypes.FLOAT,
+            allowNull: true,
+        },
+        averageIndex: {
+            type: DataTypes.FLOAT,
+            allowNull: true,
+        }
+    });
 
-const Sports = sequelize.define('Sports', {
-    id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-    },
-    name: {
-        type: DataTypes.STRING,
-        allowNull: false,
-    },
-    espnSport: {
-        type: DataTypes.STRING,
-        allowNull: false,
-    },
-    league: {
-        type: DataTypes.STRING,
-        allowNull: false,
-    },
-    startMonth: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-    },
-    endMonth: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-    },
-    multiYear: {
-        type: DataTypes.BOOLEAN,
-        allowNull: false,
-    },
-    statYear: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-    },
-    prevStatYear: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-    },
-    sigmoidIQRSharpness: {
-        type: DataTypes.FLOAT,
-        allowNull: false,
-    },
-    averageIndex: {
-        type: DataTypes.FLOAT,
-        allowNull: false,
-    }, 
-    mlModelWeights: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-    },
-    hyperParams: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-    },
-    valueBetSettings: {
-        type: DataTypes.JSON,
-        allowNull: false,
+    Sports.associate = (models) => {
+        Sports.hasMany(models.Games, {
+            foreignKey: 'sport',
+            as: 'games'
+        })
+        Sports.hasMany(models.PastGames, {
+            foreignKey: 'sport',
+            as: 'pastGames'
+        })
+        Sports.hasMany(models.ValueBetSettings, {
+            foreignKey: 'sport',
+            as: 'valueBetSettings'
+        })
+        Sports.hasOne(models.MlModelWeights, {
+            foreignKey: 'sport',
+            as: 'MlModelWeights'
+        })
+        Sports.hasMany(models.HyperParams, {
+            foreignKey: 'sport',
+            as: 'hyperParams'
+        })
+        Sports.hasMany(models.Bookmakers, {
+            foreignKey: 'sport',
+            as: 'bookmakers'
+        })
     }
-});
-
-module.exports = Sports;
+    return Sports
+}

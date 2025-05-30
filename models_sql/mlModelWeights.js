@@ -1,8 +1,31 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../database/connection');
+module.exports = (sequelize, DataTypes) => {
 
-const Sports = sequelize.define('Sports', {
-
+const MlModelWeights = sequelize.define('MlModelWeights', {
+    id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+    },
+    featureImportanceScores: {
+        type: DataTypes.JSON,
+        allowNull: true
+    },
+    hiddenToOutputWeights: {
+        type: DataTypes.JSON,
+        allowNull: true
+    },
+    inputToHiddenWeights: {
+        type: DataTypes.JSON,
+        allowNull: true
+    }
 });
 
-module.exports = Sports;
+MlModelWeights.associate = (models) => {
+    MlModelWeights.belongsTo(models.Sports, {
+        foreignKey: 'sport',
+        as: 'MlModelWeights'
+    })
+}
+
+return MlModelWeights;
+}
