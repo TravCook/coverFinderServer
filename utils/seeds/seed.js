@@ -1023,7 +1023,7 @@ const dbSwitcher = async () => {
 const ramUsageTester = async () => {
     await dataSeed()
     console.log('------------------------------ODDS SEED -------------------------')
-    // await oddsSeed()
+    await oddsSeed()
     console.log('------------------------------MODEL TRAIN SEED -------------------------')
     await mlModelTrainSeed()
 }
