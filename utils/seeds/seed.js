@@ -1024,6 +1024,8 @@ const ramUsageTester = async () => {
     await dataSeed()
     console.log('------------------------------ODDS SEED -------------------------')
     await oddsSeed()
+    console.log('------------------------------REMOVE SEED -------------------------')
+    await removeSeed()
     console.log('------------------------------MODEL TRAIN SEED -------------------------')
     await mlModelTrainSeed()
 }
