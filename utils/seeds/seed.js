@@ -1004,7 +1004,7 @@ const dbSwitcher = async () => {
                 continue; // Skip unsupported sports
         }
         let allTeams = await TeamModel.find({}).lean()
-        
+
         for (let team of allTeams) {
 
         }
@@ -1020,11 +1020,18 @@ const dbSwitcher = async () => {
     //MOVE STATS TO SQL
 }
 
+const ramUsageTester = async () => {
+    // await dataSeed()
+
+    // await oddsSeed()
+
+    await mlModelTrainSeed()
+}
 
 
 // dbSwitcher()
 // paramAndValueSeed()
-// mlModelTrainSeed()
+ramUsageTester()
 // statMinMax()
 //TODO: ANALYZE ML MODEL TRAIN SEED AND ADDRESS RAM ISSUES ON EC2 INSTANCE
 
