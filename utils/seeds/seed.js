@@ -1022,10 +1022,13 @@ const dbSwitcher = async () => {
 
 const ramUsageTester = async () => {
     await dataSeed()
+    if (global.gc) global.gc();
     console.log('------------------------------ODDS SEED -------------------------')
     await oddsSeed()
+    if (global.gc) global.gc();
     console.log('------------------------------REMOVE SEED -------------------------')
     await removeSeed()
+    if (global.gc) global.gc();
     console.log('------------------------------MODEL TRAIN SEED -------------------------')
     await mlModelTrainSeed()
 }
