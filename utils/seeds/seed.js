@@ -1036,7 +1036,7 @@ const ramUsageTester = async () => {
 
 // dbSwitcher()
 // paramAndValueSeed()
-ramUsageTester()
+// ramUsageTester()
 // statMinMax()
 //TODO: ANALYZE ML MODEL TRAIN SEED AND ADDRESS RAM ISSUES ON EC2 INSTANCE
 
