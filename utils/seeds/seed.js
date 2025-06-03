@@ -59,7 +59,7 @@ const mlModelTrainSeed = async () => {
     const yesterday = new Date(currentDate);
     yesterday.setDate(currentDate.getDate() - 1);
     yesterday.setHours(0, 0, 0, 0);
-    let yesterdayGames = await PastGameOdds.find({ commence_time: { $gte: yesterday } })
+    let yesterdayGames = await PastGameOdds.find({ commence_time: { $gte: yesterday } }).select('-homeTeamStats -awayTeamStats')
     const stats = {
         date: new Date().toLocaleDateString(),
         totalPredictions: yesterdayGames.length,
@@ -1033,7 +1033,7 @@ const ramUsageTester = async () => {
 
 // dbSwitcher()
 // paramAndValueSeed()
-// ramUsageTester()
+ramUsageTester()
 // statMinMax()
 //TODO: ANALYZE ML MODEL TRAIN SEED AND ADDRESS RAM ISSUES ON EC2 INSTANCE
 

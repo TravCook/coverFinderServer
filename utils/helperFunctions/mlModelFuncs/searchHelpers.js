@@ -118,7 +118,7 @@ const valueBetGridSearch = async (sports) => {
     let confidenceRangeNum = [0, .05, .10, .15, .20, .25, .30, .35, .40, .45, .50];
 
     for (const sport of sports) {
-        let sportGames = await PastGameOdds.find({ sport_key: sport.name, predictedWinner: { $in: ['home', 'away'] } });
+        let sportGames = await PastGameOdds.find({ sport_key: sport.name, predictedWinner: { $in: ['home', 'away'] } }).select('-homeTeamStats -awayTeamStats');
 
         if (sportGames.length > 0) {
             // Parallelize across sportsbooks
