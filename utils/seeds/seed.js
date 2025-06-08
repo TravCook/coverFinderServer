@@ -274,9 +274,9 @@ const oddsSeed = async () => {
                             if (!event.sport_key) {
                                 console.error(`sportType is undefined for event: ${event.id}`);
                             } else {
-                                let dbSport = sqlSports.filter((sport) => sport.name === event.sport_key)
-                                console.log(dbSport)
-                                await gameDBSaver(event, dbSport[0])
+                                // let dbSport = sqlSports.filter((sport) => sport.name === event.sport_key)
+                                // console.log(dbSport)
+                                // await gameDBSaver(event, dbSport[0])
                                 if (oddExist) {
                                     // Update the existing odds with normalized team names and sport type
 
