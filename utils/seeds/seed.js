@@ -152,8 +152,8 @@ const oddsSeed = async () => {
         let requests
         const currentDate = new Date()
         const currentHour = currentDate.getHours()
-        const sqlSports = await db.Sports.findAll({ raw: true })
-        console.log(sqlSports)
+        // const sqlSports = await db.Sports.findAll({ raw: true })
+        // console.log(sqlSports)
         if (currentHour >= 0 && currentHour < 5) {
             requests = sports.map(sport =>
 
