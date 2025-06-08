@@ -113,6 +113,25 @@ const indexCondition = (game, indexDifSmall, indexDiffRange) => {
     },
   });
 
+  const getImpliedProbability = (americanOdds) => {
+    if (typeof americanOdds !== 'number' || americanOdds === 0) {
+      throw new Error('Odds must be a non-zero number');
+    }
+  
+    let probability;
+  
+    if (americanOdds > 0) {
+      // Positive odds (e.g., +150)
+      probability = 100 / (americanOdds + 100);
+    } else {
+      // Negative odds (e.g., -150)
+      probability = -americanOdds / (-americanOdds + 100);
+    }
+  
+    return probability;
+  }
+  
 
 
-module.exports = {sports, combinedCondition, transporter}
+
+module.exports = {sports, combinedCondition, transporter, getImpliedProbability}

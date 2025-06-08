@@ -40,7 +40,11 @@ module.exports = (sequelize, DataTypes) => {
         secondaryColor: {
             type: DataTypes.STRING,
             allowNull: true,
-        }
+        },
+        currentStats: {
+          type: DataTypes.JSONB, // Flexible structure
+          allowNull: true,
+        },
     });
 
     Teams.associate = (models) => {
@@ -50,23 +54,15 @@ module.exports = (sequelize, DataTypes) => {
             as: 'homeGames'
         });
 
-        Teams.hasMany(models.PastGames, {
-            foreignKey: 'homeTeam',
-            as: 'homePastGames'
-        });
 
         Teams.hasMany(models.Games, {
             foreignKey: 'awayTeam',
             as: 'awayGames'
         });
 
-        Teams.hasMany(models.PastGames, {
-            foreignKey: 'awayTeam',
-            as: 'awayPastGames'
-        });
 
         Teams.hasMany(models.Outcomes, {
-            foreignKey: 'teamID',
+            foreignKey: 'teamId',
             as: 'outcomes'
         })
 

@@ -6,24 +6,24 @@ module.exports = (sequelize, DataTypes) => {
             primaryKey: true,
             autoIncrement: true,
         },
-        bookmakerID: {
+        bookmakerId: {
             type: DataTypes.INTEGER,
             allowNull: false,
         },
         key: {
             type: DataTypes.STRING,
             allowNull: false,
-        }
+        },
     });
 
     Markets.associate = (models) => {
         Markets.belongsTo(models.Bookmakers, {
-            foreignKey: 'bookmakerID',
+            foreignKey: 'bookmakerId',
             as: 'bookmakerDetails'
         });
 
         Markets.hasMany(models.Outcomes, {
-            foreignKey: 'marketID',
+            foreignKey: 'marketId',
             as: 'outcomes'
         });
     };

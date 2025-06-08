@@ -45,17 +45,14 @@ module.exports = (sequelize, DataTypes) => {
         averageIndex: {
             type: DataTypes.FLOAT,
             allowNull: true,
-        }
+        },
+        
     });
 
     Sports.associate = (models) => {
         Sports.hasMany(models.Games, {
             foreignKey: 'sport',
             as: 'games'
-        })
-        Sports.hasMany(models.PastGames, {
-            foreignKey: 'sport',
-            as: 'pastGames'
         })
         Sports.hasMany(models.ValueBetSettings, {
             foreignKey: 'sport',

@@ -68,9 +68,8 @@ module.exports = (sequelize, DataTypes) => {
         },
         sport: {
             type: DataTypes.INTEGER,
-            allowNull: false,
-            defaultValue: 0
-        }
+            allowNull: false
+        },
     });
 
     HyperParams.associate = (models) => {

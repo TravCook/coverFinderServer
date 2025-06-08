@@ -2,25 +2,25 @@ require('dotenv').config();
 
 const config = {
   development: {
-    username: "root",
-    password: process.env.MYSQL_PASSWORD,
+    username: "postgres",
+    password: process.env.POSTGRES_PASSWORD,
     database: process.env.DB_NAME,
     host: process.env.DB_HOST_TEST,
-    dialect: "mysql"
+    dialect: "postgres"
   },
   test: {
-    username: "root",
-    password:  process.env.MYSQL_PASSWORD,
+    username: "postgres",
+    password:  process.env.POSTGRES_PASSWORD,
     database: process.env.DB_NAME,
     host: process.env.DB_HOST_TEST,
-    dialect: "mysql"
+    dialect: "postgres"
   },
   production: {
-    username: "root",
-    password:  process.env.MYSQL_PASSWORD,
+    username: "postgres",
+    password:  process.env.POSTGRES_PASSWORD,
     database: process.env.DB_NAME,
     host: process.env.DB_HOST_PRODUCTION,
-    dialect: "mysql"
+    dialect: "postgres"
   }
 }
 

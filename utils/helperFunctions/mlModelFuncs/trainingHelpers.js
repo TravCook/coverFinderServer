@@ -5,6 +5,7 @@ const fs = require('fs')
 const tf = require('@tensorflow/tfjs-node');
 const moment = require('moment')
 const cliProgress = require('cli-progress');
+const pastGameOdds = require('../../../models/pastGameOdds');
 
 const getStat = (stats, statName, fallbackValue = 0) => {
     return stats && stats[statName] !== undefined ? stats[statName] : fallbackValue;
@@ -502,15 +503,16 @@ const loadOrCreateModel = async (xs, sport) => {
             return await tf.loadLayersModel(`file://./model_checkpoint/${sport.name}_model/model.json`);
         } else {
             let newModel = tf.sequential();
-            // Using the correct L2 regularization
-            const l2Regularizer = tf.regularizers.l2({ l2: sport.l2Reg });  // Adjust the value to suit your needs
 
-            newModel.add(tf.layers.dense({ units: xs[0].length, inputShape: [xs[0].length], activation: 'relu', kernelInitializer: sport.kernelInitializer, kernelRegularizer: l2Regularizer, biasInitializer: 'zeros' }));
-            for (let layers = 0; layers < sport.hiddenLayerNum; layers++) {
-                newModel.add(tf.layers.dense({ units: sport.layerNeurons, activation: 'relu', kernelInitializer: sport.kernelInitializer, kernelRegularizer: l2Regularizer, biasInitializer: 'zeros' }));
-                newModel.add(tf.layers.dropout({ rate: sport.dropoutReg }));  //Dropout range from .2 up to .7, lower keeps performance intact while still preventing overfitting
-            }
-            newModel.add(tf.layers.dense({ units: 1, activation: 'sigmoid', kernelInitializer: sport.kernelInitializer, kernelRegularizer: l2Regularizer, biasInitializer: 'zeros' }));
+            // Using the correct L2 regularization
+            const l2Regularizer = tf.regularizers.l2({ l2: sport.hyperParameters.l2Reg });  // Adjust the value to suit your needs
+
+            newModel.add(tf.layers.dense({ units: xs[0].length, inputShape: [xs[0].length], activation: 'relu', kernelInitializer: sport.hyperParameters.kernelInitializer, kernelRegularizer: l2Regularizer, biasInitializer: 'zeros' }));
+            // for (let layers = 0; layers < 2; layers++) {
+            //     newModel.add(tf.layers.dense({ units: 64, activation: 'relu' }));
+                // newModel.add(tf.layers.dropout({ rate: .5 }));  //Dropout range from .2 up to .7, lower keeps performance intact while still preventing overfitting
+            // }
+            newModel.add(tf.layers.dense({ units: 1, activation: 'sigmoid', kernelInitializer: sport.hyperParameters.kernelInitializer, kernelRegularizer: l2Regularizer, biasInitializer: 'zeros' }));
 
             // Compile the model
 
@@ -673,7 +675,7 @@ const mlModelTraining = async (gameData, xs, ys, sport) => {
     // Log loss and accuracy
 
 }
-const predictions = async (sportOdds, ff, model, sport) => {
+const predictions = async (sportOdds, ff, model, sport, past) => {
     console.info(`STARTING PREDICTIONS FOR ${sport.name} @ ${moment().format('HH:mm:ss')}`);
 
     if (sportOdds.length > 0) {
@@ -708,6 +710,7 @@ const predictions = async (sportOdds, ff, model, sport) => {
         let probabilities = await predictions.array();  // Resolves to an array
 
         // Step 5: Loop through each game and update with predicted probabilities
+        let changedPredictions = 0
         for (let index = 0; index < sportOdds.length; index++) {
             const game = sportOdds[index];
             if (game.homeTeamStats && game.awayTeamStats) {
@@ -718,22 +721,27 @@ const predictions = async (sportOdds, ff, model, sport) => {
 
                 // Step 6: Determine the predicted winner
                 const predictedWinner = predictedWinPercent >= 0.5 ? 'home' : 'away';
-                try {
-                    await Odds.findOneAndUpdate(
-                        { id: game.id },
-                        {
-                            predictionStrength: predictionStrength > .50 ? predictionStrength : 1 - predictionStrength,
-                            predictedWinner: predictedWinner
-                        }
-                    );
-                } catch (err) {
-                    console.log(err)
+                if(past){
+                    if(predictedWinner !== game.predictedWinner) changedPredictions++
+                }else{
+                    try {
+                        await Odds.findOneAndUpdate(
+                            { id: game.id },
+                            {
+                                predictionStrength: predictionStrength > .50 ? predictionStrength : 1 - predictionStrength,
+                                predictedWinner: predictedWinner
+                            }
+                        );
+                    } catch (err) {
+                        console.log(err)
+                    }
                 }
+
                 // Update the game with prediction strength
 
             }
         }
-
+        if(past) console.log(`CHANGED PREDICTIONS: ${changedPredictions} FOR ${sport.name}}`);
         probabilites = null
         ffTensor.dispose();
         logits.dispose();
@@ -880,7 +888,9 @@ const trainSportModelKFold = async (sport, gameData, search) => {
     }
 
     if (!search && currentOdds.length > 0) await predictions(currentOdds, [], finalModel, sport)
-
+    let rePredictGames = await pastGameOdds.find({ sport_key: sport.name, predictedWinner: { $exists: true } }).sort({ commence_time: -1 })
+    console.log(`Re-predicting ${rePredictGames.length} past games for ${sport.name}...`);
+    await predictions(rePredictGames, [], finalModel, sport, true)
     // After all folds, calculate and log the overall performance
     const avgF1Score = foldResults.reduce((sum, fold) => sum + fold.f1Score, 0) / foldResults.length;
     const totalTruePositives = foldResults.reduce((sum, fold) => sum + fold.truePositives, 0)
@@ -890,10 +900,10 @@ const trainSportModelKFold = async (sport, gameData, search) => {
 
     console.log(`--- Overall Performance Avg F1-Score: ${avgF1Score} ---`);
     if (search) return avgF1Score
-    console.log(`truePositives: ${totalTruePositives}`);
-    console.log(`falsePositives: ${totalFalsePositives}`);
-    console.log(`falseNegatives: ${totalFalseNegatives}`);
-    console.log(`trueNegatives: ${totalTrueNegatives}`);
+    console.log(`truePositives: ${totalTruePositives} (${(totalTruePositives / (totalTruePositives + totalFalseNegatives + totalFalsePositives + totalTrueNegatives) * 100).toFixed(2)}%)`);
+    console.log(`falsePositives: ${totalFalsePositives} (${(totalFalsePositives / (totalTruePositives + totalFalseNegatives + totalFalsePositives + totalTrueNegatives) * 100).toFixed(2)}%)`);
+    console.log(`falseNegatives: ${totalFalseNegatives} (${(totalFalseNegatives / (totalTruePositives + totalFalseNegatives + totalFalsePositives + totalTrueNegatives) * 100).toFixed(2)}%)`);
+    console.log(`trueNegatives: ${totalTrueNegatives} (${(totalTrueNegatives / (totalTruePositives + totalFalseNegatives + totalFalsePositives + totalTrueNegatives) * 100).toFixed(2)}%)`);
 
     // Get the input-to-hidden weights (40 features × 128 neurons)
     let inputToHiddenWeights = finalModel.layers[0].getWeights()[0].arraySync();  // Shape: 40x128

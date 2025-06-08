@@ -5,29 +5,29 @@ module.exports = (sequelize, DataTypes) => {
             primaryKey: true,
             autoIncrement: true,
         },
-        gameID: {
+        gameId: {
             type: DataTypes.INTEGER,
+            allowNull: false,
+        },
+        title: {
+            type: DataTypes.STRING,
             allowNull: false,
         },
         key: {
             type: DataTypes.STRING,
             allowNull: false,
-        }
+        },
+        
     });
 
     Bookmakers.associate = (models) => {
         Bookmakers.belongsTo(models.Games, {
-            foreignKey: 'gameID',
+            foreignKey: 'gameId',
             as: 'gameDetails'
         });
 
-        Bookmakers.belongsTo(models.PastGames, {
-            foreignKey: 'gameID',
-            as: 'pastGameDetails'
-        });
-
         Bookmakers.hasMany(models.Markets, {
-            foreignKey: 'bookmakerID',
+            foreignKey: 'bookmakerId',
             as: 'markets'
         });
     }

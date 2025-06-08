@@ -17,7 +17,7 @@ const MlModelWeights = sequelize.define('MlModelWeights', {
     inputToHiddenWeights: {
         type: DataTypes.JSON,
         allowNull: true
-    }
+    },
 });
 
 MlModelWeights.associate = (models) => {

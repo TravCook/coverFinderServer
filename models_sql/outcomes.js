@@ -6,11 +6,11 @@ module.exports = (sequelize, DataTypes) => {
             primaryKey: true,
             autoIncrement: true,
         },
-        marketID: {
+        marketId: {
             type: DataTypes.INTEGER,
             allowNull: false,
         },
-        teamID: {
+        teamId: {
             type: DataTypes.INTEGER,
             allowNull: true, // Allow null for non-team outcomes
         },
@@ -25,17 +25,18 @@ module.exports = (sequelize, DataTypes) => {
         impliedProbability: {
             type: DataTypes.FLOAT,
             allowNull: false,
-        }
+        },
+        
     });
 
     Outcomes.associate = (models) => {
         Outcomes.belongsTo(models.Markets, {
-            foreignKey: 'marketID',
+            foreignKey: 'marketId',
             as: 'marketDetails'
         });
 
         Outcomes.belongsTo(models.Teams, {
-            foreignKey: 'teamID',
+            foreignKey: 'teamId',
             as: 'teamDetails'
         });
     };

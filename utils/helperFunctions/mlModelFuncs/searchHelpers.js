@@ -44,7 +44,7 @@ const hyperparameterRandSearch = async (sports) => {
         let gameData = await PastGameOdds.find({ sport_key: sport.name }).sort({ commence_time: -1 })
         let sportGames = upcomingGames.filter((game) => game.sport_key === sport.name)
         console.log(`Upcoming Games: ${sportGames.length}`)
-        if (gameData.length > 0 && sportGames.length > 0) {
+        if (sport.name === "baseball_mlb") {
             // 1296
             for (let iterations = 0; iterations < 10; iterations++) {
                 let currentParams = {}
@@ -112,8 +112,9 @@ const valueBetGridSearch = async (sports) => {
         'hardrockbet',
         'windcreek'
     ];
-    let indexDiffSmallNum = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45];
-    let indexDiffRangeNum = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45];
+    let indexDiffSmallNum = [-50, -40, -30, -20, -10, 0, 10, 20, 30, 45, 50];
+    // let indexDiffSmallNum = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45];
+    let indexDiffRangeNum = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
     let confidenceLowNum = [.50, .55, .60, .65, .70, .75, .80, .85, .90, .95, 1.00];
     let confidenceRangeNum = [0, .05, .10, .15, .20, .25, .30, .35, .40, .45, .50];
 
@@ -147,8 +148,8 @@ const valueBetGridSearch = async (sports) => {
                                     if (bookmaker) {
                                         const outcome = bookmaker.markets.find(market => market.key === 'h2h').outcomes;
                                         const lowerImpliedProbOutcome = outcome.find(o => (
-                                            ((game.predictedWinner === 'home' ? Math.abs(game.homeTeamScaledIndex - game.awayTeamScaledIndex) : Math.abs(game.awayTeamScaledIndex - game.homeTeamScaledIndex)) > (indexDifSmall) &&
-                                                (game.predictedWinner === 'home' ? Math.abs(game.homeTeamScaledIndex - game.awayTeamScaledIndex) : Math.abs(game.awayTeamScaledIndex - game.homeTeamScaledIndex)) < (indexDifSmall + indexDiffRange)) &&
+                                            ((game.predictedWinner === 'home' ? game.homeTeamScaledIndex - game.awayTeamScaledIndex : game.awayTeamScaledIndex - game.homeTeamScaledIndex) > (indexDifSmall) &&
+                                                (game.predictedWinner === 'home' ? game.homeTeamScaledIndex - game.awayTeamScaledIndex : game.awayTeamScaledIndex - game.homeTeamScaledIndex) < (indexDifSmall + indexDiffRange)) &&
                                             (game.predictionStrength > confidenceLow && game.predictionStrength < (confidenceLow + confidenceRange)) &&
                                             (o.impliedProb * 100) < (game.winPercent) &&
                                             ((game.predictedWinner === 'home' && game.home_team === o.name) || (game.predictedWinner === 'away' && game.away_team === o.name))

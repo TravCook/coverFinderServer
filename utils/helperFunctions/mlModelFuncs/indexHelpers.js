@@ -533,9 +533,9 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
     console.log('DB re-queried for games to update')
     updates = []
     const iqrSharpness = calculateIQRSharpness(indexArray);
-    normalizedIndexBar.start(total, 0);
     await Sport.findOneAndUpdate({ name: sport.name }, { sigmoidIQRSharpness: iqrSharpness, averageIndex: avgIndex }, { new: true });
     console.log('IQR and Avg updated in DB')
+    normalizedIndexBar.start(total, 0);
     progress = 0
     for (const game of currentOdds) {
         if (moment().isBefore(moment(game.commence_time)) || past === true) {

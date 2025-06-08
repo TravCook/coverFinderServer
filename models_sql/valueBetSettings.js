@@ -49,6 +49,7 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         allowNull: false,
     },
+    
 });
 
 ValueBetSettings.associate = (models) => {

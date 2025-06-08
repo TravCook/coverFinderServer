@@ -13,6 +13,14 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.INTEGER,
             allowNull: false,
         },
+        sport_title: {
+            type: DataTypes.STRING,
+            allowNull: false
+        },
+        sport_key: {
+            type: DataTypes.STRING,
+            allowNull: false
+        },
         commence_time: {
             type: DataTypes.DATE,
             allowNull: false,
@@ -61,14 +69,19 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.INTEGER,
             allowNull: false
         },
-        homeStats: {
-            type: DataTypes.INTEGER,
+        predictionCorrect: {
+            type: DataTypes.BOOLEAN,
             allowNull: true,
         },
-        awayStats: {
-            type: DataTypes.INTEGER,
+        winner: {
+            type: DataTypes.STRING,
             allowNull: true,
         },
+        complete: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            default: false
+        }
     });
 
     Games.associate = (models) => {
@@ -87,39 +100,21 @@ module.exports = (sequelize, DataTypes) => {
             as: 'sportDetails'
         });
 
-        Games.belongsTo(models.BaseballStats, {
-            foreignKey: 'homeStats',
-            as: 'homeBaseballStatsDetails'
-        })
-        Games.belongsTo(models.BasketballStats, {
-            foreignKey: 'homeStats',
-            as: 'homeBasketballStatsDetails'
-        })
-        Games.belongsTo(models.HockeyStats, {
-            foreignKey: 'homeStats',
-            as: 'homeHockeyStatsDetails'
-        })
-        Games.belongsTo(models.UsaFootballStats, {
-            foreignKey: 'homeStats',
-            as: 'homeUsaFootballStatsDetails'
+        Games.hasMany(models.Bookmakers, {
+            foreignKey: 'gameId',
+            as: 'bookmakers'
         })
 
-        Games.belongsTo(models.BaseballStats, {
-            foreignKey: 'awayStats',
-            as: 'awayBaseballStatsDetails'
+        Games.hasOne(models.Stats, {
+            foreignKey: 'gameId',
+            as: 'homeStats'
         })
-        Games.belongsTo(models.BasketballStats, {
-            foreignKey: 'awayStats',
-            as: 'awayBasketballStatsDetails'
+        
+        Games.hasOne(models.Stats, {
+            foreignKey: 'gameId',
+            as: 'awayStats'
         })
-        Games.belongsTo(models.HockeyStats, {
-            foreignKey: 'awayStats',
-            as: 'awayHockeyStatsDetails'
-        })
-        Games.belongsTo(models.UsaFootballStats, {
-            foreignKey: 'awayStats',
-            as: 'awayUsaFootballStatsDetails'
-        })
+
     }
     return Games
 }
