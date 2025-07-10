@@ -164,28 +164,6 @@ module.exports = {
                                 }
                             ]
                         },
-                        {
-                            model: db.Stats,
-                            as: `homeStats`,
-                            required: true,
-                            where: {
-                                [Op.and]: [
-                                    { teamId: { [Op.eq]: Sequelize.col('Games.homeTeam') } },
-                                    { gameId: { [Op.eq]: Sequelize.col('Games.id') } }
-                                ]
-                            }
-                        },
-                        {
-                            model: db.Stats,
-                            as: `awayStats`,
-                            required: true,
-                            where: {
-                                [Op.and]: [
-                                    { teamId: { [Op.eq]: Sequelize.col('Games.awayTeam') } },
-                                    { gameId: { [Op.eq]: Sequelize.col('Games.id') } }
-                                ]
-                            }
-                        }
                     ],
                 });
                 const sports = await db.Sports.findAll({ include: [{ model: db.MlModelWeights, as: 'MlModelWeights', model: db.ValueBetSettings, as: 'valueBetSettings', where: {sport: {[Op.eq]: Sequelize.col('Sports.id')}} }], order: [['name', 'ASC']] });
