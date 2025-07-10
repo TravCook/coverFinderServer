@@ -1,0 +1,1510 @@
+{
+  "basketball_nba": {
+    "seasonWinLoss": {
+      "mean": 20.670917,
+      "stdDev": 13.829061,
+      "total": 12182,
+      "used": 12155
+    },
+    "homeWinLoss": {
+      "mean": 11.565856,
+      "stdDev": 7.87143,
+      "total": 12182,
+      "used": 12178
+    },
+    "awayWinLoss": {
+      "mean": 9.073292,
+      "stdDev": 6.357765,
+      "total": 12182,
+      "used": 12116
+    },
+    "pointDiff": {
+      "mean": 26.933983,
+      "stdDev": 150.634316,
+      "total": 12182,
+      "used": 10770
+    }
+  },
+  "icehockey_nhl": {
+    "seasonWinLoss": {
+      "mean": 20.199227,
+      "stdDev": 13.104917,
+      "total": 12418,
+      "used": 12413
+    },
+    "homeWinLoss": {
+      "mean": 10.846067,
+      "stdDev": 7.187381,
+      "total": 12418,
+      "used": 12408
+    },
+    "awayWinLoss": {
+      "mean": 9.346919,
+      "stdDev": 6.330162,
+      "total": 12418,
+      "used": 12415
+    },
+    "pointDiff": {
+      "mean": 2.333841,
+      "stdDev": 25.139658,
+      "total": 12418,
+      "used": 11829
+    }
+  },
+  "basketball_ncaab": {
+    "seasonWinLoss": {
+      "mean": 7.69298,
+      "stdDev": 5.72391,
+      "total": 52274,
+      "used": 52065
+    },
+    "homeWinLoss": {
+      "mean": 5.051995,
+      "stdDev": 3.960493,
+      "total": 52274,
+      "used": 52063
+    },
+    "awayWinLoss": {
+      "mean": 2.46424,
+      "stdDev": 2.180741,
+      "total": 52274,
+      "used": 50853
+    },
+    "pointDiff": {
+      "mean": 3.467526,
+      "stdDev": 107.334322,
+      "total": 52274,
+      "used": 49747
+    }
+  },
+  "basketball_wncaab": {
+    "seasonWinLoss": {
+      "mean": 7.673388,
+      "stdDev": 5.963873,
+      "total": 51072,
+      "used": 50433
+    },
+    "homeWinLoss": {
+      "mean": 4.588402,
+      "stdDev": 3.616554,
+      "total": 51072,
+      "used": 49852
+    },
+    "awayWinLoss": {
+      "mean": 2.962131,
+      "stdDev": 2.689499,
+      "total": 51072,
+      "used": 50596
+    },
+    "pointDiff": {
+      "mean": 2.352846,
+      "stdDev": 141.267707,
+      "total": 51072,
+      "used": 48140
+    }
+  },
+  "baseball_mlb": {
+    "seasonWinLoss": {
+      "mean": 38.477494,
+      "stdDev": 24.515603,
+      "total": 21994,
+      "used": 21994
+    },
+    "homeWinLoss": {
+      "mean": 20.399291,
+      "stdDev": 13.080138,
+      "total": 21994,
+      "used": 21994
+    },
+    "awayWinLoss": {
+      "mean": 18.078203,
+      "stdDev": 11.852979,
+      "total": 21994,
+      "used": 21994
+    },
+    "pointDiff": {
+      "mean": 3.671946,
+      "stdDev": 55.626772,
+      "total": 21994,
+      "used": 20140
+    }
+  },
+  "americanfootball_nfl": {
+    "seasonWinLoss": {
+      "mean": 4.467066,
+      "stdDev": 3.128626,
+      "total": 2174,
+      "used": 2171
+    },
+    "homeWinLoss": {
+      "mean": 2.365225,
+      "stdDev": 1.816313,
+      "total": 2174,
+      "used": 2174
+    },
+    "awayWinLoss": {
+      "mean": 2.057701,
+      "stdDev": 1.58119,
+      "total": 2174,
+      "used": 2149
+    },
+    "pointDiff": {
+      "mean": -0.799094,
+      "stdDev": 47.531877,
+      "total": 2174,
+      "used": 1986
+    }
+  },
+  "americanfootball_ncaaf": {
+    "seasonWinLoss": {
+      "mean": 2.701428,
+      "stdDev": 2.132777,
+      "total": 23740,
+      "used": 22976
+    },
+    "homeWinLoss": {
+      "mean": 1.694447,
+      "stdDev": 1.479743,
+      "total": 23740,
+      "used": 23590
+    },
+    "awayWinLoss": {
+      "mean": 1.182714,
+      "stdDev": 1.220629,
+      "total": 23740,
+      "used": 23649
+    },
+    "pointDiff": {
+      "mean": 4.250343,
+      "stdDev": 77.646799,
+      "total": 23740,
+      "used": 22577
+    }
+  },
+  "BSKBtotalPoints": {
+    "mean": 1155.873962,
+    "stdDev": 682.630619,
+    "total": 115528,
+    "used": 107983
+  },
+  "BSKBpointsPerGame": {
+    "mean": 69.953074,
+    "stdDev": 14.69958,
+    "total": 115528,
+    "used": 108547
+  },
+  "BSKBassists": {
+    "mean": 222.606618,
+    "stdDev": 134.574851,
+    "total": 115528,
+    "used": 107341
+  },
+  "BSKBassistsPerGame": {
+    "mean": 13.64512,
+    "stdDev": 5.078504,
+    "total": 115528,
+    "used": 110953
+  },
+  "BSKBassistRatio": {
+    "mean": 4.32695,
+    "stdDev": 2.207416,
+    "total": 12182,
+    "used": 11210
+  },
+  "BSKBeffectiveFgPercent": {
+    "mean": 0,
+    "stdDev": 0,
+    "total": 12182,
+    "used": 11944
+  },
+  "BSKBfieldGoalPercent": {
+    "mean": 713.336387,
+    "stdDev": 425.354415,
+    "total": 115528,
+    "used": 110394
+  },
+  "BSKBfieldGoalsAttempted": {
+    "mean": 974.879444,
+    "stdDev": 563.701553,
+    "total": 115528,
+    "used": 108282
+  },
+  "BSKBfieldGoalsMade": {
+    "mean": 416.981235,
+    "stdDev": 245.955587,
+    "total": 115528,
+    "used": 107911
+  },
+  "BSKBfieldGoalsPerGame": {
+    "mean": 24.996596,
+    "stdDev": 5.386948,
+    "total": 115528,
+    "used": 106904
+  },
+  "BSKBfreeThrowPercent": {
+    "mean": 1177.849189,
+    "stdDev": 701.937573,
+    "total": 115528,
+    "used": 110372
+  },
+  "BSKBfreeThrowsAttempted": {
+    "mean": 294.727542,
+    "stdDev": 178.016182,
+    "total": 115528,
+    "used": 109261
+  },
+  "BSKBfreeThrowsMade": {
+    "mean": 208.815835,
+    "stdDev": 128.292341,
+    "total": 115528,
+    "used": 108810
+  },
+  "BSKBfreeThrowsMadePerGame": {
+    "mean": 12.815235,
+    "stdDev": 5.621799,
+    "total": 115528,
+    "used": 114637
+  },
+  "BSKBoffensiveRebounds": {
+    "mean": 183.788226,
+    "stdDev": 110.87576,
+    "total": 115528,
+    "used": 110977
+  },
+  "BSKBoffensiveReboundsPerGame": {
+    "mean": 10.368462,
+    "stdDev": 3.845862,
+    "total": 115528,
+    "used": 113209
+  },
+  "BSKBoffensiveReboundRate": {
+    "mean": 5.451812,
+    "stdDev": 3.278517,
+    "total": 115528,
+    "used": 114026
+  },
+  "BSKBoffensiveTurnovers": {
+    "mean": 238.245735,
+    "stdDev": 141.367689,
+    "total": 115528,
+    "used": 111030
+  },
+  "BSKBturnoversPerGame": {
+    "mean": 237.727399,
+    "stdDev": 141.547713,
+    "total": 115528,
+    "used": 111259
+  },
+  "BSKBturnoverRatio": {
+    "mean": 0,
+    "stdDev": 0,
+    "total": 12182,
+    "used": 11944
+  },
+  "BSKBthreePointsAttempted": {
+    "mean": 346.166235,
+    "stdDev": 211.31114,
+    "total": 115528,
+    "used": 107805
+  },
+  "BSKBthreePointsMade": {
+    "mean": 113.445981,
+    "stdDev": 72.672583,
+    "total": 115528,
+    "used": 107518
+  },
+  "BSKBtrueShootingPct": {
+    "mean": 0,
+    "stdDev": 0,
+    "total": 12182,
+    "used": 11944
+  },
+  "BSKBpace": {
+    "mean": 0,
+    "stdDev": 0,
+    "total": 12182,
+    "used": 11944
+  },
+  "BSKBpointsInPaint": {
+    "mean": 459.933572,
+    "stdDev": 308.494649,
+    "total": 115524,
+    "used": 108041
+  },
+  "BSKBshootingEfficiency": {
+    "mean": 8.103117,
+    "stdDev": 4.842591,
+    "total": 115528,
+    "used": 110280
+  },
+  "BSKBscoringEfficiency": {
+    "mean": 19.86485,
+    "stdDev": 11.87628,
+    "total": 115528,
+    "used": 110503
+  },
+  "BSKBblocks": {
+    "mean": 54.369612,
+    "stdDev": 36.203267,
+    "total": 115528,
+    "used": 108162
+  },
+  "BSKBblocksPerGame": {
+    "mean": 3.265415,
+    "stdDev": 2.096323,
+    "total": 115528,
+    "used": 113869
+  },
+  "BSKBdefensiveRebounds": {
+    "mean": 421.514294,
+    "stdDev": 245.324905,
+    "total": 115528,
+    "used": 108924
+  },
+  "BSKBdefensiveReboundsPerGame": {
+    "mean": 25.700352,
+    "stdDev": 5.684081,
+    "total": 115528,
+    "used": 114707
+  },
+  "BSKBsteals": {
+    "mean": 123.618468,
+    "stdDev": 75.915955,
+    "total": 115528,
+    "used": 110266
+  },
+  "BSKBstealsPerGame": {
+    "mean": 123.301343,
+    "stdDev": 75.924246,
+    "total": 115528,
+    "used": 110472
+  },
+  "BSKBreboundRate": {
+    "mean": 0,
+    "stdDev": 0,
+    "total": 12182,
+    "used": 11944
+  },
+  "BSKBreboundsPerGame": {
+    "mean": 36.260659,
+    "stdDev": 7.137542,
+    "total": 115528,
+    "used": 114554
+  },
+  "BSKBfoulsPerGame": {
+    "mean": 17.066469,
+    "stdDev": 4.27437,
+    "total": 115528,
+    "used": 114841
+  },
+  "BSKBteamAssistToTurnoverRatio": {
+    "mean": 18.201825,
+    "stdDev": 12.262465,
+    "total": 115528,
+    "used": 107640
+  },
+  "HKYgoals": {
+    "mean": 122.840071,
+    "stdDev": 74.849169,
+    "total": 12418,
+    "used": 12418
+  },
+  "HKYgoalsPerGame": {
+    "mean": 3.158986,
+    "stdDev": 0.456339,
+    "total": 12418,
+    "used": 11830
+  },
+  "HKYassists": {
+    "mean": 208.284184,
+    "stdDev": 127.153218,
+    "total": 12418,
+    "used": 12418
+  },
+  "HKYassistsPerGame": {
+    "mean": 5.085725,
+    "stdDev": 2.92906,
+    "total": 12418,
+    "used": 12306
+  },
+  "HKYshotsIn1st": {
+    "mean": 394.803431,
+    "stdDev": 234.489646,
+    "total": 12418,
+    "used": 12418
+  },
+  "HKYshotsIn1stPerGame": {
+    "mean": 9.664791,
+    "stdDev": 3.408113,
+    "total": 12418,
+    "used": 12304
+  },
+  "HKYshotsIn2nd": {
+    "mean": 419.665808,
+    "stdDev": 249.377056,
+    "total": 12418,
+    "used": 12418
+  },
+  "HKYshotsIn2ndPerGame": {
+    "mean": 10.307372,
+    "stdDev": 3.546888,
+    "total": 12418,
+    "used": 12295
+  },
+  "HKYshotsIn3rd": {
+    "mean": 389.471332,
+    "stdDev": 231.894651,
+    "total": 12418,
+    "used": 12418
+  },
+  "HKYshotsIn3rdPerGame": {
+    "mean": 9.508283,
+    "stdDev": 3.525849,
+    "total": 12418,
+    "used": 12281
+  },
+  "HKYtotalShots": {
+    "mean": 1221.838782,
+    "stdDev": 723.647503,
+    "total": 12418,
+    "used": 12418
+  },
+  "HKYtotalShotsPerGame": {
+    "mean": 31.630322,
+    "stdDev": 2.941631,
+    "total": 12418,
+    "used": 11860
+  },
+  "HKYshotsMissed": {
+    "mean": 1098.998712,
+    "stdDev": 650.511713,
+    "total": 12418,
+    "used": 12418
+  },
+  "HKYshotsMissedPerGame": {
+    "mean": 26.935994,
+    "stdDev": 6.279172,
+    "total": 12418,
+    "used": 12192
+  },
+  "HKYppgGoals": {
+    "mean": 25.392373,
+    "stdDev": 15.954353,
+    "total": 12418,
+    "used": 12404
+  },
+  "HKYppgGoalsPerGame": {
+    "mean": 0.559721,
+    "stdDev": 0.662249,
+    "total": 12418,
+    "used": 12175
+  },
+  "HKYppassists": {
+    "mean": 48.87109,
+    "stdDev": 30.626718,
+    "total": 12418,
+    "used": 12404
+  },
+  "HKYppassistsPerGame": {
+    "mean": 1.087441,
+    "stdDev": 1.303004,
+    "total": 12418,
+    "used": 12207
+  },
+  "HKYpowerplayPct": {
+    "mean": 792.172165,
+    "stdDev": 529.774333,
+    "total": 12418,
+    "used": 12409
+  },
+  "HKYshortHandedGoals": {
+    "mean": 3.337609,
+    "stdDev": 2.763834,
+    "total": 12418,
+    "used": 12239
+  },
+  "HKYshortHandedGoalsPerGame": {
+    "mean": 0,
+    "stdDev": 0,
+    "total": 12418,
+    "used": 11159
+  },
+  "HKYshootingPct": {
+    "mean": 395.440633,
+    "stdDev": 248.394923,
+    "total": 12418,
+    "used": 12418
+  },
+  "HKYfaceoffs": {
+    "mean": 2286.534708,
+    "stdDev": 1337.878969,
+    "total": 12418,
+    "used": 12418
+  },
+  "HKYfaceoffsPerGame": {
+    "mean": 56.434755,
+    "stdDev": 6.897859,
+    "total": 12418,
+    "used": 12240
+  },
+  "HKYfaceoffsWon": {
+    "mean": 1143.936141,
+    "stdDev": 673.814469,
+    "total": 12418,
+    "used": 12418
+  },
+  "HKYfaceoffsWonPerGame": {
+    "mean": 28.230546,
+    "stdDev": 5.498828,
+    "total": 12418,
+    "used": 12375
+  },
+  "HKYfaceoffsLost": {
+    "mean": 1142.598567,
+    "stdDev": 671.132559,
+    "total": 12418,
+    "used": 12418
+  },
+  "HKYfaceoffsLostPerGame": {
+    "mean": 28.217163,
+    "stdDev": 5.497789,
+    "total": 12418,
+    "used": 12375
+  },
+  "HKYfaceoffPct": {
+    "mean": 1919.488417,
+    "stdDev": 1177.748058,
+    "total": 12418,
+    "used": 12418
+  },
+  "HKYfaceoffPctPerGame": {
+    "mean": 50.012198,
+    "stdDev": 7.279591,
+    "total": 12418,
+    "used": 12296
+  },
+  "HKYgiveaways": {
+    "mean": 376.853545,
+    "stdDev": 253.731769,
+    "total": 12418,
+    "used": 12031
+  },
+  "HKYgoalsAgainst": {
+    "mean": 115.486149,
+    "stdDev": 70.344866,
+    "total": 12418,
+    "used": 12418
+  },
+  "HKYgoalsAgainstPerGame": {
+    "mean": 2.970668,
+    "stdDev": 0.431452,
+    "total": 12418,
+    "used": 11938
+  },
+  "HKYshotsAgainst": {
+    "mean": 1211.868256,
+    "stdDev": 714.985868,
+    "total": 12418,
+    "used": 12418
+  },
+  "HKYshotsAgainstPerGame": {
+    "mean": 31.346964,
+    "stdDev": 2.783209,
+    "total": 12418,
+    "used": 11800
+  },
+  "HKYpenaltyKillPct": {
+    "mean": 0.826291,
+    "stdDev": 0.213692,
+    "total": 12418,
+    "used": 11390
+  },
+  "HKYpenaltyKillPctPerGame": {
+    "mean": 82.500782,
+    "stdDev": 21.141321,
+    "total": 12418,
+    "used": 11670
+  },
+  "HKYppGoalsAgainst": {
+    "mean": 25.274911,
+    "stdDev": 15.756897,
+    "total": 12418,
+    "used": 12404
+  },
+  "HKYppGoalsAgainstPerGame": {
+    "mean": 0.559721,
+    "stdDev": 0.662249,
+    "total": 12418,
+    "used": 12175
+  },
+  "HKYshutouts": {
+    "mean": 1.892288,
+    "stdDev": 1.671212,
+    "total": 12418,
+    "used": 11865
+  },
+  "HKYsaves": {
+    "mean": 1096.385006,
+    "stdDev": 646.194018,
+    "total": 12418,
+    "used": 12418
+  },
+  "HKYsavesPerGame": {
+    "mean": 26.909098,
+    "stdDev": 6.281649,
+    "total": 12418,
+    "used": 12193
+  },
+  "HKYsavePct": {
+    "mean": 682.002748,
+    "stdDev": 1181.409874,
+    "total": 12418,
+    "used": 11530
+  },
+  "HKYblockedShots": {
+    "mean": 589.297713,
+    "stdDev": 359.451799,
+    "total": 12418,
+    "used": 12418
+  },
+  "HKYblockedShotsPerGame": {
+    "mean": 14.424012,
+    "stdDev": 4.743339,
+    "total": 12418,
+    "used": 12324
+  },
+  "HKYhits": {
+    "mean": 886.111532,
+    "stdDev": 542.366997,
+    "total": 12418,
+    "used": 12418
+  },
+  "HKYhitsPerGame": {
+    "mean": 21.881097,
+    "stdDev": 7.606584,
+    "total": 12418,
+    "used": 12269
+  },
+  "HKYtakeaways": {
+    "mean": 258.09022,
+    "stdDev": 164.918464,
+    "total": 12418,
+    "used": 12403
+  },
+  "HKYtakeawaysPerGame": {
+    "mean": 6.312579,
+    "stdDev": 3.251936,
+    "total": 12418,
+    "used": 12261
+  },
+  "HKYshotDifferential": {
+    "mean": 2.271384,
+    "stdDev": 117.8232,
+    "total": 12418,
+    "used": 11165
+  },
+  "HKYshotDifferentialPerGame": {
+    "mean": 0.032551,
+    "stdDev": 10.20228,
+    "total": 12418,
+    "used": 12324
+  },
+  "HKYgoalDifferentialPerGame": {
+    "mean": 0.22927,
+    "stdDev": 2.313877,
+    "total": 12418,
+    "used": 12229
+  },
+  "HKYpimDifferential": {
+    "mean": -2.130775,
+    "stdDev": 33.683248,
+    "total": 12418,
+    "used": 11883
+  },
+  "HKYpimDifferentialPerGame": {
+    "mean": -0.001356,
+    "stdDev": 3.283932,
+    "total": 12416,
+    "used": 11598
+  },
+  "HKYtotalPenalties": {
+    "mean": 150.262323,
+    "stdDev": 88.119704,
+    "total": 12418,
+    "used": 12416
+  },
+  "HKYpenaltiesPerGame": {
+    "mean": 3.566297,
+    "stdDev": 1.755664,
+    "total": 12418,
+    "used": 12303
+  },
+  "HKYpenaltyMinutes": {
+    "mean": 356.824919,
+    "stdDev": 215.332704,
+    "total": 12418,
+    "used": 12400
+  },
+  "HKYpenaltyMinutesPerGame": {
+    "mean": 7.569172,
+    "stdDev": 3.966464,
+    "total": 12418,
+    "used": 11710
+  },
+  "BSBbattingStrikeouts": {
+    "mean": 655.996226,
+    "stdDev": 401.228804,
+    "total": 21994,
+    "used": 21994
+  },
+  "BSBrunsBattedIn": {
+    "mean": 325.608802,
+    "stdDev": 204.166968,
+    "total": 21994,
+    "used": 21994
+  },
+  "BSBsacrificeHits": {
+    "mean": 6.958351,
+    "stdDev": 5.803101,
+    "total": 21994,
+    "used": 21081
+  },
+  "BSBHitsTotal": {
+    "mean": 628.687142,
+    "stdDev": 386.873476,
+    "total": 21994,
+    "used": 21994
+  },
+  "BSBwalks": {
+    "mean": 245.744339,
+    "stdDev": 149.651066,
+    "total": 21994,
+    "used": 21994
+  },
+  "BSBruns": {
+    "mean": 341.092753,
+    "stdDev": 213.178459,
+    "total": 21994,
+    "used": 21994
+  },
+  "BSBhomeRuns": {
+    "mean": 86.748976,
+    "stdDev": 57.558348,
+    "total": 21994,
+    "used": 21970
+  },
+  "BSBdoubles": {
+    "mean": 125.028781,
+    "stdDev": 78.875615,
+    "total": 21994,
+    "used": 21994
+  },
+  "BSBtotalBases": {
+    "mean": 1035.842821,
+    "stdDev": 644.659245,
+    "total": 21994,
+    "used": 21994
+  },
+  "BSBextraBaseHits": {
+    "mean": 222.607257,
+    "stdDev": 140.754656,
+    "total": 21994,
+    "used": 21994
+  },
+  "BSBbattingAverage": {
+    "mean": 17.175066,
+    "stdDev": 12.220111,
+    "total": 21994,
+    "used": 21994
+  },
+  "BSBsluggingPercentage": {
+    "mean": 28.327908,
+    "stdDev": 20.32037,
+    "total": 21994,
+    "used": 21994
+  },
+  "BSBonBasePercentage": {
+    "mean": 22.205538,
+    "stdDev": 15.702565,
+    "total": 21994,
+    "used": 21994
+  },
+  "BSBonBasePlusSlugging": {
+    "mean": 50.533446,
+    "stdDev": 36.00068,
+    "total": 21994,
+    "used": 21994
+  },
+  "BSBgroundToFlyRatio": {
+    "mean": 56.105038,
+    "stdDev": 39.337212,
+    "total": 21994,
+    "used": 21994
+  },
+  "BSBatBatsPerHomeRun": {
+    "mean": 1177.781123,
+    "stdDev": 842.19272,
+    "total": 21994,
+    "used": 21994
+  },
+  "BSBstolenBasePercentage": {
+    "mean": 26.23439,
+    "stdDev": 20.178247,
+    "total": 21994,
+    "used": 21979
+  },
+  "BSBbatterWalkToStrikeoutRatio": {
+    "mean": 31.311573,
+    "stdDev": 22.591331,
+    "total": 21994,
+    "used": 21994
+  },
+  "BSBsaves": {
+    "mean": 19.408793,
+    "stdDev": 12.573435,
+    "total": 21994,
+    "used": 21994
+  },
+  "BSBpitcherStrikeouts": {
+    "mean": 656.01896,
+    "stdDev": 400.374921,
+    "total": 21994,
+    "used": 21994
+  },
+  "BSBhitsGivenUp": {
+    "mean": 628.596208,
+    "stdDev": 387.640805,
+    "total": 21994,
+    "used": 21994
+  },
+  "BSBearnedRuns": {
+    "mean": 312.205511,
+    "stdDev": 197.306259,
+    "total": 21994,
+    "used": 21994
+  },
+  "BSBbattersWalked": {
+    "mean": 245.743839,
+    "stdDev": 149.550454,
+    "total": 21994,
+    "used": 21994
+  },
+  "BSBrunsAllowed": {
+    "mean": 341.060926,
+    "stdDev": 214.152131,
+    "total": 21994,
+    "used": 21994
+  },
+  "BSBhomeRunsAllowed": {
+    "mean": 86.96499,
+    "stdDev": 56.341208,
+    "total": 21994,
+    "used": 21994
+  },
+  "BSBwins": {
+    "mean": 38.475584,
+    "stdDev": 24.517493,
+    "total": 21994,
+    "used": 21994
+  },
+  "BSBshutouts": {
+    "mean": 0.332132,
+    "stdDev": 0.582858,
+    "total": 21994,
+    "used": 20254
+  },
+  "BSBearnedRunAverage": {
+    "mean": 304.135425,
+    "stdDev": 222.052897,
+    "total": 21994,
+    "used": 21994
+  },
+  "BSBwalksHitsPerInningPitched": {
+    "mean": 93.49532,
+    "stdDev": 66.548229,
+    "total": 21994,
+    "used": 21994
+  },
+  "BSBwinPct": {
+    "mean": 36.118814,
+    "stdDev": 26.545907,
+    "total": 21994,
+    "used": 21994
+  },
+  "BSBpitcherCaughtStealingPct": {
+    "mean": 8.893273,
+    "stdDev": 6.781688,
+    "total": 21994,
+    "used": 21994
+  },
+  "BSBpitchesPerInning": {
+    "mean": 1198.813713,
+    "stdDev": 844.21141,
+    "total": 21994,
+    "used": 21994
+  },
+  "BSBrunSupportAverage": {
+    "mean": 295.045142,
+    "stdDev": 211.842159,
+    "total": 21994,
+    "used": 21994
+  },
+  "BSBopponentBattingAverage": {
+    "mean": 17.172889,
+    "stdDev": 12.237141,
+    "total": 21994,
+    "used": 21994
+  },
+  "BSBopponentSlugAverage": {
+    "mean": 28.324223,
+    "stdDev": 20.322432,
+    "total": 21994,
+    "used": 21994
+  },
+  "BSBopponentOnBasePct": {
+    "mean": 22.203517,
+    "stdDev": 15.728525,
+    "total": 21994,
+    "used": 21994
+  },
+  "BSBopponentOnBasePlusSlugging": {
+    "mean": 50.52774,
+    "stdDev": 36.034299,
+    "total": 21994,
+    "used": 21994
+  },
+  "BSBsavePct": {
+    "mean": 17.36263,
+    "stdDev": 12.874627,
+    "total": 21994,
+    "used": 21994
+  },
+  "BSBstrikeoutsPerNine": {
+    "mean": 627.409632,
+    "stdDev": 443.784937,
+    "total": 21994,
+    "used": 21994
+  },
+  "BSBpitcherStrikeoutToWalkRatio": {
+    "mean": 240.731384,
+    "stdDev": 175.483432,
+    "total": 21994,
+    "used": 21994
+  },
+  "BSBdoublePlays": {
+    "mean": 149.347654,
+    "stdDev": 95.160015,
+    "total": 21994,
+    "used": 21973
+  },
+  "BSBerrors": {
+    "mean": 41.203737,
+    "stdDev": 25.833467,
+    "total": 21994,
+    "used": 21994
+  },
+  "BSBpassedBalls": {
+    "mean": 3.663111,
+    "stdDev": 3.08907,
+    "total": 21994,
+    "used": 21752
+  },
+  "BSBassists": {
+    "mean": 667.721288,
+    "stdDev": 406.123903,
+    "total": 21994,
+    "used": 21994
+  },
+  "BSBputouts": {
+    "mean": 2040.875921,
+    "stdDev": 1232.993973,
+    "total": 21994,
+    "used": 21994
+  },
+  "BSBcatcherCaughtStealing": {
+    "mean": 12.318413,
+    "stdDev": 8.261674,
+    "total": 21994,
+    "used": 21871
+  },
+  "BSBcatcherCaughtStealingPct": {
+    "mean": 8.084718,
+    "stdDev": 6.22055,
+    "total": 21994,
+    "used": 21983
+  },
+  "BSBcatcherStolenBasesAllowed": {
+    "mean": 42.046639,
+    "stdDev": 28.970311,
+    "total": 21994,
+    "used": 21613
+  },
+  "BSBfieldingPercentage": {
+    "mean": 71.159547,
+    "stdDev": 50.092732,
+    "total": 21994,
+    "used": 21994
+  },
+  "BSBrangeFactor": {
+    "mean": 2366.157974,
+    "stdDev": 1649.730871,
+    "total": 21994,
+    "used": 21994
+  },
+  "USFBcompletionPercent": {
+    "mean": 403.5296,
+    "stdDev": 246.277419,
+    "total": 14843,
+    "used": 14823
+  },
+  "USFBcompletions": {
+    "mean": 124.265442,
+    "stdDev": 81.33752,
+    "total": 14843,
+    "used": 14700
+  },
+  "USFBcompletionsPerGame": {
+    "mean": 18.673593,
+    "stdDev": 6.581587,
+    "total": 14843,
+    "used": 14678
+  },
+  "USFBnetPassingYards": {
+    "mean": 1460.622819,
+    "stdDev": 943.046351,
+    "total": 14843,
+    "used": 14786
+  },
+  "USFBnetPassingYardsPerGame": {
+    "mean": 217.373317,
+    "stdDev": 85.973119,
+    "total": 14843,
+    "used": 14706
+  },
+  "USFBpassingFirstDowns": {
+    "mean": 0,
+    "stdDev": 0,
+    "total": 14843,
+    "used": 11586
+  },
+  "USFBpassingTouchdowns": {
+    "mean": 10.10654,
+    "stdDev": 7.209192,
+    "total": 14843,
+    "used": 14633
+  },
+  "USFBpassingAttempts": {
+    "mean": 203.9286,
+    "stdDev": 129.353331,
+    "total": 14843,
+    "used": 14776
+  },
+  "USFBpassingAttemptsPerGame": {
+    "mean": 30.834589,
+    "stdDev": 9.045916,
+    "total": 14843,
+    "used": 14606
+  },
+  "USFByardsPerPassAttempt": {
+    "mean": 48.563774,
+    "stdDev": 30.063956,
+    "total": 14843,
+    "used": 14824
+  },
+  "USFBrushingAttempts": {
+    "mean": 226.375615,
+    "stdDev": 134.654476,
+    "total": 14843,
+    "used": 14829
+  },
+  "USFBrushingFirstDowns": {
+    "mean": 0,
+    "stdDev": 0,
+    "total": 14843,
+    "used": 11602
+  },
+  "USFBrushingTouchdowns": {
+    "mean": 9.392293,
+    "stdDev": 6.884723,
+    "total": 14843,
+    "used": 14558
+  },
+  "USFBrushingYards": {
+    "mean": 962.376145,
+    "stdDev": 631.039955,
+    "total": 14843,
+    "used": 14739
+  },
+  "USFBrushingYardsPerGame": {
+    "mean": 143.433432,
+    "stdDev": 74.368442,
+    "total": 14843,
+    "used": 14579
+  },
+  "USFByardsPerRushAttempt": {
+    "mean": 27.415903,
+    "stdDev": 17.60778,
+    "total": 14843,
+    "used": 14801
+  },
+  "USFBreceivingFirstDowns": {
+    "mean": 0,
+    "stdDev": 0,
+    "total": 14843,
+    "used": 14843
+  },
+  "USFBreceivingTouchdowns": {
+    "mean": 10.109274,
+    "stdDev": 7.209076,
+    "total": 14843,
+    "used": 14633
+  },
+  "USFBreceivingYards": {
+    "mean": 1478.175515,
+    "stdDev": 962.816487,
+    "total": 14843,
+    "used": 14768
+  },
+  "USFBreceivingYardsPerGame": {
+    "mean": 1478.175515,
+    "stdDev": 962.816487,
+    "total": 14843,
+    "used": 14768
+  },
+  "USFBreceivingYardsPerReception": {
+    "mean": 79.127397,
+    "stdDev": 47.696034,
+    "total": 14843,
+    "used": 14828
+  },
+  "USFBreceivingYardsAfterCatch": {
+    "mean": 0,
+    "stdDev": 0,
+    "total": 14843,
+    "used": 12669
+  },
+  "USFBreceivingYardsAfterCatchPerGame": {
+    "mean": 0,
+    "stdDev": 0,
+    "total": 14843,
+    "used": 12669
+  },
+  "USFBtotalTouchdowns": {
+    "mean": 20.728126,
+    "stdDev": 14.402366,
+    "total": 15305,
+    "used": 15235
+  },
+  "USFBtouchdownsPerGame": {
+    "mean": 3.016315,
+    "stdDev": 1.827989,
+    "total": 15176,
+    "used": 14710
+  },
+  "USFBtotalPoints": {
+    "mean": 172.765569,
+    "stdDev": 120.650007,
+    "total": 15305,
+    "used": 15126
+  },
+  "USFBpointsPerGame": {
+    "mean": 37.600019,
+    "stdDev": 26.456037,
+    "total": 15305,
+    "used": 13715
+  },
+  "USFBtacklesforLoss": {
+    "mean": 31.451314,
+    "stdDev": 23.634098,
+    "total": 15274,
+    "used": 15263
+  },
+  "USFBtacklesforLossPerGame": {
+    "mean": 4.650067,
+    "stdDev": 3.074033,
+    "total": 15117,
+    "used": 15014
+  },
+  "USFBinterceptions": {
+    "mean": 5.224932,
+    "stdDev": 4.017814,
+    "total": 15274,
+    "used": 15169
+  },
+  "USFByardsPerInterception": {
+    "mean": 39.503872,
+    "stdDev": 38.153061,
+    "total": 15274,
+    "used": 14941
+  },
+  "USFBsacksTotal": {
+    "mean": 13.249934,
+    "stdDev": 9.879155,
+    "total": 15274,
+    "used": 15102
+  },
+  "USFBsacksPerGame": {
+    "mean": 1.918731,
+    "stdDev": 1.567156,
+    "total": 15086,
+    "used": 14772
+  },
+  "USFBsackYards": {
+    "mean": 82.856267,
+    "stdDev": 64.461743,
+    "total": 15274,
+    "used": 15014
+  },
+  "USFBsackYardsPerGame": {
+    "mean": 12.203787,
+    "stdDev": 11.367889,
+    "total": 15086,
+    "used": 14839
+  },
+  "USFBstuffs": {
+    "mean": 0.722695,
+    "stdDev": 2.161046,
+    "total": 15274,
+    "used": 12232
+  },
+  "USFBstuffsPerGame": {
+    "mean": 0,
+    "stdDev": 0,
+    "total": 14797,
+    "used": 11102
+  },
+  "USFBstuffYards": {
+    "mean": 0,
+    "stdDev": 0,
+    "total": 15274,
+    "used": 15274
+  },
+  "USFBpassesDefended": {
+    "mean": 18.875541,
+    "stdDev": 15.402665,
+    "total": 15274,
+    "used": 15017
+  },
+  "USFBpassesDefendedPerGame": {
+    "mean": 2.759119,
+    "stdDev": 2.157638,
+    "total": 15115,
+    "used": 14750
+  },
+  "USFBsafties": {
+    "mean": 0,
+    "stdDev": 0,
+    "total": 15274,
+    "used": 12855
+  },
+  "USFBaverageKickoffYards": {
+    "mean": 170.558707,
+    "stdDev": 178.960684,
+    "total": 15287,
+    "used": 15044
+  },
+  "USFBaverageKickoffYardsPerGame": {
+    "mean": 28.519555,
+    "stdDev": 28.594435,
+    "total": 15138,
+    "used": 15138
+  },
+  "USFBextraPointAttempts": {
+    "mean": 19.074382,
+    "stdDev": 13.432613,
+    "total": 15287,
+    "used": 15165
+  },
+  "USFBextraPointAttemptsPerGame": {
+    "mean": 2.853701,
+    "stdDev": 1.924016,
+    "total": 15171,
+    "used": 15024
+  },
+  "USFBextraPointsMade": {
+    "mean": 18.569208,
+    "stdDev": 13.222846,
+    "total": 15287,
+    "used": 15186
+  },
+  "USFBextraPointsMadePerGame": {
+    "mean": 2.772346,
+    "stdDev": 1.920918,
+    "total": 15171,
+    "used": 15036
+  },
+  "USFBextraPointPercent": {
+    "mean": 567.005678,
+    "stdDev": 364.322002,
+    "total": 15287,
+    "used": 15287
+  },
+  "USFBextraPointPercentPerGame": {
+    "mean": 100,
+    "stdDev": 0,
+    "total": 15171,
+    "used": 12445
+  },
+  "USFBfieldGoalAttempts": {
+    "mean": 8.951794,
+    "stdDev": 6.946599,
+    "total": 15287,
+    "used": 14998
+  },
+  "USFBfieldGoalAttemptsPerGame": {
+    "mean": 1.239269,
+    "stdDev": 0.976723,
+    "total": 15131,
+    "used": 14327
+  },
+  "USFBfieldGoalsMadePerGame": {
+    "mean": 1.107228,
+    "stdDev": 1.058489,
+    "total": 15094,
+    "used": 15080
+  },
+  "USFBfieldGoalPercentPerGame": {
+    "mean": 59.037212,
+    "stdDev": 45.246825,
+    "total": 15134,
+    "used": 15134
+  },
+  "USFBtouchbacks": {
+    "mean": 15.050274,
+    "stdDev": 13.188666,
+    "total": 15287,
+    "used": 14938
+  },
+  "USFBtouchbacksPerGame": {
+    "mean": 2.223092,
+    "stdDev": 1.959486,
+    "total": 15014,
+    "used": 14940
+  },
+  "USFBtouchBackPercentage": {
+    "mean": 279.239162,
+    "stdDev": 237.096452,
+    "total": 15287,
+    "used": 14953
+  },
+  "USFBkickReturns": {
+    "mean": 13.10351,
+    "stdDev": 9.610692,
+    "total": 15279,
+    "used": 15187
+  },
+  "USFBkickReturnsPerGame": {
+    "mean": 2.138138,
+    "stdDev": 1.540542,
+    "total": 15217,
+    "used": 14906
+  },
+  "USFBkickReturnYards": {
+    "mean": 268.83959,
+    "stdDev": 202.445514,
+    "total": 15279,
+    "used": 15105
+  },
+  "USFBkickReturnYardsPerGame": {
+    "mean": 41.959084,
+    "stdDev": 32.818031,
+    "total": 15217,
+    "used": 14734
+  },
+  "USFBpuntReturns": {
+    "mean": 8.6194,
+    "stdDev": 6.577191,
+    "total": 15279,
+    "used": 14979
+  },
+  "USFBpuntReturnsPerGame": {
+    "mean": 1.304348,
+    "stdDev": 1.219789,
+    "total": 15080,
+    "used": 14973
+  },
+  "USFBpuntReturnFairCatchPct": {
+    "mean": 0,
+    "stdDev": 0,
+    "total": 15279,
+    "used": 13179
+  },
+  "USFBpuntReturnYards": {
+    "mean": 73.625229,
+    "stdDev": 67.349107,
+    "total": 15279,
+    "used": 14745
+  },
+  "USFBpuntReturnYardsPerGame": {
+    "mean": 7.381517,
+    "stdDev": 10.478122,
+    "total": 15097,
+    "used": 13926
+  },
+  "USFByardsPerReturn": {
+    "mean": 94.845405,
+    "stdDev": 63.811289,
+    "total": 15279,
+    "used": 15192
+  },
+  "USFBthirdDownEfficiency": {
+    "mean": 247.437974,
+    "stdDev": 162.977141,
+    "total": 15305,
+    "used": 15268
+  },
+  "USFBtotalPenyards": {
+    "mean": 343.102957,
+    "stdDev": 222.88168,
+    "total": 15305,
+    "used": 15288
+  },
+  "USFBaveragePenYardsPerGame": {
+    "mean": 50.393925,
+    "stdDev": 26.523988,
+    "total": 15305,
+    "used": 15145
+  },
+  "USFBgiveaways": {
+    "mean": 7.161557,
+    "stdDev": 6.491869,
+    "total": 15305,
+    "used": 15264
+  },
+  "USFBtakeaways": {
+    "mean": 6.591638,
+    "stdDev": 6.07534,
+    "total": 15305,
+    "used": 15212
+  },
+  "USFBturnoverDiff": {
+    "mean": -0.534314,
+    "stdDev": 3.259036,
+    "total": 15305,
+    "used": 14207
+  },
+  "USFBtotalFirstDowns": {
+    "mean": 127.653132,
+    "stdDev": 83.148095,
+    "total": 15305,
+    "used": 15294
+  },
+  "undefined": {
+    "mean": 219.848617,
+    "stdDev": 86.018151,
+    "total": 14843,
+    "used": 14711
+  },
+  "USFBfieldGoalPct": {
+    "mean": 394.172719,
+    "stdDev": 276.636205,
+    "total": 14835,
+    "used": 14665
+  },
+  "USFBfieldGoalsMade": {
+    "mean": 7.087259,
+    "stdDev": 5.404381,
+    "total": 14835,
+    "used": 14371
+  }
+}

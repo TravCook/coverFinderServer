@@ -1,6 +1,9 @@
 const { Odds, PastGameOdds, UsaFootballTeam, BasketballTeam, BaseballTeam, HockeyTeam, Sport, Weights } = require('../../../models')
 const cliProgress = require('cli-progress');
 const fs = require('fs');
+const db = require('../../../models_sql');
+const Sequelize = require('sequelize');
+const { Op } = Sequelize;
 
 const pastGameStatsPoC = async () => {
     const sports = await Sport.find({})
@@ -752,6 +755,49 @@ const pastGameStatsPoC = async () => {
     console.log(existingGames)
 }
 
+const TARGET_STATS = ['seasonWinLoss', 'homeWinLoss', 'awayWinLoss', 'pointDiff'];
+function getStatValue(stats, statName) {
+    if (!stats || stats[statName] === undefined) return 0;
+
+    if (statName === 'seasonWinLoss') {
+        const [wins, losses] = stats[statName].split("-").map(Number);
+        return wins;
+    }
+
+    if (statName === 'homeWinLoss' || statName === 'awayWinLoss') {
+        const [wins, losses] = stats[statName].split("-").map(Number);
+        return wins;
+    }
+
+    return stats[statName];
+}
+
+// Helper to calculate quartiles and filter values based on IQR
+function filterOutliersIQR(values) {
+    if (values.length < 4) return values; // Not enough data to compute IQR
+
+    const sorted = [...values].sort((a, b) => a - b);
+    const q1 = percentile(sorted, 0.25);
+    const q3 = percentile(sorted, 0.75);
+    const iqr = q3 - q1;
+
+    const lowerBound = q1 - 1.5 * iqr;
+    const upperBound = q3 + 1.5 * iqr;
+
+    return sorted.filter(val => val >= lowerBound && val <= upperBound);
+}
+
+// Helper to get percentile
+function percentile(arr, p) {
+    const idx = (arr.length - 1) * p;
+    const lower = Math.floor(idx);
+    const upper = Math.ceil(idx);
+    const weight = idx - lower;
+
+    if (upper >= arr.length) return arr[lower];
+    return arr[lower] * (1 - weight) + arr[upper] * weight;
+}
+
 const statMinMax = async () => {
     console.log('Retrieving Games from DB....');
     const allPastGames = await PastGameOdds.find();
@@ -770,96 +816,21 @@ const statMinMax = async () => {
             if (!minMaxStats[stat]) {
                 minMaxStats[stat] = { min: Infinity, max: -Infinity };
             }
-            
-            if (game.homeTeamStats[stat] !== undefined) {
-                if (stat === 'seasonWinLoss') {
-                    let homeWinsSplit = game.homeTeamStats.seasonWinLoss.split('-');
-                    let homeWins = parseInt(homeWinsSplit[0]);
-                    let awayWinsSplit = game.awayTeamStats.seasonWinLoss.split('-');
-                    let awayWins = parseInt(awayWinsSplit[0]);
-                    if (!minMaxStats[stat] || homeWins - awayWins < minMaxStats[stat].min) {
-                        minMaxStats[stat].min = homeWins - awayWins;
-                    }
-                    if (!minMaxStats[stat] || homeWins - awayWins > minMaxStats[stat].max) {
-                        minMaxStats[stat].max = homeWins - awayWins;
-                    }
-                } else if (stat === 'homeWinLoss') {
-                    let homeWinsSplit = game.homeTeamStats.homeWinLoss.split('-');
-                    let homeWins = parseInt(homeWinsSplit[0]);
-                    let awayWinsSplit = game.awayTeamStats.awayWinLoss.split('-');
-                    let awayWins = parseInt(awayWinsSplit[0]);
-                    if (!minMaxStats[stat] || homeWins - awayWins < minMaxStats[stat].min) {
-                        minMaxStats[stat].min = homeWins - awayWins;
-                    }
-                    if (!minMaxStats[stat] || homeWins - awayWins > minMaxStats[stat].max) {
-                        minMaxStats[stat].max = homeWins - awayWins;
-                    }
-                } else if (stat === 'awayWinLoss') {
-                    let homeWinsSplit = game.homeTeamStats.awayWinLoss.split('-');
-                    let homeWins = parseInt(homeWinsSplit[0]);
-                    let awayWinsSplit = game.awayTeamStats.homeWinLoss.split('-');
-                    let awayWins = parseInt(awayWinsSplit[0]);
-                    if (!minMaxStats[stat] || homeWins - awayWins < minMaxStats[stat].min) {
-                        minMaxStats[stat].min = homeWins - awayWins;
-                    }
-                    if (!minMaxStats[stat] || homeWins - awayWins > minMaxStats[stat].max) {
-                        minMaxStats[stat].max = homeWins - awayWins;
-                    }
-                } else {
-                    if (!minMaxStats[stat] || game.homeTeamStats[stat] - game.awayTeamStats[stat] < minMaxStats[stat].min) {
-                        minMaxStats[stat].min = game.homeTeamStats[stat] - game.awayTeamStats[stat];
-                    }
-                    if (!minMaxStats[stat] || game.homeTeamStats[stat] - game.awayTeamStats[stat] > minMaxStats[stat].max) {
-                        minMaxStats[stat].max = game.homeTeamStats[stat] - game.awayTeamStats[stat];
-                    }
-                }
 
+            const homeValue = getStatValue(game.homeTeamStats, stat);
+            const awayValue = getStatValue(game.awayTeamStats, stat);
+
+            if (homeValue !== undefined && !isNaN(homeValue)) {
+                minMaxStats[stat].min = Math.min(minMaxStats[stat].min, homeValue);
+                minMaxStats[stat].max = Math.max(minMaxStats[stat].max, homeValue);
             }
-            if (game.awayTeamStats[stat] !== undefined) {
-                if (stat === 'seasonWinLoss') {
-                    let awayWinsSplit = game.awayTeamStats.seasonWinLoss.split('-');
-                    let awayWins = parseInt(awayWinsSplit[0]);
-                    let homeWinsSplit = game.homeTeamStats.seasonWinLoss.split('-');
-                    let homeWins = parseInt(homeWinsSplit[0]);
-                    if (!minMaxStats[stat] || awayWins - homeWins < minMaxStats[stat].min) {
-                        minMaxStats[stat].min = awayWins  - homeWins;
-                    }
-                    if (!minMaxStats[stat] || awayWins  - homeWins > minMaxStats[stat].max) {
-                        minMaxStats[stat].max = awayWins - homeWins;
-                    }
-                } else if (stat === 'homeWinLoss') {
-                    let awayWinsSplit = game.awayTeamStats.homeWinLoss.split('-');
-                    let awayWins = parseInt(awayWinsSplit[0]);
-                    let homeWinsSplit = game.homeTeamStats.awayWinLoss.split('-');
-                    let homeWins = parseInt(homeWinsSplit[0]);
-                    if (!minMaxStats[stat] || awayWins - homeWins < minMaxStats[stat].min) {
-                        minMaxStats[stat].min = awayWins - homeWins;
-                    }
-                    if (!minMaxStats[stat] || awayWins - homeWins > minMaxStats[stat].max) {
-                        minMaxStats[stat].max = awayWins - homeWins;
-                    }
-                } else if (stat === 'awayWinLoss') {
-                    let awayWinsSplit = game.awayTeamStats.awayWinLoss.split('-');
-                    let awayWins = parseInt(awayWinsSplit[0]);
-                    let homeWinsSplit = game.homeTeamStats.homeWinLoss.split('-');
-                    let homeWins = parseInt(homeWinsSplit[0]);
-                    if (!minMaxStats[stat] || awayWins - homeWins < minMaxStats[stat].min) {
-                        minMaxStats[stat].min = awayWins - homeWins;
-                    }
-                    if (!minMaxStats[stat] || awayWins - homeWins > minMaxStats[stat].max) {
-                        minMaxStats[stat].max = awayWins - homeWins;
-                    }
-                } else {
-                    if (!minMaxStats[stat] || game.awayTeamStats[stat] - game.homeTeamStats[stat] < minMaxStats[stat].min) {
-                        minMaxStats[stat].min = game.awayTeamStats[stat] - game.homeTeamStats[stat];
-                    }
-                    if (!minMaxStats[stat] || game.awayTeamStats[stat] - game.homeTeamStats[stat] > minMaxStats[stat].max) {
-                        minMaxStats[stat].max = game.awayTeamStats[stat] - game.homeTeamStats[stat];
-                    }
-                }
 
+            if (awayValue !== undefined && !isNaN(awayValue)) {
+                minMaxStats[stat].min = Math.min(minMaxStats[stat].min, awayValue);
+                minMaxStats[stat].max = Math.max(minMaxStats[stat].max, awayValue);
             }
         }
+
         progress += 1;
         gameProgBar.update(progress)
         if (progress >= total) {
@@ -873,4 +844,128 @@ const statMinMax = async () => {
     console.log('Min and Max stats saved to minMaxStats.json');
 }
 
-module.exports = { pastGameStatsPoC, statMinMax }
+const generateGlobalStats = async () => {
+    console.log('Retrieving Games from DB...');
+    const dbGames = await db.Games.findAll({where: {complete : true}, include: [{
+        model: db.Stats, as: `homeStats`, required: true,
+        where: {
+            [Op.and]: [
+                { teamId: { [Op.eq]: Sequelize.col('Games.homeTeam') } },
+                { gameId: { [Op.eq]: Sequelize.col('Games.id') } }
+            ]
+        }
+    },
+    {
+        model: db.Stats, as: `awayStats`, required: true,
+        where: {
+            [Op.and]: [
+                { teamId: { [Op.eq]: Sequelize.col('Games.awayTeam') } },
+                { gameId: { [Op.eq]: Sequelize.col('Games.id') } }
+            ]
+        }
+    }]})
+    
+
+    let allGames = dbGames.map((game) => game.get({ plain: true }))
+
+    console.log('Games Retrieved:', allGames.length);
+
+    let globalStats = {};
+    let sportStats = {};
+
+    const gameProgBar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
+    gameProgBar.start(allGames.length, 0);
+
+    for (let i = 0; i < allGames.length; i++) {
+        const game = allGames[i];
+        const {  sport_key, homeStats, awayStats } = game;
+        // GLOBAL STATS (last year only)
+        const statArr = Object.keys(homeStats.data);
+        for (const stat of statArr) {
+            if (!globalStats[stat]) globalStats[stat] = [];
+
+            const homeValue = getStatValue(homeStats.data, stat);
+            const awayValue = getStatValue(awayStats.data, stat);
+
+            if (homeValue !== undefined && !isNaN(homeValue)) globalStats[stat].push(homeValue);
+            if (awayValue !== undefined && !isNaN(awayValue)) globalStats[stat].push(awayValue);
+        }
+
+
+        // SPORT-SPECIFIC STATS
+        if (sport_key) {
+            if (!sportStats[sport_key]) sportStats[sport_key] = {};
+
+            for (const stat of TARGET_STATS) {
+                if (!sportStats[sport_key][stat]) sportStats[sport_key][stat] = [];
+
+                const homeValue = getStatValue(homeStats.data, stat);
+                const awayValue = getStatValue(awayStats.data, stat);
+
+                if (homeValue !== undefined && !isNaN(homeValue)) sportStats[sport_key][stat].push(homeValue);
+                if (awayValue !== undefined && !isNaN(awayValue)) sportStats[sport_key][stat].push(awayValue);
+            }
+        }
+
+        gameProgBar.update(i + 1);
+    }
+
+    gameProgBar.stop();
+
+    // Process global means/stdDevs
+    const globalResult = {};
+    for (const stat in globalStats) {
+        const values = globalStats[stat];
+        const total = values.length;
+        const filtered = filterOutliersIQR(values);
+        const used = filtered.length;
+
+        if (used < 2) continue;
+
+        const mean = filtered.reduce((sum, val) => sum + val, 0) / used;
+        const variance = filtered.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / used;
+        const stdDev = Math.sqrt(variance);
+
+        globalResult[stat] = {
+            mean: parseFloat(mean.toFixed(6)),
+            stdDev: parseFloat(stdDev.toFixed(6)),
+            total,
+            used
+        };
+    }
+
+    // Process sport-specific means/stdDevs
+    const perSportResult = {};
+    for (const sport in sportStats) {
+        perSportResult[sport] = {};
+
+        for (const stat of TARGET_STATS) {
+            const values = sportStats[sport][stat];
+            const total = values.length;
+            const filtered = filterOutliersIQR(values);
+            const used = filtered.length;
+
+            if (used < 2) continue;
+
+            const mean = filtered.reduce((sum, val) => sum + val, 0) / used;
+            const variance = filtered.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / used;
+            const stdDev = Math.sqrt(variance);
+
+            perSportResult[sport][stat] = {
+                mean: parseFloat(mean.toFixed(6)),
+                stdDev: parseFloat(stdDev.toFixed(6)),
+                total,
+                used
+            };
+        }
+    }
+
+    const output = {
+        global: globalResult,
+        perSport: perSportResult
+    };
+
+    fs.writeFileSync('./utils/seeds/globalMeans.json', JSON.stringify(output, null, 2));
+    console.log('Global and sport-specific stats saved to globalMeans.json');
+};
+module.exports = { pastGameStatsPoC, generateGlobalStats }

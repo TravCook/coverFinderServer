@@ -54,154 +54,155 @@ async function getCachedOdds(cacheKey, query, filterDays = 30) {
 
 module.exports = {
     async getAllOdds(req, res) {
-        const today = new Date()
-        const sevenDaysAgo = new Date(today);
-        sevenDaysAgo.setDate(today.getDate() - 7); // 7 days ago
-        sevenDaysAgo.setHours(0, 0, 0, 0); // Set to midnight 
+    //     const today = new Date()
+    //     const sevenDaysAgo = new Date(today);
+    //     sevenDaysAgo.setDate(today.getDate() - 85); // 30 days ago
+    //     sevenDaysAgo.setHours(0, 0, 0, 0); // Set to midnight 
         try {
             let data = myCache.get('fullData');
             if (!data) {
-                // const games = await db.Games.findAll({
-                //     where: {
-                //         complete: false
-                //     },
-                //     include: [
-                //         {
-                //             model: db.Teams,
-                //             as: 'homeTeamDetails', // alias for HomeTeam join
-                //             // No where clause needed here
-                //         },
-                //         {
-                //             model: db.Teams,
-                //             as: 'awayTeamDetails', // alias for AwayTeam join
-                //         },
-                //         {
-                //             model: db.Bookmakers,
-                //             as: 'bookmakers',
-                //             where: {
-                //                 gameId: { [Op.eq]: Sequelize.col('Games.id') } // Ensure the gameId matches the Games table
-                //             },
-                //             include: [
-                //                 {
-                //                     model: db.Markets,
-                //                     as: 'markets',
-                //                     where: {
-                //                         bookmakerId: { [Op.eq]: Sequelize.col('bookmakers.id') } // Ensure the bookmakerId matches the Bookmakers table
-                //                     },
-                //                     include: [
-                //                         {
-                //                             model: db.Outcomes,
-                //                             as: 'outcomes',
-                //                             where: {
-                //                                 marketId: { [Op.eq]: Sequelize.col('bookmakers->markets.id') } // Ensure the marketId matches the Markets table
-                //                             }
-                //                         }
-                //                     ]
-                //                 }
-                //             ]
-                //         },
-                //         {
-                //             model: db.Stats,
-                //             as: `homeStats`,
-                //             required: true,
-                //             where: {
-                //                 [Op.and]: [
-                //                     { teamId: { [Op.eq]: Sequelize.col('Games.homeTeam') } },
-                //                     { gameId: { [Op.eq]: Sequelize.col('Games.id') } }
-                //                 ]
-                //             }
-                //         },
-                //         {
-                //             model: db.Stats,
-                //             as: `awayStats`,
-                //             required: true,
-                //             where: {
-                //                 [Op.and]: [
-                //                     { teamId: { [Op.eq]: Sequelize.col('Games.awayTeam') } },
-                //                     { gameId: { [Op.eq]: Sequelize.col('Games.id') } }
-                //                 ]
-                //             }
-                //         }
-                //     ]
-                // });
-                // const pastSQLgames = await db.Games.findAll({
-                //     where: {
-                //         complete: true,
-                //         commence_time: {
-                //             [Op.gt]: sevenDaysAgo
-                //         }
-                //     },
-                //     include: [
-                //         {
-                //             model: db.Teams,
-                //             as: 'homeTeamDetails', // alias for HomeTeam join
-                //             // No where clause needed here
-                //         },
-                //         {
-                //             model: db.Teams,
-                //             as: 'awayTeamDetails', // alias for AwayTeam join
-                //         },
-                //         {
-                //             model: db.Bookmakers,
-                //             as: 'bookmakers',
-                //             where: {
-                //                 gameId: { [Op.eq]: Sequelize.col('Games.id') } // Ensure the gameId matches the Games table
-                //             },
-                //             include: [
-                //                 {
-                //                     model: db.Markets,
-                //                     as: 'markets',
-                //                     where: {
-                //                         bookmakerId: { [Op.eq]: Sequelize.col('bookmakers.id') } // Ensure the bookmakerId matches the Bookmakers table
-                //                     },
-                //                     include: [
-                //                         {
-                //                             model: db.Outcomes,
-                //                             as: 'outcomes',
-                //                             where: {
-                //                                 marketId: { [Op.eq]: Sequelize.col('bookmakers->markets.id') } // Ensure the marketId matches the Markets table
-                //                             }
-                //                         }
-                //                     ]
-                //                 }
-                //             ]
-                //         },
-                //         {
-                //             model: db.Stats,
-                //             as: `homeStats`,
-                //             required: true,
-                //             where: {
-                //                 [Op.and]: [
-                //                     { teamId: { [Op.eq]: Sequelize.col('Games.homeTeam') } },
-                //                     { gameId: { [Op.eq]: Sequelize.col('Games.id') } }
-                //                 ]
-                //             }
-                //         },
-                //         {
-                //             model: db.Stats,
-                //             as: `awayStats`,
-                //             required: true,
-                //             where: {
-                //                 [Op.and]: [
-                //                     { teamId: { [Op.eq]: Sequelize.col('Games.awayTeam') } },
-                //                     { gameId: { [Op.eq]: Sequelize.col('Games.id') } }
-                //                 ]
-                //             }
-                //         }
-                //     ]
-                // });
-                // let plainGames = games.map((game) => game.get({ plain: true }))
-                // let plainPastGames = pastSQLgames.map((game) => game.get({ plain: true }))
-                const [sports, odds, pastGames, mlModelWeights] = await Promise.all([
-                    Sport.find({}).sort({ name: 1 }),
-                    Odds.find({}).sort({ commence_time: 1, winPercent: 1 }),
-                    PastGameOdds.find({ predictedWinner: { $exists: true }, commence_time: { $gte: sevenDaysAgo } }).select('-homeTeamStats -awayTeamStats').sort({ commence_time: -1 }),
-                    Weights.find()
-                ]);
+                const games = await db.Games.findAll({
+                    where: {
+                        complete: false
+                    },
+                    include: [
+                        {
+                            model: db.Teams,
+                            as: 'homeTeamDetails', // alias for HomeTeam join
+                            // No where clause needed here
+                        },
+                        {
+                            model: db.Teams,
+                            as: 'awayTeamDetails', // alias for AwayTeam join
+                        },
+                        {
+                            model: db.Bookmakers,
+                            as: 'bookmakers',
+                            where: {
+                                gameId: { [Op.eq]: Sequelize.col('Games.id') } // Ensure the gameId matches the Games table
+                            },
+                            include: [
+                                {
+                                    model: db.Markets,
+                                    as: 'markets',
+                                    where: {
+                                        bookmakerId: { [Op.eq]: Sequelize.col('bookmakers.id') } // Ensure the bookmakerId matches the Bookmakers table
+                                    },
+                                    include: [
+                                        {
+                                            model: db.Outcomes,
+                                            as: 'outcomes',
+                                            where: {
+                                                marketId: { [Op.eq]: Sequelize.col('bookmakers->markets.id') } // Ensure the marketId matches the Markets table
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            model: db.Stats,
+                            as: `homeStats`,
+                            required: true,
+                            where: {
+                                [Op.and]: [
+                                    { teamId: { [Op.eq]: Sequelize.col('Games.homeTeam') } },
+                                    { gameId: { [Op.eq]: Sequelize.col('Games.id') } }
+                                ]
+                            }
+                        },
+                        {
+                            model: db.Stats,
+                            as: `awayStats`,
+                            required: true,
+                            where: {
+                                [Op.and]: [
+                                    { teamId: { [Op.eq]: Sequelize.col('Games.awayTeam') } },
+                                    { gameId: { [Op.eq]: Sequelize.col('Games.id') } }
+                                ]
+                            }
+                        }
+                    ],
+                });
+                const pastGames = await db.Games.findAll({
+                    where: {
+                        complete: true,
+                        // commence_time: { [Op.gte]: sevenDaysAgo } // Only include games from the last 7 days
+                    },
+                    include: [
+                        {
+                            model: db.Teams,
+                            as: 'homeTeamDetails', // alias for HomeTeam join
+                            // No where clause needed here
+                        },
+                        {
+                            model: db.Teams,
+                            as: 'awayTeamDetails', // alias for AwayTeam join
+                        },
+                        {
+                            model: db.Bookmakers,
+                            as: 'bookmakers',
+                            where: {
+                                gameId: { [Op.eq]: Sequelize.col('Games.id') } // Ensure the gameId matches the Games table
+                            },
+                            include: [
+                                {
+                                    model: db.Markets,
+                                    as: 'markets',
+                                    where: {
+                                        bookmakerId: { [Op.eq]: Sequelize.col('bookmakers.id') } // Ensure the bookmakerId matches the Bookmakers table
+                                    },
+                                    include: [
+                                        {
+                                            model: db.Outcomes,
+                                            as: 'outcomes',
+                                            where: {
+                                                marketId: { [Op.eq]: Sequelize.col('bookmakers->markets.id') } // Ensure the marketId matches the Markets table
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            model: db.Stats,
+                            as: `homeStats`,
+                            required: true,
+                            where: {
+                                [Op.and]: [
+                                    { teamId: { [Op.eq]: Sequelize.col('Games.homeTeam') } },
+                                    { gameId: { [Op.eq]: Sequelize.col('Games.id') } }
+                                ]
+                            }
+                        },
+                        {
+                            model: db.Stats,
+                            as: `awayStats`,
+                            required: true,
+                            where: {
+                                [Op.and]: [
+                                    { teamId: { [Op.eq]: Sequelize.col('Games.awayTeam') } },
+                                    { gameId: { [Op.eq]: Sequelize.col('Games.id') } }
+                                ]
+                            }
+                        }
+                    ],
+                });
+                const sports = await db.Sports.findAll({ include: [{ model: db.MlModelWeights, as: 'MlModelWeights', model: db.ValueBetSettings, as: 'valueBetSettings', where: {sport: {[Op.eq]: Sequelize.col('Sports.id')}} }], order: [['name', 'ASC']] });
+                const weights = await db.MlModelWeights.findAll({raw: true});
+                const teams = await db.Teams.findAll({raw: true});
+                // let filterTeams = teams.filter((team) => {
+                //     return games.find((game) => {
+                //         return game.sport_key === team.league;
+                //     })
+                // })
+                let plainGames = games.map((game) => game.get({ plain: true }))
+                let plainPastGames = pastGames.map((game) => game.get({ plain: true }))
+                let plainSports = sports.map((sport) => sport.get({ plain: true }))
 
-                data = { odds, sports, pastGames, mlModelWeights };
+                data = { odds: plainGames, sports: plainSports, pastGames: plainPastGames, mlModelWeights: weights, teams: teams };
                 myCache.set('fullData', JSON.stringify(data), 300); // Don't stringify unless needed
-            }else{
+            } else {
                 data = JSON.parse(data);
             }
 
@@ -209,8 +210,8 @@ module.exports = {
         } catch (err) {
             return res.status(500).json({ message: err.message });
         }
-    },
-    
+    }, //RE FACTORED FOR SQL
+
 
     async getOddsBySport(req, res) {
         try {

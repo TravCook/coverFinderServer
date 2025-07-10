@@ -8,6 +8,11 @@ module.exports = (sequelize, DataTypes) => {
         gameId: {
             type: DataTypes.INTEGER,
             allowNull: false,
+            references: {
+                model: 'Games',
+                key: 'id'
+            },
+            onDelete: 'CASCADE', // If a game is deleted, delete associated bookmakers
         },
         title: {
             type: DataTypes.STRING,
@@ -18,6 +23,15 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
         },
         
+    },{
+        sequelize,
+        modelName: 'Bookmakers',
+        indexes: [
+            {
+                unique: true,
+                fields: ['gameId', 'key']
+            }
+        ]
     });
 
     Bookmakers.associate = (models) => {
@@ -28,7 +42,8 @@ module.exports = (sequelize, DataTypes) => {
 
         Bookmakers.hasMany(models.Markets, {
             foreignKey: 'bookmakerId',
-            as: 'markets'
+            as: 'markets',
+            onDelete: 'CASCADE',
         });
     }
     return Bookmakers;

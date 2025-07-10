@@ -25,7 +25,13 @@ module.exports = (sequelize, DataTypes) => {
         createdAt: DataTypes.DATE,
         updatedAt: DataTypes.DATE,
       }, {
-        tableName: 'Stats'
+        tableName: 'Stats',
+        indexes: [
+          {
+            unique: true,
+            fields: ['gameId', 'teamId']
+          }
+        ]
       });
 
     Stats.associate = (models) => {

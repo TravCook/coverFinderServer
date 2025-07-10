@@ -1,9 +1,17 @@
+const { unique } = require("@tensorflow/tfjs-node");
+const { modelName } = require("../models/Odds");
+
 module.exports = (sequelize, DataTypes) => {
     const Games = sequelize.define('Games', {
         id: {
             type: DataTypes.INTEGER,
             primaryKey: true,
             autoIncrement: true
+        },
+        oddsApiID: {
+            type: DataTypes.STRING,
+            allowNull: false,
+            unique: true
         },
         homeTeam: {
             type: DataTypes.INTEGER,
@@ -26,32 +34,39 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
         },
         homeTeamIndex: {
-            type: DataTypes.DECIMAL,
+            type: DataTypes.FLOAT,
             allowNull: false,
+            defaultValue: 0.0
         },
         awayTeamIndex: {
-            type: DataTypes.DECIMAL,
+            type: DataTypes.FLOAT,
             allowNull: false,
+            defaultValue: 0.0
         },
         homeTeamScaledIndex: {
-            type: DataTypes.DECIMAL,
+            type: DataTypes.FLOAT,
             allowNull: false,
+            defaultValue: 0.0
         },
         awayTeamScaledIndex: {
-            type: DataTypes.DECIMAL,
+            type: DataTypes.FLOAT,
             allowNull: false,
+            defaultValue: 0.0
         },
         winPercent: {
-            type: DataTypes.DECIMAL,
+            type: DataTypes.FLOAT,
             allowNull: false,
+            defaultValue: 0.0
         },
         predictedWinner: {
             type: DataTypes.STRING,
             allowNull: false,
+            defaultValue: ''
         },
         predictionConfidence: {
-            type: DataTypes.DECIMAL,
+            type: DataTypes.FLOAT,
             allowNull: false,
+            defaultValue: 0.0
         },
         homeScore: {
             type: DataTypes.INTEGER,
@@ -82,6 +97,18 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             default: false
         }
+    }, {
+        sequelize,
+        modelName: 'Games',
+        indexes: [
+            {
+                unique: true,
+                fields: ['homeTeam', 'awayTeam', 'commence_time', 'sport']
+            },
+            {
+                fields: ['sport_key', 'complete']
+            }
+        ]
     });
 
     Games.associate = (models) => {
@@ -102,17 +129,20 @@ module.exports = (sequelize, DataTypes) => {
 
         Games.hasMany(models.Bookmakers, {
             foreignKey: 'gameId',
-            as: 'bookmakers'
+            as: 'bookmakers',
+            onDelete: 'CASCADE',
         })
 
         Games.hasOne(models.Stats, {
             foreignKey: 'gameId',
-            as: 'homeStats'
+            as: 'homeStats',
+            onDelete: 'CASCADE',
         })
         
         Games.hasOne(models.Stats, {
             foreignKey: 'gameId',
-            as: 'awayStats'
+            as: 'awayStats',
+            onDelete: 'CASCADE',
         })
 
     }

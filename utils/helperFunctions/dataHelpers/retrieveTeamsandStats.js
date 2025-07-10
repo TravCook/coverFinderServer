@@ -1,5 +1,9 @@
 const moment = require('moment')
 const { Odds, PastGameOdds, UsaFootballTeam, BasketballTeam, BaseballTeam, HockeyTeam, Sport, Weights } = require('../../../models');
+const { battingStats, pitchingStats, fieldingStats, baseballStatMap, generalStats, basketballStatMap, footballStatMap, hockeyStatMap } = require('../../statMaps');
+const { calculateTeamIndex } = require('../mlModelFuncs/indexHelpers.js');
+const { normalizeStat, predictions } = require('../mlModelFuncs/trainingHelpers.js')
+const db = require('../../../models_sql');
 
 const getTeamRecordUrl = (month, startMonth, endMonth, espnSport, league, statYear, espnID) => {
     let type = 2; // Default type
@@ -18,14 +22,14 @@ const updateTeamRecord = (team, teamRecordJson) => {
             if (item.name === 'overall') {
                 item.stats.forEach((stat) => {
                     if (stat.name === 'pointDifferential') {
-                        team.pointDiff = stat.value;
+                        team.currentStats.pointDiff = stat.value;
                     }
                 });
-                team.seasonWinLoss = item.displayValue.replace(/, \d+ PTS$/, ''); // Remove ", X PTS" where X is any number
+                team.currentStats.seasonWinLoss = item.displayValue.replace(/, \d+ PTS$/, ''); // Remove ", X PTS" where X is any number
             } else if (item.name === 'Home') {
-                team.homeWinLoss = item.displayValue.replace(/, \d+ PTS$/, ''); // Same here
+                team.currentStats.homeWinLoss = item.displayValue.replace(/, \d+ PTS$/, ''); // Same here
             } else if (item.name === 'Road' || item.name === 'Away') {
-                team.awayWinLoss = item.displayValue.replace(/, \d+ PTS$/, ''); // Same here
+                team.currentStats.awayWinLoss = item.displayValue.replace(/, \d+ PTS$/, ''); // Same here
             }
         });
     } catch (err) {
@@ -399,7 +403,7 @@ const updateTeamStats = (team, statName, value, perGameValue, displayValue, cate
         // Loop through all mappings for this stat (in case there are multiple)
         for (const statInfo of statMap[statName]) {
             // Ensure the stats object exists
-            team.stats = team.stats || {};
+            team.currentStats = team.currentStats || {};
 
             // Check if the category matches
             if (statInfo.category === category) {
@@ -407,11 +411,11 @@ const updateTeamStats = (team, statName, value, perGameValue, displayValue, cate
 
                 // If it's a per-game stat, update with perGameValue
                 if (statInfo.isPerGame || statInfo.isDisplayValue) {
-                    statInfo.isDisplayValue ? team.stats[statKey] = displayValue : 0
-                    statInfo.isPerGame ? team.stats[statKey] = perGameValue : 0;
+                    statInfo.isDisplayValue ? team.currentStats[statKey] = displayValue : 0
+                    statInfo.isPerGame ? team.currentStats[statKey] = perGameValue : 0;
                 } else {
                     // If it's not a per-game stat, store the regular value
-                    team.stats[statKey] = value;
+                    team.currentStats[statKey] = value;
                 }
             }
         }
@@ -453,7 +457,7 @@ const upsertTeamsInBulk = async (teams, sport, TeamModel) => {
     }
 };
 
-const fetchAllTeamData = async (sport, teams, statYear, TeamModel) => {
+const fetchAllTeamData = async (sport, teams, statYear, TeamModel, statWeights) => {
 
     const fetchTeamData = async (team, sport) => {
         try {
@@ -473,75 +477,67 @@ const fetchAllTeamData = async (sport, teams, statYear, TeamModel) => {
                     }
                 }
             }
-            let pastTeamGames = await PastGameOdds.find({
-                $or: [
-                    { home_team: team.espnDisplayName },
-                    { away_team: team.espnDisplayName }
-                ]
-            }).sort({ commence_time: -1 })
-            team.lastFiveGames = []
+            let statMap
+            let statCategories
+            switch (sport.name) {
+                case 'baseball_mlb':
+                    statMap = baseballStatMap;
+                    statCategories = [{ label: 'batting', statMap: battingStats }, { label: 'pitching', statMap: pitchingStats }, { label: 'fielding', statMap: fieldingStats }, { label: 'general', statMap: generalStats }];
+                    break;
+                case 'americanfootball_nfl':
+                    statMap = footballStatMap;
+                    statCategories = [{ label: 'general', statMap: generalStats }];
+                    break;
+                case 'americanfootball_ncaaf':
+                    statMap = footballStatMap;
+                    statCategories = [{ label: 'general', statMap: generalStats }];
+                    break;
+                case 'basketball_nba':
+                    statMap = basketballStatMap;
+                    statCategories = [{ label: 'general', statMap: generalStats }];
+                    break;
+                case 'basketball_ncaab':
+                    statMap = basketballStatMap;
+                    statCategories = [{ label: 'general', statMap: generalStats }];
+                    break;
+                case 'basketball_wncaab':
+                    statMap = basketballStatMap;
+                    statCategories = [{ label: 'general', statMap: generalStats }];
+                    break;
+                case 'icehockey_nhl':
+                    statMap = hockeyStatMap;
+                    statCategories = [{ label: 'general', statMap: generalStats }];
+                    break;
+            }
+            let teamIndex = await calculateTeamIndex(team.currentStats, statWeights.featureImportanceScores, statMap, normalizeStat)
+            let statCategoryIndexes = {};
 
-
-
-            pastTeamGames.map((game, idx) => {
-                if (idx <= 4) {
-                    team.lastFiveGames[idx] = {
-                        id: game.id,
-                        commence_time: game.commence_time,
-                        home_team: game.home_team,
-                        away_team: game.away_team,
-                        homeTeamIndex: game.homeTeamIndex,
-                        awayTeamIndex: game.awayTeamIndex,
-                        homeTeamLogo: game.homeTeamLogo,
-                        awayTeamLogo: game.awayTeamLogo,
-                        homeTeamAbbr: game.homeTeamAbbr,
-                        awayTeamAbbr: game.awayTeamAbbr,
-                        homeScore: game.homeScore,
-                        awayScore: game.awayScore,
-                        winner: game.winner,
-                        predictedWinner: game.predictedWinner
-                    }
+            for (const category of statCategories) {
+                const categoryIndex = await calculateTeamIndex(team.currentStats, statWeights.featureImportanceScores, category.statMap, normalizeStat);
+                statCategoryIndexes[category.label] = categoryIndex;
+            }
+            await db.Teams.update({
+                currentStats: team.currentStats,
+                statIndex: teamIndex,
+                statCategoryIndexes: statCategoryIndexes,
+            }, {
+                where: {
+                    id: team.id
                 }
-
             })
-            return team;  // Return the updated team
         } catch (error) {
             console.log(`Error fetching data for team ${team.espnID}:`, error);
         }
     };
 
-    const MAX_CONCURRENT_REQUESTS = 30; // You can adjust this number to control concurrency
-    const promises = [];
-
-    try {
-        // Loop through each team and fetch their data
-        for (let team of teams) {
-            promises.push(fetchTeamData(team, sport).then(updatedTeam => {
-                if (updatedTeam) {
-                    return updatedTeam; // Add the updated team to the result
-                }
-            }));
-            // If we reach the maximum number of concurrent requests, wait for them to resolve
-            if (promises.length >= MAX_CONCURRENT_REQUESTS) {
-                // Wait for all current promises to resolve
-                const results = await Promise.all(promises);
-                // Filter out any undefined results (in case some fetches failed)
-                const filteredResults = results.filter(result => result !== undefined);
-                // Upsert the fetched team data in bulk
-                await upsertTeamsInBulk(filteredResults, sport, TeamModel);
-                promises.length = 0; // Clear the array after waiting for requests to resolve
-            }
+    for (const team of teams) {
+        try {
+            await fetchTeamData(team, sport);
+        } catch (error) {
+            console.error(`Error processing team ${team.espnID}:`, error);
         }
-        // After all requests have been processed, make sure to upsert the remaining teams
-        if (promises.length > 0) {
-            const results = await Promise.all(promises);
-            const filteredResults = results.filter(result => result !== undefined);
-            await upsertTeamsInBulk(filteredResults, sport, TeamModel);
-        }
-
-    } catch (error) {
-        console.error("Error fetching or processing team data:", error);
     }
+
 };
 
 const retrieveTeamsandStats = async (sports) => {
@@ -549,38 +545,32 @@ const retrieveTeamsandStats = async (sports) => {
     for (let sport of sports) {
         const currentDate = new Date();
         const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11, so we add 1 to make it 1-12
-        const sportGames = await Odds.find({sport_key: sport.name})
+        // const sportGames = await Odds.find({sport_key: sport.name})
+        const sportGames = await db.Games.findAll({
+            where: {
+                complete: false,
+                sport_key: sport.name,
+            },
+            order: [['commence_time', 'ASC']],
+            raw: true
+        })
         if (sportGames.length > 0) {
+        console.log(`STARTING ${sport.name} TEAM SEEDING @ ${moment().format('HH:mm:ss')}`)
 
-
-            console.log(`STARTING ${sport.name} TEAM SEEDING @ ${moment().format('HH:mm:ss')}`)
-            let TeamModel;
-            let sportArr = sport.name.split('_')
-            let leagueAbbr = sportArr[1]
-            switch (sport.espnSport) {
-                case 'football':
-                    TeamModel = UsaFootballTeam;
-                    break;
-                case 'basketball':
-                    TeamModel = BasketballTeam;
-                    break;
-                case 'hockey':
-                    TeamModel = HockeyTeam;
-                    break;
-                case 'baseball':
-                    TeamModel = BaseballTeam;
-                    break;
-                default:
-                    console.error("Unsupported sport:", sport.espnSport);
-                    return;
-            }
-            let teams
-            teams = await TeamModel.find({league: leagueAbbr})
-            // Helper function to get the team record URL based on the current month
-
-            await fetchAllTeamData(sport, teams, sport.statYear, TeamModel)
-            console.log(`Finished ${sport.name} TEAM SEEDING @ ${moment().format('HH:mm:ss')}`)
-            teams = []
+        let teams = await db.Teams.findAll({
+            where: {
+                league: sport.name,
+            },
+            raw: true
+        })
+        let statWeights = await db.MlModelWeights.findOne({
+            where: {
+                sport: sport.id
+            },
+            raw: true
+        })
+        await fetchAllTeamData(sport, teams, sport.statYear, db.Teams, statWeights)
+        console.log(`Finished ${sport.name} TEAM SEEDING @ ${moment().format('HH:mm:ss')}`)
         }
     }
     sportGames = null

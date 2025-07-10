@@ -43,7 +43,7 @@ const cronJobs = [
     timezone
   },
   {
-    cronTime: '0 0 4,6,8,10,12,14,16,18,20,22 * * *', // Runs at 8:00 AM, 2:00 PM, and 9:00 PM -- retrieves odds from the-odds-api -- 53 sec TODO: MAYBE SET IT UP FOR EVER 2 HOURS WITH THE OTHER 4 ENV VARIABLES
+    cronTime: '0 0 4,8,12,16,20 * * *', //0 0 4,6,8,10,12,14,16,18,20,22 * * * Runs at 8:00 AM, 2:00 PM, and 9:00 PM -- retrieves odds from the-odds-api -- 53 sec TODO: MAYBE SET IT UP FOR EVER 2 HOURS WITH THE OTHER 4 ENV VARIABLES
     onTick: dataSeed.oddsSeed,
     timezone,
   },
@@ -52,11 +52,11 @@ const cronJobs = [
     onTick: dataSeed.dataSeed,
     timezone
   },
-  // {
-  //   cronTime: '0 0 0 * * 1-7', //once a day at midnight, not sunday -- train ML model to past games
-  //   onTick: dataSeed.mlModelTrainSeed,
-  //   timezone
-  // },
+  {
+    cronTime: '0 0 0 * * 1-7', //once a day at midnight, not sunday -- train ML model to past games
+    onTick: dataSeed.mlModelTrainSeed,
+    timezone
+  },
   // {
   //   cronTime: '0 0 0 * * */7', // Once a week at 12 am -- complete random searches for params and value bets
   //   onTick: dataSeed.paramAndValueSeed,
@@ -91,18 +91,6 @@ cronJobs.forEach(({ cronTime, onTick, timezone }) => {
 
   cronJob.start();
 });
-
-// Start the server
-db.once('open', () => {
-  console.log(`Connected to the database`);
-});
-// try{
-//   sqlDB.sequelize.sync({ force: false }).then(() => {
-//     console.log(`Connected to the SQL database`);
-//   })
-// }catch(e) {
-//   console.error('Error connecting to the database:', e);
-// }
 
 
 server.listen(PORT, '0.0.0.0', () => {

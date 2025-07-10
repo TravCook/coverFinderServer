@@ -1,3 +1,7 @@
+const db = require('../../../models_sql')
+const Sequelize = require('sequelize');
+const { Op } = Sequelize;
+const moment = require('moment')
 const normalizeTeamName = (teamName, league) => {
 
     const knownTeamNames = {
@@ -446,4 +450,81 @@ const cleanStats = (stats) => {
 
     return cleanedStats;
 };
-module.exports = { checkNaNValues, getDynamicStatYear, normalizeTeamName, nameSearch, normalizeOutcomes, cleanStats, getCommonStats }
+
+const modelConfAnalyzer = async () => {
+    const games = await db.Games.findAll({
+        where: {
+            complete: true, // Only include completed games
+            predictedWinner: { [Op.in]: ['home', 'away'] },
+        },
+        where: { predictionCorrect: { [Op.not]: null } }, order: [['commence_time', 'DESC']], raw: true
+    })
+
+    let percentRanges = ['50-59', '60-69', '70-79', '80-89', '90-100'];
+    for (const range of percentRanges) {
+        let rangeGames = games.filter(game => {
+            let winPercent = game.predictionConfidence * 100; // Convert to percentage
+            if (winPercent >= parseInt(range.split('-')[0]) && winPercent <= parseInt(range.split('-')[1])) {
+                return true;
+            }
+            return false;
+        });
+        console.log(`Games with confidence in range ${range}: ${rangeGames.length} /(${((rangeGames.length / games.length) * 100).toFixed(2)}%)`);
+        let rangeWins = rangeGames.filter(game => game.predictionCorrect === true).length;
+        let rangeLosses = rangeGames.filter(game => game.predictionCorrect === false).length;
+        console.log(`Wins: ${rangeWins}, Losses: ${rangeLosses}`);
+        let rangeWinRate = ((rangeWins / (rangeWins + rangeLosses)) * 100).toFixed(2);
+        console.log(`Win Rate: ${rangeWinRate}%`);
+
+    }
+    const dayStats = {};
+
+    // Group games by date
+    for (const game of games) {
+        const date = moment(game.commence_time).format('YYYY-MM-DD'); // Get YYYY-MM-DD
+        if (!dayStats[date]) dayStats[date] = { correct: 0, total: 0 };
+
+        if (game.predictionCorrect) dayStats[date].correct++;
+        dayStats[date].total++;
+    }
+
+    const results = [];
+    let totalWinrate = 0;
+
+    // Compute winrate per day
+    for (const [date, { correct, total }] of Object.entries(dayStats)) {
+        const winrate = (correct / total) * 100;
+        results.push({ date, winrate });
+        totalWinrate += winrate;
+    }
+
+    if (results.length === 0) {
+        return {
+            averageWinrate: 0,
+            highestWinrateDay: null,
+            lowestWinrateDay: null
+        };
+    }
+    const closeWins = games.filter((game) => game.predictionCorrect === true).filter((game) => {
+        return game.predictedWinner === 'home' ? game.homeScore - game.awayScore === 1 : game.awayScore - game.homeScore === 1
+    })
+    const closeLosses = games.filter((game) => game.predictionCorrect === false).filter((game) => {
+        return game.predictedWinner === 'home' ? game.awayScore - game.homeScore === 1 : game.homeScore - game.awayScore === 1
+    })
+    console.log(`Close wins: ${closeWins.length} (${((closeWins.length / games.length) * 100).toFixed(2)}%)`)
+    console.log(`Close losses: ${closeLosses.length} (${((closeLosses.length / games.length) * 100).toFixed(2)}%)`)
+    // Sort for high/low
+    const highestWinrateDay = results.reduce((a, b) => (a.winrate > b.winrate ? a : b));
+    const lowestWinrateDay = results.reduce((a, b) => (a.winrate < b.winrate ? a : b));
+    console.log(`Average Winrate: ${(totalWinrate / results.length).toFixed(2)}%`);
+    console.log(`Highest Winrate Day: ${highestWinrateDay.date} (${highestWinrateDay.winrate.toFixed(2)}%)`);
+    console.log(`Lowest Winrate Day: ${lowestWinrateDay.date} (${lowestWinrateDay.winrate.toFixed(2)}%)`);
+    return {
+        averageWinrate: totalWinrate / results.length,
+        highestWinrateDay,
+        lowestWinrateDay
+    };
+
+
+}
+module.exports = { checkNaNValues, getDynamicStatYear, normalizeTeamName, nameSearch, normalizeOutcomes, cleanStats, getCommonStats, modelConfAnalyzer };

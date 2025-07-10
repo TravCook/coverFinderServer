@@ -1,4 +1,7 @@
 const { Odds, PastGameOdds, Weights } = require('../../../models');
+const db = require('../../../models_sql');
+const Sequelize = require('sequelize');
+const { Op } = Sequelize;
 const statsMinMax = require('../../seeds/sampledGlobalStats.json')
 const { checkNaNValues } = require('../dataHelpers/dataSanitizers')
 const fs = require('fs')
@@ -6,6 +9,34 @@ const tf = require('@tensorflow/tfjs-node');
 const moment = require('moment')
 const cliProgress = require('cli-progress');
 const pastGameOdds = require('../../../models/pastGameOdds');
+const { Console } = require('console');
+const { baseballStatMap, basketballStatMap, footballStatMap, hockeyStatMap } = require('../../statMaps')
+const globalMeans = require('../../seeds/globalMeans.json')
+
+function pearsonCorrelation(x, y) {
+    const n = x.length;
+    const sumX = x.reduce((a, b) => a + b, 0);
+    const sumY = y.reduce((a, b) => a + b, 0);
+    const sumXY = x.reduce((acc, val, idx) => acc + val * y[idx], 0);
+    const sumX2 = x.reduce((acc, val) => acc + val * val, 0);
+    const sumY2 = y.reduce((acc, val) => acc + val * val, 0);
+
+    const numerator = (n * sumXY) - (sumX * sumY);
+    const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+    if (denominator === 0) return 0;
+    return numerator / denominator;
+}
+
+function checkFeatureLeakage(xs, ys) {
+    const numFeatures = xs[0].length;
+    for (let featureIdx = 0; featureIdx < numFeatures; featureIdx++) {
+        const featureValues = xs.map(row => row[featureIdx]);
+        const corr = pearsonCorrelation(featureValues, ys);
+        if (Math.abs(corr) > 0.9) {  // Threshold, adjust as needed
+            console.warn(`Potential leakage detected! Feature index ${featureIdx} has high correlation (${corr.toFixed(3)}) with target.`);
+        }
+    }
+}
 
 const getStat = (stats, statName, fallbackValue = 0) => {
     return stats && stats[statName] !== undefined ? stats[statName] : fallbackValue;
@@ -42,439 +73,93 @@ const normalizeStat = (statName, value, games) => {
     if (max === min) return 0;
     return (value - min) / (max - min); // Apply Min-Max Normalization
 }
+
+const normalizeStatZScore = (statName, value, sportKey = null) => {
+    let statMeta;
+
+    // Try sport-specific first
+    if (sportKey && globalMeans.perSport?.[sportKey]?.[statName]) {
+        statMeta = globalMeans.perSport[sportKey][statName];
+    }
+    // Fallback to global
+    else if (globalMeans.global?.[statName]) {
+        statMeta = globalMeans.global[statName];
+    }
+
+    if (!statMeta) {
+        console.warn(`No mean/stdDev found for stat: ${statName} (sport: ${sportKey})`);
+        return value; // fallback: return original value
+    }
+
+    const { mean, stdDev } = statMeta;
+
+    // Avoid division by zero
+    if (stdDev === 0) return 0;
+
+    return (value - mean) / stdDev;
+};
+
+
+const getNumericStat = (stats, statName) => {
+    if (!stats || stats[statName] === undefined) return 0;
+
+    // if (statName === 'seasonWinLoss') {
+    //     const [wins, losses] = stats[statName].split("-").map(Number);
+    //     return wins - losses;
+    // }
+
+    // if (statName === 'homeWinLoss' || statName === 'awayWinLoss') {
+    //     const [wins, losses] = stats[statName].split("-").map(Number);
+    //     return wins - losses;
+    // }
+
+    return stats[statName];
+};
+
 // Feature extraction per sport
-const extractSportFeatures = (homeStats, awayStats, league, games) => {
+const extractSportFeatures = (homeStats, awayStats, league) => {
     switch (league) {
         case 'americanfootball_nfl':
-            return [
-                normalizeStat('seasonWinLoss', getWinLoss(homeStats, 'seasonWinLoss') - getWinLoss(awayStats, 'seasonWinLoss')),
-                normalizeStat('homeWinLoss', getWinLoss(homeStats, 'homeWinLoss') - getWinLoss(awayStats, 'awayWinLoss')),
-                normalizeStat('pointDiff', getStat(homeStats, 'pointDiff') - getStat(awayStats, 'pointDiff')),
-                normalizeStat('USFBpointsPerGame', getStat(homeStats, 'USFBpointsPerGame') - getStat(awayStats, 'USFBpointsPerGame')),
-                normalizeStat('USFBtotalPoints', getStat(homeStats, 'USFBtotalPoints') - getStat(awayStats, 'USFBtotalPoints')),
-                normalizeStat('USFBtotalTouchdowns', getStat(homeStats, 'USFBtotalTouchdowns') - getStat(awayStats, 'USFBtotalTouchdowns')),
-                normalizeStat('USFBtouchdownsPerGame', getStat(homeStats, 'USFBtouchdownsPerGame') - getStat(awayStats, 'USFBtouchdownsPerGame')),
-                normalizeStat('USFBcompletionPercent', getStat(homeStats, 'USFBcompletionPercent') - getStat(awayStats, 'USFBcompletionPercent')),
-                normalizeStat('USFBcompletions', getStat(homeStats, 'USFBcompletions') - getStat(awayStats, 'USFBcompletions')),
-                normalizeStat('USFBcompletionsPerGame', getStat(homeStats, 'USFBcompletionsPerGame') - getStat(awayStats, 'USFBcompletionsPerGame')),
-                normalizeStat('USFBnetPassingYards', getStat(homeStats, 'USFBnetPassingYards') - getStat(awayStats, 'USFBnetPassingYards')),
-                normalizeStat('USFBnetPassingYardsPerGame', getStat(homeStats, 'USFBnetPassingYardsPerGame') - getStat(awayStats, 'USFBnetPassingYardsPerGame')),
-                normalizeStat('USFBpassingFirstDowns', getStat(homeStats, 'USFBpassingFirstDowns') - getStat(awayStats, 'USFBpassingFirstDowns')),
-                normalizeStat('USFBpassingYards', getStat(homeStats, 'USFBpassingYards') - getStat(awayStats, 'USFBpassingYards')),
-                normalizeStat('USFBpassingYardsPerGame', getStat(homeStats, 'USFBpassingYardsPerGame') - getStat(awayStats, 'USFBpassingYardsPerGame')),
-                normalizeStat('USFBpassingAttempts', getStat(homeStats, 'USFBpassingAttempts') - getStat(awayStats, 'USFBpassingAttempts')),
-                normalizeStat('USFBpassingAttemptsPerGame', getStat(homeStats, 'USFBpassingAttemptsPerGame') - getStat(awayStats, 'USFBpassingAttemptsPerGame')),
-                normalizeStat('USFByardsPerPassAttempt', getStat(homeStats, 'USFByardsPerPassAttempt') - getStat(awayStats, 'USFByardsPerPassAttempt')),
-                normalizeStat('USFBrushingAttempts', getStat(homeStats, 'USFBrushingAttempts') - getStat(awayStats, 'USFBrushingAttempts')),
-                normalizeStat('USFBrushingFirstDowns', getStat(homeStats, 'USFBrushingFirstDowns') - getStat(awayStats, 'USFBrushingFirstDowns')),
-                normalizeStat('USFBrushingTouchdowns', getStat(homeStats, 'USFBrushingTouchdowns') - getStat(awayStats, 'USFBrushingTouchdowns')),
-                normalizeStat('USFBrushingYards', getStat(homeStats, 'USFBrushingYards') - getStat(awayStats, 'USFBrushingYards')),
-                normalizeStat('USFBrushingYardsPerGame', getStat(homeStats, 'USFBrushingYardsPerGame') - getStat(awayStats, 'USFBrushingYardsPerGame')),
-                normalizeStat('USFByardsPerRushAttempt', getStat(homeStats, 'USFByardsPerRushAttempt') - getStat(awayStats, 'USFByardsPerRushAttempt')),
-                normalizeStat('USFBreceivingFirstDowns', getStat(homeStats, 'USFBreceivingFirstDowns') - getStat(awayStats, 'USFBreceivingFirstDowns')),
-                normalizeStat('USFBreceivingTouchdowns', getStat(homeStats, 'USFBreceivingTouchdowns') - getStat(awayStats, 'USFBreceivingTouchdowns')),
-                normalizeStat('USFBreceivingYards', getStat(homeStats, 'USFBreceivingYards') - getStat(awayStats, 'USFBreceivingYards')),
-                normalizeStat('USFBreceivingYardsPerGame', getStat(homeStats, 'USFBreceivingYardsPerGame') - getStat(awayStats, 'USFBreceivingYardsPerGame')),
-                normalizeStat('USFBreceivingYardsPerReception', getStat(homeStats, 'USFBreceivingYardsPerReception') - getStat(awayStats, 'USFBreceivingYardsPerReception')),
-                normalizeStat('USFBreceivingYardsAfterCatch', getStat(homeStats, 'USFBreceivingYardsAfterCatch') - getStat(awayStats, 'USFBreceivingYardsAfterCatch')),
-                normalizeStat('USFBreceivingYardsAfterCatchPerGame', getStat(homeStats, 'USFBreceivingYardsAfterCatchPerGame') - getStat(awayStats, 'USFBreceivingYardsAfterCatchPerGame')),
-                normalizeStat('USFBtacklesforLoss', getStat(homeStats, 'USFBtacklesforLoss') - getStat(awayStats, 'USFBtacklesforLoss')),
-                normalizeStat('USFBtacklesforLossPerGame', getStat(homeStats, 'USFBtacklesforLossPerGame') - getStat(awayStats, 'USFBtacklesforLossPerGame')),
-                normalizeStat('USFBinterceptions', getStat(homeStats, 'USFBinterceptions') - getStat(awayStats, 'USFBinterceptions')),
-                normalizeStat('USFByardsPerInterception', getStat(homeStats, 'USFByardsPerInterception') - getStat(awayStats, 'USFByardsPerInterception')),
-                normalizeStat('USFBsacksTotal', getStat(homeStats, 'USFBsacksTotal') - getStat(awayStats, 'USFBsacksTotal')),
-                normalizeStat('USFBsacksPerGame', getStat(homeStats, 'USFBsacksPerGame') - getStat(awayStats, 'USFBsacksPerGame')),
-                normalizeStat('USFBsackYards', getStat(homeStats, 'USFBsackYards') - getStat(awayStats, 'USFBsackYards')),
-                normalizeStat('USFBsackYardsPerGame', getStat(homeStats, 'USFBsackYardsPerGame') - getStat(awayStats, 'USFBsackYardsPerGame')),
-                normalizeStat('USFBstuffs', getStat(homeStats, 'USFBstuffs') - getStat(awayStats, 'USFBstuffs')),
-                normalizeStat('USFBstuffsPerGame', getStat(homeStats, 'USFBstuffsPerGame') - getStat(awayStats, 'USFBstuffsPerGame')),
-                normalizeStat('USFBstuffYards', getStat(homeStats, 'USFBstuffYards') - getStat(awayStats, 'USFBstuffYards')),
-                normalizeStat('USFBpassesDefended', getStat(homeStats, 'USFBpassesDefended') - getStat(awayStats, 'USFBpassesDefended')),
-                normalizeStat('USFBpassesDefendedPerGame', getStat(homeStats, 'USFBpassesDefendedPerGame') - getStat(awayStats, 'USFBpassesDefendedPerGame')),
-                normalizeStat('USFBsafties', getStat(homeStats, 'USFBsafties') - getStat(awayStats, 'USFBsafties')),
-                normalizeStat('USFBaverageKickoffYards', getStat(homeStats, 'USFBaverageKickoffYards') - getStat(awayStats, 'USFBaverageKickoffYards')),
-                normalizeStat('USFBaverageKickoffYardsPerGame', getStat(homeStats, 'USFBaverageKickoffYardsPerGame') - getStat(awayStats, 'USFBaverageKickoffYardsPerGame')),
-                normalizeStat('USFBextraPointAttempts', getStat(homeStats, 'USFBextraPointAttempts') - getStat(awayStats, 'USFBextraPointAttempts')),
-                normalizeStat('USFBextraPointAttemptsPerGame', getStat(homeStats, 'USFBextraPointAttemptsPerGame') - getStat(awayStats, 'USFBextraPointAttemptsPerGame')),
-                normalizeStat('USFBextraPointsMade', getStat(homeStats, 'USFBextraPointsMade') - getStat(awayStats, 'USFBextraPointsMade')),
-                normalizeStat('USFBextraPointsMadePerGame', getStat(homeStats, 'USFBextraPointsMadePerGame') - getStat(awayStats, 'USFBextraPointsMadePerGame')),
-                normalizeStat('USFBextraPointPercent', getStat(homeStats, 'USFBextraPointPercent') - getStat(awayStats, 'USFBextraPointPercent')),
-                normalizeStat('USFBextraPointPercentPerGame', getStat(homeStats, 'USFBextraPointPercentPerGame') - getStat(awayStats, 'USFBextraPointPercentPerGame')),
-                normalizeStat('USFBfieldGoalAttempts', getStat(homeStats, 'USFBfieldGoalAttempts') - getStat(awayStats, 'USFBfieldGoalAttempts')),
-                normalizeStat('USFBfieldGoalAttemptsPerGame', getStat(homeStats, 'USFBfieldGoalAttemptsPerGame') - getStat(awayStats, 'USFBfieldGoalAttemptsPerGame')),
-                normalizeStat('USFBfieldGoalsMade', getStat(homeStats, 'USFBfieldGoalsMade') - getStat(awayStats, 'USFBfieldGoalsMade')),
-                normalizeStat('USFBfieldGoalsMadePerGame', getStat(homeStats, 'USFBfieldGoalsMadePerGame') - getStat(awayStats, 'USFBfieldGoalsMadePerGame')),
-                normalizeStat('USFBfieldGoalPct', getStat(homeStats, 'USFBfieldGoalPct') - getStat(awayStats, 'USFBfieldGoalPct')),
-                normalizeStat('USFBfieldGoalPercentPerGame', getStat(homeStats, 'USFBfieldGoalPercentPerGame') - getStat(awayStats, 'USFBfieldGoalPercentPerGame')),
-                normalizeStat('USFBtouchbacks', getStat(homeStats, 'USFBtouchbacks') - getStat(awayStats, 'USFBtouchbacks')),
-                normalizeStat('USFBtouchbacksPerGame', getStat(homeStats, 'USFBtouchbacksPerGame') - getStat(awayStats, 'USFBtouchbacksPerGame')),
-                normalizeStat('USFBtouchBackPercentage', getStat(homeStats, 'USFBtouchBackPercentage') - getStat(awayStats, 'USFBtouchBackPercentage')),
-                normalizeStat('USFBkickReturns', getStat(homeStats, 'USFBkickReturns') - getStat(awayStats, 'USFBkickReturns')),
-                normalizeStat('USFBkickReturnsPerGame', getStat(homeStats, 'USFBkickReturnsPerGame') - getStat(awayStats, 'USFBkickReturnsPerGame')),
-                normalizeStat('USFBkickReturnYards', getStat(homeStats, 'USFBkickReturnYards') - getStat(awayStats, 'USFBkickReturnYards')),
-                normalizeStat('USFBkickReturnYardsPerGame', getStat(homeStats, 'USFBkickReturnYardsPerGame') - getStat(awayStats, 'USFBkickReturnYardsPerGame')),
-                normalizeStat('USFBpuntReturns', getStat(homeStats, 'USFBpuntReturns') - getStat(awayStats, 'USFBpuntReturns')),
-                normalizeStat('USFBpuntReturnsPerGame', getStat(homeStats, 'USFBpuntReturnsPerGame') - getStat(awayStats, 'USFBpuntReturnsPerGame')),
-                normalizeStat('USFBpuntReturnFairCatchPct', getStat(homeStats, 'USFBpuntReturnFairCatchPct') - getStat(awayStats, 'USFBpuntReturnFairCatchPct')),
-                normalizeStat('USFBpuntReturnYards', getStat(homeStats, 'USFBpuntReturnYards') - getStat(awayStats, 'USFBpuntReturnYards')),
-                normalizeStat('USFBpuntReturnYardsPerGame', getStat(homeStats, 'USFBpuntReturnYardsPerGame') - getStat(awayStats, 'USFBpuntReturnYardsPerGame')),
-                normalizeStat('USFByardsPerReturn', getStat(homeStats, 'USFByardsPerReturn') - getStat(awayStats, 'USFByardsPerReturn')),
-                normalizeStat('USFBthirdDownEfficiency', getStat(homeStats, 'USFBthirdDownEfficiency') - getStat(awayStats, 'USFBthirdDownEfficiency')),
-                normalizeStat('USFBtotalPenyards', getStat(homeStats, 'USFBtotalPenyards') - getStat(awayStats, 'USFBtotalPenyards')),
-                normalizeStat('USFBaveragePenYardsPerGame', getStat(homeStats, 'USFBaveragePenYardsPerGame') - getStat(awayStats, 'USFBaveragePenYardsPerGame')),
-                normalizeStat('USFBgiveaways', getStat(homeStats, 'USFBgiveaways') - getStat(awayStats, 'USFBgiveaways')),
-                normalizeStat('USFBtakeaways', getStat(homeStats, 'USFBtakeaways') - getStat(awayStats, 'USFBtakeaways')),
-                normalizeStat('USFBturnoverDiff', getStat(homeStats, 'USFBturnoverDiff') - getStat(awayStats, 'USFBturnoverDiff')),
-                normalizeStat('USFBtotalFirstDowns', getStat(homeStats, 'USFBtotalFirstDowns') - getStat(awayStats, 'USFBtotalFirstDowns')),
-
-
-            ];
+            return footballStatMap.map(key => normalizeStat(key, getNumericStat(homeStats, key)))
+                .concat(footballStatMap.map(key => normalizeStat(key, getNumericStat(awayStats, key))))
         case 'americanfootball_ncaaf':
-            return [
-                normalizeStat('seasonWinLoss', getWinLoss(homeStats, 'seasonWinLoss') - getWinLoss(awayStats, 'seasonWinLoss')),
-                normalizeStat('homeWinLoss', getWinLoss(homeStats, 'homeWinLoss') - getWinLoss(awayStats, 'awayWinLoss')),
-                normalizeStat('pointDiff', getStat(homeStats, 'pointDiff') - getStat(awayStats, 'pointDiff')),
-                normalizeStat('USFBpointsPerGame', getStat(homeStats, 'USFBpointsPerGame') - getStat(awayStats, 'USFBpointsPerGame')),
-                normalizeStat('USFBtotalPoints', getStat(homeStats, 'USFBtotalPoints') - getStat(awayStats, 'USFBtotalPoints')),
-                normalizeStat('USFBtotalTouchdowns', getStat(homeStats, 'USFBtotalTouchdowns') - getStat(awayStats, 'USFBtotalTouchdowns')),
-                normalizeStat('USFBtouchdownsPerGame', getStat(homeStats, 'USFBtouchdownsPerGame') - getStat(awayStats, 'USFBtouchdownsPerGame')),
-                normalizeStat('USFBcompletionPercent', getStat(homeStats, 'USFBcompletionPercent') - getStat(awayStats, 'USFBcompletionPercent')),
-                normalizeStat('USFBcompletions', getStat(homeStats, 'USFBcompletions') - getStat(awayStats, 'USFBcompletions')),
-                normalizeStat('USFBcompletionsPerGame', getStat(homeStats, 'USFBcompletionsPerGame') - getStat(awayStats, 'USFBcompletionsPerGame')),
-                normalizeStat('USFBnetPassingYards', getStat(homeStats, 'USFBnetPassingYards') - getStat(awayStats, 'USFBnetPassingYards')),
-                normalizeStat('USFBnetPassingYardsPerGame', getStat(homeStats, 'USFBnetPassingYardsPerGame') - getStat(awayStats, 'USFBnetPassingYardsPerGame')),
-                normalizeStat('USFBpassingFirstDowns', getStat(homeStats, 'USFBpassingFirstDowns') - getStat(awayStats, 'USFBpassingFirstDowns')),
-                normalizeStat('USFBpassingYards', getStat(homeStats, 'USFBpassingYards') - getStat(awayStats, 'USFBpassingYards')),
-                normalizeStat('USFBpassingYardsPerGame', getStat(homeStats, 'USFBpassingYardsPerGame') - getStat(awayStats, 'USFBpassingYardsPerGame')),
-                normalizeStat('USFBpassingAttempts', getStat(homeStats, 'USFBpassingAttempts') - getStat(awayStats, 'USFBpassingAttempts')),
-                normalizeStat('USFBpassingAttemptsPerGame', getStat(homeStats, 'USFBpassingAttemptsPerGame') - getStat(awayStats, 'USFBpassingAttemptsPerGame')),
-                normalizeStat('USFByardsPerPassAttempt', getStat(homeStats, 'USFByardsPerPassAttempt') - getStat(awayStats, 'USFByardsPerPassAttempt')),
-                normalizeStat('USFBrushingAttempts', getStat(homeStats, 'USFBrushingAttempts') - getStat(awayStats, 'USFBrushingAttempts')),
-                normalizeStat('USFBrushingFirstDowns', getStat(homeStats, 'USFBrushingFirstDowns') - getStat(awayStats, 'USFBrushingFirstDowns')),
-                normalizeStat('USFBrushingTouchdowns', getStat(homeStats, 'USFBrushingTouchdowns') - getStat(awayStats, 'USFBrushingTouchdowns')),
-                normalizeStat('USFBrushingYards', getStat(homeStats, 'USFBrushingYards') - getStat(awayStats, 'USFBrushingYards')),
-                normalizeStat('USFBrushingYardsPerGame', getStat(homeStats, 'USFBrushingYardsPerGame') - getStat(awayStats, 'USFBrushingYardsPerGame')),
-                normalizeStat('USFByardsPerRushAttempt', getStat(homeStats, 'USFByardsPerRushAttempt') - getStat(awayStats, 'USFByardsPerRushAttempt')),
-                normalizeStat('USFBreceivingFirstDowns', getStat(homeStats, 'USFBreceivingFirstDowns') - getStat(awayStats, 'USFBreceivingFirstDowns')),
-                normalizeStat('USFBreceivingTouchdowns', getStat(homeStats, 'USFBreceivingTouchdowns') - getStat(awayStats, 'USFBreceivingTouchdowns')),
-                normalizeStat('USFBreceivingYards', getStat(homeStats, 'USFBreceivingYards') - getStat(awayStats, 'USFBreceivingYards')),
-                normalizeStat('USFBreceivingYardsPerGame', getStat(homeStats, 'USFBreceivingYardsPerGame') - getStat(awayStats, 'USFBreceivingYardsPerGame')),
-                normalizeStat('USFBreceivingYardsPerReception', getStat(homeStats, 'USFBreceivingYardsPerReception') - getStat(awayStats, 'USFBreceivingYardsPerReception')),
-                normalizeStat('USFBreceivingYardsAfterCatch', getStat(homeStats, 'USFBreceivingYardsAfterCatch') - getStat(awayStats, 'USFBreceivingYardsAfterCatch')),
-                normalizeStat('USFBreceivingYardsAfterCatchPerGame', getStat(homeStats, 'USFBreceivingYardsAfterCatchPerGame') - getStat(awayStats, 'USFBreceivingYardsAfterCatchPerGame')),
-                normalizeStat('USFBtacklesforLoss', getStat(homeStats, 'USFBtacklesforLoss') - getStat(awayStats, 'USFBtacklesforLoss')),
-                normalizeStat('USFBtacklesforLossPerGame', getStat(homeStats, 'USFBtacklesforLossPerGame') - getStat(awayStats, 'USFBtacklesforLossPerGame')),
-                normalizeStat('USFBinterceptions', getStat(homeStats, 'USFBinterceptions') - getStat(awayStats, 'USFBinterceptions')),
-                normalizeStat('USFByardsPerInterception', getStat(homeStats, 'USFByardsPerInterception') - getStat(awayStats, 'USFByardsPerInterception')),
-                normalizeStat('USFBsacksTotal', getStat(homeStats, 'USFBsacksTotal') - getStat(awayStats, 'USFBsacksTotal')),
-                normalizeStat('USFBsacksPerGame', getStat(homeStats, 'USFBsacksPerGame') - getStat(awayStats, 'USFBsacksPerGame')),
-                normalizeStat('USFBsackYards', getStat(homeStats, 'USFBsackYards') - getStat(awayStats, 'USFBsackYards')),
-                normalizeStat('USFBsackYardsPerGame', getStat(homeStats, 'USFBsackYardsPerGame') - getStat(awayStats, 'USFBsackYardsPerGame')),
-                normalizeStat('USFBstuffs', getStat(homeStats, 'USFBstuffs') - getStat(awayStats, 'USFBstuffs')),
-                normalizeStat('USFBstuffsPerGame', getStat(homeStats, 'USFBstuffsPerGame') - getStat(awayStats, 'USFBstuffsPerGame')),
-                normalizeStat('USFBstuffYards', getStat(homeStats, 'USFBstuffYards') - getStat(awayStats, 'USFBstuffYards')),
-                normalizeStat('USFBpassesDefended', getStat(homeStats, 'USFBpassesDefended') - getStat(awayStats, 'USFBpassesDefended')),
-                normalizeStat('USFBpassesDefendedPerGame', getStat(homeStats, 'USFBpassesDefendedPerGame') - getStat(awayStats, 'USFBpassesDefendedPerGame')),
-                normalizeStat('USFBsafties', getStat(homeStats, 'USFBsafties') - getStat(awayStats, 'USFBsafties')),
-                normalizeStat('USFBaverageKickoffYards', getStat(homeStats, 'USFBaverageKickoffYards') - getStat(awayStats, 'USFBaverageKickoffYards')),
-                normalizeStat('USFBaverageKickoffYardsPerGame', getStat(homeStats, 'USFBaverageKickoffYardsPerGame') - getStat(awayStats, 'USFBaverageKickoffYardsPerGame')),
-                normalizeStat('USFBextraPointAttempts', getStat(homeStats, 'USFBextraPointAttempts') - getStat(awayStats, 'USFBextraPointAttempts')),
-                normalizeStat('USFBextraPointAttemptsPerGame', getStat(homeStats, 'USFBextraPointAttemptsPerGame') - getStat(awayStats, 'USFBextraPointAttemptsPerGame')),
-                normalizeStat('USFBextraPointsMade', getStat(homeStats, 'USFBextraPointsMade') - getStat(awayStats, 'USFBextraPointsMade')),
-                normalizeStat('USFBextraPointsMadePerGame', getStat(homeStats, 'USFBextraPointsMadePerGame') - getStat(awayStats, 'USFBextraPointsMadePerGame')),
-                normalizeStat('USFBextraPointPercent', getStat(homeStats, 'USFBextraPointPercent') - getStat(awayStats, 'USFBextraPointPercent')),
-                normalizeStat('USFBextraPointPercentPerGame', getStat(homeStats, 'USFBextraPointPercentPerGame') - getStat(awayStats, 'USFBextraPointPercentPerGame')),
-                normalizeStat('USFBfieldGoalAttempts', getStat(homeStats, 'USFBfieldGoalAttempts') - getStat(awayStats, 'USFBfieldGoalAttempts')),
-                normalizeStat('USFBfieldGoalAttemptsPerGame', getStat(homeStats, 'USFBfieldGoalAttemptsPerGame') - getStat(awayStats, 'USFBfieldGoalAttemptsPerGame')),
-                normalizeStat('USFBfieldGoalsMade', getStat(homeStats, 'USFBfieldGoalsMade') - getStat(awayStats, 'USFBfieldGoalsMade')),
-                normalizeStat('USFBfieldGoalsMadePerGame', getStat(homeStats, 'USFBfieldGoalsMadePerGame') - getStat(awayStats, 'USFBfieldGoalsMadePerGame')),
-                normalizeStat('USFBfieldGoalPct', getStat(homeStats, 'USFBfieldGoalPct') - getStat(awayStats, 'USFBfieldGoalPct')),
-                normalizeStat('USFBfieldGoalPercentPerGame', getStat(homeStats, 'USFBfieldGoalPercentPerGame') - getStat(awayStats, 'USFBfieldGoalPercentPerGame')),
-                normalizeStat('USFBtouchbacks', getStat(homeStats, 'USFBtouchbacks') - getStat(awayStats, 'USFBtouchbacks')),
-                normalizeStat('USFBtouchbacksPerGame', getStat(homeStats, 'USFBtouchbacksPerGame') - getStat(awayStats, 'USFBtouchbacksPerGame')),
-                normalizeStat('USFBtouchBackPercentage', getStat(homeStats, 'USFBtouchBackPercentage') - getStat(awayStats, 'USFBtouchBackPercentage')),
-                normalizeStat('USFBkickReturns', getStat(homeStats, 'USFBkickReturns') - getStat(awayStats, 'USFBkickReturns')),
-                normalizeStat('USFBkickReturnsPerGame', getStat(homeStats, 'USFBkickReturnsPerGame') - getStat(awayStats, 'USFBkickReturnsPerGame')),
-                normalizeStat('USFBkickReturnYards', getStat(homeStats, 'USFBkickReturnYards') - getStat(awayStats, 'USFBkickReturnYards')),
-                normalizeStat('USFBkickReturnYardsPerGame', getStat(homeStats, 'USFBkickReturnYardsPerGame') - getStat(awayStats, 'USFBkickReturnYardsPerGame')),
-                normalizeStat('USFBpuntReturns', getStat(homeStats, 'USFBpuntReturns') - getStat(awayStats, 'USFBpuntReturns')),
-                normalizeStat('USFBpuntReturnsPerGame', getStat(homeStats, 'USFBpuntReturnsPerGame') - getStat(awayStats, 'USFBpuntReturnsPerGame')),
-                normalizeStat('USFBpuntReturnFairCatchPct', getStat(homeStats, 'USFBpuntReturnFairCatchPct') - getStat(awayStats, 'USFBpuntReturnFairCatchPct')),
-                normalizeStat('USFBpuntReturnYards', getStat(homeStats, 'USFBpuntReturnYards') - getStat(awayStats, 'USFBpuntReturnYards')),
-                normalizeStat('USFBpuntReturnYardsPerGame', getStat(homeStats, 'USFBpuntReturnYardsPerGame') - getStat(awayStats, 'USFBpuntReturnYardsPerGame')),
-                normalizeStat('USFByardsPerReturn', getStat(homeStats, 'USFByardsPerReturn') - getStat(awayStats, 'USFByardsPerReturn')),
-                normalizeStat('USFBthirdDownEfficiency', getStat(homeStats, 'USFBthirdDownEfficiency') - getStat(awayStats, 'USFBthirdDownEfficiency')),
-                normalizeStat('USFBtotalPenyards', getStat(homeStats, 'USFBtotalPenyards') - getStat(awayStats, 'USFBtotalPenyards')),
-                normalizeStat('USFBaveragePenYardsPerGame', getStat(homeStats, 'USFBaveragePenYardsPerGame') - getStat(awayStats, 'USFBaveragePenYardsPerGame')),
-                normalizeStat('USFBgiveaways', getStat(homeStats, 'USFBgiveaways') - getStat(awayStats, 'USFBgiveaways')),
-                normalizeStat('USFBtakeaways', getStat(homeStats, 'USFBtakeaways') - getStat(awayStats, 'USFBtakeaways')),
-                normalizeStat('USFBturnoverDiff', getStat(homeStats, 'USFBturnoverDiff') - getStat(awayStats, 'USFBturnoverDiff')),
-                normalizeStat('USFBtotalFirstDowns', getStat(homeStats, 'USFBtotalFirstDowns') - getStat(awayStats, 'USFBtotalFirstDowns')),
-
-
-            ];
+            return footballStatMap.map(key => normalizeStat(key, getNumericStat(homeStats, key)))
+                .concat(footballStatMap.map(key => normalizeStat(key, getNumericStat(awayStats, key))))
         case 'icehockey_nhl':
-            return [
-                normalizeStat('seasonWinLoss', getWinLoss(homeStats) - getWinLoss(awayStats)),
-                normalizeStat('homeWinLoss', getHomeAwayWinLoss(homeStats, 'homeWinLoss') - getHomeAwayWinLoss(awayStats, 'awayWinLoss')),
-                normalizeStat('pointDiff', getStat(homeStats, 'pointDiff') - getStat(awayStats, 'pointDiff')),
-                normalizeStat('HKYgoals', getStat(homeStats, 'HKYgoals') - getStat(awayStats, 'HKYgoals')),
-                normalizeStat('HKYgoalsPerGame', getStat(homeStats, 'HKYgoalsPerGame') - getStat(awayStats, 'HKYgoalsPerGame')),
-                normalizeStat('HKYassists', getStat(homeStats, 'HKYassists') - getStat(awayStats, 'HKYassists')),
-                normalizeStat('HKYassistsPerGame', getStat(homeStats, 'HKYassistsPerGame') - getStat(awayStats, 'HKYassistsPerGame')),
-                normalizeStat('HKYshotsIn1st', getStat(homeStats, 'HKYshotsIn1st') - getStat(awayStats, 'HKYshotsIn1st')),
-                normalizeStat('HKYshotsIn1stPerGame', getStat(homeStats, 'HKYshotsIn1stPerGame') - getStat(awayStats, 'HKYshotsIn1stPerGame')),
-                normalizeStat('HKYshotsIn2nd', getStat(homeStats, 'HKYshotsIn2nd') - getStat(awayStats, 'HKYshotsIn2nd')),
-                normalizeStat('HKYshotsIn2ndPerGame', getStat(homeStats, 'HKYshotsIn2ndPerGame') - getStat(awayStats, 'HKYshotsIn2ndPerGame')),
-                normalizeStat('HKYshotsIn3rd', getStat(homeStats, 'HKYshotsIn3rd') - getStat(awayStats, 'HKYshotsIn3rd')),
-                normalizeStat('HKYshotsIn3rdPerGame', getStat(homeStats, 'HKYshotsIn3rdPerGame') - getStat(awayStats, 'HKYshotsIn3rdPerGame')),
-                normalizeStat('HKYtotalShots', getStat(homeStats, 'HKYtotalShots') - getStat(awayStats, 'HKYtotalShots')),
-                normalizeStat('HKYtotalShotsPerGame', getStat(homeStats, 'HKYtotalShotsPerGame') - getStat(awayStats, 'HKYtotalShotsPerGame')),
-                normalizeStat('HKYshotsMissed', getStat(homeStats, 'HKYshotsMissed') - getStat(awayStats, 'HKYshotsMissed')),
-                normalizeStat('HKYshotsMissedPerGame', getStat(homeStats, 'HKYshotsMissedPerGame') - getStat(awayStats, 'HKYshotsMissedPerGame')),
-                normalizeStat('HKYppgGoals', getStat(homeStats, 'HKYppgGoals') - getStat(awayStats, 'HKYppgGoals')),
-                normalizeStat('HKYppgGoalsPerGame', getStat(homeStats, 'HKYppgGoalsPerGame') - getStat(awayStats, 'HKYppgGoalsPerGame')),
-                normalizeStat('HKYppassists', getStat(homeStats, 'HKYppassists') - getStat(awayStats, 'HKYppassists')),
-                normalizeStat('HKYppassistsPerGame', getStat(homeStats, 'HKYppassistsPerGame') - getStat(awayStats, 'HKYppassistsPerGame')),
-                normalizeStat('HKYpowerplayPct', getStat(homeStats, 'HKYpowerplayPct') - getStat(awayStats, 'HKYpowerplayPct')),
-                normalizeStat('HKYshortHandedGoals', getStat(homeStats, 'HKYshortHandedGoals') - getStat(awayStats, 'HKYshortHandedGoals')),
-                normalizeStat('HKYshortHandedGoalsPerGame', getStat(homeStats, 'HKYshortHandedGoalsPerGame') - getStat(awayStats, 'HKYshortHandedGoalsPerGame')),
-                normalizeStat('HKYshootingPct', getStat(homeStats, 'HKYshootingPct') - getStat(awayStats, 'HKYshootingPct')),
-                normalizeStat('HKYfaceoffs', getStat(homeStats, 'HKYfaceoffs') - getStat(awayStats, 'HKYfaceoffs')),
-                normalizeStat('HKYfaceoffsPerGame', getStat(homeStats, 'HKYfaceoffsPerGame') - getStat(awayStats, 'HKYfaceoffsPerGame')),
-                normalizeStat('HKYfaceoffsWon', getStat(homeStats, 'HKYfaceoffsWon') - getStat(awayStats, 'HKYfaceoffsWon')),
-                normalizeStat('HKYfaceoffsWonPerGame', getStat(homeStats, 'HKYfaceoffsWonPerGame') - getStat(awayStats, 'HKYfaceoffsWonPerGame')),
-                normalizeStat('HKYfaceoffsLost', getStat(homeStats, 'HKYfaceoffsLost') - getStat(awayStats, 'HKYfaceoffsLost')),
-                normalizeStat('HKYfaceoffsLostPerGame', getStat(homeStats, 'HKYfaceoffsLostPerGame') - getStat(awayStats, 'HKYfaceoffsLostPerGame')),
-                normalizeStat('HKYfaceoffPct', getStat(homeStats, 'HKYfaceoffPct') - getStat(awayStats, 'HKYfaceoffPct')),
-                normalizeStat('HKYfaceoffPctPerGame', getStat(homeStats, 'HKYfaceoffPctPerGame') - getStat(awayStats, 'HKYfaceoffPctPerGame')),
-                normalizeStat('HKYgiveaways', getStat(homeStats, 'HKYgiveaways') - getStat(awayStats, 'HKYgiveaways')),
-                normalizeStat('HKYgoalsAgainst', getStat(homeStats, 'HKYgoalsAgainst') - getStat(awayStats, 'HKYgoalsAgainst')),
-                normalizeStat('HKYgoalsAgainstPerGame', getStat(homeStats, 'HKYgoalsAgainstPerGame') - getStat(awayStats, 'HKYgoalsAgainstPerGame')),
-                normalizeStat('HKYshotsAgainst', getStat(homeStats, 'HKYshotsAgainst') - getStat(awayStats, 'HKYshotsAgainst')),
-                normalizeStat('HKYshotsAgainstPerGame', getStat(homeStats, 'HKYshotsAgainstPerGame') - getStat(awayStats, 'HKYshotsAgainstPerGame')),
-                normalizeStat('HKYpenaltyKillPct', getStat(homeStats, 'HKYpenaltyKillPct') - getStat(awayStats, 'HKYpenaltyKillPct')),
-                normalizeStat('HKYpenaltyKillPctPerGame', getStat(homeStats, 'HKYpenaltyKillPctPerGame') - getStat(awayStats, 'HKYpenaltyKillPctPerGame')),
-                normalizeStat('HKYppGoalsAgainst', getStat(homeStats, 'HKYppGoalsAgainst') - getStat(awayStats, 'HKYppGoalsAgainst')),
-                normalizeStat('HKYppGoalsAgainstPerGame', getStat(homeStats, 'HKYppGoalsAgainstPerGame') - getStat(awayStats, 'HKYppGoalsAgainstPerGame')),
-                normalizeStat('HKYshutouts', getStat(homeStats, 'HKYshutouts') - getStat(awayStats, 'HKYshutouts')),
-                normalizeStat('HKYsaves', getStat(homeStats, 'HKYsaves') - getStat(awayStats, 'HKYsaves')),
-                normalizeStat('HKYsavesPerGame', getStat(homeStats, 'HKYsavesPerGame') - getStat(awayStats, 'HKYsavesPerGame')),
-                normalizeStat('HKYsavePct', getStat(homeStats, 'HKYsavePct') - getStat(awayStats, 'HKYsavePct')),
-                normalizeStat('HKYblockedShots', getStat(homeStats, 'HKYblockedShots') - getStat(awayStats, 'HKYblockedShots')),
-                normalizeStat('HKYblockedShotsPerGame', getStat(homeStats, 'HKYblockedShotsPerGame') - getStat(awayStats, 'HKYblockedShotsPerGame')),
-                normalizeStat('HKYhits', getStat(homeStats, 'HKYhits') - getStat(awayStats, 'HKYhits')),
-                normalizeStat('HKYhitsPerGame', getStat(homeStats, 'HKYhitsPerGame') - getStat(awayStats, 'HKYhitsPerGame')),
-                normalizeStat('HKYtakeaways', getStat(homeStats, 'HKYtakeaways') - getStat(awayStats, 'HKYtakeaways')),
-                normalizeStat('HKYtakeawaysPerGame', getStat(homeStats, 'HKYtakeawaysPerGame') - getStat(awayStats, 'HKYtakeawaysPerGame')),
-                normalizeStat('HKYshotDifferential', getStat(homeStats, 'HKYshotDifferential') - getStat(awayStats, 'HKYshotDifferential')),
-                normalizeStat('HKYshotDifferentialPerGame', getStat(homeStats, 'HKYshotDifferentialPerGame') - getStat(awayStats, 'HKYshotDifferentialPerGame')),
-                normalizeStat('HKYgoalDifferentialPerGame', getStat(homeStats, 'HKYgoalDifferentialPerGame') - getStat(awayStats, 'HKYgoalDifferentialPerGame')),
-                normalizeStat('HKYpimDifferential', getStat(homeStats, 'HKYpimDifferential') - getStat(awayStats, 'HKYpimDifferential')),
-                normalizeStat('HKYpimDifferentialPerGame', getStat(homeStats, 'HKYpimDifferentialPerGame') - getStat(awayStats, 'HKYpimDifferentialPerGame')),
-                normalizeStat('HKYtotalPenalties', getStat(homeStats, 'HKYtotalPenalties') - getStat(awayStats, 'HKYtotalPenalties')),
-                normalizeStat('HKYpenaltiesPerGame', getStat(homeStats, 'HKYpenaltiesPerGame') - getStat(awayStats, 'HKYpenaltiesPerGame')),
-                normalizeStat('HKYpenaltyMinutes', getStat(homeStats, 'HKYpenaltyMinutes') - getStat(awayStats, 'HKYpenaltyMinutes')),
-                normalizeStat('HKYpenaltyMinutesPerGame', getStat(homeStats, 'HKYpenaltyMinutesPerGame') - getStat(awayStats, 'HKYpenaltyMinutesPerGame')),
-
-
-            ];
+            return hockeyStatMap.map(key => normalizeStat(key, getNumericStat(homeStats, key)))
+                .concat(hockeyStatMap.map(key => normalizeStat(key, getNumericStat(awayStats, key))))
         case 'baseball_mlb':
-            return [
-                normalizeStat('seasonWinLoss', getWinLoss(homeStats) - getWinLoss(awayStats)),
-                normalizeStat('homeWinLoss', getHomeAwayWinLoss(homeStats, 'homeWinLoss') - getHomeAwayWinLoss(awayStats, 'awayWinLoss')),
-                normalizeStat('pointDiff', getStat(homeStats, 'pointDiff') - getStat(awayStats, 'pointDiff')),
-                normalizeStat('BSBbattingStrikeouts', getStat(homeStats, 'BSBbattingStrikeouts') - getStat(awayStats, 'BSBbattingStrikeouts')),
-                normalizeStat('BSBrunsBattedIn', getStat(homeStats, 'BSBrunsBattedIn') - getStat(awayStats, 'BSBrunsBattedIn')),
-                normalizeStat('BSBsacrificeHits', getStat(homeStats, 'BSBsacrificeHits') - getStat(awayStats, 'BSBsacrificeHits')),
-                normalizeStat('BSBHitsTotal', getStat(homeStats, 'BSBHitsTotal') - getStat(awayStats, 'BSBHitsTotal')),
-                normalizeStat('BSBwalks', getStat(homeStats, 'BSBwalks') - getStat(awayStats, 'BSBwalks')),
-                normalizeStat('BSBruns', getStat(homeStats, 'BSBruns') - getStat(awayStats, 'BSBruns')),
-                normalizeStat('BSBhomeRuns', getStat(homeStats, 'BSBhomeRuns') - getStat(awayStats, 'BSBhomeRuns')),
-                normalizeStat('BSBdoubles', getStat(homeStats, 'BSBdoubles') - getStat(awayStats, 'BSBdoubles')),
-                normalizeStat('BSBtotalBases', getStat(homeStats, 'BSBtotalBases') - getStat(awayStats, 'BSBtotalBases')),
-                normalizeStat('BSBextraBaseHits', getStat(homeStats, 'BSBextraBaseHits') - getStat(awayStats, 'BSBextraBaseHits')),
-                normalizeStat('BSBbattingAverage', getStat(homeStats, 'BSBbattingAverage') - getStat(awayStats, 'BSBbattingAverage')),
-                normalizeStat('BSBsluggingPercentage', getStat(homeStats, 'BSBsluggingPercentage') - getStat(awayStats, 'BSBsluggingPercentage')),
-                normalizeStat('BSBonBasePercentage', getStat(homeStats, 'BSBonBasePercentage') - getStat(awayStats, 'BSBonBasePercentage')),
-                normalizeStat('BSBonBasePlusSlugging', getStat(homeStats, 'BSBonBasePlusSlugging') - getStat(awayStats, 'BSBonBasePlusSlugging')),
-                normalizeStat('BSBgroundToFlyRatio', getStat(homeStats, 'BSBgroundToFlyRatio') - getStat(awayStats, 'BSBgroundToFlyRatio')),
-                normalizeStat('BSBatBatsPerHomeRun', getStat(homeStats, 'BSBatBatsPerHomeRun') - getStat(awayStats, 'BSBatBatsPerHomeRun')),
-                normalizeStat('BSBstolenBasePercentage', getStat(homeStats, 'BSBstolenBasePercentage') - getStat(awayStats, 'BSBstolenBasePercentage')),
-                normalizeStat('BSBbatterWalkToStrikeoutRatio', getStat(homeStats, 'BSBbatterWalkToStrikeoutRatio') - getStat(awayStats, 'BSBbatterWalkToStrikeoutRatio')),
-                normalizeStat('BSBsaves', getStat(homeStats, 'BSBsaves') - getStat(awayStats, 'BSBsaves')),
-                normalizeStat('BSBpitcherStrikeouts', getStat(homeStats, 'BSBpitcherStrikeouts') - getStat(awayStats, 'BSBpitcherStrikeouts')),
-                normalizeStat('BSBhitsGivenUp', getStat(homeStats, 'BSBhitsGivenUp') - getStat(awayStats, 'BSBhitsGivenUp')),
-                normalizeStat('BSBearnedRuns', getStat(homeStats, 'BSBearnedRuns') - getStat(awayStats, 'BSBearnedRuns')),
-                normalizeStat('BSBbattersWalked', getStat(homeStats, 'BSBbattersWalked') - getStat(awayStats, 'BSBbattersWalked')),
-                normalizeStat('BSBrunsAllowed', getStat(homeStats, 'BSBrunsAllowed') - getStat(awayStats, 'BSBrunsAllowed')),
-                normalizeStat('BSBhomeRunsAllowed', getStat(homeStats, 'BSBhomeRunsAllowed') - getStat(awayStats, 'BSBhomeRunsAllowed')),
-                normalizeStat('BSBwins', getStat(homeStats, 'BSBwins') - getStat(awayStats, 'BSBwins')),
-                normalizeStat('BSBshutouts', getStat(homeStats, 'BSBshutouts') - getStat(awayStats, 'BSBshutouts')),
-                normalizeStat('BSBearnedRunAverage', getStat(homeStats, 'BSBearnedRunAverage') - getStat(awayStats, 'BSBearnedRunAverage')),
-                normalizeStat('BSBwalksHitsPerInningPitched', getStat(homeStats, 'BSBwalksHitsPerInningPitched') - getStat(awayStats, 'BSBwalksHitsPerInningPitched')),
-                normalizeStat('BSBwinPct', getStat(homeStats, 'BSBwinPct') - getStat(awayStats, 'BSBwinPct')),
-                normalizeStat('BSBpitcherCaughtStealingPct', getStat(homeStats, 'BSBpitcherCaughtStealingPct') - getStat(awayStats, 'BSBpitcherCaughtStealingPct')),
-                normalizeStat('BSBpitchesPerInning', getStat(homeStats, 'BSBpitchesPerInning') - getStat(awayStats, 'BSBpitchesPerInning')),
-                normalizeStat('BSBrunSupportAverage', getStat(homeStats, 'BSBrunSupportAverage') - getStat(awayStats, 'BSBrunSupportAverage')),
-                normalizeStat('BSBopponentBattingAverage', getStat(homeStats, 'BSBopponentBattingAverage') - getStat(awayStats, 'BSBopponentBattingAverage')),
-                normalizeStat('BSBopponentSlugAverage', getStat(homeStats, 'BSBopponentSlugAverage') - getStat(awayStats, 'BSBopponentSlugAverage')),
-                normalizeStat('BSBopponentOnBasePct', getStat(homeStats, 'BSBopponentOnBasePct') - getStat(awayStats, 'BSBopponentOnBasePct')),
-                normalizeStat('BSBopponentOnBasePlusSlugging', getStat(homeStats, 'BSBopponentOnBasePlusSlugging') - getStat(awayStats, 'BSBopponentOnBasePlusSlugging')),
-                normalizeStat('BSBsavePct', getStat(homeStats, 'BSBsavePct') - getStat(awayStats, 'BSBsavePct')),
-                normalizeStat('BSBstrikeoutsPerNine', getStat(homeStats, 'BSBstrikeoutsPerNine') - getStat(awayStats, 'BSBstrikeoutsPerNine')),
-                normalizeStat('BSBpitcherStrikeoutToWalkRatio', getStat(homeStats, 'BSBpitcherStrikeoutToWalkRatio') - getStat(awayStats, 'BSBpitcherStrikeoutToWalkRatio')),
-                normalizeStat('BSBdoublePlays', getStat(homeStats, 'BSBdoublePlays') - getStat(awayStats, 'BSBdoublePlays')),
-                normalizeStat('BSBerrors', getStat(homeStats, 'BSBerrors') - getStat(awayStats, 'BSBerrors')),
-                normalizeStat('BSBpassedBalls', getStat(homeStats, 'BSBpassedBalls') - getStat(awayStats, 'BSBpassedBalls')),
-                normalizeStat('BSBassists', getStat(homeStats, 'BSBassists') - getStat(awayStats, 'BSBassists')),
-                normalizeStat('BSBputouts', getStat(homeStats, 'BSBputouts') - getStat(awayStats, 'BSBputouts')),
-                normalizeStat('BSBcatcherCaughtStealing', getStat(homeStats, 'BSBcatcherCaughtStealing') - getStat(awayStats, 'BSBcatcherCaughtStealing')),
-                normalizeStat('BSBcatcherCaughtStealingPct', getStat(homeStats, 'BSBcatcherCaughtStealingPct') - getStat(awayStats, 'BSBcatcherCaughtStealingPct')),
-                normalizeStat('BSBcatcherStolenBasesAllowed', getStat(homeStats, 'BSBcatcherStolenBasesAllowed') - getStat(awayStats, 'BSBcatcherStolenBasesAllowed')),
-                normalizeStat('BSBfieldingPercentage', getStat(homeStats, 'BSBfieldingPercentage') - getStat(awayStats, 'BSBfieldingPercentage')),
-                normalizeStat('BSBrangeFactor', getStat(homeStats, 'BSBrangeFactor') - getStat(awayStats, 'BSBrangeFactor')),
-
-            ];
+            return baseballStatMap.map(key => getNumericStat(homeStats, key))
+                .concat(baseballStatMap.map(key => getNumericStat(awayStats, key)))
         case 'basketball_ncaab':
-            return [
-                normalizeStat('seasonWinLoss', getWinLoss(homeStats) - getWinLoss(awayStats)),
-                normalizeStat('homeWinLoss', getHomeAwayWinLoss(homeStats, 'homeWinLoss') - getHomeAwayWinLoss(awayStats, 'awayWinLoss')),
-                normalizeStat('pointDiff', getStat(homeStats, 'pointDiff') - getStat(awayStats, 'pointDiff')),
-                normalizeStat('BSKBtotalPoints', getStat(homeStats, 'BSKBtotalPoints') - getStat(awayStats, 'BSKBtotalPoints')),
-                normalizeStat('BSKBpointsPerGame', getStat(homeStats, 'BSKBpointsPerGame') - getStat(awayStats, 'BSKBpointsPerGame')),
-                normalizeStat('BSKBassists', getStat(homeStats, 'BSKBassists') - getStat(awayStats, 'BSKBassists')),
-                normalizeStat('BSKBassistsPerGame', getStat(homeStats, 'BSKBassistsPerGame') - getStat(awayStats, 'BSKBassistsPerGame')),
-                normalizeStat('BSKBassistRatio', getStat(homeStats, 'BSKBassistRatio') - getStat(awayStats, 'BSKBassistRatio')),
-                normalizeStat('BSKBeffectiveFgPercent', getStat(homeStats, 'BSKBeffectiveFgPercent') - getStat(awayStats, 'BSKBeffectiveFgPercent')),
-                normalizeStat('BSKBfieldGoalPercent', getStat(homeStats, 'BSKBfieldGoalPercent') - getStat(awayStats, 'BSKBfieldGoalPercent')),
-                normalizeStat('BSKBfieldGoalsAttempted', getStat(homeStats, 'BSKBfieldGoalsAttempted') - getStat(awayStats, 'BSKBfieldGoalsAttempted')),
-                normalizeStat('BSKBfieldGoalsMade', getStat(homeStats, 'BSKBfieldGoalsMade') - getStat(awayStats, 'BSKBfieldGoalsMade')),
-                normalizeStat('BSKBfieldGoalsPerGame', getStat(homeStats, 'BSKBfieldGoalsPerGame') - getStat(awayStats, 'BSKBfieldGoalsPerGame')),
-                normalizeStat('BSKBfreeThrowPercent', getStat(homeStats, 'BSKBfreeThrowPercent') - getStat(awayStats, 'BSKBfreeThrowPercent')),
-                normalizeStat('BSKBfreeThrowsAttempted', getStat(homeStats, 'BSKBfreeThrowsAttempted') - getStat(awayStats, 'BSKBfreeThrowsAttempted')),
-                normalizeStat('BSKBfreeThrowsMade', getStat(homeStats, 'BSKBfreeThrowsMade') - getStat(awayStats, 'BSKBfreeThrowsMade')),
-                normalizeStat('BSKBfreeThrowsMadePerGame', getStat(homeStats, 'BSKBfreeThrowsMadePerGame') - getStat(awayStats, 'BSKBfreeThrowsMadePerGame')),
-                normalizeStat('BSKBoffensiveRebounds', getStat(homeStats, 'BSKBoffensiveRebounds') - getStat(awayStats, 'BSKBoffensiveRebounds')),
-                normalizeStat('BSKBoffensiveReboundsPerGame', getStat(homeStats, 'BSKBoffensiveReboundsPerGame') - getStat(awayStats, 'BSKBoffensiveReboundsPerGame')),
-                normalizeStat('BSKBoffensiveReboundRate', getStat(homeStats, 'BSKBoffensiveReboundRate') - getStat(awayStats, 'BSKBoffensiveReboundRate')),
-                normalizeStat('BSKBoffensiveTurnovers', getStat(homeStats, 'BSKBoffensiveTurnovers') - getStat(awayStats, 'BSKBoffensiveTurnovers')),
-                normalizeStat('BSKBturnoversPerGame', getStat(homeStats, 'BSKBturnoversPerGame') - getStat(awayStats, 'BSKBturnoversPerGame')),
-                normalizeStat('BSKBturnoverRatio', getStat(homeStats, 'BSKBturnoverRatio') - getStat(awayStats, 'BSKBturnoverRatio')),
-                normalizeStat('BSKBthreePointPct', getStat(homeStats, 'BSKBthreePointPct') - getStat(awayStats, 'BSKBthreePointPct')),
-                normalizeStat('BSKBthreePointsAttempted', getStat(homeStats, 'BSKBthreePointsAttempted') - getStat(awayStats, 'BSKBthreePointsAttempted')),
-                normalizeStat('BSKBthreePointsMade', getStat(homeStats, 'BSKBthreePointsMade') - getStat(awayStats, 'BSKBthreePointsMade')),
-                normalizeStat('BSKBtrueShootingPct', getStat(homeStats, 'BSKBtrueShootingPct') - getStat(awayStats, 'BSKBtrueShootingPct')),
-                normalizeStat('BSKBpace', getStat(homeStats, 'BSKBpace') - getStat(awayStats, 'BSKBpace')),
-                normalizeStat('BSKBpointsInPaint', getStat(homeStats, 'BSKBpointsInPaint') - getStat(awayStats, 'BSKBpointsInPaint')),
-                normalizeStat('BSKBshootingEfficiency', getStat(homeStats, 'BSKBshootingEfficiency') - getStat(awayStats, 'BSKBshootingEfficiency')),
-                normalizeStat('BSKBscoringEfficiency', getStat(homeStats, 'BSKBscoringEfficiency') - getStat(awayStats, 'BSKBscoringEfficiency')),
-                normalizeStat('BSKBblocks', getStat(homeStats, 'BSKBblocks') - getStat(awayStats, 'BSKBblocks')),
-                normalizeStat('BSKBblocksPerGame', getStat(homeStats, 'BSKBblocksPerGame') - getStat(awayStats, 'BSKBblocksPerGame')),
-                normalizeStat('BSKBdefensiveRebounds', getStat(homeStats, 'BSKBdefensiveRebounds') - getStat(awayStats, 'BSKBdefensiveRebounds')),
-                normalizeStat('BSKBdefensiveReboundsPerGame', getStat(homeStats, 'BSKBdefensiveReboundsPerGame') - getStat(awayStats, 'BSKBdefensiveReboundsPerGame')),
-                normalizeStat('BSKBsteals', getStat(homeStats, 'BSKBsteals') - getStat(awayStats, 'BSKBsteals')),
-                normalizeStat('BSKBstealsPerGame', getStat(homeStats, 'BSKBstealsPerGame') - getStat(awayStats, 'BSKBstealsPerGame')),
-                normalizeStat('BSKBreboundRate', getStat(homeStats, 'BSKBreboundRate') - getStat(awayStats, 'BSKBreboundRate')),
-                normalizeStat('BSKBreboundsPerGame', getStat(homeStats, 'BSKBreboundsPerGame') - getStat(awayStats, 'BSKBreboundsPerGame')),
-                normalizeStat('BSKBfoulsPerGame', getStat(homeStats, 'BSKBfoulsPerGame') - getStat(awayStats, 'BSKBfoulsPerGame')),
-                normalizeStat('BSKBteamAssistToTurnoverRatio', getStat(homeStats, 'BSKBteamAssistToTurnoverRatio') - getStat(awayStats, 'BSKBteamAssistToTurnoverRatio')),
-
-            ];
+            return basketballStatMap.map(key => normalizeStat(key, getNumericStat(homeStats, key)))
+                .concat(basketballStatMap.map(key => normalizeStat(key, getNumericStat(awayStats, key))))
         case 'basketball_wncaab':
-            return [
-                normalizeStat('seasonWinLoss', getWinLoss(homeStats) - getWinLoss(awayStats)),
-                normalizeStat('homeWinLoss', getHomeAwayWinLoss(homeStats, 'homeWinLoss') - getHomeAwayWinLoss(awayStats, 'awayWinLoss')),
-                normalizeStat('pointDiff', getStat(homeStats, 'pointDiff') - getStat(awayStats, 'pointDiff')),
-                normalizeStat('BSKBtotalPoints', getStat(homeStats, 'BSKBtotalPoints') - getStat(awayStats, 'BSKBtotalPoints')),
-                normalizeStat('BSKBpointsPerGame', getStat(homeStats, 'BSKBpointsPerGame') - getStat(awayStats, 'BSKBpointsPerGame')),
-                normalizeStat('BSKBassists', getStat(homeStats, 'BSKBassists') - getStat(awayStats, 'BSKBassists')),
-                normalizeStat('BSKBassistsPerGame', getStat(homeStats, 'BSKBassistsPerGame') - getStat(awayStats, 'BSKBassistsPerGame')),
-                normalizeStat('BSKBassistRatio', getStat(homeStats, 'BSKBassistRatio') - getStat(awayStats, 'BSKBassistRatio')),
-                normalizeStat('BSKBeffectiveFgPercent', getStat(homeStats, 'BSKBeffectiveFgPercent') - getStat(awayStats, 'BSKBeffectiveFgPercent')),
-                normalizeStat('BSKBfieldGoalPercent', getStat(homeStats, 'BSKBfieldGoalPercent') - getStat(awayStats, 'BSKBfieldGoalPercent')),
-                normalizeStat('BSKBfieldGoalsAttempted', getStat(homeStats, 'BSKBfieldGoalsAttempted') - getStat(awayStats, 'BSKBfieldGoalsAttempted')),
-                normalizeStat('BSKBfieldGoalsMade', getStat(homeStats, 'BSKBfieldGoalsMade') - getStat(awayStats, 'BSKBfieldGoalsMade')),
-                normalizeStat('BSKBfieldGoalsPerGame', getStat(homeStats, 'BSKBfieldGoalsPerGame') - getStat(awayStats, 'BSKBfieldGoalsPerGame')),
-                normalizeStat('BSKBfreeThrowPercent', getStat(homeStats, 'BSKBfreeThrowPercent') - getStat(awayStats, 'BSKBfreeThrowPercent')),
-                normalizeStat('BSKBfreeThrowsAttempted', getStat(homeStats, 'BSKBfreeThrowsAttempted') - getStat(awayStats, 'BSKBfreeThrowsAttempted')),
-                normalizeStat('BSKBfreeThrowsMade', getStat(homeStats, 'BSKBfreeThrowsMade') - getStat(awayStats, 'BSKBfreeThrowsMade')),
-                normalizeStat('BSKBfreeThrowsMadePerGame', getStat(homeStats, 'BSKBfreeThrowsMadePerGame') - getStat(awayStats, 'BSKBfreeThrowsMadePerGame')),
-                normalizeStat('BSKBoffensiveRebounds', getStat(homeStats, 'BSKBoffensiveRebounds') - getStat(awayStats, 'BSKBoffensiveRebounds')),
-                normalizeStat('BSKBoffensiveReboundsPerGame', getStat(homeStats, 'BSKBoffensiveReboundsPerGame') - getStat(awayStats, 'BSKBoffensiveReboundsPerGame')),
-                normalizeStat('BSKBoffensiveReboundRate', getStat(homeStats, 'BSKBoffensiveReboundRate') - getStat(awayStats, 'BSKBoffensiveReboundRate')),
-                normalizeStat('BSKBoffensiveTurnovers', getStat(homeStats, 'BSKBoffensiveTurnovers') - getStat(awayStats, 'BSKBoffensiveTurnovers')),
-                normalizeStat('BSKBturnoversPerGame', getStat(homeStats, 'BSKBturnoversPerGame') - getStat(awayStats, 'BSKBturnoversPerGame')),
-                normalizeStat('BSKBturnoverRatio', getStat(homeStats, 'BSKBturnoverRatio') - getStat(awayStats, 'BSKBturnoverRatio')),
-                normalizeStat('BSKBthreePointPct', getStat(homeStats, 'BSKBthreePointPct') - getStat(awayStats, 'BSKBthreePointPct')),
-                normalizeStat('BSKBthreePointsAttempted', getStat(homeStats, 'BSKBthreePointsAttempted') - getStat(awayStats, 'BSKBthreePointsAttempted')),
-                normalizeStat('BSKBthreePointsMade', getStat(homeStats, 'BSKBthreePointsMade') - getStat(awayStats, 'BSKBthreePointsMade')),
-                normalizeStat('BSKBtrueShootingPct', getStat(homeStats, 'BSKBtrueShootingPct') - getStat(awayStats, 'BSKBtrueShootingPct')),
-                normalizeStat('BSKBpace', getStat(homeStats, 'BSKBpace') - getStat(awayStats, 'BSKBpace')),
-                normalizeStat('BSKBpointsInPaint', getStat(homeStats, 'BSKBpointsInPaint') - getStat(awayStats, 'BSKBpointsInPaint')),
-                normalizeStat('BSKBshootingEfficiency', getStat(homeStats, 'BSKBshootingEfficiency') - getStat(awayStats, 'BSKBshootingEfficiency')),
-                normalizeStat('BSKBscoringEfficiency', getStat(homeStats, 'BSKBscoringEfficiency') - getStat(awayStats, 'BSKBscoringEfficiency')),
-                normalizeStat('BSKBblocks', getStat(homeStats, 'BSKBblocks') - getStat(awayStats, 'BSKBblocks')),
-                normalizeStat('BSKBblocksPerGame', getStat(homeStats, 'BSKBblocksPerGame') - getStat(awayStats, 'BSKBblocksPerGame')),
-                normalizeStat('BSKBdefensiveRebounds', getStat(homeStats, 'BSKBdefensiveRebounds') - getStat(awayStats, 'BSKBdefensiveRebounds')),
-                normalizeStat('BSKBdefensiveReboundsPerGame', getStat(homeStats, 'BSKBdefensiveReboundsPerGame') - getStat(awayStats, 'BSKBdefensiveReboundsPerGame')),
-                normalizeStat('BSKBsteals', getStat(homeStats, 'BSKBsteals') - getStat(awayStats, 'BSKBsteals')),
-                normalizeStat('BSKBstealsPerGame', getStat(homeStats, 'BSKBstealsPerGame') - getStat(awayStats, 'BSKBstealsPerGame')),
-                normalizeStat('BSKBreboundRate', getStat(homeStats, 'BSKBreboundRate') - getStat(awayStats, 'BSKBreboundRate')),
-                normalizeStat('BSKBreboundsPerGame', getStat(homeStats, 'BSKBreboundsPerGame') - getStat(awayStats, 'BSKBreboundsPerGame')),
-                normalizeStat('BSKBfoulsPerGame', getStat(homeStats, 'BSKBfoulsPerGame') - getStat(awayStats, 'BSKBfoulsPerGame')),
-                normalizeStat('BSKBteamAssistToTurnoverRatio', getStat(homeStats, 'BSKBteamAssistToTurnoverRatio') - getStat(awayStats, 'BSKBteamAssistToTurnoverRatio')),
-
-            ];
+            return basketballStatMap.map(key => normalizeStat(key, getNumericStat(homeStats, key)))
+                .concat(basketballStatMap.map(key => normalizeStat(key, getNumericStat(awayStats, key))))
         case 'basketball_nba':
-            return [
-                normalizeStat('seasonWinLoss', getWinLoss(homeStats) - getWinLoss(awayStats)),
-                normalizeStat('homeWinLoss', getHomeAwayWinLoss(homeStats, 'homeWinLoss') - getHomeAwayWinLoss(awayStats, 'awayWinLoss')),
-                normalizeStat('pointDiff', getStat(homeStats, 'pointDiff') - getStat(awayStats, 'pointDiff')),
-                normalizeStat('BSKBtotalPoints', getStat(homeStats, 'BSKBtotalPoints') - getStat(awayStats, 'BSKBtotalPoints')),
-                normalizeStat('BSKBpointsPerGame', getStat(homeStats, 'BSKBpointsPerGame') - getStat(awayStats, 'BSKBpointsPerGame')),
-                normalizeStat('BSKBassists', getStat(homeStats, 'BSKBassists') - getStat(awayStats, 'BSKBassists')),
-                normalizeStat('BSKBassistsPerGame', getStat(homeStats, 'BSKBassistsPerGame') - getStat(awayStats, 'BSKBassistsPerGame')),
-                normalizeStat('BSKBassistRatio', getStat(homeStats, 'BSKBassistRatio') - getStat(awayStats, 'BSKBassistRatio')),
-                normalizeStat('BSKBeffectiveFgPercent', getStat(homeStats, 'BSKBeffectiveFgPercent') - getStat(awayStats, 'BSKBeffectiveFgPercent')),
-                normalizeStat('BSKBfieldGoalPercent', getStat(homeStats, 'BSKBfieldGoalPercent') - getStat(awayStats, 'BSKBfieldGoalPercent')),
-                normalizeStat('BSKBfieldGoalsAttempted', getStat(homeStats, 'BSKBfieldGoalsAttempted') - getStat(awayStats, 'BSKBfieldGoalsAttempted')),
-                normalizeStat('BSKBfieldGoalsMade', getStat(homeStats, 'BSKBfieldGoalsMade') - getStat(awayStats, 'BSKBfieldGoalsMade')),
-                normalizeStat('BSKBfieldGoalsPerGame', getStat(homeStats, 'BSKBfieldGoalsPerGame') - getStat(awayStats, 'BSKBfieldGoalsPerGame')),
-                normalizeStat('BSKBfreeThrowPercent', getStat(homeStats, 'BSKBfreeThrowPercent') - getStat(awayStats, 'BSKBfreeThrowPercent')),
-                normalizeStat('BSKBfreeThrowsAttempted', getStat(homeStats, 'BSKBfreeThrowsAttempted') - getStat(awayStats, 'BSKBfreeThrowsAttempted')),
-                normalizeStat('BSKBfreeThrowsMade', getStat(homeStats, 'BSKBfreeThrowsMade') - getStat(awayStats, 'BSKBfreeThrowsMade')),
-                normalizeStat('BSKBfreeThrowsMadePerGame', getStat(homeStats, 'BSKBfreeThrowsMadePerGame') - getStat(awayStats, 'BSKBfreeThrowsMadePerGame')),
-                normalizeStat('BSKBoffensiveRebounds', getStat(homeStats, 'BSKBoffensiveRebounds') - getStat(awayStats, 'BSKBoffensiveRebounds')),
-                normalizeStat('BSKBoffensiveReboundsPerGame', getStat(homeStats, 'BSKBoffensiveReboundsPerGame') - getStat(awayStats, 'BSKBoffensiveReboundsPerGame')),
-                normalizeStat('BSKBoffensiveReboundRate', getStat(homeStats, 'BSKBoffensiveReboundRate') - getStat(awayStats, 'BSKBoffensiveReboundRate')),
-                normalizeStat('BSKBoffensiveTurnovers', getStat(homeStats, 'BSKBoffensiveTurnovers') - getStat(awayStats, 'BSKBoffensiveTurnovers')),
-                normalizeStat('BSKBturnoversPerGame', getStat(homeStats, 'BSKBturnoversPerGame') - getStat(awayStats, 'BSKBturnoversPerGame')),
-                normalizeStat('BSKBturnoverRatio', getStat(homeStats, 'BSKBturnoverRatio') - getStat(awayStats, 'BSKBturnoverRatio')),
-                normalizeStat('BSKBthreePointPct', getStat(homeStats, 'BSKBthreePointPct') - getStat(awayStats, 'BSKBthreePointPct')),
-                normalizeStat('BSKBthreePointsAttempted', getStat(homeStats, 'BSKBthreePointsAttempted') - getStat(awayStats, 'BSKBthreePointsAttempted')),
-                normalizeStat('BSKBthreePointsMade', getStat(homeStats, 'BSKBthreePointsMade') - getStat(awayStats, 'BSKBthreePointsMade')),
-                normalizeStat('BSKBtrueShootingPct', getStat(homeStats, 'BSKBtrueShootingPct') - getStat(awayStats, 'BSKBtrueShootingPct')),
-                normalizeStat('BSKBpace', getStat(homeStats, 'BSKBpace') - getStat(awayStats, 'BSKBpace')),
-                normalizeStat('BSKBpointsInPaint', getStat(homeStats, 'BSKBpointsInPaint') - getStat(awayStats, 'BSKBpointsInPaint')),
-                normalizeStat('BSKBshootingEfficiency', getStat(homeStats, 'BSKBshootingEfficiency') - getStat(awayStats, 'BSKBshootingEfficiency')),
-                normalizeStat('BSKBscoringEfficiency', getStat(homeStats, 'BSKBscoringEfficiency') - getStat(awayStats, 'BSKBscoringEfficiency')),
-                normalizeStat('BSKBblocks', getStat(homeStats, 'BSKBblocks') - getStat(awayStats, 'BSKBblocks')),
-                normalizeStat('BSKBblocksPerGame', getStat(homeStats, 'BSKBblocksPerGame') - getStat(awayStats, 'BSKBblocksPerGame')),
-                normalizeStat('BSKBdefensiveRebounds', getStat(homeStats, 'BSKBdefensiveRebounds') - getStat(awayStats, 'BSKBdefensiveRebounds')),
-                normalizeStat('BSKBdefensiveReboundsPerGame', getStat(homeStats, 'BSKBdefensiveReboundsPerGame') - getStat(awayStats, 'BSKBdefensiveReboundsPerGame')),
-                normalizeStat('BSKBsteals', getStat(homeStats, 'BSKBsteals') - getStat(awayStats, 'BSKBsteals')),
-                normalizeStat('BSKBstealsPerGame', getStat(homeStats, 'BSKBstealsPerGame') - getStat(awayStats, 'BSKBstealsPerGame')),
-                normalizeStat('BSKBreboundRate', getStat(homeStats, 'BSKBreboundRate') - getStat(awayStats, 'BSKBreboundRate')),
-                normalizeStat('BSKBreboundsPerGame', getStat(homeStats, 'BSKBreboundsPerGame') - getStat(awayStats, 'BSKBreboundsPerGame')),
-                normalizeStat('BSKBfoulsPerGame', getStat(homeStats, 'BSKBfoulsPerGame') - getStat(awayStats, 'BSKBfoulsPerGame')),
-                normalizeStat('BSKBteamAssistToTurnoverRatio', getStat(homeStats, 'BSKBteamAssistToTurnoverRatio') - getStat(awayStats, 'BSKBteamAssistToTurnoverRatio')),
-
-            ];
+            return basketballStatMap.map(key => normalizeStat(key, getNumericStat(homeStats, key)))
+                .concat(basketballStatMap.map(key => normalizeStat(key, getNumericStat(awayStats, key))))
         default:
             return [];
     }
 }
+const repeatPredictions = async (model, inputTensor, numPasses) => {
+    const predictions = [];
+
+    for (let i = 0; i < numPasses; i++) {
+        // const pred = await model.predict(inputTensor).array(); // Get predictions
+        const pred = await model.apply(inputTensor, { training: true }).array(); // Apply the model to the input tensor
+        predictions.push(pred.map(p => p[0])); // Flatten to 1D
+    }
+
+    // Average across predictions
+    const averaged = predictions[0].map((_, i) =>
+        predictions.reduce((sum, run) => sum + run[i], 0) / numPasses
+    );
+
+    return averaged;
+};
 
 // Function to calculate dynamic class weights
 const calculateClassWeights = (ys) => {
@@ -493,28 +178,64 @@ const calculateClassWeights = (ys) => {
     };
 };
 
-const loadOrCreateModel = async (xs, sport) => {
+const getHyperParams = (sport, search) => {
+    return {
+        learningRate: search
+            ? sport.hyperParameters.learningRate
+            : sport['hyperParams.learningRate'],
+        batchSize: search
+            ? sport.hyperParameters.batchSize
+            : sport['hyperParams.batchSize'],
+        epochs: search
+            ? sport.hyperParameters.epochs
+            : sport['hyperParams.epochs'],
+        l2Reg: search
+            ? sport.hyperParameters.l2Reg
+            : sport['hyperParams.l2Reg'],
+        dropoutReg: search
+            ? sport.hyperParameters.dropoutReg
+            : sport['hyperParams.dropoutReg'],
+        hiddenLayerNum: search
+            ? sport.hyperParameters.hiddenLayerNum
+            : sport['hyperParams.hiddenLayers'],
+        layerNeurons: search
+            ? sport.hyperParameters.layerNeurons
+            : sport['hyperParams.layerNeurons'],
+        kFolds: sport['hyperParams.kFolds'], // always comes from the saved hyperParams
+        kernalInitializer: sport['hyperParams.kernalInitializer'] || 'glorotUniform',
+        decayFactor: sport['hyperParams.decayFactor'] || 1,
+        gameDecayThreshold: sport['hyperParams.gameDecayThreshold'] || 10,
+    };
+};
+
+
+const loadOrCreateModel = async (xs, sport, search) => {
     // Define the path to the model
     const modelPath = `./model_checkpoint/${sport.name}_model/model.json`;
-    // Define the path to the model directory
-    const modelDir = `./model_checkpoint/${sport.name}_model`;
     try {
-        if (fs.existsSync(modelPath)) {
+        if (fs.existsSync(modelPath) && !search) {
             return await tf.loadLayersModel(`file://./model_checkpoint/${sport.name}_model/model.json`);
         } else {
+            const hyperParams = getHyperParams(sport, search);
+
             let newModel = tf.sequential();
-
-            // Using the correct L2 regularization
-            const l2Regularizer = tf.regularizers.l2({ l2: sport.hyperParameters.l2Reg });  // Adjust the value to suit your needs
-
-            newModel.add(tf.layers.dense({ units: xs[0].length, inputShape: [xs[0].length], activation: 'relu', kernelInitializer: sport.hyperParameters.kernelInitializer, kernelRegularizer: l2Regularizer, biasInitializer: 'zeros' }));
-            // for (let layers = 0; layers < 2; layers++) {
-            //     newModel.add(tf.layers.dense({ units: 64, activation: 'relu' }));
-                // newModel.add(tf.layers.dropout({ rate: .5 }));  //Dropout range from .2 up to .7, lower keeps performance intact while still preventing overfitting
-            // }
-            newModel.add(tf.layers.dense({ units: 1, activation: 'sigmoid', kernelInitializer: sport.hyperParameters.kernelInitializer, kernelRegularizer: l2Regularizer, biasInitializer: 'zeros' }));
-
-            // Compile the model
+            newModel.add(tf.layers.dense({
+                units: hyperParams.layerNeurons,
+                inputShape: [xs[0].length],
+                activation: 'relu',
+                biasInitializer: 'zeros',
+            }));
+            for (let layers = 0; layers < hyperParams.hiddenLayerNum; layers++) {
+                newModel.add(tf.layers.dense({
+                    units: hyperParams.layerNeurons,
+                    activation: 'relu',
+                    biasInitializer: 'zeros',
+                }));
+            }
+            newModel.add(tf.layers.dense({
+                units: 1, activation: 'sigmoid',
+                biasInitializer: 'zeros',
+            }));
 
             return newModel
         }
@@ -523,49 +244,103 @@ const loadOrCreateModel = async (xs, sport) => {
     }
 }
 
-const mlModelTraining = async (gameData, xs, ys, sport) => {
-    // Function to calculate decay weight based on number of games processed
-    function decayCalcByGames(gamesProcessed, decayFactor) { //FOR USE TO DECAY BY GAMES PROCESSED
-        // Full strength for the last 25 games
-        const gamesDecayThreshold = sport.hyperParameters.gameDecayThreshold || 15;
-        if (gamesProcessed <= gamesDecayThreshold) {
-            return 1; // No decay for the most recent 25 games
-        } else {
-            // Apply decay based on the number of games processed
-            const decayFactorAdjusted = decayFactor || 0.99;  // Use a default decay factor if none is provided
-            const decayAmount = Math.pow(decayFactorAdjusted, (gamesProcessed - gamesDecayThreshold));
-            return decayAmount;  // Decay decreases as the games processed increases
+const getZScoreNormalizedStats = (teamId, currentStats, teamStatsHistory) => {
+    const history = teamStatsHistory[teamId] || [];
+
+    // Shallow copy so we don't mutate original input
+    const transformedStats = { ...currentStats };
+
+    // Always convert win-loss strings into integers
+    ['seasonWinLoss', 'homeWinLoss', 'awayWinLoss'].forEach(key => {
+        if (transformedStats[key] && typeof transformedStats[key] === 'string') {
+            const [wins, losses] = transformedStats[key].split('-').map(Number);
+            transformedStats[key] = wins - losses;
         }
-    }
-
-    let gamesProcessed = 0; // Track how many games have been processed
-    // FOR USE TO DECAY BY GAMES PROCESSED
-    gameData.forEach(game => {
-        const homeStats = game.homeTeamStats;
-        const awayStats = game.awayTeamStats;
-
-        // Extract features based on sport
-        let features = extractSportFeatures(homeStats, awayStats, sport.name);
-
-        // Calculate decay based on the number of games processed
-        const decayWeight = decayCalcByGames(gamesProcessed, sport.hyperParameters.decayFactor);  // get the decay weight based on gamesProcessed
-
-        // Apply decay to each feature
-        features = features.map(feature => feature * decayWeight);
-
-        // Set label to 1 if home team wins, 0 if away team wins
-        const correctPrediction = game.winner === 'home' ? 1 : 0;
-        checkNaNValues(features, game);  // Check features
-        if (features.some(isNaN)) {
-            console.error('NaN detected in features:', game.id);
-            return
-        } else {
-            xs.push(features);
-            ys.push(correctPrediction);
-        }
-        gamesProcessed++;  // Increment the counter for games processed
     });
 
+    if (history.length < 3) {
+        // Not enough data yet — return transformed raw stats
+        return transformedStats;
+    }
+
+    const keys = Object.keys(transformedStats);
+    const means = {};
+    const stds = {};
+
+    keys.forEach(key => {
+        const values = history.map(s => {
+            if (key === 'seasonWinLoss' || key === 'homeWinLoss' || key === 'awayWinLoss') {
+                const [wins, losses] = s[key].split('-').map(Number);
+                return wins - losses;
+            }
+            return s[key];
+        });
+
+        const mean = values.reduce((a, b) => a + b, 0) / values.length;
+        const std = Math.sqrt(
+            values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length
+        );
+
+        means[key] = mean;
+        stds[key] = std === 0 ? 1 : std;
+    });
+
+    const normalized = {};
+    keys.forEach(key => {
+        normalized[key] = (transformedStats[key] - means[key]) / stds[key];
+    });
+
+    return normalized;
+};
+
+
+const mlModelTraining = async (gameData, xs, ys, sport, search) => {
+    // Function to calculate decay weight based on number of games processed
+    const teamStatsHistory = {}; // teamID => [pastStatsObjects]
+
+
+
+    gameData.forEach(game => {
+        const homeTeamId = game.homeTeamId;
+        const awayTeamId = game.awayTeamId;
+
+        const homeRawStats = game['homeStats.data'];
+        const awayRawStats = game['awayStats.data'];
+
+        const normalizedHome = getZScoreNormalizedStats(homeTeamId, homeRawStats, teamStatsHistory);
+        const normalizedAway = getZScoreNormalizedStats(awayTeamId, awayRawStats, teamStatsHistory);
+
+        if (!normalizedHome || !normalizedAway) {
+            console.log(game.id)
+            return;
+        }
+        const statFeatures = extractSportFeatures(normalizedHome, normalizedAway, sport.name);
+        const homeLabel = game.winner === 'home' ? 1 : 0;
+
+        if (statFeatures.some(isNaN) || homeLabel === null) {
+            console.error('NaN detected in features:', game.id);
+            return;
+        } else {
+            xs.push(statFeatures);
+            ys.push(homeLabel);
+        }
+
+        // Update history AFTER using current stats
+        if (!teamStatsHistory[homeTeamId]) teamStatsHistory[homeTeamId] = [];
+        if (!teamStatsHistory[awayTeamId]) teamStatsHistory[awayTeamId] = [];
+
+        teamStatsHistory[homeTeamId].push(homeRawStats);
+        if (teamStatsHistory[homeTeamId].length > 5) {
+            teamStatsHistory[homeTeamId].shift(); // remove oldest game
+        }
+        teamStatsHistory[awayTeamId].push(awayRawStats);
+        if (teamStatsHistory[awayTeamId].length > 5) {
+            teamStatsHistory[awayTeamId].shift(); // remove oldest game
+        }
+    });
+
+
+    checkFeatureLeakage(xs, ys)
     // Check if xs contains NaN values
     // if (xs.some(row => row.some(isNaN))) {
     //     console.error('NaN detected in xs:', xs);
@@ -580,96 +355,50 @@ const mlModelTraining = async (gameData, xs, ys, sport) => {
 
     // Convert arrays to tensors
     const xsTensor = tf.tensor2d(xs);
-
+    // console.log(xsTensor.shape)
     const ysTensor = tf.tensor2d(ys, [ys.length, 1]);
-    // Define the path to the model
-    const modelPath = `./model_checkpoint/${sport.name}_model/model.json`;
     // Define the path to the model directory
     const modelDir = `./model_checkpoint/${sport.name}_model`;
-
     // Define the model
-    const model = await loadOrCreateModel(xs, sport)
+    // console.log(xs.length)
+    const model = await loadOrCreateModel(xs, sport, search)
     model.compile({
-        optimizer: tf.train.adam(sport.hyperParameters.learningRate),
+        optimizer: tf.train.adam(search ? sport.hyperParameters.learningRate : sport['hyperParams.learningRate']),
         loss: 'binaryCrossentropy',
         metrics: ['accuracy']
     });
 
-    function exponentialDecay(epoch) {
-        const initialLearningRate = sport.hyperParameters.learningRate;  // Set your initial learning rate
-        const decayRate = .99;             // Rate at which the learning rate decays
-        const decaySteps = 10;              // The number of epochs after which decay occurs
-
-        return initialLearningRate * Math.pow(decayRate, Math.floor(epoch / decaySteps));
-    }
-    const learningRateScheduler = {
-        onEpochBegin: (epoch, logs) => {
-            if (epoch === 0) {
-                // console.log(`Starting Learning Rate: ${model.optimizer.learningRate}`);
-            }
-            // Get the new learning rate using the exponential decay function
-            const newLearningRate = exponentialDecay(epoch);
-
-            // Update the optimizer with the new learning rate
-            model.optimizer.learningRate = newLearningRate;
-            if (epoch === 99) {
-                // console.log(`Final Learning Rate: ${newLearningRate}`);
-            }
-        },
-        onEpochEnd: (epoch, logs) => {
-            // console.log(`New: ${model.optimizer.learningRate}`)
-        }
-    };
-    // Dynamically calculate class weights
-    const classWeights = calculateClassWeights(ys);
-
-    let bestValLoss = Infinity;  // Initialize to a high value
-    let bestWeights = null;      // Store the best weights
-    let epochsWithoutImprovement = 0;
-    const patience = 5;  // Set the number of epochs for early stopping (patience)
-    const earlyStopping = async (epoch, logs) => {
-        const valLoss = logs.val_loss;
-        if (valLoss < bestValLoss) {
-            bestValLoss = valLoss;
-            bestWeights = model.getWeights();  // Save the current weights as the best weights
-            epochsWithoutImprovement = 0;  // Reset counter if improvement is found
-        } else {
-            epochsWithoutImprovement++;
-        }
-
-        if (epochsWithoutImprovement >= patience) {
-            if (bestWeights) {
-                model.setWeights(bestWeights);  // Restore the best weights
-            }
-            return true;  // Stop training
-        }
-        return false;  // Continue training
-    };
-
     await model.fit(xsTensor, ysTensor, {
-        epochs: sport.hyperParameters.epochs,
-        batchSize: sport.hyperParameters.batchSize,
-        validationSplit: 0.3,
-        classWeight: classWeights,
-        shuffle: false,
+        epochs: search ? sport.hyperParameters.epochs : sport['hyperParams.epochs'],
+        batchSize: search ? sport.hyperParameters.batchSize : sport['hyperParams.batchSize'],
+        classWeight: await calculateClassWeights(ys),
+        validationSplit: 0.4,
         verbose: false,
-        callbacks: [{ onEpochEnd: earlyStopping }, learningRateScheduler]
+        callbacks: [tf.callbacks.earlyStopping({
+            monitor: 'val_loss',
+            patience: 5,
+            // (search ? sport.hyperParameters.epochs : sport['hyperParams.epochs']) * .25,
+            restoreBestWeight: true,
+        })]
     });
 
     xsTensor.dispose();
     ysTensor.dispose();
 
-    if (!fs.existsSync(modelDir)) {
-        console.log('Creating model directory...');
-        // Create the directory (including any necessary parent directories)
-        fs.mkdirSync(modelDir, { recursive: true });
-    }
+
     // Save model specific to the sport
-    await model.save(`file://./model_checkpoint/${sport.name}_model`);
+    if (!search) {
+
+        if (!fs.existsSync(modelDir)) {
+            console.log('Creating model directory...');
+            // Create the directory (including any necessary parent directories)
+            fs.mkdirSync(modelDir, { recursive: true });
+        }
+        await model.save(`file://./model_checkpoint/${sport.name}_model`);
+    }
 
     xs = null
     ys = null
-
 
     return { model }
     // Log loss and accuracy
@@ -678,78 +407,103 @@ const mlModelTraining = async (gameData, xs, ys, sport) => {
 const predictions = async (sportOdds, ff, model, sport, past) => {
     console.info(`STARTING PREDICTIONS FOR ${sport.name} @ ${moment().format('HH:mm:ss')}`);
 
-    if (sportOdds.length > 0) {
-        // Step 1: Extract the features for each game
-        for (const game of sportOdds) {
-            if (game.homeTeamStats && game.awayTeamStats) {
-                const homeStats = game.homeTeamStats;
-                const awayStats = game.awayTeamStats;
-
-                // Extract features based on sport
-                const features = extractSportFeatures(homeStats, awayStats, game.sport_key);
-                checkNaNValues(features, game);
-                ff.push(features);  // Add the features for each game
-            }
-        }
-
-        const ffTensor = tf.tensor2d(ff);
-
-
-        const logits = model.predict(ffTensor); // logits without sigmoid
-        // logits.print(); // Check the raw values before sigmoid
-
-        // Step 3: Get the predictions
-        const predictions = await model.predict(ffTensor, { training: false });
-
-        // Check if model is compiled
-        if (!model.optimizer) {
-            console.error('Model is not compiled');
-        }
-
-        // Step 4: Convert predictions tensor to array
-        let probabilities = await predictions.array();  // Resolves to an array
-
-        // Step 5: Loop through each game and update with predicted probabilities
-        let changedPredictions = 0
-        for (let index = 0; index < sportOdds.length; index++) {
-            const game = sportOdds[index];
-            if (game.homeTeamStats && game.awayTeamStats) {
-                const predictedWinPercent = probabilities[index][0]; // Probability for the home team win
-
-                // Make sure to handle NaN values safely
-                const predictionStrength = Number.isNaN(predictedWinPercent) ? 0 : predictedWinPercent;
-
-                // Step 6: Determine the predicted winner
-                const predictedWinner = predictedWinPercent >= 0.5 ? 'home' : 'away';
-                if(past){
-                    if(predictedWinner !== game.predictedWinner) changedPredictions++
-                }else{
-                    try {
-                        await Odds.findOneAndUpdate(
-                            { id: game.id },
-                            {
-                                predictionStrength: predictionStrength > .50 ? predictionStrength : 1 - predictionStrength,
-                                predictedWinner: predictedWinner
-                            }
-                        );
-                    } catch (err) {
-                        console.log(err)
-                    }
-                }
-
-                // Update the game with prediction strength
-
-            }
-        }
-        if(past) console.log(`CHANGED PREDICTIONS: ${changedPredictions} FOR ${sport.name}}`);
-        probabilites = null
-        ffTensor.dispose();
-        logits.dispose();
-        predictions.dispose();
-        ff = null
+    if (past) {
+        sportOdds = sportOdds.filter(game => game.predictedWinner === 'home' || game.predictedWinner === 'away');
     }
-    console.info(`FINSIHED PREDICTIONS FOR ${sport.name} @ ${moment().format('HH:mm:ss')}`);
-}
+    let predictionsChanged = 0
+    let newWinnerPredictions = 0
+    let newLoserPredictions = 0
+    let totalWins = 0
+    let totalLosses = 0
+    let newConfidencePredictions = 0
+    let highConfGames = 0
+    let highConfLosers = 0
+    const teamStatsHistory = {}; // teamID => [pastStatsObjects]
+    for (const game of sportOdds) {
+        if (Date.parse(game.commence_time) <= Date.now() && !past) continue; // Skip upcoming games if already started
+        const homeTeamId = game.homeTeamId;
+            const awayTeamId = game.awayTeamId;
+
+            const homeRawStats = game['homeStats.data'];
+            const awayRawStats = game['awayStats.data'];
+
+            const normalizedHome = getZScoreNormalizedStats(homeTeamId, homeRawStats, teamStatsHistory);
+            const normalizedAway = getZScoreNormalizedStats(awayTeamId, awayRawStats, teamStatsHistory);
+
+            if (!normalizedHome || !normalizedAway) {
+                console.log(game.id)
+                return;
+            }
+
+            const statFeatures = extractSportFeatures(normalizedHome, normalizedAway, sport.name);
+            
+            if (statFeatures.some(isNaN)) {
+                console.error('NaN detected in features:', game.id);
+                return;
+            }
+
+            // Update history AFTER using current stats
+            if (!teamStatsHistory[homeTeamId]) teamStatsHistory[homeTeamId] = [];
+            if (!teamStatsHistory[awayTeamId]) teamStatsHistory[awayTeamId] = [];
+
+            teamStatsHistory[homeTeamId].push(homeRawStats);
+            if (teamStatsHistory[homeTeamId].length > 5) {
+                teamStatsHistory[homeTeamId].shift(); // remove oldest game
+            }
+    
+            teamStatsHistory[awayTeamId].push(awayRawStats);
+            if (teamStatsHistory[awayTeamId].length > 5) {
+                teamStatsHistory[awayTeamId].shift(); // remove oldest game
+            }
+
+        const probability = await repeatPredictions(model, tf.tensor2d([statFeatures]), 100); // Get the average probability for home team winning
+        let predictedWinner = probability[0] >= 0.5 ? 'home' : 'away'; // Predict home if probability >= 0.5, else away
+        let predictionConfidence = probability[0] >= .5 ? probability[0] : 1 - probability[0]; // Confidence is the max of home or away probability
+        // Track the game so we can compare two predictions later
+        const updatePayload = {
+            predictedWinner,
+            predictionConfidence: predictionConfidence
+        };
+        if (game.predictedWinner !== predictedWinner) {
+            predictionsChanged++
+            let oldWinner = game.predictedWinner === 'home' ? game['homeTeamDetails.espnDisplayName'] : game['awayTeamDetails.espnDisplayName'];
+            let newWinner = predictedWinner === 'home' ? game['homeTeamDetails.espnDisplayName'] : game['awayTeamDetails.espnDisplayName'];
+            console.log(`Prediction changed for game ${game.id}: ${oldWinner} → ${newWinner} (Confidence: ${predictionConfidence})`);
+        }
+        if (game.predictionConfidence !== predictionConfidence) {
+            newConfidencePredictions++
+        }
+        if (predictionConfidence > .90) {
+            highConfGames++;
+        }
+
+        if (past) {
+            updatePayload.predictionCorrect = predictedWinner === game.winner;
+            if ((predictedWinner === game.predictedWinner && predictedWinner === game.winner) || (predictedWinner !== game.predictedWinner && predictedWinner === game.winner)) {
+                totalWins++;
+            }
+            if ((predictedWinner === game.predictedWinner && predictedWinner !== game.winner) || (predictedWinner !== game.predictedWinner && predictedWinner !== game.winner)) {
+                totalLosses++;
+            }
+            if (predictedWinner !== game.predictedWinner && predictedWinner === game.winner) {
+                newWinnerPredictions++;
+            }
+            if (predictedWinner !== game.predictedWinner && predictedWinner !== game.winner) {
+                newLoserPredictions++;
+            }
+
+            if (predictionConfidence > .90 && predictedWinner !== game.winner) {
+                highConfLosers++
+            }
+
+        }
+
+        await db.Games.update(updatePayload, { where: { id: game.id } });
+    }
+    console.log(`OUT OF ${sportOdds.length} GAMES [TOTAL WINS: ${totalWins}, TOTAL LOSSES: ${totalLosses}]: PREDICTIONS CHANGED: ${predictionsChanged} | NEW WINNER PREDICTIONS: ${newWinnerPredictions} | NEW LOSER PREDICTIONS: ${newLoserPredictions} | NEW CONFIDENCE PREDICTIONS: ${newConfidencePredictions} | HIGH CONFIDENCE GAMES: ${highConfGames} | HIGH CONFIDENCE LOSERS: ${highConfLosers}`);
+    console.info(`FINISHED PREDICTIONS FOR ${sport.name} @ ${moment().format('HH:mm:ss')}`);
+};
+
 const evaluateMetrics = (ysTensor, yPredTensor) => {
     // Round the predictions to either 0 or 1 (binary classification)
     const yPredBool = yPredTensor.greaterEqual(.49);
@@ -789,20 +543,18 @@ const evaluateMetrics = (ysTensor, yPredTensor) => {
 function calculateFeatureImportance(inputToHiddenWeights, hiddenToOutputWeights) {
     const featureImportanceScores = [];
 
-    // Loop through each feature (f = feature index)
-    for (let f = 0; f < inputToHiddenWeights[0].length; f++) {  // 0th row = first hidden neuron
+    const numInputFeatures = inputToHiddenWeights.length;        // 106
+    const numHiddenNeurons = inputToHiddenWeights[0].length;     // 128
+
+    for (let i = 0; i < numInputFeatures; i++) {
         let importance = 0;
 
-        // Loop through each hidden layer neuron (i = hidden neuron index)
-        for (let i = 0; i < inputToHiddenWeights.length; i++) {  // Length is 128 hidden neurons
-            const inputToHiddenWeight = Math.abs(inputToHiddenWeights[i][f]);  // Absolute weight between feature f and hidden neuron i
-            const hiddenToOutputWeight = Math.abs(hiddenToOutputWeights[i]);    // Absolute weight from hidden neuron i to output
-
-            // Add the contribution to the importance of feature f
+        for (let j = 0; j < numHiddenNeurons; j++) {
+            const inputToHiddenWeight = Math.abs(inputToHiddenWeights[i][j]);   // input feature i → hidden neuron j
+            const hiddenToOutputWeight = Math.abs(hiddenToOutputWeights[j][0]); // hidden neuron j → output
             importance += inputToHiddenWeight * hiddenToOutputWeight;
         }
 
-        // Store the calculated importance for feature f
         featureImportanceScores.push(importance);
     }
 
@@ -810,10 +562,11 @@ function calculateFeatureImportance(inputToHiddenWeights, hiddenToOutputWeights)
 }
 
 
-const trainSportModelKFold = async (sport, gameData, search) => {
-    currentOdds = await Odds.find({ sport_key: sport.name }).sort({ commence_time: -1 }) //USE THIS TO POPULATE UPCOMING GAME ODDS
 
-    const numFolds = sport.hyperParameters.KFolds;  // Number of folds (you can adjust based on your data)
+const trainSportModelKFold = async (sport, gameData, search, upcomingGames) => {
+    sportGames = upcomingGames.filter((game) => game.sport_key === sport.name) //USE THIS TO POPULATE UPCOMING GAME ODDS
+    let sortedGameData = gameData.sort((a, b) => new Date(b.commence_time) - new Date(a.commence_time)); // Sort by commence_time
+    const numFolds = sport['hyperParams.kFolds'];  // Number of folds (you can adjust based on your data)
     const foldSize = Math.floor(gameData.length / numFolds);  // Size of each fold
     const bar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
 
@@ -822,10 +575,9 @@ const trainSportModelKFold = async (sport, gameData, search) => {
     // Split gameData into `numFolds` folds
     for (let i = 0; i < numFolds; i++) {
         const foldStart = i * foldSize;
-        const foldEnd = i === numFolds - 1 ? gameData.length : (i + 1) * foldSize;
-        allFolds.push(gameData.slice(foldStart, foldEnd));
+        const foldEnd = i === numFolds - 1 ? sortedGameData.length : (i + 1) * foldSize;
+        allFolds.push(sortedGameData.slice(foldStart, foldEnd));
     }
-
     const total = allFolds.length
     let foldResults = [];
     let finalModel
@@ -833,36 +585,87 @@ const trainSportModelKFold = async (sport, gameData, search) => {
     progress = 0
     // Perform training and testing on each fold
     for (let foldIndex = 0; foldIndex < allFolds.length; foldIndex++) {
+        const foldSize = Math.floor(gameData.length / numFolds);
 
-        const testFold = allFolds[foldIndex];
-        const trainingData = [];
-        const testData = [];
+        const startTest = foldIndex * foldSize;
+        const endTest = (foldIndex + 1) * foldSize;
 
-        // Prepare training and test data: train on all but the current fold, test on the current fold
-        for (let i = 0; i < allFolds.length; i++) {
-            if (i !== foldIndex) {
-                trainingData.push(...allFolds[i]);  // Add all data except the current fold to training data
-            } else {
-                testData.push(...allFolds[i]);  // Current fold will be used as the test data
-            }
-        }
+        const testData = gameData.slice(startTest, endTest);
+        const trainingData = [
+            ...gameData.slice(0, startTest),
+            ...gameData.slice(endTest)
+        ];
+
+
         // Train the model with training data
-        const { model } = await mlModelTraining(trainingData, [], [], sport);
+        const { model } = await mlModelTraining(trainingData, [], [], sport, search);
 
         finalModel = model
 
+        const testXs = [];
+        const testYs = [];
 
-        // Evaluate the model on the test data
-        const testXs = testData.map(game => extractSportFeatures(game.homeTeamStats, game.awayTeamStats, sport.name)); // Extract features for test data
-        const testYs = testData.map(game => game.winner === 'home' ? 1 : 0);  // Extract labels for test data
+        const teamStatsHistory = {}; // teamID => [pastStatsObjects]
+
+        testData.forEach(game => {
+            const homeTeamId = game.homeTeamId;
+            const awayTeamId = game.awayTeamId;
+
+            const homeRawStats = game['homeStats.data'];
+            const awayRawStats = game['awayStats.data'];
+
+            const normalizedHome = getZScoreNormalizedStats(homeTeamId, homeRawStats, teamStatsHistory);
+            const normalizedAway = getZScoreNormalizedStats(awayTeamId, awayRawStats, teamStatsHistory);
+
+            if (!normalizedHome || !normalizedAway) {
+                console.log(game.id)
+                return;
+            }
+
+            const statFeatures = extractSportFeatures(normalizedHome, normalizedAway, sport.name);
+            const homeLabel = game.winner === 'home' ? 1 : 0;
+            
+            if (statFeatures.some(isNaN) || homeLabel === null) {
+                console.error('NaN detected in features:', game.id);
+                return;
+            } else {
+                testXs.push(statFeatures);
+                testYs.push(homeLabel);
+            }
+
+            // Update history AFTER using current stats
+            if (!teamStatsHistory[homeTeamId]) teamStatsHistory[homeTeamId] = [];
+            if (!teamStatsHistory[awayTeamId]) teamStatsHistory[awayTeamId] = [];
+
+            teamStatsHistory[homeTeamId].push(homeRawStats);
+            if (teamStatsHistory[homeTeamId].length > 5) {
+                teamStatsHistory[homeTeamId].shift(); // remove oldest game
+            }
+    
+            teamStatsHistory[awayTeamId].push(awayRawStats);
+            if (teamStatsHistory[awayTeamId].length > 5) {
+                teamStatsHistory[awayTeamId].shift(); // remove oldest game
+            }
+        });
+
+        // Create tensors
         const testXsTensor = tf.tensor2d(testXs);
         const testYsTensor = tf.tensor2d(testYs, [testYs.length, 1]);
 
-        const evaluation = model.evaluate(testXsTensor, testYsTensor);
-        const loss = evaluation[0].arraySync();
-        const accuracy = evaluation[1].arraySync();
+        const evaluation = await model.evaluate(testXsTensor, testYsTensor);
+        const loss = await evaluation[0].arraySync();
+        const accuracy = await evaluation[1].arraySync();
 
-        const metrics = evaluateMetrics(testYsTensor, model.predict(testXsTensor, { training: false }));
+
+        const predictionsArray = await repeatPredictions(model, testXsTensor, 100);
+        const predictionsTensor = tf.tensor2d(predictionsArray, [predictionsArray.length, 1]);
+        const metrics = evaluateMetrics(testYsTensor, predictionsTensor);
+        predictionsTensor.dispose();
+
+        // const confidences = predictionsArray.map(p => Math.abs(p - 0.5) * 2);  // Converts 0.5→0, 1.0/0.0→1.0
+        // console.log("High-confidence predictions:", confidences.filter(c => c > 0.9).length);
+
+
         testXsTensor.dispose();
         testYsTensor.dispose();
 
@@ -887,10 +690,13 @@ const trainSportModelKFold = async (sport, gameData, search) => {
         }
     }
 
-    if (!search && currentOdds.length > 0) await predictions(currentOdds, [], finalModel, sport)
-    let rePredictGames = await pastGameOdds.find({ sport_key: sport.name, predictedWinner: { $exists: true } }).sort({ commence_time: -1 })
-    console.log(`Re-predicting ${rePredictGames.length} past games for ${sport.name}...`);
-    await predictions(rePredictGames, [], finalModel, sport, true)
+    // finalModel.summary()
+    // console.log('Optimizer:', finalModel.optimizer.getClassName());
+    // console.log('Learning rate:', finalModel.optimizer.learningRate);
+
+
+    if (!search) await predictions(sportGames, [], finalModel, sport)
+    // await predictions(gameData, [], finalModel, sport, true) // Predictions for past games DO NOT RUN THIS AGAIN FOR BASEBALL. MAYBE FOR OTHER SPORTS BUT NOT LIKELY. DO NOT UNCOMMENT UNLESS YOU COMPLETELY CHANGE THE ARCHITECTURE OF THE MODEL OR THE DATASET. IT WILL OVERWRITE PAST GAME ODDS AND PREDICTIONS.
     // After all folds, calculate and log the overall performance
     const avgF1Score = foldResults.reduce((sum, fold) => sum + fold.f1Score, 0) / foldResults.length;
     const totalTruePositives = foldResults.reduce((sum, fold) => sum + fold.truePositives, 0)
@@ -899,84 +705,39 @@ const trainSportModelKFold = async (sport, gameData, search) => {
     const totalFalseNegatives = foldResults.reduce((sum, fold) => sum + fold.falseNegatives, 0)
 
     console.log(`--- Overall Performance Avg F1-Score: ${avgF1Score} ---`);
-    if (search) return avgF1Score
     console.log(`truePositives: ${totalTruePositives} (${(totalTruePositives / (totalTruePositives + totalFalseNegatives + totalFalsePositives + totalTrueNegatives) * 100).toFixed(2)}%)`);
     console.log(`falsePositives: ${totalFalsePositives} (${(totalFalsePositives / (totalTruePositives + totalFalseNegatives + totalFalsePositives + totalTrueNegatives) * 100).toFixed(2)}%)`);
     console.log(`falseNegatives: ${totalFalseNegatives} (${(totalFalseNegatives / (totalTruePositives + totalFalseNegatives + totalFalsePositives + totalTrueNegatives) * 100).toFixed(2)}%)`);
     console.log(`trueNegatives: ${totalTrueNegatives} (${(totalTrueNegatives / (totalTruePositives + totalFalseNegatives + totalFalsePositives + totalTrueNegatives) * 100).toFixed(2)}%)`);
 
-    // Get the input-to-hidden weights (40 features × 128 neurons)
+    if (search) return avgF1Score
+
     let inputToHiddenWeights = finalModel.layers[0].getWeights()[0].arraySync();  // Shape: 40x128
-    // Get the hidden-to-output weights (128 neurons × 1 output)
     let hiddenToOutputWeights = finalModel.layers[finalModel.layers.length - 1].getWeights()[0].arraySync();  // Shape: 128x1
+    let statMaps = {
+        'baseball_mlb': baseballStatMap,
+        'basketball_nba': basketballStatMap,
+        'basketball_ncaab': basketballStatMap,
+        'basketball_wncaab': basketballStatMap,
+        'americanfootball_nfl': footballStatMap,
+        'americanfootball_ncaaf': footballStatMap,
+        'icehockey_nhl': hockeyStatMap
+
+    }
     // Calculate the importance scores
     let featureImportanceScores = calculateFeatureImportance(inputToHiddenWeights, hiddenToOutputWeights);
-
-    await Weights.findOneAndUpdate({ league: sport.name }, {
+    let featureImportanceWithLabels = statMaps[sport.name].map((stat, index) => ({
+        feature: stat,
+        importance: featureImportanceScores[index]
+    }));
+    await db.MlModelWeights.upsert({
+        sport: sport.id,
         inputToHiddenWeights: inputToHiddenWeights,  // Store the 40x128 matrix
         hiddenToOutputWeights: hiddenToOutputWeights, // Store the 128x1 vector
-        featureImportanceScores: featureImportanceScores,  // Store the importance scores
-    }, { upsert: true })
-    currentOdds = []
-    allFolds = []
-    foldResults = []
-    inputToHiddenWeights = []
-    hiddenToOutputWeights = []
-    featureImportanceScores = []
-    if (global.gc) global.gc()
+        featureImportanceScores: featureImportanceWithLabels,  // Store the importance scores
+    })
+    // console.log(featureImportanceWithLabels)
 };
 
-const trainSportModel = async (sport, gameData) => {
-    currentOdds = await Odds.find({ sport_key: sport.name }).sort({ commence_time: -1 }) //USE THIS TO POPULATE UPCOMING GAME ODDS
-    if (gameData.length === 0) {
-        // Handle the case where there is no data for this sport
-        console.log(`No data available for ${sport.league}. Skipping model training.`);
-        // You could also add logic to handle this case more gracefully, 
-        // such as logging the missing sport and providing a default model.
-        return;
-    }
-    // Function to convert the game data into tensors
-    const xs = []; // Features
-    const ys = []; // Labels
-    // Helper function to safely extract stats with fallback
-    console.log(`------------${sport.name} Model Metrics----------`);
-    const { model, xsTensor, ysTensor } = await mlModelTraining(gameData, xs, ys, sport)
 
-    // After model is trained and evaluated, integrate the weight extraction
-    const evaluation = model.evaluate(xsTensor, ysTensor);
-    const loss = evaluation[0].arraySync();
-    const accuracy = evaluation[1].arraySync();
-    // Now, calculate precision, recall, and F1-score
-
-    const metrics = evaluateMetrics(ysTensor, model.predict(xsTensor, { training: false }));
-    // Log the metrics
-    console.log(`${sport.name} Model Loss:`, loss);
-    console.log(`${sport.name} Model Accuracy:`, accuracy);
-    console.log(`${sport.name} Model Precision:`, metrics.precision);
-    console.log(`${sport.name} Model Recall:`, metrics.recall);
-    console.log(`${sport.name} Model F1-Score:`, metrics.f1Score);
-    // Balanced Metrics (Precision ≈ Recall): This indicates a well-performing model, especially if your dataset is balanced.
-    // High Precision, Low Recall: The model is good at predicting the positive class but misses a lot of actual positives. You need to improve recall.
-    // High Recall, Low Precision: The model is identifying most of the positive instances, but is making many false positive predictions. Precision needs improvement.
-    // Low Precision, Low Recall: Likely an underfitting model, not learning effectively. Consider improving your features or the model itself.
-    // Perfect Precision and Recall (1.0): A sign of overfitting. This needs further testing to ensure it generalizes well to unseen data.
-
-    let ff = []
-    let sportOdds = await Odds.find({ sport_key: sport.name })
-    predictions(sportOdds, ff, model)
-
-    //STORE WEIGHTS IN DB
-    let outputLayerWeights = await model.layers[model.layers.length - 1].getWeights()
-
-
-    console.log(outputLayerWeights[0].array())
-
-    // await Weights.findOneAndUpdate({league: sport.name}, {
-    //     weights: model.layers[0].getWeights()
-    // }, {upsert: true})
-
-    // let allPastGames = await PastGameOdds.find()
-    // indexAdjuster(currentOdds, sport, allPastGames)
-}
-
-module.exports = { getStat, getWinLoss, getHomeAwayWinLoss, normalizeStat, extractSportFeatures, mlModelTraining, predictions, trainSportModel, trainSportModelKFold, loadOrCreateModel, evaluateMetrics }
+module.exports = { getStat, getWinLoss, getHomeAwayWinLoss, normalizeStat, extractSportFeatures, mlModelTraining, predictions, trainSportModelKFold, loadOrCreateModel, evaluateMetrics }

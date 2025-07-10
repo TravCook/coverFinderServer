@@ -49,7 +49,21 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         allowNull: false,
     },
+    bestCIScore: {
+        type: DataTypes.FLOAT,
+        allowNull: false,
+        defaultValue: 0
+    }
     
+}, {
+    sequelize,
+    modelName: 'ValueBetSettings',
+    indexes: [
+        {
+            unique: true,
+            fields: ['sport', 'bookmaker']
+        }
+    ]
 });
 
 ValueBetSettings.associate = (models) => {

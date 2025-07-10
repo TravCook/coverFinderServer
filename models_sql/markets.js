@@ -9,11 +9,25 @@ module.exports = (sequelize, DataTypes) => {
         bookmakerId: {
             type: DataTypes.INTEGER,
             allowNull: false,
+            references: {
+                model: 'Bookmakers',
+                key: 'id'
+            },
+            onDelete: 'CASCADE', // If a bookmaker is deleted, delete associated markets
         },
         key: {
             type: DataTypes.STRING,
             allowNull: false,
         },
+    },{
+        sequelize,
+        modelName: 'Markets',
+        indexes: [
+            {
+                unique: true,
+                fields: ['bookmakerId', 'key']
+            }
+        ]
     });
 
     Markets.associate = (models) => {
@@ -24,7 +38,8 @@ module.exports = (sequelize, DataTypes) => {
 
         Markets.hasMany(models.Outcomes, {
             foreignKey: 'marketId',
-            as: 'outcomes'
+            as: 'outcomes',
+            onDelete: 'CASCADE',
         });
     };
     return Markets;

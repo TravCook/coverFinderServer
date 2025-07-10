@@ -1,284 +1,86 @@
 const moment = require('moment')
 const { Odds, PastGameOdds, Sport, Weights } = require('../../../models');
-const { normalizeStat } = require('./trainingHelpers')
+const db = require('../../../models_sql');
+const { normalizeStat, predictions } = require('./trainingHelpers')
 const cliProgress = require('cli-progress');
+const Sequelize = require('sequelize');
+const { baseballStatMap, basketballStatMap, footballStatMap, hockeyStatMap } = require('../../statMaps');
+const { Op } = Sequelize;
 
-//DETERMINE H2H INDEXES FOR EVERY GAME IN ODDS
-// Helper function to adjust indexes for football games
-const adjustnflStats = (homeTeam, awayTeam, homeIndex, awayIndex, weightArray) => {
-    homeIndex += (normalizeStat('seasonWinLoss', homeTeam.seasonWinLoss.split("-")[0]) - normalizeStat('seasonWinLoss', awayTeam.seasonWinLoss.split("-")[0])) * weightArray[0];
-    awayIndex += (normalizeStat('seasonWinLoss', awayTeam.seasonWinLoss.split("-")[0]) - normalizeStat('seasonWinLoss', homeTeam.seasonWinLoss.split("-")[0])) * weightArray[0]
-    homeIndex += (normalizeStat('homeWinLoss', homeTeam.homeWinLoss.split("-")[0]) - normalizeStat('awayWinLoss', awayTeam.awayWinLoss.split("-")[0])) * weightArray[1];
-    awayIndex += (normalizeStat('awayWinLoss', awayTeam.homeWinLoss.split("-")[0]) - normalizeStat('homeWinLoss', homeTeam.awayWinLoss.split("-")[0])) * weightArray[1]
-    homeIndex += (normalizeStat('pointDiff', homeTeam.pointDiff) - normalizeStat('pointDiff', awayTeam.pointDiff)) * weightArray[2];
-    awayIndex += (normalizeStat('pointDiff', awayTeam.pointDiff) - normalizeStat('pointDiff', homeTeam.pointDiff)) * weightArray[2];
-    let nflWeightIndex = 3
-
-    for (const stat in homeTeam.stats) {
-        if (homeTeam.stats.hasOwnProperty(stat)) {
-            const homeStat = homeTeam.stats[stat];
-            const awayStat = awayTeam.stats[stat];
-
-            // Check if the stat is one that requires reve
-            // For reversed comparison, check if homeStat is less than or equal to awayStat
-            if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
-
-                homeIndex += (normalizeStat(stat, homeStat) - normalizeStat(stat, awayStat)) * weightArray[nflWeightIndex];
-
-                awayIndex += (normalizeStat(stat, awayStat) - normalizeStat(stat, homeStat)) * weightArray[nflWeightIndex];
-
-                nflWeightIndex++
-            }
-
-            // For all other stats, check if homeStat is greater than or equal to awayStat
-
-        }
-    }
-
-
-
-
-    return { homeIndex, awayIndex };
+// Calculate mean
+function mean(scores) {
+    return scores.reduce((sum, val) => sum + val, 0) / scores.length;
 }
 
-const adjustncaafStats = (homeTeam, awayTeam, homeIndex, awayIndex, weightArray) => {
-    homeIndex += (normalizeStat('seasonWinLoss', homeTeam.seasonWinLoss.split("-")[0]) - normalizeStat('seasonWinLoss', awayTeam.seasonWinLoss.split("-")[0])) * weightArray[0];
-    awayIndex += (normalizeStat('seasonWinLoss', awayTeam.seasonWinLoss.split("-")[0]) - normalizeStat('seasonWinLoss', homeTeam.seasonWinLoss.split("-")[0])) * weightArray[0]
-    homeIndex += (normalizeStat('homeWinLoss', homeTeam.homeWinLoss.split("-")[0]) - normalizeStat('awayWinLoss', awayTeam.awayWinLoss.split("-")[0])) * weightArray[1];
-    awayIndex += (normalizeStat('awayWinLoss', awayTeam.homeWinLoss.split("-")[0]) - normalizeStat('homeWinLoss', homeTeam.awayWinLoss.split("-")[0])) * weightArray[1]
-    homeIndex += (normalizeStat('pointDiff', homeTeam.pointDiff) - normalizeStat('pointDiff', awayTeam.pointDiff)) * weightArray[2];
-    awayIndex += (normalizeStat('pointDiff', awayTeam.pointDiff) - normalizeStat('pointDiff', homeTeam.pointDiff)) * weightArray[2];
-    let ncaafWeightIndex = 3
-    const reverseComparisonStats = ['BSKBturnoversPerGame', 'BSKBfoulsPerGame', 'BKSBturnoverRatio'];
-
-    for (const stat in homeTeam.stats) {
-        if (homeTeam.stats.hasOwnProperty(stat)) {
-            const homeStat = homeTeam.stats[stat];
-            const awayStat = awayTeam.stats[stat];
-
-            // Check if the stat is one that requires reve
-            // For reversed comparison, check if homeStat is less than or equal to awayStat
-            if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
-
-                homeIndex += (normalizeStat(stat, homeStat) - normalizeStat(stat, awayStat)) * weightArray[ncaafWeightIndex];
-
-                awayIndex += (normalizeStat(stat, awayStat) - normalizeStat(stat, homeStat)) * weightArray[ncaafWeightIndex];
-
-                ncaafWeightIndex++
-            }
-
-            // For all other stats, check if homeStat is greater than or equal to awayStat
-
-        }
-    }
-
-
-
-
-    return { homeIndex, awayIndex };
+// Calculate standard deviation
+function stdDev(scores) {
+    const avg = mean(scores);
+    const squareDiffs = scores.map(val => Math.pow(val - avg, 2));
+    const avgSquareDiff = mean(squareDiffs);
+    return Math.sqrt(avgSquareDiff);
 }
 
-// Helper function to adjust indexes for hockey games
-const adjustnhlStats = (homeTeam, awayTeam, homeIndex, awayIndex, weightArray) => {
-    homeIndex += (normalizeStat('seasonWinLoss', homeTeam.seasonWinLoss.split("-")[0]) - normalizeStat('seasonWinLoss', awayTeam.seasonWinLoss.split("-")[0])) * weightArray[0];
-    awayIndex += (normalizeStat('seasonWinLoss', awayTeam.seasonWinLoss.split("-")[0]) - normalizeStat('seasonWinLoss', homeTeam.seasonWinLoss.split("-")[0])) * weightArray[0]
-    homeIndex += (normalizeStat('homeWinLoss', homeTeam.homeWinLoss.split("-")[0]) - normalizeStat('awayWinLoss', awayTeam.awayWinLoss.split("-")[0])) * weightArray[1];
-    awayIndex += (normalizeStat('awayWinLoss', awayTeam.homeWinLoss.split("-")[0]) - normalizeStat('homeWinLoss', homeTeam.awayWinLoss.split("-")[0])) * weightArray[1]
-    homeIndex += (normalizeStat('pointDiff', homeTeam.pointDiff) - normalizeStat('pointDiff', awayTeam.pointDiff)) * weightArray[2];
-    awayIndex += (normalizeStat('pointDiff', awayTeam.pointDiff) - normalizeStat('pointDiff', homeTeam.pointDiff)) * weightArray[2];
-    let nhlWeightIndex = 3
-    const reverseComparisonStats = ['BSKBturnoversPerGame', 'BSKBfoulsPerGame', 'BKSBturnoverRatio'];
-
-    for (const stat in homeTeam.stats) {
-        if (homeTeam.stats.hasOwnProperty(stat)) {
-            const homeStat = homeTeam.stats[stat];
-            const awayStat = awayTeam.stats[stat];
-
-            // Check if the stat is one that requires reve
-            // For reversed comparison, check if homeStat is less than or equal to awayStat
-            if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
-
-                homeIndex += (normalizeStat(stat, homeStat) - normalizeStat(stat, awayStat)) * weightArray[nhlWeightIndex];
-
-                awayIndex += (normalizeStat(stat, awayStat) - normalizeStat(stat, homeStat)) * weightArray[nhlWeightIndex];
-
-                nhlWeightIndex++
-            }
-
-            // For all other stats, check if homeStat is greater than or equal to awayStat
-
-        }
-    }
-
-
-
-
-    return { homeIndex, awayIndex };
+// Z-score normalization
+function zScore(score, mean, std) {
+    return (score - mean) / std;
 }
 
-// Helper function to adjust indexes for basketball games TODO: CHANGE OTHER SPORTS TO NORMALIZE STATS AND MULTIPLE BY FEATURE IMPORTANCE
-const adjustnbaStats = (homeTeam, awayTeam, homeIndex, awayIndex, weightArray) => {
-    homeIndex += (normalizeStat('seasonWinLoss', homeTeam.seasonWinLoss.split("-")[0]) - normalizeStat('seasonWinLoss', awayTeam.seasonWinLoss.split("-")[0])) * weightArray[0];
-    awayIndex += (normalizeStat('seasonWinLoss', awayTeam.seasonWinLoss.split("-")[0]) - normalizeStat('seasonWinLoss', homeTeam.seasonWinLoss.split("-")[0])) * weightArray[0]
-    homeIndex += (normalizeStat('homeWinLoss', homeTeam.homeWinLoss.split("-")[0]) - normalizeStat('awayWinLoss', awayTeam.awayWinLoss.split("-")[0])) * weightArray[1];
-    awayIndex += (normalizeStat('awayWinLoss', awayTeam.homeWinLoss.split("-")[0]) - normalizeStat('homeWinLoss', homeTeam.awayWinLoss.split("-")[0])) * weightArray[1]
-    homeIndex += (normalizeStat('pointDiff', homeTeam.pointDiff) - normalizeStat('pointDiff', awayTeam.pointDiff)) * weightArray[2];
-    awayIndex += (normalizeStat('pointDiff', awayTeam.pointDiff) - normalizeStat('pointDiff', homeTeam.pointDiff)) * weightArray[2];
-    let nbaWeightIndex = 3
-    const reverseComparisonStats = ['BSKBturnoversPerGame', 'BSKBfoulsPerGame', 'BKSBturnoverRatio'];
-
-    for (const stat in homeTeam.stats) {
-        if (homeTeam.stats.hasOwnProperty(stat)) {
-            const homeStat = homeTeam.stats[stat];
-            const awayStat = awayTeam.stats[stat];
-
-            // Check if the stat is one that requires reve
-            // For reversed comparison, check if homeStat is less than or equal to awayStat
-            if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
-
-                homeIndex += (normalizeStat(stat, homeStat) - normalizeStat(stat, awayStat)) * weightArray[nbaWeightIndex];
-
-                awayIndex += (normalizeStat(stat, awayStat) - normalizeStat(stat, homeStat)) * weightArray[nbaWeightIndex];
-
-                nbaWeightIndex++
-            }
-
-            // For all other stats, check if homeStat is greater than or equal to awayStat
-
-        }
-    }
-
-
-
-
-    return { homeIndex, awayIndex };
-}
-// Helper function to adjust indexes for baseball games
-const adjustmlbStats = (homeTeam, awayTeam, homeIndex, awayIndex, weightArray) => {
-    homeIndex += (normalizeStat('seasonWinLoss', homeTeam.seasonWinLoss.split("-")[0]) - normalizeStat('seasonWinLoss', awayTeam.seasonWinLoss.split("-")[0])) * weightArray[0];
-    awayIndex += (normalizeStat('seasonWinLoss', awayTeam.seasonWinLoss.split("-")[0]) - normalizeStat('seasonWinLoss', homeTeam.seasonWinLoss.split("-")[0])) * weightArray[0]
-    homeIndex += (normalizeStat('homeWinLoss', homeTeam.homeWinLoss.split("-")[0]) - normalizeStat('awayWinLoss', awayTeam.awayWinLoss.split("-")[0])) * weightArray[1];
-    awayIndex += (normalizeStat('awayWinLoss', awayTeam.homeWinLoss.split("-")[0]) - normalizeStat('homeWinLoss', homeTeam.awayWinLoss.split("-")[0])) * weightArray[1]
-    homeIndex += (normalizeStat('pointDiff', homeTeam.pointDiff) - normalizeStat('pointDiff', awayTeam.pointDiff)) * weightArray[2];
-    awayIndex += (normalizeStat('pointDiff', awayTeam.pointDiff) - normalizeStat('pointDiff', homeTeam.pointDiff)) * weightArray[2];
-    let mlbWeightIndex = 3
-    const reverseComparisonStats = ['BSKBturnoversPerGame', 'BSKBfoulsPerGame', 'BKSBturnoverRatio'];
-
-    for (const stat in homeTeam.stats) {
-        if (homeTeam.stats.hasOwnProperty(stat)) {
-            const homeStat = homeTeam.stats[stat];
-            const awayStat = awayTeam.stats[stat];
-
-            // Check if the stat is one that requires reve
-            // For reversed comparison, check if homeStat is less than or equal to awayStat
-            if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
-
-                homeIndex += (normalizeStat(stat, homeStat) - normalizeStat(stat, awayStat)) * weightArray[mlbWeightIndex];
-
-                awayIndex += (normalizeStat(stat, awayStat) - normalizeStat(stat, homeStat)) * weightArray[mlbWeightIndex];
-
-                mlbWeightIndex++
-            }
-
-            // For all other stats, check if homeStat is greater than or equal to awayStat
-
-        }
-    }
-
-
-
-
-    return { homeIndex, awayIndex };
+function scaleZTo045(z, minZ, maxZ, scaleMin = 0, scaleMax = 45) {
+    let scaled = ((z - minZ) / (maxZ - minZ)) * (scaleMax - scaleMin) + scaleMin;
+    if (scaled > scaleMax) scaled = scaleMax;
+    if (scaled < scaleMin) scaled = scaleMin;
+    return scaled;
 }
 
-const adjustncaamStats = (homeTeam, awayTeam, homeIndex, awayIndex, weightArray) => {
-    homeIndex += (normalizeStat('seasonWinLoss', homeTeam.seasonWinLoss.split("-")[0]) - normalizeStat('seasonWinLoss', awayTeam.seasonWinLoss.split("-")[0])) * weightArray[0];
-    awayIndex += (normalizeStat('seasonWinLoss', awayTeam.seasonWinLoss.split("-")[0]) - normalizeStat('seasonWinLoss', homeTeam.seasonWinLoss.split("-")[0])) * weightArray[0]
-    homeIndex += (normalizeStat('homeWinLoss', homeTeam.homeWinLoss.split("-")[0]) - normalizeStat('awayWinLoss', awayTeam.awayWinLoss.split("-")[0])) * weightArray[1];
-    awayIndex += (normalizeStat('awayWinLoss', awayTeam.homeWinLoss.split("-")[0]) - normalizeStat('homeWinLoss', homeTeam.awayWinLoss.split("-")[0])) * weightArray[1]
-    homeIndex += (normalizeStat('pointDiff', homeTeam.pointDiff) - normalizeStat('pointDiff', awayTeam.pointDiff)) * weightArray[2];
-    awayIndex += (normalizeStat('pointDiff', awayTeam.pointDiff) - normalizeStat('pointDiff', homeTeam.pointDiff)) * weightArray[2];
-    let ncaamWeightIndex = 3
-    const reverseComparisonStats = ['BSKBturnoversPerGame', 'BSKBfoulsPerGame', 'BKSBturnoverRatio'];
+const getNumericStat = (stats, statName) => {
+    if (!stats || stats[statName] === undefined) return 0;
 
-    for (const stat in homeTeam.stats) {
-        if (homeTeam.stats.hasOwnProperty(stat)) {
-            const homeStat = homeTeam.stats[stat];
-            const awayStat = awayTeam.stats[stat];
-
-            // Check if the stat is one that requires reve
-            // For reversed comparison, check if homeStat is less than or equal to awayStat
-            if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
-
-                homeIndex += (normalizeStat(stat, homeStat) - normalizeStat(stat, awayStat)) * weightArray[ncaamWeightIndex];
-
-                awayIndex += (normalizeStat(stat, awayStat) - normalizeStat(stat, homeStat)) * weightArray[ncaamWeightIndex];
-
-                ncaamWeightIndex++
-            }
-
-            // For all other stats, check if homeStat is greater than or equal to awayStat
-
-        }
+    if (statName === 'seasonWinLoss') {
+        const [wins, losses] = stats[statName].split("-").map(Number);
+        return wins - losses;
     }
 
-
-
-
-    return { homeIndex, awayIndex };
-}
-
-const adjustwncaabStats = (homeTeam, awayTeam, homeIndex, awayIndex, weightArray) => {
-    homeIndex += (normalizeStat('seasonWinLoss', homeTeam.seasonWinLoss.split("-")[0]) - normalizeStat('seasonWinLoss', awayTeam.seasonWinLoss.split("-")[0])) * weightArray[0];
-    awayIndex += (normalizeStat('seasonWinLoss', awayTeam.seasonWinLoss.split("-")[0]) - normalizeStat('seasonWinLoss', homeTeam.seasonWinLoss.split("-")[0])) * weightArray[0]
-    homeIndex += (normalizeStat('homeWinLoss', homeTeam.homeWinLoss.split("-")[0]) - normalizeStat('awayWinLoss', awayTeam.awayWinLoss.split("-")[0])) * weightArray[1];
-    awayIndex += (normalizeStat('awayWinLoss', awayTeam.homeWinLoss.split("-")[0]) - normalizeStat('homeWinLoss', homeTeam.awayWinLoss.split("-")[0])) * weightArray[1]
-    homeIndex += (normalizeStat('pointDiff', homeTeam.pointDiff) - normalizeStat('pointDiff', awayTeam.pointDiff)) * weightArray[2];
-    awayIndex += (normalizeStat('pointDiff', awayTeam.pointDiff) - normalizeStat('pointDiff', homeTeam.pointDiff)) * weightArray[2];
-    let wncaabWeightIndex = 3
-    const reverseComparisonStats = ['BSKBturnoversPerGame', 'BSKBfoulsPerGame', 'BKSBturnoverRatio'];
-
-    for (const stat in homeTeam.stats) {
-        if (homeTeam.stats.hasOwnProperty(stat)) {
-            const homeStat = homeTeam.stats[stat];
-            const awayStat = awayTeam.stats[stat];
-
-            // Check if the stat is one that requires reve
-            // For reversed comparison, check if homeStat is less than or equal to awayStat
-            if ((typeof homeStat === 'number' && !isNaN(homeStat)) && (typeof awayStat === 'number' && !isNaN(awayStat))) {
-
-                homeIndex += (normalizeStat(stat, homeStat) - normalizeStat(stat, awayStat)) * weightArray[wncaabWeightIndex];
-
-                awayIndex += (normalizeStat(stat, awayStat) - normalizeStat(stat, homeStat)) * weightArray[wncaabWeightIndex];
-
-                wncaabWeightIndex++
-            }
-
-            // For all other stats, check if homeStat is greater than or equal to awayStat
-
-        }
+    if (statName === 'homeWinLoss' || statName === 'awayWinLoss') {
+        const [wins, losses] = stats[statName].split("-").map(Number);
+        return wins - losses;
     }
 
+    return stats[statName];
+};
 
+function calculateTeamIndex(teamStats, weightArray, statMap, normalizeStatFn) {
+    let index = 0;
+    let weightIndex = 0;
+    for (const statName of statMap) {
+        let rawValue = getNumericStat(teamStats, statName)
+        let weight = weightArray.find((weight) => weight.feature === statName);
+        if (typeof rawValue === 'number' && !isNaN(rawValue)) {
+            const normalizedValue = normalizeStatFn(statName, rawValue);
+            index += normalizedValue * weight.importance;
+        } else {
+            console.warn(`Stat missing or invalid: ${statName}`);
+        }
 
+        weightIndex++;
+    }
 
-    return { homeIndex, awayIndex };
+    return index;
 }
 
-const calculateWinrate = (games, sport, homeTeam, awayTeam, homeTeamIndex, awayTeamIndex, predictedWinner, predictionStrength) => {
 
-    // Step 1: Filter games where predictionCorrect is true
+const calculateWinrate = (games, sport, homeTeam, awayTeam, homeTeamScaledIndex, awayTeamScaledIndex, predictedWinner, predictionConfidence) => {
+    // Step 1: Filter games where predictions have been made
     const usableGames = games.filter(usableGame => usableGame.predictedWinner);
     // Step 2: Filter games that match the sport league
     const leagueGames = usableGames.filter(leagueGame => leagueGame.sport_key === sport.name);
     // Step 3: Filter games where the home_team matches the team
-    const homeTeamGames = usableGames.filter(homeTeamGame => homeTeamGame.home_team === homeTeam || homeTeamGame.away_team === homeTeam);
+    const homeTeamGames = usableGames.filter(homeTeamGame => homeTeamGame['homeTeamDetails.espnDisplayName'] === homeTeam || homeTeamGame['awayTeamDetails.espnDisplayName'] === homeTeam);
     // Step 4: Filter games where the away_team matches the team
-    const awayTeamGames = usableGames.filter(awayTeamGame => awayTeamGame.home_team === awayTeam || awayTeamGame.away_team === awayTeam);
+    const awayTeamGames = usableGames.filter(awayTeamGame => awayTeamGame['homeTeamDetails.espnDisplayName'] === awayTeam || awayTeamGame['awayTeamDetails.espnDisplayName'] === awayTeam);
     //game with the same index diff
-    const indexDifGames = usableGames.filter(game => (game.predictedWinner === 'home' ? game.homeTeamIndex - game.awayTeamIndex : game.awayTeamIndex - game.homeTeamIndex) < (predictedWinner === 'home' ? homeTeamIndex - awayTeamIndex : awayTeamIndex - homeTeamIndex) + 5 || (game.predictedWinner === 'home' ? game.homeTeamIndex - game.awayTeamIndex : game.awayTeamIndex - game.homeTeamIndex) > (predictedWinner === 'home' ? homeTeamIndex - awayTeamIndex : awayTeamIndex - homeTeamIndex) - 5)
+    const indexDifGames = usableGames.filter(game => (game.predictedWinner === 'home' ? game.homeTeamScaledIndex - game.awayTeamScaledIndex : game.awayTeamScaledIndex - game.homeTeamScaledIndex) < (predictedWinner === 'home' ? homeTeamScaledIndex - awayTeamScaledIndex : awayTeamScaledIndex - homeTeamScaledIndex) + 5 || (game.predictedWinner === 'home' ? game.homeTeamScaledIndex - game.awayTeamScaledIndex : game.awayTeamScaledIndex - game.homeTeamScaledIndex) > (predictedWinner === 'home' ? homeTeamScaledIndex - awayTeamScaledIndex : awayTeamScaledIndex - homeTeamScaledIndex) - 5)
     //games with same confidenceRating
-    const confidenceRateGames = usableGames.filter(game => (game.predictionStrength > predictionStrength - 5) || (game.predictionStrength < predictionStrength + 5))
+    const confidenceRateGames = usableGames.filter(game => (game.predictionConfidence > predictionConfidence - .1) || (game.predictionConfidence < predictionConfidence + .1))
 
     // Step 5: Calculate winrate for each scenario
     const totalGames = usableGames.length;
@@ -288,7 +90,6 @@ const calculateWinrate = (games, sport, homeTeam, awayTeam, homeTeamIndex, awayT
     const totalAwayTeamGames = awayTeamGames.length;
     const totalindexDifGames = indexDifGames.length
     const totalConfidenceGames = confidenceRateGames.length
-
     // Function to calculate winrate percentage
     const calculatePercentage = (part, total) => total > 0 ? (part / total) * 100 : 0;
 
@@ -344,28 +145,127 @@ const calculateWinrate = (games, sport, homeTeam, awayTeam, homeTeamIndex, awayT
     return average
 }
 
-function sigmoidNormalize(value, midpoint, sharpness) {
-    const sigmoid = 1 / (1 + Math.exp(-sharpness * (value - midpoint)));
-    return sigmoid * 45; // map to 0–45 for HSL
+
+// const getSeasonalIndexGames = async (sport, pastGames, inputGame, seasonsBack = 1) => {
+//     const inputDate = moment(inputGame.commence_time);
+//     const allGames = [];
+
+//     let pastGameWindow = inputDate.subtract(1, 'days').format('MM-DD');
+//     let futureGameWIndow = inputDate.add(7, 'days').format('MM-DD');
+
+//     for (let i = 0; i < seasonsBack; i++) {
+//         let seasonYear = inputDate.year() - i;
+
+//         // If sport spans years, start in October of previous year
+//         let seasonStart, seasonEnd;
+//         if (sport.multiYear) {
+//             seasonStart = moment(`${seasonYear - 1}-${pastGameWindow}`);
+//             seasonEnd = moment(`${seasonYear}-${pastGameWindow}`);
+//         } else {
+//             // For sports that run within a single year
+//             seasonStart = moment(`${seasonYear}-${pastGameWindow}`);
+//             seasonEnd = moment(`${seasonYear}-${futureGameWIndow}`);
+//         }
+//         const games = pastGames.filter((game) => {
+//             const gameDate = moment(game.commence_time);
+//             return gameDate.isBetween(seasonStart, seasonEnd, null, '[]') // Inclusive of start and end dates
+//             //    && (game.predictedWinner === 'home' || game.predictedWinner === 'away')  // Match only 'home' or 'away'
+
+//         })
+
+//         allGames.push(...games);
+//     }
+
+//     const indexArray = allGames
+//         .flatMap(game => {
+//             const home = Number(game.homeTeamIndex);
+//             const away = Number(game.awayTeamIndex);
+//             return [home, away].filter(i => !isNaN(i));
+//         })
+//         .sort((a, b) => a - b);
+
+//     return indexArray;
+// };
+
+const getSeasonalIndexGames = async (
+    sport,
+    pastGames,
+    inputGame,
+    seasonsBack,
+    numGamesBefore,
+    numGamesAfter
+) => {
+    const inputDate = moment(inputGame.commence_time);
+    const allGames = [];
+    for (let i = 0; i <= seasonsBack; i++) {
+        let seasonYear = inputDate.year() - i;
+        let targetDate;
+        
+        if (sport.multiYear) {
+            targetDate = moment(inputDate).subtract(i, 'years');
+        } else {
+            targetDate = moment(inputDate).subtract(1, 'days').year(seasonYear);
+        }
+        // Get games from the target season
+        const seasonGames = pastGames.filter(game => {
+
+            const gameDate = moment(game.commence_time);
+
+            return sport.multiYear
+                ? gameDate.year() === seasonYear || gameDate.year() === seasonYear - 1
+                : gameDate.year() === seasonYear;
+        }).sort((a, b) => moment(a.commence_time) - moment(b.commence_time));
+
+        // Find the closest game to targetDate
+        let targetIndex = seasonGames.findIndex(game =>
+            moment(game.commence_time).format('YYYY-MM-DD') === targetDate.format('YYYY-MM-DD')
+        );
+        
+        if (targetIndex === -1) {
+            let newTargetDate = targetDate.subtract(1, 'days');
+            targetIndex = seasonGames.findIndex(game => 
+                moment(game.commence_time).format('YYYY-MM-DD') === newTargetDate.format('YYYY-MM-DD')
+            );
+        }
+        // Get N games before and after
+        const startIdx = Math.max(0, targetIndex - numGamesBefore);
+        const endIdx = Math.min(seasonGames.length, targetIndex + numGamesAfter + 1);
+        const nearbyGames = seasonGames.slice(startIdx, endIdx);
+        allGames.push(...nearbyGames);
+        
+    }
+    const indexArray = allGames
+        .flatMap(game => {
+            const home = Number(game.homeTeamIndex);
+            const away = Number(game.awayTeamIndex);
+            return [home, away].filter(i => !isNaN(i));
+        })
+        .sort((a, b) => a - b);
+    return indexArray;
+};
+
+const getTeamsIndexes = async (sport) => {
+    let sportTeams = await db.Teams.findAll({where: {league: sport.name}})
+    let plainTeams = sportTeams.map((team) => team.get({plain: true}))
+    const indexArray = plainTeams
+    .flatMap(team => {
+        const home = Number(team.statIndex);
+        return [home].filter(i => !isNaN(i));
+    })
+    .sort((a, b) => a - b);
+    return indexArray
 }
 
-function calculateIQRSharpness(indexes) {
-    const sorted = indexes.slice().sort((a, b) => a - b);
-    const q1 = sorted[Math.floor(sorted.length * 0.25)];
-    const q3 = sorted[Math.floor(sorted.length * 0.75)];
-    const iqr = q3 - q1;
-
-    if (iqr === 0) return 1; // prevent divide-by-zero, fallback value
-
-    const sharpness = Math.log(9) / iqr;
-    return sharpness;
-}
 
 const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray, past) => {
     console.log(`STARTING INDEXING FOR ${initalsport.name} @ ${moment().format('HH:mm:ss')}`);
     const baseIndexBar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
+    if (past) {
+        currentOdds = currentOdds.filter((game) => game.sport_key === initalsport.name && game.complete === true)
+        allPastGames = allPastGames.filter((game) => game.sport_key === initalsport.name && game.complete === true && game.predictedWinner === 'home' || game.predictedWinner === 'away');
+    }
     let total = currentOdds.length
-    let sport = await Sport.findOne({ name: initalsport.name })
+    let sport = await db.Sports.findOne({ where: { name: initalsport.name }, raw: true });
     let updates = [];
     baseIndexBar.start(total, 0);
     let progress = 0
@@ -374,70 +274,28 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
         if (moment().isBefore(moment(game.commence_time)) || past === true) {
             let homeIndex = 0;
             let awayIndex = 0;
-            const adjustFunctions = {
-                'americanfootball_nfl': adjustnflStats,
-                'americanfootball_ncaaf': adjustncaafStats,
-                'icehockey_nhl': adjustnhlStats,
-                'basketball_nba': adjustnbaStats,
-                'baseball_mlb': adjustmlbStats,
-                'basketball_ncaab': adjustncaamStats,
-                'basketball_wncaab': adjustwncaabStats,
+            const statMap = {
+                'americanfootball_nfl': footballStatMap,
+                'americanfootball_ncaaf': footballStatMap,
+                'icehockey_nhl': hockeyStatMap,
+                'basketball_nba': basketballStatMap,
+                'baseball_mlb': baseballStatMap,
+                'basketball_ncaab': basketballStatMap,
+                'basketball_wncaab': basketballStatMap,
             };
-            if (game.homeTeamStats && game.awayTeamStats) {
-                const adjustFn = adjustFunctions[game.sport_key];
-                if (adjustFn) {
-                    ({ homeIndex, awayIndex } = await adjustFn(
-                        game.homeTeamStats,
-                        game.awayTeamStats,
-                        homeIndex,
-                        awayIndex,
-                        weightArray
-                    ));
-                }
-            }
-            const winrate = await calculateWinrate(allPastGames, sport, game.home_team, game.away_team, game.homeTeamScaledIndex, game.awayTeamScaledIndex, game.predictedWinner, game.predictionStrength);
-            // Update the Odds database with the calculated indices
-            if (sport.name === game.sport_key) {
-                if (past === true) {
-                    try {
-                        updates.push({
-                            updateOne: {
-                                filter: { id: game.id },
-                                update: {
-                                    $set: {
-                                        homeTeamIndex: homeIndex,
-                                        awayTeamIndex: awayIndex,
-                                        winPercent: winrate
-                                    }
-                                }
-                            }
-                        });
-                    } catch (err) {
-                        console.log(game.commence_time)
-                        console.log('homeIndex', homeIndex)
-                        console.log('awayIndex', awayIndex)
-                    }
-                } else {
-                    try {
-                        updates.push({
-                            updateOne: {
-                                filter: { id: game.id },
-                                update: {
-                                    $set: {
-                                        homeTeamIndex: homeIndex,
-                                        awayTeamIndex: awayIndex,
-                                        winPercent: winrate
-                                    }
-                                }
-                            }
-                        });
-                    } catch (err) {
-                        console.log(game.commence_time)
-                        console.log('homeIndex', homeIndex)
-                        console.log('awayIndex', awayIndex)
-                    }
-                }
-            }
+            // console.log(statMap[initalsport.name].length)
+            homeIndex = await calculateTeamIndex(game['homeStats.data'], weightArray, statMap[initalsport.name], normalizeStat);
+            awayIndex = await calculateTeamIndex(game['awayStats.data'], weightArray, statMap[initalsport.name], normalizeStat);
+            
+            // console.log(`${game['homeTeamDetails.espnDisplayName']}: ${homeIndex}, ${game['awayTeamDetails.espnDisplayName']}: ${awayIndex} for game ID: ${game.id}`)
+            await db.Games.update({
+                homeTeamIndex: homeIndex,
+                awayTeamIndex: awayIndex,
+            }, {
+                where: { id: game.id }
+            }).catch(err => {
+                console.error(`Error updating game ${game.id}:`, err);
+            })
         }
         progress += 1;
         baseIndexBar.update(progress)
@@ -445,258 +303,148 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
             baseIndexBar.stop();
         }
     }
-    allPastGames = null
-    if (past === true) {
-        await PastGameOdds.bulkWrite(updates);
-    } else {
-        await Odds.bulkWrite(updates);
-    }
-    currentOdds = null
+    const games = await db.Games.findAll({
+        where: {
+            sport_key: sport.name,
+            complete: true,
+        },
+        attributes: ['homeTeamIndex', 'awayTeamIndex', 'predictedWinner', 'commence_time'],
+        raw: true
+    });
     console.log('Base indexes found and applied')
-    let avgResult = await PastGameOdds.aggregate([
-        {
-            $match: {
-                sport_key: sport.name
-            }
-        },
-        {
-            $sort: { commence_time: -1 }
-        },
-        {
-            $limit: 100
-        },
-        {
-            $project: {
-                indexes: ["$homeTeamIndex", "$awayTeamIndex"]
-            }
-        },
-        { $unwind: "$indexes" },
-        {
-            $group: {
-                _id: null,
-                avgIndex: { $avg: "$indexes" }
-            }
-        }
-    ]);
-    
-    let avgIndex = avgResult[0]?.avgIndex ?? null;
-    let indexArrayResult = await PastGameOdds.aggregate([
-        {
-            $match: {
-                sport_key: sport.name
-            }
-        },
-        {
-            $sort: { commence_time: -1 }
-        },
-        {
-            $limit: 1000
-        },
-        {
-            $project: {
-                indexes: ["$homeTeamIndex", "$awayTeamIndex"]
-            }
-        },
-        { $unwind: "$indexes" },
-        { $sort: { indexes: 1 } },
-        {
-            $group: {
-                _id: null,
-                indexArray: { $push: "$indexes" }
-            }
-        }
-    ]);
-    
-    let indexArray = indexArrayResult[0]?.indexArray ?? [];
-    
-    console.log('DB queried for Avg and Array')
-    // You can compute Q1 and Q3 from indexArray manually afterward
 
+    if (past) {
+        currentOdds = await db.Games.findAll({
+            where: {
+                sport_key: initalsport.name,
+                predictedWinner: { [Op.in]: ['home', 'away'] },  // ✅ matches only 'home' or 'away',
+                complete: true,
+            },
+            include: [
+                {
+                    model: db.Teams,
+                    as: 'homeTeamDetails',
 
-    if (past === true) {
-        currentOdds = await PastGameOdds.find(
-            { sport_key: sport.name,
-            predictedWinner: { $exists: true },
-             },
-            { homeTeamIndex: 1, awayTeamIndex: 1, commence_time: 1, id: 1, sport_key: 1 }
-        ).sort({ commence_time: 1 })
-        
+                },
+                {
+                    model: db.Teams,
+                    as: 'awayTeamDetails',
+
+                }
+            ],
+
+            raw: true,
+        })
     } else {
-        currentOdds = await Odds.find(
-            { sport_key: sport.name },
-            { homeTeamIndex: 1, awayTeamIndex: 1, commence_time: 1, id: 1, sport_key: 1 }
-        ).sort({ commence_time: 1 })
-        
+        currentOdds = await db.Games.findAll({
+            where: {
+                sport_key: initalsport.name,
+                predictedWinner: { [Op.in]: ['home', 'away'] },  // ✅ matches only 'home' or 'away',
+                complete: false,
+            },
+            include: [
+                {
+                    model: db.Teams,
+                    as: 'homeTeamDetails',
+
+                },
+                {
+                    model: db.Teams,
+                    as: 'awayTeamDetails',
+
+                }
+            ],
+            raw: true,
+        })
     }
     const normalizedIndexBar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
-    total = currentOdds.length
-    console.log('DB re-queried for games to update')
-    updates = []
-    const iqrSharpness = calculateIQRSharpness(indexArray);
-    await Sport.findOneAndUpdate({ name: sport.name }, { sigmoidIQRSharpness: iqrSharpness, averageIndex: avgIndex }, { new: true });
-    console.log('IQR and Avg updated in DB')
-    normalizedIndexBar.start(total, 0);
-    progress = 0
+    normalizedIndexBar.start(currentOdds.length, 0);
+    let outliers = 0
+    let Zoutliers = 0
     for (const game of currentOdds) {
         if (moment().isBefore(moment(game.commence_time)) || past === true) {
-
-
-            let normalizedHomeIndex = sigmoidNormalize(game.homeTeamIndex, avgIndex, iqrSharpness)
-            let normalizedAwayIndex = sigmoidNormalize(game.awayTeamIndex, avgIndex, iqrSharpness)
+            let indexArray
+            if(past){
+                indexArray = await getSeasonalIndexGames(initalsport, games, game, 0,15,0)
+            }else{
+                indexArray = await getTeamsIndexes(initalsport)
+            }
+            const avg = mean(indexArray);
+            // console.log(`Home Index: ${game.homeTeamIndex}, Away Index: ${game.awayTeamIndex} for game ID: ${game.id}`);
+            // console.log(`${game['homeTeamDetails.espnDisplayName']}: ${game.homeTeamScaledIndex}, ${game['awayTeamDetails.espnDisplayName']}: ${game.awayTeamScaledIndex} for game ID: ${game.id}`)
+            // console.log(avg)
+            const std = stdDev(indexArray);
+            const homeZ = zScore(game.homeTeamIndex, avg, std);
+            const awayZ = zScore(game.awayTeamIndex, avg, std);
+            const scaledHomeZ = scaleZTo045(homeZ, -3, 3, 0, 45);
+            const scaledAwayZ = scaleZTo045(awayZ, -3, 3, 0, 45);
+            if (scaledHomeZ > 45 || scaledAwayZ > 45 || scaledHomeZ < 0 || scaledAwayZ < 0) {
+                Zoutliers++
+            }
             // Update the Odds database with the calculated indices
+            const winrate = await calculateWinrate(allPastGames, sport, game['homeTeamDetails.espnDisplayName'], game['awayTeamDetails.espnDisplayName'], scaledHomeZ, scaledAwayZ, game.predictedWinner, game.predictionConfidence);
             if (sport.name === game.sport_key) {
-                if (past === true) {
-                    try {
-                        updates.push({
-                            updateOne: {
-                                filter: { id: game.id },
-                                update: {
-                                    $set: {
-                                        homeTeamScaledIndex: normalizedHomeIndex,
-                                        awayTeamScaledIndex: normalizedAwayIndex,
-                                    }
-                                }
-                            }
-                        });
-                    } catch (err) {
-                        // console.log(err)
-                        console.log(game.commence_time)
-                        console.log('normalizedHomeIndex', normalizedHomeIndex)
-                        console.log('normalizedAwayIndex', normalizedAwayIndex)
-                    }
-                } else {
-                    try {
-                        updates.push({
-                            updateOne: {
-                                filter: { id: game.id },
-                                update: {
-                                    $set: {
-                                        homeTeamScaledIndex: normalizedHomeIndex,
-                                        awayTeamScaledIndex: normalizedAwayIndex,
-                                    }
-                                }
-                            }
-                        });
-
-                    } catch (err) {
-                        console.log(game.commence_time)
-                        console.log('normalizedHomeIndex', normalizedHomeIndex)
-                        console.log('normalizedAwayIndex', normalizedAwayIndex)
-                    }
+                try {
+                    await db.Games.update({
+                        homeTeamScaledIndex: scaledHomeZ,
+                        awayTeamScaledIndex: scaledAwayZ,
+                        winPercent: winrate,
+                    }, {
+                        where: { id: game.id }
+                    });
+                } catch (err) {
+                    console.log(game.commence_time)
+                    console.log('normalizedHomeIndex', normalizedHomeIndex)
+                    console.log('normalizedAwayIndex', normalizedAwayIndex)
                 }
-
-
             }
         }
-        progress += 1;
-        normalizedIndexBar.update(progress)
-        if (progress >= total) {
+        normalizedIndexBar.increment();
+        if (normalizedIndexBar.value >= normalizedIndexBar.getTotal()) {
             normalizedIndexBar.stop();
         }
     }
-    if (past === true) {
-        await PastGameOdds.bulkWrite(updates);
-    } else {
-        await Odds.bulkWrite(updates);
-    }
-    updates = []
-    currentOdds = null
-    result = null
-    indexArray = null
-    avgIndex = null
+    console.log(`Outliers found: ${outliers} for ${initalsport.name} out of ${currentOdds.length} games.`)
+    console.log(`Z-Score Outliers found: ${Zoutliers} for ${initalsport.name} out of ${currentOdds.length} games.`)
     if (global.gc) global.gc();
-    console.log('Normalized indexes found and applied')
     console.log(`FINSHED INDEXING FOR ${initalsport.name} @ ${moment().format('HH:mm:ss')}`);
 }
 
-const extractSportWeights = async (model, sportName) => {
-    let weights, weightMatrix, averages = [];
+const pastGamesReIndex = async (sportGames, sport) => {
 
-    // Extract weights from the first (input) layer of the model
-    weights = model.layers[0].getWeights();
-    weightMatrix = await weights[0].array(); // This gives the matrix of weights for each feature
-
-    // Sum weights for each feature (column-wise)
-    matrixIterator(weightMatrix, averages);
-
-    // Return the averages array specific to the sport
-    return averages;
-}
-const matrixIterator = (weightMatrix, averages) => {
-    for (let i = 0; i < weightMatrix.length; i++) {
-        let row = weightMatrix[i];
-        // Calculate the sum of the 64 weights in the row
-        let sum = row.reduce((acc, value) => acc + value, 0);
-
-        // Calculate the average of the row
-        let average = Math.abs(sum / row.length);
-
-        // Store the average in the averages array
-        averages.push(average * 10);  // Optional: Multiply for better scaling
-    }
-}
-const handleSportWeights = async (model, sport) => {
-    let sportWeights;
-
-    switch (sport.name) {
-        case 'americanfootball_nfl':
-            sportWeights = await extractSportWeights(model, 'americanfootball_nfl');
-            weightArray = sportWeights;
-            break;
-
-        case 'americanfootball_ncaaf':
-            sportWeights = await extractSportWeights(model, 'americanfootball_ncaaf');
-            ncaafWeights = sportWeights;
-            break;
-
-        case 'basketball_nba':
-            sportWeights = await extractSportWeights(model, 'basketball_nba');
-            nbaWeights = sportWeights;
-            break;
-
-        case 'baseball_mlb':
-            sportWeights = await extractSportWeights(model, 'baseball_mlb');
-            mlbWeights = sportWeights;
-            break;
-
-        case 'icehockey_nhl':
-            sportWeights = await extractSportWeights(model, 'icehockey_nhl');
-            nhlWeights = sportWeights;
-            break;
-
-        case 'basketball_ncaab':
-            sportWeights = await extractSportWeights(model, 'basketball_ncaab');
-            ncaamWeights = sportWeights;
-            break;
-
-        case 'basketball_wncaab':
-            sportWeights = await extractSportWeights(model, 'basketball_wncaab');
-            ncaawWeights = sportWeights;
-            break;
-
-        default:
-            console.log(`No weight extraction logic for sport: ${sport.name}`);
-    }
-}
-
-const pastGamesReIndex = async () => {
-
-    const sports = await Sport.find({})
-    for (const sport of sports) {
-        const sportGames = await Odds.find(({ sport_key: sport.name }))
-        if (sportGames.length > 0) {
-
-            let pastGames = await PastGameOdds.find({ sport_key: sport.name }).sort({ commence_time: 1 })
-            const sportWeightDB = await Weights.findOne({ league: sport.name })
-            let weightArray = sportWeightDB?.featureImportanceScores
-            await indexAdjuster(pastGames, sport, pastGames, weightArray, true)
-            pastGames = []
-
-        }
-
+    if (sportGames.length > 0) {
+        const pastGames = await db.Games.findAll({
+            include: [
+                { model: db.Teams, as: 'homeTeamDetails' },
+                { model: db.Teams, as: 'awayTeamDetails' },
+                { model: db.Sports, as: 'sportDetails' },
+                {
+                    model: db.Stats, as: `homeStats`, required: true,
+                    where: {
+                        [Op.and]: [
+                            { teamId: { [Op.eq]: Sequelize.col('Games.homeTeam') } },
+                            { gameId: { [Op.eq]: Sequelize.col('Games.id') } }
+                        ]
+                    }
+                },
+                {
+                    model: db.Stats, as: `awayStats`, required: true,
+                    where: {
+                        [Op.and]: [
+                            { teamId: { [Op.eq]: Sequelize.col('Games.awayTeam') } },
+                            { gameId: { [Op.eq]: Sequelize.col('Games.id') } }
+                        ]
+                    }
+                }], order: [['commence_time', 'ASC']], raw: true
+        });
+        // let pastGames = await PastGameOdds.find({ sport_key: sport.name }).sort({ commence_time: 1 })
+        // const sportWeightDB = await Weights.findOne({ league: sport.name })
+        // let weightArray = sportWeightDB?.featureImportanceScores
+        await indexAdjuster(pastGames, sport, pastGames, sport['MlModelWeights.featureImportanceScores'], true)
 
     }
 
+
 }
 
-module.exports = { adjustnflStats, adjustncaafStats, adjustnhlStats, adjustnbaStats, adjustmlbStats, adjustncaamStats, adjustwncaabStats, indexAdjuster, extractSportWeights, matrixIterator, handleSportWeights, pastGamesReIndex }
+module.exports = { indexAdjuster, pastGamesReIndex, calculateTeamIndex }

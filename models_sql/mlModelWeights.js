@@ -18,6 +18,24 @@ const MlModelWeights = sequelize.define('MlModelWeights', {
         type: DataTypes.JSON,
         allowNull: true
     },
+    sport:{
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: 'Sports',
+            key: 'id'
+        }
+    }
+}, 
+{
+    tableName: 'MlModelWeights',
+    timestamps: true,
+    indexes: [
+        {
+            unique: true,
+            fields: ['sport']
+        }
+    ]
 });
 
 MlModelWeights.associate = (models) => {

@@ -9,11 +9,11 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.STRING,
             allowNull: false,
         },
-        logo: {
+        lightLogo: {
             type: DataTypes.STRING,
             allowNull: true,
         },
-        school: {
+        darkLogo: {
             type: DataTypes.STRING,
             allowNull: true,
         },
@@ -45,6 +45,22 @@ module.exports = (sequelize, DataTypes) => {
           type: DataTypes.JSONB, // Flexible structure
           allowNull: true,
         },
+        espnLeague: {
+            type: DataTypes.STRING,
+            allowNull: false,
+        },
+        statIndex: {
+            type: DataTypes.DOUBLE,
+            allowNull: true,
+        },
+        statCategoryIndexes: {
+            type: DataTypes.JSONB, // Flexible structure for multiple categories
+            allowNull: true,
+        },
+        school: {
+            type: DataTypes.STRING,
+            allowNull: true
+        }
     });
 
     Teams.associate = (models) => {

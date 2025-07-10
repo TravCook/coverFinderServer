@@ -9,10 +9,15 @@ module.exports = (sequelize, DataTypes) => {
         marketId: {
             type: DataTypes.INTEGER,
             allowNull: false,
+            references: {
+                model: 'Markets',
+                key: 'id'
+            },
+            onDelete: 'CASCADE', // If a market is deleted, delete associated outcomes
         },
         teamId: {
             type: DataTypes.INTEGER,
-            allowNull: true, // Allow null for non-team outcomes
+            allowNull: false, // Allow null for non-team outcomes
         },
         name: {
             type: DataTypes.STRING,
@@ -27,6 +32,15 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
         },
         
+    },{
+        sequelize,
+        modelName: 'Outcomes',
+        indexes: [
+            {
+                unique: true,
+                fields: ['marketId', 'teamId', 'name']
+            }
+        ]
     });
 
     Outcomes.associate = (models) => {
