@@ -736,7 +736,7 @@ const trainSportModelKFold = async (sport, gameData, search, upcomingGames) => {
         hiddenToOutputWeights: hiddenToOutputWeights, // Store the 128x1 vector
         featureImportanceScores: featureImportanceWithLabels,  // Store the importance scores
     })
-    // console.log(featureImportanceWithLabels)
+    console.log(`ml model done for ${sport.name} @ ${moment().format('HH:mm:ss')}`);
 };
 
 

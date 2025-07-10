@@ -485,6 +485,7 @@ const oddsSeed = async () => {
             await indexAdjuster(sportGamesSQL, sport, allPastGamesSQL, sport['MlModelWeights.featureImportanceScores'])
         }
     }
+    if (global.gc) global.gc();
     console.log(`ODDS FETCHED AND STORED @ ${moment().format('HH:mm:ss')}`)
 } //UPDATED FOR SQL
 
