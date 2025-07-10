@@ -413,34 +413,9 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
 const pastGamesReIndex = async (sportGames, sport) => {
 
     if (sportGames.length > 0) {
-        const pastGames = await db.Games.findAll({
-            include: [
-                { model: db.Teams, as: 'homeTeamDetails' },
-                { model: db.Teams, as: 'awayTeamDetails' },
-                { model: db.Sports, as: 'sportDetails' },
-                {
-                    model: db.Stats, as: `homeStats`, required: true,
-                    where: {
-                        [Op.and]: [
-                            { teamId: { [Op.eq]: Sequelize.col('Games.homeTeam') } },
-                            { gameId: { [Op.eq]: Sequelize.col('Games.id') } }
-                        ]
-                    }
-                },
-                {
-                    model: db.Stats, as: `awayStats`, required: true,
-                    where: {
-                        [Op.and]: [
-                            { teamId: { [Op.eq]: Sequelize.col('Games.awayTeam') } },
-                            { gameId: { [Op.eq]: Sequelize.col('Games.id') } }
-                        ]
-                    }
-                }], order: [['commence_time', 'ASC']], raw: true
-        });
-        // let pastGames = await PastGameOdds.find({ sport_key: sport.name }).sort({ commence_time: 1 })
-        // const sportWeightDB = await Weights.findOne({ league: sport.name })
-        // let weightArray = sportWeightDB?.featureImportanceScores
-        await indexAdjuster(pastGames, sport, pastGames, sport['MlModelWeights.featureImportanceScores'], true)
+        console.log(`STARTING PAST GAMES INDEXING FOR ${sport.name} @ ${moment().format('HH:mm:ss')}`);
+        await indexAdjuster(sportGames, sport, sportGames, sport['MlModelWeights.featureImportanceScores'], true)
+        console.log(`FINISHED PAST GAMES INDEXING FOR ${sport.name} @ ${moment().format('HH:mm:ss')}`);
 
     }
 
