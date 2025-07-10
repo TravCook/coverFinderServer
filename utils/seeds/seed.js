@@ -64,7 +64,7 @@ const mlModelTrainSeed = async () => {
         // retrieve upcoming games
         let upcomingGames = odds.filter((game) => game.sport_key === sport.name)
         // Multi-year sports (e.g., NFL, NBA, NHL, etc.)
-        if (upcomingGames.length > 0 ) {
+        if (upcomingGames.length > 0) {
             const pastGames = await db.Games.findAll({
                 where: { complete: true, sport_key: sport.name },
                 include: [
@@ -98,7 +98,9 @@ const mlModelTrainSeed = async () => {
                     include: [{ model: db.MlModelWeights, as: 'MlModelWeights' }, { model: db.HyperParams, as: 'hyperParams' }],
                     raw: true
                 });
-        await pastGamesReIndex(upcomingGames, newSport)
+                if (global.gc) global.gc();
+                await pastGamesReIndex(upcomingGames, newSport)
+                if (global.gc) global.gc();
             } else {
                 console.log(`NOT ENOUGH ${sport.name} DATA`)
             }
@@ -240,11 +242,13 @@ const mlModelTrainSeed = async () => {
     });
     await emitToClients('gameUpdate', currentOdds);
     await emitToClients('pastGameUpdate', pastOdds);
-
+    if (global.gc) global.gc();
     await valueBetGridSearch(sports)
+    if (global.gc) global.gc();
     // await hyperparameterRandSearch(sports)
 
     await modelConfAnalyzer();
+    if (global.gc) global.gc();
 
     // TODO RESUME WORK HERE TO REFACTOR FOR SQL
     // if (global.gc) global.gc();
@@ -812,7 +816,7 @@ const espnSeed = async () => {
 // modelConfAnalyzer()
 // removeSeed()
 // oddsSeed()
-// mlModelTrainSeed()
+mlModelTrainSeed()
 // dataSeed()
 // statMinMax()
 //TODO: ANALYZE ML MODEL TRAIN SEED AND ADDRESS RAM ISSUES ON EC2 INSTANCE
