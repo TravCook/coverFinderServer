@@ -585,7 +585,7 @@ const predictions = async (sportOdds, ff, model, sport, past) => {
 
         }
 
-        // await db.Games.update(updatePayload, { where: { id: game.id } });
+        await db.Games.update(updatePayload, { where: { id: game.id } });
     }
     console.log(`OUT OF ${sportOdds.length} GAMES [TOTAL WINS: ${totalWins}, TOTAL LOSSES: ${totalLosses}]: PREDICTIONS CHANGED: ${predictionsChanged} | NEW WINNER PREDICTIONS: ${newWinnerPredictions} | NEW LOSER PREDICTIONS: ${newLoserPredictions} | NEW CONFIDENCE PREDICTIONS: ${newConfidencePredictions}`);
     console.log(`50/50 MATCHUPS: ${fiftyfiftyMatchups} (${((fiftyfiftyMatchups / sportOdds.length) * 100).toFixed(1)}%) | 60-70% MATCHUPS: ${sixtyToSeventyMatchups} (${((sixtyToSeventyMatchups / sportOdds.length) * 100).toFixed(1)}%) | 70-80% MATCHUPS: ${seventyToEightyMatchups} (${((seventyToEightyMatchups / sportOdds.length) * 100).toFixed(1)}%) | 80-90% MATCHUPS: ${eightyToNinetyMatchups} (${((eightyToNinetyMatchups / sportOdds.length) * 100).toFixed(1)}%) | HIGH CONFIDENCE GAMES: ${highConfGames} (${((highConfGames / sportOdds.length) * 100).toFixed(1)}%) | HIGH CONFIDENCE LOSERS: ${highConfLosers}`)
@@ -818,12 +818,12 @@ const trainSportModelKFold = async (sport, gameData, search, upcomingGames) => {
         feature: stat,
         importance: featureImportanceScores[index]
     }));
-    // await db.MlModelWeights.upsert({
-    //     sport: sport.id,
-    //     inputToHiddenWeights: inputToHiddenWeights,  // Store the 40x128 matrix
-    //     hiddenToOutputWeights: hiddenToOutputWeights, // Store the 128x1 vector
-    //     featureImportanceScores: featureImportanceWithLabels,  // Store the importance scores
-    // })
+    await db.MlModelWeights.upsert({
+        sport: sport.id,
+        inputToHiddenWeights: inputToHiddenWeights,  // Store the 40x128 matrix
+        hiddenToOutputWeights: hiddenToOutputWeights, // Store the 128x1 vector
+        featureImportanceScores: featureImportanceWithLabels,  // Store the importance scores
+    })
     console.log(`ml model done for ${sport.name} @ ${moment().format('HH:mm:ss')}`);
 };
 
