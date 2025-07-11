@@ -221,7 +221,7 @@ const loadOrCreateModel = async (xs, sport, search) => {
             const hyperParams = getHyperParams(sport, search);
 
             const l2Strength = .002; // You can tune this (start small)
-            const dropoutRate = hyperParams.dropoutReg; // You can tune this (start small)
+            const dropoutRate = 0; // You can tune this (start small)
 
             let newModel = tf.sequential();
 
