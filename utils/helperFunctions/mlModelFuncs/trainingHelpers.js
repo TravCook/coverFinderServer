@@ -244,10 +244,56 @@ const loadOrCreateModel = async (xs, sport, search) => {
     }
 }
 
-const getZScoreNormalizedStats = (teamId, currentStats, teamStatsHistory) => {
-    const history = teamStatsHistory[teamId] || [];
+// const getZScoreNormalizedStats = (teamId, currentStats, teamStatsHistory) => { SINGLE TEAM HISTORY
+//     const history = teamStatsHistory[teamId] || [];
 
-    // Shallow copy so we don't mutate original input
+//     // Shallow copy so we don't mutate original input
+//     const transformedStats = { ...currentStats };
+
+//     // Always convert win-loss strings into integers
+//     ['seasonWinLoss', 'homeWinLoss', 'awayWinLoss'].forEach(key => {
+//         if (transformedStats[key] && typeof transformedStats[key] === 'string') {
+//             const [wins, losses] = transformedStats[key].split('-').map(Number);
+//             transformedStats[key] = wins - losses;
+//         }
+//     });
+
+//     if (history.length < 3) {
+//         // Not enough data yet — return transformed raw stats
+//         return transformedStats;
+//     }
+
+//     const keys = Object.keys(transformedStats);
+//     const means = {};
+//     const stds = {};
+
+//     keys.forEach(key => {
+//         const values = history.map(s => {
+//             if (key === 'seasonWinLoss' || key === 'homeWinLoss' || key === 'awayWinLoss') {
+//                 const [wins, losses] = s[key].split('-').map(Number);
+//                 return wins - losses;
+//             }
+//             return s[key];
+//         });
+
+//         const mean = values.reduce((a, b) => a + b, 0) / values.length;
+//         const std = Math.sqrt(
+//             values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length
+//         );
+
+//         means[key] = mean;
+//         stds[key] = std === 0 ? 1 : std;
+//     });
+
+//     const normalized = {};
+//     keys.forEach(key => {
+//         normalized[key] = (transformedStats[key] - means[key]) / stds[key];
+//     });
+
+//     return normalized;
+// };
+
+const getZScoreNormalizedStats = (teamId, currentStats, teamStatsHistory) => {
     const transformedStats = { ...currentStats };
 
     // Always convert win-loss strings into integers
@@ -258,7 +304,10 @@ const getZScoreNormalizedStats = (teamId, currentStats, teamStatsHistory) => {
         }
     });
 
-    if (history.length < 3) {
+    // Flatten all history into one array across all teams
+    const allHistory = Object.values(teamStatsHistory).flat();
+
+    if (allHistory.length < 3) {
         // Not enough data yet — return transformed raw stats
         return transformedStats;
     }
@@ -268,13 +317,19 @@ const getZScoreNormalizedStats = (teamId, currentStats, teamStatsHistory) => {
     const stds = {};
 
     keys.forEach(key => {
-        const values = history.map(s => {
-            if (key === 'seasonWinLoss' || key === 'homeWinLoss' || key === 'awayWinLoss') {
-                const [wins, losses] = s[key].split('-').map(Number);
-                return wins - losses;
-            }
-            return s[key];
-        });
+        const values = allHistory
+            .map(s => {
+                if (s[key] == null) return null;
+                if (key === 'seasonWinLoss' || key === 'homeWinLoss' || key === 'awayWinLoss') {
+                    if (typeof s[key] === 'string') {
+                        const [wins, losses] = s[key].split('-').map(Number);
+                        return wins - losses;
+                    }
+                    return s[key]; // Already converted
+                }
+                return s[key];
+            })
+            .filter(val => typeof val === 'number' && !isNaN(val));
 
         const mean = values.reduce((a, b) => a + b, 0) / values.length;
         const std = Math.sqrt(
@@ -291,7 +346,7 @@ const getZScoreNormalizedStats = (teamId, currentStats, teamStatsHistory) => {
     });
 
     return normalized;
-};
+}; //ALL TEAM HISTORY
 
 
 const mlModelTraining = async (gameData, xs, ys, sport, search) => {
