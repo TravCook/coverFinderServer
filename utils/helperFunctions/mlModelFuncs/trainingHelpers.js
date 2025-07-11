@@ -148,8 +148,8 @@ const repeatPredictions = async (model, inputTensor, numPasses) => {
     const predictions = [];
 
     for (let i = 0; i < numPasses; i++) {
-        // const pred = await model.predict(inputTensor).array(); // Get predictions
-        const pred = await model.apply(inputTensor, { training: true }).array(); // Apply the model to the input tensor
+        const pred = await model.predict(inputTensor).array(); // Get predictions
+        // const pred = await model.apply(inputTensor, { training: true }).array(); // Apply the model to the input tensor
         predictions.push(pred.map(p => p[0])); // Flatten to 1D
     }
 
@@ -216,26 +216,43 @@ const loadOrCreateModel = async (xs, sport, search) => {
         if (fs.existsSync(modelPath) && !search) {
             return await tf.loadLayersModel(`file://./model_checkpoint/${sport.name}_model/model.json`);
         } else {
+            const tf = require('@tensorflow/tfjs'); // if not already imported
+
             const hyperParams = getHyperParams(sport, search);
 
+            const l2Strength = hyperParams.l2Reg; // You can tune this (start small)
+            const dropoutRate = hyperParams.dropoutReg; // You can tune this (start small)
+
             let newModel = tf.sequential();
+
+            // Input layer with L2 regularization
             newModel.add(tf.layers.dense({
                 units: hyperParams.layerNeurons,
                 inputShape: [xs[0].length],
                 activation: 'relu',
+                kernelRegularizer: tf.regularizers.l2({ l2: l2Strength }),
                 biasInitializer: 'zeros',
             }));
+
+            // Hidden layers with L2
             for (let layers = 0; layers < hyperParams.hiddenLayerNum; layers++) {
                 newModel.add(tf.layers.dense({
                     units: hyperParams.layerNeurons,
                     activation: 'relu',
+                    kernelRegularizer: tf.regularizers.l2({ l2: l2Strength }),
                     biasInitializer: 'zeros',
                 }));
+                newModel.add(tf.layers.dropout({ rate: dropoutRate })); // Dropout after activation
             }
+
+            // Output layer (binary classification)
             newModel.add(tf.layers.dense({
-                units: 1, activation: 'sigmoid',
+                units: 1,
+                activation: 'sigmoid',
+                kernelRegularizer: tf.regularizers.l2({ l2: l2Strength }),
                 biasInitializer: 'zeros',
             }));
+
 
             return newModel
         }
@@ -432,8 +449,7 @@ const mlModelTraining = async (gameData, xs, ys, sport, search) => {
         callbacks: [tf.callbacks.earlyStopping({
             monitor: 'val_loss',
             patience: 5,
-            // (search ? sport.hyperParameters.epochs : sport['hyperParams.epochs']) * .25,
-            restoreBestWeight: true,
+            restoreBestWeight: true
         })]
     });
 
@@ -473,43 +489,47 @@ const predictions = async (sportOdds, ff, model, sport, past) => {
     let newConfidencePredictions = 0
     let highConfGames = 0
     let highConfLosers = 0
+    let fiftyfiftyMatchups = 0
+    let sixtyToSeventyMatchups = 0;
+    let seventyToEightyMatchups = 0;
+    let eightyToNinetyMatchups = 0;
     const teamStatsHistory = {}; // teamID => [pastStatsObjects]
     for (const game of sportOdds) {
         if (Date.parse(game.commence_time) <= Date.now() && !past) continue; // Skip upcoming games if already started
         const homeTeamId = game.homeTeamId;
-            const awayTeamId = game.awayTeamId;
+        const awayTeamId = game.awayTeamId;
 
-            const homeRawStats = game['homeStats.data'];
-            const awayRawStats = game['awayStats.data'];
+        const homeRawStats = game['homeStats.data'];
+        const awayRawStats = game['awayStats.data'];
 
-            const normalizedHome = getZScoreNormalizedStats(homeTeamId, homeRawStats, teamStatsHistory);
-            const normalizedAway = getZScoreNormalizedStats(awayTeamId, awayRawStats, teamStatsHistory);
+        const normalizedHome = getZScoreNormalizedStats(homeTeamId, homeRawStats, teamStatsHistory);
+        const normalizedAway = getZScoreNormalizedStats(awayTeamId, awayRawStats, teamStatsHistory);
 
-            if (!normalizedHome || !normalizedAway) {
-                console.log(game.id)
-                return;
-            }
+        if (!normalizedHome || !normalizedAway) {
+            console.log(game.id)
+            return;
+        }
 
-            const statFeatures = extractSportFeatures(normalizedHome, normalizedAway, sport.name);
-            
-            if (statFeatures.some(isNaN)) {
-                console.error('NaN detected in features:', game.id);
-                return;
-            }
+        const statFeatures = extractSportFeatures(normalizedHome, normalizedAway, sport.name);
 
-            // Update history AFTER using current stats
-            if (!teamStatsHistory[homeTeamId]) teamStatsHistory[homeTeamId] = [];
-            if (!teamStatsHistory[awayTeamId]) teamStatsHistory[awayTeamId] = [];
+        if (statFeatures.some(isNaN)) {
+            console.error('NaN detected in features:', game.id);
+            return;
+        }
 
-            teamStatsHistory[homeTeamId].push(homeRawStats);
-            if (teamStatsHistory[homeTeamId].length > 5) {
-                teamStatsHistory[homeTeamId].shift(); // remove oldest game
-            }
-    
-            teamStatsHistory[awayTeamId].push(awayRawStats);
-            if (teamStatsHistory[awayTeamId].length > 5) {
-                teamStatsHistory[awayTeamId].shift(); // remove oldest game
-            }
+        // Update history AFTER using current stats
+        if (!teamStatsHistory[homeTeamId]) teamStatsHistory[homeTeamId] = [];
+        if (!teamStatsHistory[awayTeamId]) teamStatsHistory[awayTeamId] = [];
+
+        teamStatsHistory[homeTeamId].push(homeRawStats);
+        if (teamStatsHistory[homeTeamId].length > 5) {
+            teamStatsHistory[homeTeamId].shift(); // remove oldest game
+        }
+
+        teamStatsHistory[awayTeamId].push(awayRawStats);
+        if (teamStatsHistory[awayTeamId].length > 5) {
+            teamStatsHistory[awayTeamId].shift(); // remove oldest game
+        }
 
         const probability = await repeatPredictions(model, tf.tensor2d([statFeatures]), 100); // Get the average probability for home team winning
         let predictedWinner = probability[0] >= 0.5 ? 'home' : 'away'; // Predict home if probability >= 0.5, else away
@@ -523,13 +543,25 @@ const predictions = async (sportOdds, ff, model, sport, past) => {
             predictionsChanged++
             let oldWinner = game.predictedWinner === 'home' ? game['homeTeamDetails.espnDisplayName'] : game['awayTeamDetails.espnDisplayName'];
             let newWinner = predictedWinner === 'home' ? game['homeTeamDetails.espnDisplayName'] : game['awayTeamDetails.espnDisplayName'];
-            console.log(`Prediction changed for game ${game.id}: ${oldWinner} → ${newWinner} (Confidence: ${predictionConfidence})`);
+            if (!past) console.log(`Prediction changed for game ${game.id}: ${oldWinner} → ${newWinner} (Confidence: ${predictionConfidence})`);
         }
         if (game.predictionConfidence !== predictionConfidence) {
             newConfidencePredictions++
         }
         if (predictionConfidence > .90) {
             highConfGames++;
+        }
+        if (predictionConfidence < .60) {
+            fiftyfiftyMatchups++;
+        }
+        if (predictionConfidence >= .60 && predictionConfidence < .70) {
+            sixtyToSeventyMatchups++;
+        }
+        if (predictionConfidence >= .70 && predictionConfidence < .80) {
+            seventyToEightyMatchups++;
+        }
+        if (predictionConfidence >= .80 && predictionConfidence < .90) {
+            eightyToNinetyMatchups++;
         }
 
         if (past) {
@@ -553,9 +585,10 @@ const predictions = async (sportOdds, ff, model, sport, past) => {
 
         }
 
-        await db.Games.update(updatePayload, { where: { id: game.id } });
+        // await db.Games.update(updatePayload, { where: { id: game.id } });
     }
-    console.log(`OUT OF ${sportOdds.length} GAMES [TOTAL WINS: ${totalWins}, TOTAL LOSSES: ${totalLosses}]: PREDICTIONS CHANGED: ${predictionsChanged} | NEW WINNER PREDICTIONS: ${newWinnerPredictions} | NEW LOSER PREDICTIONS: ${newLoserPredictions} | NEW CONFIDENCE PREDICTIONS: ${newConfidencePredictions} | HIGH CONFIDENCE GAMES: ${highConfGames} | HIGH CONFIDENCE LOSERS: ${highConfLosers}`);
+    console.log(`OUT OF ${sportOdds.length} GAMES [TOTAL WINS: ${totalWins}, TOTAL LOSSES: ${totalLosses}]: PREDICTIONS CHANGED: ${predictionsChanged} | NEW WINNER PREDICTIONS: ${newWinnerPredictions} | NEW LOSER PREDICTIONS: ${newLoserPredictions} | NEW CONFIDENCE PREDICTIONS: ${newConfidencePredictions}`);
+    console.log(`50/50 MATCHUPS: ${fiftyfiftyMatchups} (${((fiftyfiftyMatchups / sportOdds.length) * 100).toFixed(1)}%) | 60-70% MATCHUPS: ${sixtyToSeventyMatchups} (${((sixtyToSeventyMatchups / sportOdds.length) * 100).toFixed(1)}%) | 70-80% MATCHUPS: ${seventyToEightyMatchups} (${((seventyToEightyMatchups / sportOdds.length) * 100).toFixed(1)}%) | 80-90% MATCHUPS: ${eightyToNinetyMatchups} (${((eightyToNinetyMatchups / sportOdds.length) * 100).toFixed(1)}%) | HIGH CONFIDENCE GAMES: ${highConfGames} (${((highConfGames / sportOdds.length) * 100).toFixed(1)}%) | HIGH CONFIDENCE LOSERS: ${highConfLosers}`)
     console.info(`FINISHED PREDICTIONS FOR ${sport.name} @ ${moment().format('HH:mm:ss')}`);
 };
 
@@ -679,7 +712,7 @@ const trainSportModelKFold = async (sport, gameData, search, upcomingGames) => {
 
             const statFeatures = extractSportFeatures(normalizedHome, normalizedAway, sport.name);
             const homeLabel = game.winner === 'home' ? 1 : 0;
-            
+
             if (statFeatures.some(isNaN) || homeLabel === null) {
                 console.error('NaN detected in features:', game.id);
                 return;
@@ -696,7 +729,7 @@ const trainSportModelKFold = async (sport, gameData, search, upcomingGames) => {
             if (teamStatsHistory[homeTeamId].length > 5) {
                 teamStatsHistory[homeTeamId].shift(); // remove oldest game
             }
-    
+
             teamStatsHistory[awayTeamId].push(awayRawStats);
             if (teamStatsHistory[awayTeamId].length > 5) {
                 teamStatsHistory[awayTeamId].shift(); // remove oldest game
@@ -751,7 +784,7 @@ const trainSportModelKFold = async (sport, gameData, search, upcomingGames) => {
 
 
     if (!search) await predictions(sportGames, [], finalModel, sport)
-    // await predictions(gameData, [], finalModel, sport, true) // Predictions for past games DO NOT RUN THIS AGAIN FOR BASEBALL. MAYBE FOR OTHER SPORTS BUT NOT LIKELY. DO NOT UNCOMMENT UNLESS YOU COMPLETELY CHANGE THE ARCHITECTURE OF THE MODEL OR THE DATASET. IT WILL OVERWRITE PAST GAME ODDS AND PREDICTIONS.
+    await predictions(gameData, [], finalModel, sport, true) // Predictions for past games DO NOT RUN THIS AGAIN FOR BASEBALL. MAYBE FOR OTHER SPORTS BUT NOT LIKELY. DO NOT UNCOMMENT UNLESS YOU COMPLETELY CHANGE THE ARCHITECTURE OF THE MODEL OR THE DATASET. IT WILL OVERWRITE PAST GAME ODDS AND PREDICTIONS.
     // After all folds, calculate and log the overall performance
     const avgF1Score = foldResults.reduce((sum, fold) => sum + fold.f1Score, 0) / foldResults.length;
     const totalTruePositives = foldResults.reduce((sum, fold) => sum + fold.truePositives, 0)
@@ -785,12 +818,12 @@ const trainSportModelKFold = async (sport, gameData, search, upcomingGames) => {
         feature: stat,
         importance: featureImportanceScores[index]
     }));
-    await db.MlModelWeights.upsert({
-        sport: sport.id,
-        inputToHiddenWeights: inputToHiddenWeights,  // Store the 40x128 matrix
-        hiddenToOutputWeights: hiddenToOutputWeights, // Store the 128x1 vector
-        featureImportanceScores: featureImportanceWithLabels,  // Store the importance scores
-    })
+    // await db.MlModelWeights.upsert({
+    //     sport: sport.id,
+    //     inputToHiddenWeights: inputToHiddenWeights,  // Store the 40x128 matrix
+    //     hiddenToOutputWeights: hiddenToOutputWeights, // Store the 128x1 vector
+    //     featureImportanceScores: featureImportanceWithLabels,  // Store the importance scores
+    // })
     console.log(`ml model done for ${sport.name} @ ${moment().format('HH:mm:ss')}`);
 };
 
