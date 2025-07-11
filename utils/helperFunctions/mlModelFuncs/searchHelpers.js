@@ -36,6 +36,8 @@ const hyperparameterRandSearch = async (sports) => {
         epochs: { min: 10, max: 100 }, // Adjusted to allow for a range
         hiddenLayerNum: { min: 1, max: 5 }, // Adjusted to allow for a range
         layerNeurons: { min: 16, max: 256 }, // Adjusted to allow for a range
+        l2reg: { min: 0.001, max: 0.01 }, // Adjusted to allow for a range
+        // dropoutReg: { min: 0, max: 0.001 } // Adjusted to allow for a range
     };
     for (let sport of sports) {
 
@@ -46,6 +48,7 @@ const hyperparameterRandSearch = async (sports) => {
             async function objective(params) {
                 const sanitizedParams = {
                     learningRate: params.learningRate,
+                    l2reg: params.l2reg,
                     batchSize: roundToNearest(params.batchSize, validBatchSizes),
                     epochs: Math.round(params.epochs),
                     hiddenLayerNum: Math.round(params.hiddenLayerNum),
@@ -104,25 +107,26 @@ const hyperparameterRandSearch = async (sports) => {
 
             const processedParams = {
                 learningRate: bestParams.learningRate,
+                l2Reg: bestParams.l2reg,
                 batchSize: roundToNearest(bestParams.batchSize, validBatchSizes),
                 epochs: Math.round(bestParams.epochs),
                 hiddenLayerNum: Math.round(bestParams.hiddenLayerNum),
                 layerNeurons: roundToNearest(bestParams.layerNeurons, validLayerNeurons),
             };
             console.log(`Processed Parameters for ${sport.name}:`, processedParams);
-            // await db.HyperParams.update({
-            //     epochs: processedParams.epochs,
-            //     batchSize: processedParams.batchSize,
-            //     learningRate: processedParams.learningRate,
-            //     l2Reg: processedParams.l2Reg,
-            //     dropoutReg: processedParams.dropoutReg,
-            //     hiddenLayers: processedParams.hiddenLayerNum,
-            //     layerNeurons: processedParams.layerNeurons,
-            // }, {
-            //     where: {
-            //         sport: sport.id
-            //     }
-            // })
+            await db.HyperParams.update({
+                epochs: processedParams.epochs,
+                batchSize: processedParams.batchSize,
+                learningRate: processedParams.learningRate,
+                l2Reg: processedParams.l2Reg,
+                // dropoutReg: processedParams.dropoutReg,
+                hiddenLayers: processedParams.hiddenLayerNum,
+                layerNeurons: processedParams.layerNeurons,
+            }, {
+                where: {
+                    sport: sport.id
+                }
+            })
         }
     }
     console.log(`FINISHED HYPERPARAM SEARCH @ ${moment().format('HH:mm:ss')}`)
