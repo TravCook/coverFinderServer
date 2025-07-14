@@ -250,71 +250,51 @@ const mlModelTrainSeed = async () => {
     await modelConfAnalyzer();
     if (global.gc) global.gc();
 
-    // TODO RESUME WORK HERE TO REFACTOR FOR SQL
-    // if (global.gc) global.gc();
-    // upcomingGames = []
-    // pastGames = []
+
+    const currentDate = new Date();
+    const yesterday = new Date(currentDate);
+    yesterday.setDate(currentDate.getDate() - 1);
+    yesterday.setHours(0, 0, 0, 0);
+    let yesterdayGames = await db.Games.findAll({
+        where: { commence_time: { [Op.gte]: yesterday }, complete: true, predictedWinner: { [Op.in]: ['home', 'away'] } },
+    })
+    const stats = {
+        date: new Date().toLocaleDateString(),
+        totalPredictions: yesterdayGames.length,
+        wins: yesterdayGames.filter((game) => game.predictionCorrect === true).length,
+        losses: yesterdayGames.filter((game) => game.predictionCorrect === false).length,
+        //TODO ADD SPORTS BREAKDOWN STATS
+        //TODO ADD BIGGEST WIN
+    };
+
+    const html = `
+        <h2>📊 Daily Sports Prediction Report - ${stats.date}</h2>
+        <p>This is your automated status report. App is running (PM2 active).</p>
+        <hr />
+        <h3>🏁 Overall Summary</h3>
+        <ul>
+          <li>Total Predictions: <strong>${stats.totalPredictions}</strong></li>
+          <li>Wins: <strong style="color:green">${stats.wins}</strong></li>
+          <li>Losses: <strong style="color:red">${stats.losses}</strong></li>
+          <li>Win Rate: <strong>${((stats.wins / stats.totalPredictions) * 100).toFixed(1)}%</strong></li>
+        </ul>
+
+        <hr />
+        <p style="color:gray;font-size:0.9em;">App check-in via PM2 successful — ${new Date().toLocaleTimeString()}</p>
+      `;
 
 
-    // const currentDate = new Date();
-    // const yesterday = new Date(currentDate);
-    // yesterday.setDate(currentDate.getDate() - 1);
-    // yesterday.setHours(0, 0, 0, 0);
-    // let yesterdayGames = await PastGameOdds.find({ commence_time: { $gte: yesterday } }).select('-homeTeamStats -awayTeamStats')
-    // const stats = {
-    //     date: new Date().toLocaleDateString(),
-    //     totalPredictions: yesterdayGames.length,
-    //     wins: yesterdayGames.filter((game) => game.predictionCorrect === true).length,
-    //     losses: yesterdayGames.filter((game) => game.predictionCorrect === false).length,
-    //     //TODO ADD SPORTS BREAKDOWN STATS
-    //     //TODO ADD BIGGEST WIN
-    // };
+    const mailOptions = {
+        from: '"BetterBetsAPI" betterbetsApp@gmail.com',
+        to: process.env.NODEMAILER_RECIPIENT,
+        subject: `Daily Sports Report - ${stats.date}`,
+        html,
+    };
 
-    // const html = `
-    //     <h2>📊 Daily Sports Prediction Report - ${stats.date}</h2>
-    //     <p>This is your automated status report. App is running (PM2 active).</p>
-    //     <hr />
-    //     <h3>🏁 Overall Summary</h3>
-    //     <ul>
-    //       <li>Total Predictions: <strong>${stats.totalPredictions}</strong></li>
-    //       <li>Wins: <strong style="color:green">${stats.wins}</strong></li>
-    //       <li>Losses: <strong style="color:red">${stats.losses}</strong></li>
-    //       <li>Win Rate: <strong>${((stats.wins / stats.totalPredictions) * 100).toFixed(1)}%</strong></li>
-    //     </ul>
+    const info = await transporter.sendMail(mailOptions);
 
-    //     <hr />
-    //     <p style="color:gray;font-size:0.9em;">App check-in via PM2 successful — ${new Date().toLocaleTimeString()}</p>
-    //   `;
-
-    // //   <h3>🏀 Wins by Sport</h3>
-    // //   <table border="1" cellpadding="5" cellspacing="0" style="border-collapse:collapse;">
-    // //     <tr><th>Sport</th><th>Wins</th><th>Losses</th></tr>
-    // //     ${Object.entries(stats.sportsBreakdown).map(([sport, {wins, losses}]) => `
-    // //       <tr>
-    // //         <td>${sport}</td>
-    // //         <td style="color:green">${wins}</td>
-    // //         <td style="color:red">${losses}</td>
-    // //       </tr>
-    // //     `).join('')}
-    // //   </table>
-
-    // //   <h3>💥 Biggest Win</h3>
-    // //   <p>
-    // //     <strong>${stats.biggestWin.matchup}</strong> (${stats.biggestWin.sport}) <br />
-    // //     Odds: ${stats.biggestWin.odds} <br />
-    // //     Result: <strong style="color:green">${stats.biggestWin.result}</strong>
-    // //   </p>
-
-    // const mailOptions = {
-    //     from: '"BetterBetsAPI" betterbetsApp@gmail.com',
-    //     to: process.env.NODEMAILER_RECIPIENT,
-    //     subject: `Daily Sports Report - ${stats.date}`,
-    //     html,
-    // };
-
-    // const info = await transporter.sendMail(mailOptions);
-
-    // console.log("Message sent:", info.messageId);
+    console.log("Message sent:", info.messageId);
+    if (global.gc) global.gc();
 
 }
 
@@ -374,26 +354,29 @@ const oddsSeed = async () => {
                         } else {
                             const dbSport = sports.find(s => s.name === event.sport_key);
                             const savedGame = await gameDBSaver(event, dbSport);
-                            const plainGame = savedGame.get({ plain: true });
+                            if (savedGame) {
+                                const plainGame = savedGame.get({ plain: true });
 
-                            const homeTeamSQL = await db.Teams.findOne({
-                                where: {
-                                    espnDisplayName: normalizeTeamName(event.home_team, event.sport_key),
-                                    league: dbSport.name
-                                },
-                                raw: true
-                            });
+                                const homeTeamSQL = await db.Teams.findOne({
+                                    where: {
+                                        espnDisplayName: normalizeTeamName(event.home_team, event.sport_key),
+                                        league: dbSport.name
+                                    },
+                                    raw: true
+                                });
 
-                            const awayTeamSQL = await db.Teams.findOne({
-                                where: {
-                                    espnDisplayName: normalizeTeamName(event.away_team, event.sport_key),
-                                    league: dbSport.name
-                                },
-                                raw: true
-                            });
+                                const awayTeamSQL = await db.Teams.findOne({
+                                    where: {
+                                        espnDisplayName: normalizeTeamName(event.away_team, event.sport_key),
+                                        league: dbSport.name
+                                    },
+                                    raw: true
+                                });
 
-                            await statDBSaver(event, homeTeamSQL, dbSport, plainGame);
-                            await statDBSaver(event, awayTeamSQL, dbSport, plainGame);
+                                await statDBSaver(event, homeTeamSQL, dbSport, plainGame);
+                                await statDBSaver(event, awayTeamSQL, dbSport, plainGame);
+                            }
+
                         }
                     }
                 }

@@ -120,26 +120,26 @@ const getNumericStat = (stats, statName) => {
 const extractSportFeatures = (homeStats, awayStats, league) => {
     switch (league) {
         case 'americanfootball_nfl':
-            return footballStatMap.map(key => normalizeStat(key, getNumericStat(homeStats, key)))
-                .concat(footballStatMap.map(key => normalizeStat(key, getNumericStat(awayStats, key))))
+            return footballStatMap.map(key => getNumericStat(homeStats, key))
+                .concat(footballStatMap.map(key => getNumericStat(awayStats, key)))
         case 'americanfootball_ncaaf':
-            return footballStatMap.map(key => normalizeStat(key, getNumericStat(homeStats, key)))
-                .concat(footballStatMap.map(key => normalizeStat(key, getNumericStat(awayStats, key))))
+            return footballStatMap.map(key => getNumericStat(homeStats, key))
+                .concat(footballStatMap.map(key => getNumericStat(awayStats, key)))
         case 'icehockey_nhl':
-            return hockeyStatMap.map(key => normalizeStat(key, getNumericStat(homeStats, key)))
-                .concat(hockeyStatMap.map(key => normalizeStat(key, getNumericStat(awayStats, key))))
+            return hockeyStatMap.map(key => getNumericStat(homeStats, key))
+                .concat(hockeyStatMap.map(key => getNumericStat(awayStats, key)))
         case 'baseball_mlb':
             return baseballStatMap.map(key => getNumericStat(homeStats, key))
                 .concat(baseballStatMap.map(key => getNumericStat(awayStats, key)))
         case 'basketball_ncaab':
-            return basketballStatMap.map(key => normalizeStat(key, getNumericStat(homeStats, key)))
-                .concat(basketballStatMap.map(key => normalizeStat(key, getNumericStat(awayStats, key))))
+            return basketballStatMap.map(key => getNumericStat(homeStats, key))
+                .concat(basketballStatMap.map(key => getNumericStat(awayStats, key)))
         case 'basketball_wncaab':
-            return basketballStatMap.map(key => normalizeStat(key, getNumericStat(homeStats, key)))
-                .concat(basketballStatMap.map(key => normalizeStat(key, getNumericStat(awayStats, key))))
+            return basketballStatMap.map(key => getNumericStat(homeStats, key))
+                .concat(basketballStatMap.map(key => getNumericStat(awayStats, key)))
         case 'basketball_nba':
-            return basketballStatMap.map(key => normalizeStat(key, getNumericStat(homeStats, key)))
-                .concat(basketballStatMap.map(key => normalizeStat(key, getNumericStat(awayStats, key))))
+            return basketballStatMap.map(key => getNumericStat(homeStats, key))
+                .concat(basketballStatMap.map(key => getNumericStat(awayStats, key)))
         default:
             return [];
     }
@@ -378,10 +378,8 @@ const mlModelTraining = async (gameData, xs, ys, sport, search) => {
 
         const homeRawStats = game['homeStats.data'];
         const awayRawStats = game['awayStats.data'];
-
         const normalizedHome = getZScoreNormalizedStats(homeTeamId, homeRawStats, teamStatsHistory);
         const normalizedAway = getZScoreNormalizedStats(awayTeamId, awayRawStats, teamStatsHistory);
-
         if (!normalizedHome || !normalizedAway) {
             console.log(game.id)
             return;
@@ -824,6 +822,8 @@ const trainSportModelKFold = async (sport, gameData, search, upcomingGames) => {
         hiddenToOutputWeights: hiddenToOutputWeights, // Store the 128x1 vector
         featureImportanceScores: featureImportanceWithLabels,  // Store the importance scores
     })
+
+
     console.log(`ml model done for ${sport.name} @ ${moment().format('HH:mm:ss')}`);
 };
 

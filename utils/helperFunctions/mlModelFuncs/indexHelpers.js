@@ -60,7 +60,7 @@ function calculateTeamIndex(teamStats, weightArray, statMap, normalizeStatFn) {
         } else {
             console.warn(`Stat missing or invalid: ${statName}`);
         }
-
+        // console.log(`Stat: ${statName}, Raw Value: ${rawValue}, Normalized Value: ${normalizeStatFn(statName, rawValue)}, Weight: ${weight.importance}, Current Index: ${index}`);
         weightIndex++;
     }
 
