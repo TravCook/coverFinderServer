@@ -1,6 +1,6 @@
 const moment = require('moment')
 const { Odds, PastGameOdds, UsaFootballTeam, BasketballTeam, BaseballTeam, HockeyTeam, Sport, Weights } = require('../../../models');
-const { battingStats, pitchingStats, fieldingStats, baseballStatMap, generalStats, basketballStatMap, footballStatMap, hockeyStatMap } = require('../../statMaps');
+const {  baseballStatMap, basketballStatMap, hockeyStatMap, footballStatMap, battingStats, pitchingStats, fieldingStats, generalStats, footballDefenseStats, footballKickingStats, footballOtherStats, footballPassingStats, footballRecievingStats, footballReturningStats, footballRushingStats, hockeyDefenseStats, hockeyOffenseStats, hockeyPenaltyStats, basketballDefenseStats, basketballOffenseStats} = require('../../statMaps');
 const { calculateTeamIndex } = require('../mlModelFuncs/indexHelpers.js');
 const { normalizeStat, predictions } = require('../mlModelFuncs/trainingHelpers.js')
 const db = require('../../../models_sql');
@@ -482,31 +482,31 @@ const fetchAllTeamData = async (sport, teams, statYear, TeamModel, statWeights) 
             switch (sport.name) {
                 case 'baseball_mlb':
                     statMap = baseballStatMap;
-                    statCategories = [{ label: 'batting', statMap: battingStats }, { label: 'pitching', statMap: pitchingStats }, { label: 'fielding', statMap: fieldingStats }, { label: 'general', statMap: generalStats }];
+                    statCategories = [{ label: 'general', statMap: generalStats },{ label: 'batting', statMap: battingStats }, { label: 'pitching', statMap: pitchingStats }, { label: 'fielding', statMap: fieldingStats },];
                     break;
                 case 'americanfootball_nfl':
                     statMap = footballStatMap;
-                    statCategories = [{ label: 'general', statMap: generalStats }];
+                    statCategories = [{ label: 'general', statMap: generalStats },{ label: 'rushing', statMap: footballRushingStats },{ label: 'passing', statMap: footballPassingStats },{ label: 'recieving', statMap: footballRecievingStats },{ label: 'defense', statMap: footballDefenseStats },{ label: 'kicking', statMap: footballKickingStats },{ label: 'other', statMap: footballOtherStats },{ label: 'returning', statMap: footballReturningStats } ];
                     break;
                 case 'americanfootball_ncaaf':
                     statMap = footballStatMap;
-                    statCategories = [{ label: 'general', statMap: generalStats }];
+                    statCategories = [{ label: 'general', statMap: generalStats },{ label: 'rushing', statMap: footballRushingStats },{ label: 'passing', statMap: footballPassingStats },{ label: 'recieving', statMap: footballRecievingStats },{ label: 'defense', statMap: footballDefenseStats },{ label: 'kicking', statMap: footballKickingStats },{ label: 'other', statMap: footballOtherStats },{ label: 'returning', statMap: footballReturningStats }];
                     break;
                 case 'basketball_nba':
                     statMap = basketballStatMap;
-                    statCategories = [{ label: 'general', statMap: generalStats }];
+                    statCategories = [{ label: 'general', statMap: generalStats }, { label: 'offense', statMap: basketballOffenseStats}, { label: 'defense', statMap: basketballDefenseStats}];
                     break;
                 case 'basketball_ncaab':
                     statMap = basketballStatMap;
-                    statCategories = [{ label: 'general', statMap: generalStats }];
+                    statCategories = [{ label: 'general', statMap: generalStats }, { label: 'offense', statMap: basketballOffenseStats}, { label: 'defense', statMap: basketballDefenseStats}];
                     break;
                 case 'basketball_wncaab':
                     statMap = basketballStatMap;
-                    statCategories = [{ label: 'general', statMap: generalStats }];
+                    statCategories = [{ label: 'general', statMap: generalStats }, { label: 'offense', statMap: basketballOffenseStats}, { label: 'defense', statMap: basketballDefenseStats}];
                     break;
                 case 'icehockey_nhl':
                     statMap = hockeyStatMap;
-                    statCategories = [{ label: 'general', statMap: generalStats }];
+                    statCategories = [{ label: 'general', statMap: generalStats }, { label: 'offense', statMap: hockeyOffenseStats}, { label: 'defense', statMap: hockeyDefenseStats}, { label: 'penalty', statMap: hockeyPenaltyStats}];
                     break;
             }
             let teamIndex = await calculateTeamIndex(team.currentStats, statWeights.featureImportanceScores, statMap, normalizeStat)

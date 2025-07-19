@@ -36,98 +36,97 @@ const hyperparameterRandSearch = async (sports) => {
         epochs: { min: 10, max: 100 }, // Adjusted to allow for a range
         hiddenLayerNum: { min: 1, max: 5 }, // Adjusted to allow for a range
         layerNeurons: { min: 16, max: 256 }, // Adjusted to allow for a range
-        l2reg: { min: 0.001, max: 0.01 }, // Adjusted to allow for a range
+        l2reg: { min: 0.0001, max: 0.01 }, // Adjusted to allow for a range
         // dropoutReg: { min: 0, max: 0.001 } // Adjusted to allow for a range
     };
     for (let sport of sports) {
-
-        if (sport.name === 'baseball_mlb') {
-            console.log(`--------------- ${sport.name} @ ${moment().format('HH:mm:ss')}-------------------`)
-            const validBatchSizes = [32, 64, 128];
-            const validLayerNeurons = [16, 32, 64, 128, 256];
-            async function objective(params) {
-                const sanitizedParams = {
-                    learningRate: params.learningRate,
-                    l2reg: params.l2reg,
-                    batchSize: roundToNearest(params.batchSize, validBatchSizes),
-                    epochs: Math.round(params.epochs),
-                    hiddenLayerNum: Math.round(params.hiddenLayerNum),
-                    layerNeurons: roundToNearest(params.layerNeurons, validLayerNeurons),
-                };
-                const testSport = {
-                    ...sport,  // ensure sport is in outer scope
-                    hyperParameters: sanitizedParams
-                };
-                let upcomingGames = await db.Games.findAll({
-                    where: {
-                        sport_key: sport.name,
-                        complete: false
-                    }
-                })
-                const pastGames = await db.Games.findAll({
-                    where: { complete: true, sport_key: sport.name },
-                    include: [
-                        { model: db.Teams, as: 'homeTeamDetails' },
-                        { model: db.Teams, as: 'awayTeamDetails' },
-                        { model: db.Sports, as: 'sportDetails' },
-                        {
-                            model: db.Stats, as: `homeStats`, required: true,
-                            where: {
-                                [Op.and]: [
-                                    { teamId: { [Op.eq]: Sequelize.col('Games.homeTeam') } },
-                                    { gameId: { [Op.eq]: Sequelize.col('Games.id') } }
-                                ]
-                            }
-                        },
-                        {
-                            model: db.Stats, as: `awayStats`, required: true,
-                            where: {
-                                [Op.and]: [
-                                    { teamId: { [Op.eq]: Sequelize.col('Games.awayTeam') } },
-                                    { gameId: { [Op.eq]: Sequelize.col('Games.id') } }
-                                ]
-                            }
-                        }], order: [['commence_time', 'ASC']], raw: true
-                });
-
-                const avgF1Score = await trainSportModelKFold(testSport, pastGames, true, upcomingGames);
-
-                return {
-                    loss: -avgF1Score,     // minimize negative F1 (i.e. maximize F1)
-                };
-            }
-
-            // Initialize the optimizer
-            const optimizer = new BayesianOptimizer({
-            });
-            await optimizer.optimize(objective, space, 10);
-            // Get the best parameters found
-            const bestParams = optimizer.getBestParams();
-            console.log(`Best Parameters for ${sport.name}:`, bestParams);
-
-            const processedParams = {
-                learningRate: bestParams.learningRate,
-                l2Reg: bestParams.l2reg,
-                batchSize: roundToNearest(bestParams.batchSize, validBatchSizes),
-                epochs: Math.round(bestParams.epochs),
-                hiddenLayerNum: Math.round(bestParams.hiddenLayerNum),
-                layerNeurons: roundToNearest(bestParams.layerNeurons, validLayerNeurons),
+        if(sport.name !== 'baseball_mlb') continue
+        console.log(`--------------- ${sport.name} @ ${moment().format('HH:mm:ss')}-------------------`)
+        const validBatchSizes = [32, 64, 128];
+        const validLayerNeurons = [16, 32, 64, 128, 256];
+        async function objective(params) {
+            const sanitizedParams = {
+                learningRate: params.learningRate,
+                l2reg: params.l2reg,
+                batchSize: roundToNearest(params.batchSize, validBatchSizes),
+                epochs: Math.round(params.epochs),
+                hiddenLayerNum: Math.round(params.hiddenLayerNum),
+                layerNeurons: roundToNearest(params.layerNeurons, validLayerNeurons),
             };
-            console.log(`Processed Parameters for ${sport.name}:`, processedParams);
-            await db.HyperParams.update({
-                epochs: processedParams.epochs,
-                batchSize: processedParams.batchSize,
-                learningRate: processedParams.learningRate,
-                l2Reg: processedParams.l2Reg,
-                // dropoutReg: processedParams.dropoutReg,
-                hiddenLayers: processedParams.hiddenLayerNum,
-                layerNeurons: processedParams.layerNeurons,
-            }, {
+            const testSport = {
+                ...sport,  // ensure sport is in outer scope
+                hyperParameters: sanitizedParams
+            };
+            let upcomingGames = await db.Games.findAll({
                 where: {
-                    sport: sport.id
+                    sport_key: sport.name,
+                    complete: false
                 }
             })
+            const pastGames = await db.Games.findAll({
+                where: { complete: true, sport_key: sport.name },
+                include: [
+                    { model: db.Teams, as: 'homeTeamDetails' },
+                    { model: db.Teams, as: 'awayTeamDetails' },
+                    { model: db.Sports, as: 'sportDetails' },
+                    {
+                        model: db.Stats, as: `homeStats`, required: true,
+                        where: {
+                            [Op.and]: [
+                                { teamId: { [Op.eq]: Sequelize.col('Games.homeTeam') } },
+                                { gameId: { [Op.eq]: Sequelize.col('Games.id') } }
+                            ]
+                        }
+                    },
+                    {
+                        model: db.Stats, as: `awayStats`, required: true,
+                        where: {
+                            [Op.and]: [
+                                { teamId: { [Op.eq]: Sequelize.col('Games.awayTeam') } },
+                                { gameId: { [Op.eq]: Sequelize.col('Games.id') } }
+                            ]
+                        }
+                    }], order: [['commence_time', 'ASC']], raw: true
+            });
+
+            const avgF1Score = await trainSportModelKFold(testSport, pastGames, true, upcomingGames);
+
+            return {
+                loss: -avgF1Score,     // minimize negative F1 (i.e. maximize F1)
+            };
         }
+
+        // Initialize the optimizer
+        const optimizer = new BayesianOptimizer({
+        });
+        await optimizer.optimize(objective, space, 20);
+        // Get the best parameters found
+        const bestParams = optimizer.getBestParams();
+        console.log(`Best Parameters for ${sport.name}:`, bestParams);
+
+        const processedParams = {
+            learningRate: bestParams.learningRate,
+            l2Reg: bestParams.l2reg,
+            batchSize: roundToNearest(bestParams.batchSize, validBatchSizes),
+            epochs: Math.round(bestParams.epochs),
+            hiddenLayerNum: Math.round(bestParams.hiddenLayerNum),
+            layerNeurons: roundToNearest(bestParams.layerNeurons, validLayerNeurons),
+        };
+        console.log(`Processed Parameters for ${sport.name}:`, processedParams);
+        await db.HyperParams.update({
+            epochs: processedParams.epochs,
+            batchSize: processedParams.batchSize,
+            learningRate: processedParams.learningRate,
+            l2Reg: processedParams.l2Reg,
+            // dropoutReg: processedParams.dropoutReg,
+            hiddenLayers: processedParams.hiddenLayerNum,
+            layerNeurons: processedParams.layerNeurons,
+        }, {
+            where: {
+                sport: sport.id
+            }
+        })
+
     }
     console.log(`FINISHED HYPERPARAM SEARCH @ ${moment().format('HH:mm:ss')}`)
 }

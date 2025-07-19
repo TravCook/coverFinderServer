@@ -34,10 +34,13 @@ const dataSeed = async () => {
 } //UPDATED FOR SQL
 
 const mlModelTrainSeed = async () => {
+    let fourYearsAgo = new Date()
+    fourYearsAgo.setFullYear(fourYearsAgo.getFullYear() - 4)
+
     console.log("DB CONNECTED ------------------------------------------------- STARTING ML SEED")
     const sports = await db.Sports.findAll({ include: [{ model: db.MlModelWeights, as: 'MlModelWeights' }, { model: db.HyperParams, as: 'hyperParams' }], raw: true, order: [['name', 'ASC']] });
     const odds = await db.Games.findAll({
-        where: { complete: false }, include: [
+        where: { complete: false, commence_time: { [Op.gte]: fourYearsAgo } }, include: [
             { model: db.Teams, as: 'homeTeamDetails' },
             { model: db.Teams, as: 'awayTeamDetails' },
             { model: db.Sports, as: 'sportDetails' },
@@ -64,7 +67,7 @@ const mlModelTrainSeed = async () => {
         // retrieve upcoming games
         let upcomingGames = odds.filter((game) => game.sport_key === sport.name)
         // Multi-year sports (e.g., NFL, NBA, NHL, etc.)
-        if (upcomingGames.length > 0) {
+        if (sport.name === 'baseball_mlb') {
             const pastGames = await db.Games.findAll({
                 where: { complete: true, sport_key: sport.name },
                 include: [
@@ -800,7 +803,7 @@ const espnSeed = async () => {
 // modelConfAnalyzer()
 // removeSeed()
 // oddsSeed()
-// mlModelTrainSeed()
+mlModelTrainSeed()
 // dataSeed()
 // statMinMax()
 //TODO: ANALYZE ML MODEL TRAIN SEED AND ADDRESS RAM ISSUES ON EC2 INSTANCE

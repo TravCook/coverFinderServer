@@ -121,7 +121,6 @@ const generalStats = [
   'pointDiff'
 ];
 
-
 const basketballStatMap = [
   'seasonWinLoss',
   'homeWinLoss',
@@ -167,6 +166,50 @@ const basketballStatMap = [
   'BSKBteamAssistToTurnoverRatio',
 
 ];
+
+const basketballOffenseStats = [
+  'BSKBtotalPoints',
+  'BSKBpointsPerGame',
+  'BSKBassists',
+  'BSKBassistsPerGame',
+  'BSKBassistRatio',
+  'BSKBeffectiveFgPercent',
+  'BSKBfieldGoalPercent',
+  'BSKBfieldGoalsAttempted',
+  'BSKBfieldGoalsMade',
+  'BSKBfieldGoalsPerGame',
+  'BSKBfreeThrowPercent',
+  'BSKBfreeThrowsAttempted',
+  'BSKBfreeThrowsMade',
+  'BSKBfreeThrowsMadePerGame',
+  'BSKBoffensiveRebounds',
+  'BSKBoffensiveReboundsPerGame',
+  'BSKBoffensiveReboundRate',
+  'BSKBoffensiveTurnovers',
+  'BSKBturnoversPerGame',
+  'BSKBturnoverRatio',
+  'BSKBthreePointPct',
+  'BSKBthreePointsAttempted',
+  'BSKBthreePointsMade',
+  'BSKBtrueShootingPct',
+  'BSKBpace',
+  'BSKBpointsInPaint',
+  'BSKBshootingEfficiency',
+  'BSKBscoringEfficiency',
+  'BSKBteamAssistToTurnoverRatio'
+]
+
+const basketballDefenseStats = [
+  'BSKBblocks',
+  'BSKBblocksPerGame',
+  'BSKBdefensiveRebounds',
+  'BSKBdefensiveReboundsPerGame',
+  'BSKBsteals',
+  'BSKBstealsPerGame',
+  'BSKBreboundRate',
+  'BSKBreboundsPerGame',
+  'BSKBfoulsPerGame'
+]
 
 const hockeyStatMap = [
   'seasonWinLoss',
@@ -232,6 +275,73 @@ const hockeyStatMap = [
   'HKYpenaltyMinutes',
   'HKYpenaltyMinutesPerGame',
 ];
+
+const hockeyOffenseStats = [
+  'HKYgoals',
+  'HKYgoalsPerGame',
+  'HKYassists',
+  'HKYassistsPerGame',
+  'HKYshotsIn1st',
+  'HKYshotsIn1stPerGame',
+  'HKYshotsIn2nd',
+  'HKYshotsIn2ndPerGame',
+  'HKYshotsIn3rd',
+  'HKYshotsIn3rdPerGame',
+  'HKYtotalShots',
+  'HKYtotalShotsPerGame',
+  'HKYshotsMissed',
+  'HKYshotsMissedPerGame',
+  'HKYppgGoals',
+  'HKYppgGoalsPerGame',
+  'HKYppassists',
+  'HKYppassistsPerGame',
+  'HKYpowerplayPct',
+  'HKYshortHandedGoals',
+  'HKYshortHandedGoalsPerGame',
+  'HKYshootingPct',
+  'HKYfaceoffs',
+  'HKYfaceoffsPerGame',
+  'HKYfaceoffsWon',
+  'HKYfaceoffsWonPerGame',
+  'HKYfaceoffsLost',
+  'HKYfaceoffsLostPerGame',
+  'HKYfaceoffPct',
+  'HKYfaceoffPctPerGame',
+  'HKYgiveaways',
+  'HKYshotDifferential',
+  'HKYshotDifferentialPerGame',
+  'HKYgoalDifferentialPerGame'
+]
+
+const hockeyDefenseStats = [
+  'HKYgoalsAgainst',
+  'HKYgoalsAgainstPerGame',
+  'HKYshotsAgainst',
+  'HKYshotsAgainstPerGame',
+  'HKYpenaltyKillPct',
+  'HKYpenaltyKillPctPerGame',
+  'HKYppGoalsAgainst',
+  'HKYppGoalsAgainstPerGame',
+  'HKYshutouts',
+  'HKYsaves',
+  'HKYsavesPerGame',
+  'HKYsavePct',
+  'HKYblockedShots',
+  'HKYblockedShotsPerGame',
+  'HKYhits',
+  'HKYhitsPerGame',
+  'HKYtakeaways',
+  'HKYtakeawaysPerGame'
+]
+
+const hockeyPenaltyStats = [
+  'HKYpimDifferential',
+  'HKYpimDifferentialPerGame',
+  'HKYtotalPenalties',
+  'HKYpenaltiesPerGame',
+  'HKYpenaltyMinutes',
+  'HKYpenaltyMinutesPerGame'
+]
 
 const footballStatMap = [
   'seasonWinLoss',
@@ -316,4 +426,101 @@ const footballStatMap = [
   'USFBtotalFirstDowns',
 ];
 
-module.exports = { baseballStatMap, basketballStatMap, hockeyStatMap, footballStatMap, battingStats, pitchingStats, fieldingStats, generalStats };
+const footballRushingStats = [
+  'USFBrushingAttempts',
+  'USFBrushingFirstDowns',
+  'USFBrushingTouchdowns',
+  'USFBrushingYards',
+  'USFBrushingYardsPerGame',
+  'USFByardsPerRushAttempt',
+]
+
+const footballPassingStats = [
+  'USFBcompletionPercent',
+  'USFBcompletions',
+  'USFBcompletionsPerGame',
+  'USFBnetPassingYards',
+  'USFBnetPassingYardsPerGame',
+  'USFBpassingFirstDowns',
+  'USFBpassingYards',
+  'USFBpassingYardsPerGame',
+  'USFBpassingAttempts',
+  'USFBpassingAttemptsPerGame',
+  'USFByardsPerPassAttempt',
+]
+
+const footballRecievingStats = [
+  'USFBreceivingFirstDowns',
+  'USFBreceivingTouchdowns',
+  'USFBreceivingYards',
+  'USFBreceivingYardsPerGame',
+  'USFBreceivingYardsPerReception',
+  'USFBreceivingYardsAfterCatch',
+  'USFBreceivingYardsAfterCatchPerGame',
+]
+
+const footballDefenseStats = [
+  'USFBtacklesforLoss',
+  'USFBtacklesforLossPerGame',
+  'USFBinterceptions',
+  'USFByardsPerInterception',
+  'USFBsacksTotal',
+  'USFBsacksPerGame',
+  'USFBsackYards',
+  'USFBsackYardsPerGame',
+  'USFBstuffs',
+  'USFBstuffsPerGame',
+  'USFBstuffYards',
+  'USFBpassesDefended',
+  'USFBpassesDefendedPerGame',
+  'USFBsafties',
+]
+
+const footballKickingStats = [
+  'USFBextraPointAttempts',
+  'USFBextraPointAttemptsPerGame',
+  'USFBextraPointsMade',
+  'USFBextraPointsMadePerGame',
+  'USFBextraPointPercent',
+  'USFBextraPointPercentPerGame',
+  'USFBfieldGoalAttempts',
+  'USFBfieldGoalAttemptsPerGame',
+  'USFBfieldGoalsMade',
+  'USFBfieldGoalsMadePerGame',
+  'USFBfieldGoalPct',
+  'USFBfieldGoalPercentPerGame',
+  'USFBaverageKickoffYards',
+  'USFBaverageKickoffYardsPerGame',
+  'USFBtouchbacks',
+  'USFBtouchbacksPerGame',
+  'USFBtouchBackPercentage',
+]
+
+const footballReturningStats = [
+  'USFBkickReturns',
+  'USFBkickReturnsPerGame',
+  'USFBkickReturnYards',
+  'USFBkickReturnYardsPerGame',
+  'USFBpuntReturns',
+  'USFBpuntReturnsPerGame',
+  'USFBpuntReturnFairCatchPct',
+  'USFBpuntReturnYards',
+  'USFBpuntReturnYardsPerGame',
+  'USFByardsPerReturn',
+]
+
+const footballOtherStats = [
+  'USFBtotalPenyards',
+  'USFBaveragePenYardsPerGame',
+  'USFBthirdDownEfficiency',
+  'USFBtotalFirstDowns',
+  'USFBgiveaways',
+  'USFBtakeaways',
+  'USFBturnoverDiff',
+  'USFBpointsPerGame',
+  'USFBtotalPoints',
+  'USFBtotalTouchdowns',
+  'USFBtouchdownsPerGame',
+]
+
+module.exports = { baseballStatMap, basketballStatMap, hockeyStatMap, footballStatMap, battingStats, pitchingStats, fieldingStats, generalStats, footballDefenseStats, footballKickingStats, footballOtherStats, footballPassingStats, footballRecievingStats, footballReturningStats, footballRushingStats, hockeyDefenseStats, hockeyOffenseStats, hockeyPenaltyStats, basketballDefenseStats, basketballOffenseStats };

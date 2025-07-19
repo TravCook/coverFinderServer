@@ -7,8 +7,8 @@ const Odds = require("../../../models/Odds");
 const gameDBSaver = async (game, sport, past) => {
     let homeTeam = await db.Teams.findOne({ where: { espnDisplayName: normalizeTeamName(game.home_team, game.sport_key), league: sport.name }, raw: true })
     let awayTeam = await db.Teams.findOne({ where: { espnDisplayName: normalizeTeamName(game.away_team, game.sport_key), league: sport.name }, raw: true })
-    if (!homeTeam) console.log(game.home_team)
-    if (!awayTeam) console.log(game.away_team)
+    if (!homeTeam) console.log(game.home_team, normalizeTeamName(game.home_team, game.sport_key))
+    if (!awayTeam) console.log(game.away_team, normalizeTeamName(game.away_team, game.sport_key))
 
     if (homeTeam && awayTeam) {
         let dbGame
