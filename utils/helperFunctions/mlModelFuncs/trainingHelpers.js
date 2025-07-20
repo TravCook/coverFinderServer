@@ -1,18 +1,10 @@
-const { Odds, PastGameOdds, Weights } = require('../../../models');
 const db = require('../../../models_sql');
-const Sequelize = require('sequelize');
-const { Op } = Sequelize;
 const statsMinMax = require('../../seeds/sampledGlobalStats.json')
-const { checkNaNValues } = require('../dataHelpers/dataSanitizers')
 const fs = require('fs')
 const tf = require('@tensorflow/tfjs-node');
 const moment = require('moment')
 const cliProgress = require('cli-progress');
-const pastGameOdds = require('../../../models/pastGameOdds');
-const { Console } = require('console');
 const { baseballStatMap, basketballStatMap, footballStatMap, hockeyStatMap } = require('../../statMaps')
-const globalMeans = require('../../seeds/globalMeans.json');
-const { exit } = require('process');
 
 function pearsonCorrelation(x, y) {
     const n = x.length;
@@ -75,57 +67,23 @@ const normalizeStat = (statName, value, games) => {
     return (value - min) / (max - min); // Apply Min-Max Normalization
 }
 
-const normalizeStatZScore = (statName, value, sportKey = null) => {
-    let statMeta;
-
-    // Try sport-specific first
-    if (sportKey && globalMeans.perSport?.[sportKey]?.[statName]) {
-        statMeta = globalMeans.perSport[sportKey][statName];
-    }
-    // Fallback to global
-    else if (globalMeans.global?.[statName]) {
-        statMeta = globalMeans.global[statName];
-    }
-
-    if (!statMeta) {
-        console.warn(`No mean/stdDev found for stat: ${statName} (sport: ${sportKey})`);
-        return value; // fallback: return original value
-    }
-
-    const { mean, stdDev } = statMeta;
-
-    // Avoid division by zero
-    if (stdDev === 0) return 0;
-
-    return (value - mean) / stdDev;
-};
-
-
-// const getNumericStat = (stats, statName, gameCount) => {
-//     if (!stats || stats[statName] === undefined) return 0;
-
-
-//     return stats[statName] * (.95 * gameCount);
-// };
-const getStepwiseDecayWeight = (gameCount, stepSize = 60, baseDecay = 0.9) => {
-    const decaySteps = Math.floor(gameCount / stepSize);
-    return Math.pow(baseDecay, decaySteps);
-};
-
-const getNumericStat = (stats, statName, gameCount) => {
+const getNumericStat = (stats, statName) => {
     if (!stats || stats[statName] === undefined) return 0;
-    const weight = getStepwiseDecayWeight(gameCount, 100, 0.97); // decay every 60 games
-    return stats[statName] * weight;
+    const val = stats[statName];
+    if (typeof val === 'string' && val.includes('-')) {
+        const [wins, losses] = val.split('-').map(Number);
+        return wins - losses;
+    }
+    return val;
 };
-
 
 
 // Feature extraction per sport
-const extractSportFeatures = (homeStats, awayStats, league, gameCount) => {
+const extractSportFeatures = (homeStats, awayStats, league) => {
     switch (league) {
         case 'americanfootball_nfl':
-            return footballStatMap.map(key => getNumericStat(homeStats, key, gameCount))
-                .concat(footballStatMap.map(key => getNumericStat(awayStats, key, gameCount)))
+            return footballStatMap.map(key => getNumericStat(homeStats, key))
+                .concat(footballStatMap.map(key => getNumericStat(awayStats, key)))
         case 'americanfootball_ncaaf':
             return footballStatMap.map(key => getNumericStat(homeStats, key))
                 .concat(footballStatMap.map(key => getNumericStat(awayStats, key)))
@@ -133,8 +91,8 @@ const extractSportFeatures = (homeStats, awayStats, league, gameCount) => {
             return hockeyStatMap.map(key => getNumericStat(homeStats, key))
                 .concat(hockeyStatMap.map(key => getNumericStat(awayStats, key)))
         case 'baseball_mlb':
-            return baseballStatMap.map(key => getNumericStat(homeStats, key, gameCount))
-                .concat(baseballStatMap.map(key => getNumericStat(awayStats, key, gameCount)))
+            return baseballStatMap.map(key => getNumericStat(homeStats, key))
+                .concat(baseballStatMap.map(key => getNumericStat(awayStats, key)))
         case 'basketball_ncaab':
             return basketballStatMap.map(key => getNumericStat(homeStats, key))
                 .concat(basketballStatMap.map(key => getNumericStat(awayStats, key)))
@@ -266,42 +224,56 @@ const loadOrCreateModel = async (xs, sport, search) => {
 const getZScoreNormalizedStats = (teamId, currentStats, teamStatsHistory) => {
     const history = teamStatsHistory[teamId] || [];
 
-    // Shallow copy so we don't mutate original input
-    const transformedStats = { ...currentStats };
-
-    // Always convert win-loss strings into integers
-    ['seasonWinLoss', 'homeWinLoss', 'awayWinLoss'].forEach(key => {
-        if (transformedStats[key] && typeof transformedStats[key] === 'string') {
-            const [wins, losses] = transformedStats[key].split('-').map(Number);
-            transformedStats[key] = wins - losses;
-        }
-    });
-
+    // Not enough data — return raw stats
     if (history.length < 3) {
-        // Not enough data yet — return transformed raw stats
-        return transformedStats;
+        return { ...currentStats };
     }
+
+    // Normalize win-loss strings first
+    const normalizeWinLoss = (value) => {
+        if (typeof value === 'string') {
+            const [wins, losses] = value.split('-').map(Number);
+            return wins - losses;
+        }
+        return value;
+    };
+
+    const transformedStats = { ...currentStats };
+    ['seasonWinLoss', 'homeWinLoss', 'awayWinLoss'].forEach(key => {
+        transformedStats[key] = normalizeWinLoss(transformedStats[key]);
+    });
 
     const keys = Object.keys(transformedStats);
     const means = {};
     const stds = {};
 
-    keys.forEach(key => {
-        const values = history.map(s => {
-            if (key === 'seasonWinLoss' || key === 'homeWinLoss' || key === 'awayWinLoss') {
-                const [wins, losses] = s[key].split('-').map(Number);
-                return wins - losses;
-            }
-            return s[key];
-        });
+    // Set decay hyperparameters
+    const baseDecay = 0.97;     // Decay multiplier per step
+    const stepSize = 1;         // Decay every 1 step in history (from oldest to newest)
 
-        const mean = values.reduce((a, b) => a + b, 0) / values.length;
-        const std = Math.sqrt(
-            values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length
-        );
+    keys.forEach(key => {
+        const decayedValues = [];
+        const weights = [];
+
+        // Loop from oldest to newest
+        for (let i = 0; i < history.length; i++) {
+            const rawValue = normalizeWinLoss(history[i][key]);
+            const stepsFromLatest = history.length - 1 - i;
+            const weight = Math.pow(baseDecay, stepsFromLatest / stepSize);
+
+            decayedValues.push(rawValue * weight);
+            weights.push(weight);
+        }
+
+        const totalWeight = weights.reduce((a, b) => a + b, 0);
+        const mean = decayedValues.reduce((sum, val) => sum + val, 0) / totalWeight;
+
+        const variance = decayedValues.reduce((sum, val, i) => {
+            return sum + weights[i] * Math.pow(val - mean, 2);
+        }, 0) / totalWeight;
 
         means[key] = mean;
-        stds[key] = std === 0 ? 1 : std;
+        stds[key] = Math.sqrt(variance) || 1;  // avoid divide-by-zero
     });
 
     const normalized = {};
@@ -310,7 +282,8 @@ const getZScoreNormalizedStats = (teamId, currentStats, teamStatsHistory) => {
     });
 
     return normalized;
-}; //SINGLE TEAM HISTORY
+};
+
 
 // const getZScoreNormalizedStats = (teamId, currentStats, teamStatsHistory) => {
 //     const transformedStats = { ...currentStats };
@@ -391,7 +364,6 @@ const mlModelTraining = async (gameData, xs, ys, sport, search, gameCount, sorte
     gameData.forEach(game => {
         const homeTeamId = game.homeTeamId;
         const awayTeamId = game.awayTeamId;
-
         const homeRawStats = game['homeStats.data'];
         const awayRawStats = game['awayStats.data'];
         const normalizedHome = getZScoreNormalizedStats(homeTeamId, homeRawStats, teamStatsHistory);
@@ -400,12 +372,19 @@ const mlModelTraining = async (gameData, xs, ys, sport, search, gameCount, sorte
             console.log(game.id)
             return;
         }
-        const gameIndexFromEnd = sortedGameData.length - 1 - gameCount;
-        const statFeatures = extractSportFeatures(normalizedHome, normalizedAway, sport.name, gameIndexFromEnd);
+
+        const statFeatures = extractSportFeatures(normalizedHome, normalizedAway, sport.name);
         const homeLabel = game.winner === 'home' ? 1 : 0;
         if (statFeatures.some(isNaN) || homeLabel === null) {
-            console.error('NaN detected in features during Training:', game.id);
-            process.exit(0)
+            console.error('NaN or invalid value detected in features during Training:', game.id);
+            statFeatures.forEach((feature, i) => {
+                if (Number.isNaN(feature) || feature === null || feature === undefined) {
+                    console.error(`Feature index ${i} is invalid:`, feature);
+                } else {
+                    console.log(`Feature index ${i}:`, feature);
+                }
+            });
+            process.exit(0);
         } else {
             xs.push(statFeatures);
             ys.push(homeLabel);
@@ -559,7 +538,7 @@ const predictions = async (sportOdds, ff, model, sport, past) => {
             predictionsChanged++
             let oldWinner = game.predictedWinner === 'home' ? game['homeTeamDetails.espnDisplayName'] : game['awayTeamDetails.espnDisplayName'];
             let newWinner = predictedWinner === 'home' ? game['homeTeamDetails.espnDisplayName'] : game['awayTeamDetails.espnDisplayName'];
-            if(!past)console.log(`Prediction changed for game ${game.id}: ${oldWinner} → ${newWinner} (Confidence: ${predictionConfidence})`);
+            if (!past) console.log(`Prediction changed for game ${game.id}: ${oldWinner} → ${newWinner} (Confidence: ${predictionConfidence})`);
         }
         if (game.predictionConfidence !== predictionConfidence) {
             newConfidencePredictions++
@@ -667,38 +646,30 @@ function calculateFeatureImportance(inputToHiddenWeights, hiddenToOutputWeights)
     return featureImportanceScores;
 }
 
-
-
 const trainSportModelKFold = async (sport, gameData, search, upcomingGames) => {
     sportGames = upcomingGames.filter((game) => game.sport_key === sport.name) //USE THIS TO POPULATE UPCOMING GAME ODDS
     let sortedGameData = gameData.sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time)); // Sort by commence_time
     console.log(`${sortedGameData[0].commence_time.toLocaleString()} - ${sortedGameData[sortedGameData.length - 1].commence_time.toLocaleString()}`)
     const numFolds = 4;  // Number of folds (you can adjust based on your data)
-    const foldSize = Math.floor(gameData.length / numFolds);  // Size of each fold
     const bar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
-    let allFolds = [];
     let gameCount = 0
 
-    // Split gameData into `numFolds` folds
-    for (let i = 0; i < numFolds; i++) {
-        const foldStart = i * foldSize;
-        const foldEnd = i === numFolds - 1 ? sortedGameData.length : (i + 1) * foldSize;
-        allFolds.push(sortedGameData.slice(foldStart, foldEnd));
-    }
-    const total = allFolds.length
+    const total = numFolds
     let foldResults = [];
     let finalModel
     bar.start(total, 0);
     progress = 0
     // Perform training and testing on each fold
-    for (let foldIndex = 0; foldIndex < allFolds.length; foldIndex++) {
-        let foldData = [...allFolds[foldIndex]]
+    for (let foldIndex = 1; foldIndex <= numFolds; foldIndex++) {
+        const trainEnd = Math.floor((foldIndex / (numFolds + 1)) * sortedGameData.length);
+        const trainingData = sortedGameData.slice(0, trainEnd);
+        const valStart = trainEnd;
+        const valEnd = foldIndex === numFolds
+            ? sortedGameData.length
+            : Math.floor(((foldIndex + 1) / (numFolds + 1)) * sortedGameData.length);
 
-        const startTest = foldData.length - (foldData.length * .30);
-        const endTest = foldData.length - 1;
+        const testData = sortedGameData.slice(valStart, valEnd);
 
-        const trainingData = [...foldData.slice(0, startTest)];
-        const testData = foldData.slice(startTest, endTest);
 
         // Train the model with training data
         const { model, updatedGameCount } = await mlModelTraining(trainingData, [], [], sport, search, gameCount, sortedGameData);
@@ -793,11 +764,6 @@ const trainSportModelKFold = async (sport, gameData, search, upcomingGames) => {
             console.log('Done!');
         }
     }
-
-    // finalModel.summary()
-    // console.log('Optimizer:', finalModel.optimizer.getClassName());
-    // console.log('Learning rate:', finalModel.optimizer.learningRate);
-
 
     if (!search) await predictions(sportGames, [], finalModel, sport)
     // await predictions(gameData, [], finalModel, sport, true) // Predictions for past games DO NOT RUN THIS AGAIN FOR BASEBALL. MAYBE FOR OTHER SPORTS BUT NOT LIKELY. DO NOT UNCOMMENT UNLESS YOU COMPLETELY CHANGE THE ARCHITECTURE OF THE MODEL OR THE DATASET. IT WILL OVERWRITE PAST GAME ODDS AND PREDICTIONS.

@@ -67,7 +67,7 @@ const mlModelTrainSeed = async () => {
         // retrieve upcoming games
         let upcomingGames = odds.filter((game) => game.sport_key === sport.name)
         // Multi-year sports (e.g., NFL, NBA, NHL, etc.)
-        if (upcomingGames.length > 0) {
+        if (sport.name === 'baseball_mlb') {
             const pastGames = await db.Games.findAll({
                 where: { complete: true, sport_key: sport.name },
                 include: [
@@ -803,7 +803,7 @@ const espnSeed = async () => {
 // modelConfAnalyzer()
 // removeSeed()
 // oddsSeed()
-// mlModelTrainSeed()
+mlModelTrainSeed()
 // dataSeed()
 // statMinMax()
 //TODO: ANALYZE ML MODEL TRAIN SEED AND ADDRESS RAM ISSUES ON EC2 INSTANCE
