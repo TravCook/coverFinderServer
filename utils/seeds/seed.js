@@ -67,7 +67,7 @@ const mlModelTrainSeed = async () => {
         // retrieve upcoming games
         let upcomingGames = odds.filter((game) => game.sport_key === sport.name)
         // Multi-year sports (e.g., NFL, NBA, NHL, etc.)
-        if (sport.name === 'baseball_mlb') {
+        if (upcomingGames.length > 0) {
             const pastGames = await db.Games.findAll({
                 where: { complete: true, sport_key: sport.name },
                 include: [
