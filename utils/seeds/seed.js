@@ -306,103 +306,103 @@ const oddsSeed = async () => {
     const sports = await db.Sports.findAll({ include: [{ model: db.MlModelWeights, as: 'MlModelWeights' }, { model: db.HyperParams, as: 'hyperParams' }], raw: true, order: [['name', 'ASC']] });
     // RETRIEVE ODDS
     console.log(`BEGINNING ODDS SEEDING @ ${moment().format('HH:mm:ss')}`)
-    // const axiosWithBackoff = async (url, retries = 5, delayMs = 1000) => {
-    //     try {
-    //         const response = await axios.get(url);
-    //         return response;
-    //     } catch (error) {
-    //         if (retries === 0) throw error;
-    //         console.log(`Retrying request... (${retries} attempts left)`);
-    //         // await delay(delayMs);
-    //         return axiosWithBackoff(url, retries - 1, delayMs * 2);  // Exponential backoff
-    //     }
-    // };
-    // const fetchDataWithBackoff = async (sports) => {
-    //     let requests
-    //     const currentDate = new Date()
-    //     const currentHour = currentDate.getHours()
-    //     // console.log(sqlSports)
-    //     if (currentHour >= 0 && currentHour < 5) {
-    //         requests = sports.map(sport =>
+    const axiosWithBackoff = async (url, retries = 5, delayMs = 1000) => {
+        try {
+            const response = await axios.get(url);
+            return response;
+        } catch (error) {
+            if (retries === 0) throw error;
+            console.log(`Retrying request... (${retries} attempts left)`);
+            // await delay(delayMs);
+            return axiosWithBackoff(url, retries - 1, delayMs * 2);  // Exponential backoff
+        }
+    };
+    const fetchDataWithBackoff = async (sports) => {
+        let requests
+        const currentDate = new Date()
+        const currentHour = currentDate.getHours()
+        // console.log(sqlSports)
+        if (currentHour >= 0 && currentHour < 5) {
+            requests = sports.map(sport =>
 
-    //             axiosWithBackoff(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_TCDEV}&regions=us&oddsFormat=american&markets=h2h`)
+                axiosWithBackoff(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_TCDEV}&regions=us&oddsFormat=american&markets=h2h`)
 
-    //         );
-    //     } else if (currentHour >= 5 && currentHour < 11) {
-    //         requests = sports.map(sport =>
+            );
+        } else if (currentHour >= 5 && currentHour < 11) {
+            requests = sports.map(sport =>
 
-    //             axiosWithBackoff(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_TRAVM}&regions=us&oddsFormat=american&markets=h2h`)
+                axiosWithBackoff(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_TRAVM}&regions=us&oddsFormat=american&markets=h2h`)
 
-    //         );
-    //     } else if (currentHour >= 11 && currentHour < 17) {
-    //         requests = sports.map(sport =>
+            );
+        } else if (currentHour >= 11 && currentHour < 17) {
+            requests = sports.map(sport =>
 
-    //             axiosWithBackoff(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_LOWRES}&regions=us&oddsFormat=american&markets=h2h`)
+                axiosWithBackoff(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_LOWRES}&regions=us&oddsFormat=american&markets=h2h`)
 
-    //         );
-    //     } else if (currentHour >= 17 && currentHour < 24) {
-    //         requests = sports.map(sport =>
+            );
+        } else if (currentHour >= 17 && currentHour < 24) {
+            requests = sports.map(sport =>
 
-    //             axiosWithBackoff(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_SMOKEY}&regions=us&oddsFormat=american&markets=h2h`)
+                axiosWithBackoff(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_SMOKEY}&regions=us&oddsFormat=american&markets=h2h`)
 
-    //         );
-    //     }
-    //     const data = await Promise.all(requests)
-    //     try {
-    //         for (const item of data) {
-    //             for (const event of item.data) {
-    //                 if (moment().isBefore(moment(event.commence_time))) {
-    //                     if (!event.sport_key) {
-    //                         console.error(`sportType is undefined for event: ${event.id}`);
-    //                     } else {
-    //                         const dbSport = sports.find(s => s.name === event.sport_key);
-    //                         const savedGame = await gameDBSaver(event, dbSport);
-    //                         if (savedGame) {
-    //                             const plainGame = savedGame.get({ plain: true });
+            );
+        }
+        const data = await Promise.all(requests)
+        try {
+            for (const item of data) {
+                for (const event of item.data) {
+                    if (moment().isBefore(moment(event.commence_time))) {
+                        if (!event.sport_key) {
+                            console.error(`sportType is undefined for event: ${event.id}`);
+                        } else {
+                            const dbSport = sports.find(s => s.name === event.sport_key);
+                            const savedGame = await gameDBSaver(event, dbSport);
+                            if (savedGame) {
+                                const plainGame = savedGame.get({ plain: true });
 
-    //                             const homeTeamSQL = await db.Teams.findOne({
-    //                                 where: {
-    //                                     espnDisplayName: normalizeTeamName(event.home_team, event.sport_key),
-    //                                     league: dbSport.name
-    //                                 },
-    //                                 raw: true
-    //                             });
+                                const homeTeamSQL = await db.Teams.findOne({
+                                    where: {
+                                        espnDisplayName: normalizeTeamName(event.home_team, event.sport_key),
+                                        league: dbSport.name
+                                    },
+                                    raw: true
+                                });
 
-    //                             const awayTeamSQL = await db.Teams.findOne({
-    //                                 where: {
-    //                                     espnDisplayName: normalizeTeamName(event.away_team, event.sport_key),
-    //                                     league: dbSport.name
-    //                                 },
-    //                                 raw: true
-    //                             });
+                                const awayTeamSQL = await db.Teams.findOne({
+                                    where: {
+                                        espnDisplayName: normalizeTeamName(event.away_team, event.sport_key),
+                                        league: dbSport.name
+                                    },
+                                    raw: true
+                                });
 
-    //                             await statDBSaver(event, homeTeamSQL, dbSport, plainGame);
-    //                             await statDBSaver(event, awayTeamSQL, dbSport, plainGame);
-    //                         }
+                                await statDBSaver(event, homeTeamSQL, dbSport, plainGame);
+                                await statDBSaver(event, awayTeamSQL, dbSport, plainGame);
+                            }
 
-    //                     }
-    //                 }
-    //             }
-    //         }
+                        }
+                    }
+                }
+            }
 
-    //         console.info('Odds Seeding complete! 🌱');
-    //     } catch (err) {
-    //         if (err) throw (err)
-    //     }
-    // };
-    // await fetchDataWithBackoff(sports.filter(sport => {
-    //     const { startMonth, endMonth, multiYear } = sport;
-    //     if (multiYear) {
-    //         if (startMonth <= moment().month() + 1 || moment().month() + 1 <= endMonth) {
-    //             return true;
-    //         }
-    //     } else {
-    //         if (moment().month() + 1 >= startMonth && moment().month() + 1 <= endMonth) {
-    //             return true;
-    //         }
-    //     }
-    //     return false;
-    // }));
+            console.info('Odds Seeding complete! 🌱');
+        } catch (err) {
+            if (err) throw (err)
+        }
+    };
+    await fetchDataWithBackoff(sports.filter(sport => {
+        const { startMonth, endMonth, multiYear } = sport;
+        if (multiYear) {
+            if (startMonth <= moment().month() + 1 || moment().month() + 1 <= endMonth) {
+                return true;
+            }
+        } else {
+            if (moment().month() + 1 >= startMonth && moment().month() + 1 <= endMonth) {
+                return true;
+            }
+        }
+        return false;
+    }));
     let allPastGamesSQL = await db.Games.findAll({
         where: {
             complete: true, // Only include completed games

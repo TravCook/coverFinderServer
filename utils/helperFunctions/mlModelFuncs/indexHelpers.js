@@ -365,6 +365,7 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
         if (moment().isBefore(moment(game.commence_time)) || past === true) {
             let indexArray
             if(past){
+                console.log(games.indexOf(game))
                 indexArray = await getSeasonalIndexGames(initalsport, games, game, 0,60,0)
             }else{
                 indexArray = await getTeamsIndexes(initalsport)
