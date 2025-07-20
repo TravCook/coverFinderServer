@@ -381,7 +381,7 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
             if (scaledHomeZ > 45 || scaledAwayZ > 45 || scaledHomeZ < 0 || scaledAwayZ < 0) {
                 Zoutliers++
             }
-            console.log(`${game['homeTeamDetails.espnDisplayName']}: ${scaledHomeZ}, ${game['awayTeamDetails.espnDisplayName']}: ${scaledAwayZ} for game ID: ${game.id}`)
+            // console.log(`${game['homeTeamDetails.espnDisplayName']}: ${scaledHomeZ}, ${game['awayTeamDetails.espnDisplayName']}: ${scaledAwayZ} for game ID: ${game.id}`)
             
             // Update the Odds database with the calculated indices
             const winrate = await calculateWinrate(allPastGames, sport, game['homeTeamDetails.espnDisplayName'], game['awayTeamDetails.espnDisplayName'], scaledHomeZ, scaledAwayZ, game.predictedWinner, game.predictionConfidence);
