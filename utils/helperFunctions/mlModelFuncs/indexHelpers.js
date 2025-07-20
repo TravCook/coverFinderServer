@@ -200,7 +200,7 @@ const getSeasonalIndexGames = async (
     for (let i = 0; i <= seasonsBack; i++) {
         let seasonYear = inputDate.year() - i;
         let targetDate;
-        
+
         if (sport.multiYear) {
             targetDate = moment(inputDate).subtract(i, 'years');
         } else {
@@ -220,10 +220,10 @@ const getSeasonalIndexGames = async (
         let targetIndex = seasonGames.findIndex(game =>
             moment(game.commence_time).format('YYYY-MM-DD') === targetDate.format('YYYY-MM-DD')
         );
-        
+
         if (targetIndex === -1) {
             let newTargetDate = targetDate.subtract(1, 'days');
-            targetIndex = seasonGames.findIndex(game => 
+            targetIndex = seasonGames.findIndex(game =>
                 moment(game.commence_time).format('YYYY-MM-DD') === newTargetDate.format('YYYY-MM-DD')
             );
         }
@@ -232,7 +232,7 @@ const getSeasonalIndexGames = async (
         const endIdx = Math.min(seasonGames.length, targetIndex + numGamesAfter + 1);
         const nearbyGames = seasonGames.slice(startIdx, endIdx);
         allGames.push(...nearbyGames);
-        
+
     }
     const indexArray = allGames
         .flatMap(game => {
@@ -245,14 +245,14 @@ const getSeasonalIndexGames = async (
 };
 
 const getTeamsIndexes = async (sport) => {
-    let sportTeams = await db.Teams.findAll({where: {league: sport.name}})
-    let plainTeams = sportTeams.map((team) => team.get({plain: true}))
+    let sportTeams = await db.Teams.findAll({ where: { league: sport.name } })
+    let plainTeams = sportTeams.map((team) => team.get({ plain: true }))
     const indexArray = plainTeams
-    .flatMap(team => {
-        const home = Number(team.statIndex);
-        return [home].filter(i => !isNaN(i));
-    })
-    .sort((a, b) => a - b);
+        .flatMap(team => {
+            const home = Number(team.statIndex);
+            return [home].filter(i => !isNaN(i));
+        })
+        .sort((a, b) => a - b);
     return indexArray
 }
 
@@ -286,7 +286,7 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
             // console.log(statMap[initalsport.name].length)
             homeIndex = await calculateTeamIndex(game['homeStats.data'], weightArray, statMap[initalsport.name], normalizeStat);
             awayIndex = await calculateTeamIndex(game['awayStats.data'], weightArray, statMap[initalsport.name], normalizeStat);
-            
+
             // console.log(`${game['homeTeamDetails.espnDisplayName']}: ${homeIndex}, ${game['awayTeamDetails.espnDisplayName']}: ${awayIndex} for game ID: ${game.id}`)
             await db.Games.update({
                 homeTeamIndex: homeIndex,
@@ -364,16 +364,29 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
     for (const game of currentOdds) {
         if (moment().isBefore(moment(game.commence_time)) || past === true) {
             let indexArray
-            if(past){
-                console.log(games.indexOf(game))
-                indexArray = await getSeasonalIndexGames(initalsport, games, game, 0,60,0)
-            }else{
+            if (past) {
+                const gameIndex = currentOdds.findIndex(searchGame => searchGame.id === game.id);
+
+                // Guard against not finding the game
+                if (gameIndex === -1) {
+                    console.error("Game not found in currentOdds");
+                } else {
+                    const start = Math.max(0, gameIndex - 15);
+                    const end = Math.min(currentOdds.length, gameIndex + 16); // +16 because slice is exclusive
+
+                    indexArray = currentOdds.sort((gameA,gameB) => new Date(gameA.commence_time) - new Date(gameB.commence_time)).slice(start, end).flatMap(mapGame => {
+                        const home = Number(mapGame.homeTeamIndex);
+                        const away = Number(mapGame.awayTeamIndex);
+                        return [home, away].filter(i => !isNaN(i));
+                    }).sort((a, b) => a - b);
+                }
+            } else {
                 indexArray = await getTeamsIndexes(initalsport)
             }
             const avg = mean(indexArray);
-            // console.log(`Home Index: ${game.homeTeamIndex}, Away Index: ${game.awayTeamIndex} for game ID: ${game.id}`);
+            console.log(`Home Index: ${game.homeTeamIndex}, Away Index: ${game.awayTeamIndex} for game ID: ${game.id}`);
             // console.log(`${game['homeTeamDetails.espnDisplayName']}: ${game.homeTeamScaledIndex}, ${game['awayTeamDetails.espnDisplayName']}: ${game.awayTeamScaledIndex} for game ID: ${game.id}`)
-            // console.log(avg)
+            console.log(avg)
             const std = stdDev(indexArray);
             const homeZ = zScore(game.homeTeamIndex, avg, std);
             const awayZ = zScore(game.awayTeamIndex, avg, std);
@@ -382,8 +395,8 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
             if (scaledHomeZ > 45 || scaledAwayZ > 45 || scaledHomeZ < 0 || scaledAwayZ < 0) {
                 Zoutliers++
             }
-            // console.log(`${game['homeTeamDetails.espnDisplayName']}: ${scaledHomeZ}, ${game['awayTeamDetails.espnDisplayName']}: ${scaledAwayZ} for game ID: ${game.id}`)
-            
+            console.log(`${game['homeTeamDetails.espnDisplayName']}: ${scaledHomeZ}, ${game['awayTeamDetails.espnDisplayName']}: ${scaledAwayZ} for game ID: ${game.id}`)
+
             // Update the Odds database with the calculated indices
             const winrate = await calculateWinrate(allPastGames, sport, game['homeTeamDetails.espnDisplayName'], game['awayTeamDetails.espnDisplayName'], scaledHomeZ, scaledAwayZ, game.predictedWinner, game.predictionConfidence);
             if (sport.name === game.sport_key) {
