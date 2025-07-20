@@ -367,7 +367,7 @@ const getZScoreNormalizedStats = (teamId, currentStats, teamStatsHistory) => {
 // }; //ALL TEAM HISTORY
 
 
-const mlModelTraining = async (gameData, xs, ys, sport, search, gameCount) => {
+const mlModelTraining = async (gameData, xs, ys, sport, search, gameCount, sortedGameData) => {
     // Function to calculate decay weight based on number of games processed
     const teamStatsHistory = {}; // teamID => [pastStatsObjects]
     let statMap
@@ -701,7 +701,7 @@ const trainSportModelKFold = async (sport, gameData, search, upcomingGames) => {
         const testData = foldData.slice(startTest, endTest);
 
         // Train the model with training data
-        const { model, updatedGameCount } = await mlModelTraining(trainingData, [], [], sport, search, gameCount);
+        const { model, updatedGameCount } = await mlModelTraining(trainingData, [], [], sport, search, gameCount, sortedGameData);
         gameCount = updatedGameCount
         finalModel = model
 
