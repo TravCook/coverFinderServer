@@ -400,7 +400,8 @@ const mlModelTraining = async (gameData, xs, ys, sport, search, gameCount) => {
             console.log(game.id)
             return;
         }
-        const statFeatures = extractSportFeatures(normalizedHome, normalizedAway, sport.name, gameCount);
+        const gameIndexFromEnd = sortedGameData.length - 1 - gameCount;
+        const statFeatures = extractSportFeatures(normalizedHome, normalizedAway, sport.name, gameIndexFromEnd);
         const homeLabel = game.winner === 'home' ? 1 : 0;
         if (statFeatures.some(isNaN) || homeLabel === null) {
             console.error('NaN detected in features during Training:', game.id);
@@ -670,7 +671,7 @@ function calculateFeatureImportance(inputToHiddenWeights, hiddenToOutputWeights)
 
 const trainSportModelKFold = async (sport, gameData, search, upcomingGames) => {
     sportGames = upcomingGames.filter((game) => game.sport_key === sport.name) //USE THIS TO POPULATE UPCOMING GAME ODDS
-    let sortedGameData = gameData.sort((a, b) => new Date(b.commence_time) - new Date(a.commence_time)); // Sort by commence_time
+    let sortedGameData = gameData.sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time)); // Sort by commence_time
     console.log(`${sortedGameData[0].commence_time.toLocaleString()} - ${sortedGameData[sortedGameData.length - 1].commence_time.toLocaleString()}`)
     const numFolds = 4;  // Number of folds (you can adjust based on your data)
     const foldSize = Math.floor(gameData.length / numFolds);  // Size of each fold
@@ -723,7 +724,8 @@ const trainSportModelKFold = async (sport, gameData, search, upcomingGames) => {
                 console.log(game.id)
                 return;
             }
-            const statFeatures = extractSportFeatures(normalizedHome, normalizedAway, sport.name, gameCount);
+            const gameIndexFromEnd = sortedGameData.length - 1 - gameCount;
+            const statFeatures = extractSportFeatures(normalizedHome, normalizedAway, sport.name, gameIndexFromEnd);
             const homeLabel = game.winner === 'home' ? 1 : 0;
 
             if (statFeatures.some(isNaN) || homeLabel === null) {
