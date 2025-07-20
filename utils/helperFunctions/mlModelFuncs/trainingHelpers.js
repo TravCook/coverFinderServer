@@ -124,8 +124,8 @@ const getNumericStat = (stats, statName, gameCount) => {
 const extractSportFeatures = (homeStats, awayStats, league, gameCount) => {
     switch (league) {
         case 'americanfootball_nfl':
-            return footballStatMap.map(key => getNumericStat(homeStats, key))
-                .concat(footballStatMap.map(key => getNumericStat(awayStats, key)))
+            return footballStatMap.map(key => getNumericStat(homeStats, key, gameCount))
+                .concat(footballStatMap.map(key => getNumericStat(awayStats, key, gameCount)))
         case 'americanfootball_ncaaf':
             return footballStatMap.map(key => getNumericStat(homeStats, key))
                 .concat(footballStatMap.map(key => getNumericStat(awayStats, key)))
