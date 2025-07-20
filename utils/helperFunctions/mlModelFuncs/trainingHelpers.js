@@ -115,7 +115,7 @@ const getStepwiseDecayWeight = (gameCount, stepSize = 60, baseDecay = 0.9) => {
 const getNumericStat = (stats, statName, gameCount) => {
     if (!stats || stats[statName] === undefined) return 0;
     const weight = getStepwiseDecayWeight(gameCount, 100, 0.97); // decay every 60 games
-    return stats[statName];
+    return stats[statName] * weight;
 };
 
 
@@ -670,7 +670,7 @@ function calculateFeatureImportance(inputToHiddenWeights, hiddenToOutputWeights)
 
 const trainSportModelKFold = async (sport, gameData, search, upcomingGames) => {
     sportGames = upcomingGames.filter((game) => game.sport_key === sport.name) //USE THIS TO POPULATE UPCOMING GAME ODDS
-    let sortedGameData = gameData.sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time)); // Sort by commence_time
+    let sortedGameData = gameData.sort((a, b) => new Date(b.commence_time) - new Date(a.commence_time)); // Sort by commence_time
     console.log(`${sortedGameData[0].commence_time.toLocaleString()} - ${sortedGameData[sortedGameData.length - 1].commence_time.toLocaleString()}`)
     const numFolds = 4;  // Number of folds (you can adjust based on your data)
     const foldSize = Math.floor(gameData.length / numFolds);  // Size of each fold

@@ -57,11 +57,11 @@ const cronJobs = [
     onTick: dataSeed.mlModelTrainSeed,
     timezone
   },
-  {
-    cronTime: '0 0 0 * * */7', // Once a week at 12 am -- complete random searches for params and value bets
-    onTick: dataSeed.paramAndValueSeed,
-    timezone,
-  },
+  // {
+  //   cronTime: '0 0 0 * * */7', // Once a week at 12 am -- complete random searches for params and value bets
+  //   onTick: dataSeed.paramAndValueSeed,
+  //   timezone,
+  // },
 ];
 
 // Create an object to track the running status of each cron job by its cronTime (or a unique ID)
