@@ -488,10 +488,10 @@ const oddsSeed = async () => {
         }
         if (inSeason) {
             // During season, keep the sport's statYear as is
-            await db.Sports.update(
-                { statYear },
-                { where: { id } }
-            );
+            // await db.Sports.update(
+            //     { statYear: sport.statYear },
+            //     { where: { id } }
+            // );
         } else {
             // Off-season
             let newStatYear;
