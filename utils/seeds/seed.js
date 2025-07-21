@@ -492,6 +492,7 @@ const oddsSeed = async () => {
             //     { statYear: sport.statYear },
             //     { where: { id } }
             // );
+            console.log(`${sport.name} IS IN SEASON SO STAT YEAR WILL REMAIN ${sport.statYear}`)
         } else {
             // Off-season
             let newStatYear;
