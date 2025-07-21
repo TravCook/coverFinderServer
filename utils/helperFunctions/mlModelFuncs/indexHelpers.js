@@ -384,9 +384,9 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
                 indexArray = await getTeamsIndexes(initalsport)
             }
             const avg = mean(indexArray);
-            console.log(`Home Index: ${game.homeTeamIndex}, Away Index: ${game.awayTeamIndex} for game ID: ${game.id}`);
+            // console.log(`Home Index: ${game.homeTeamIndex}, Away Index: ${game.awayTeamIndex} for game ID: ${game.id}`);
             // console.log(`${game['homeTeamDetails.espnDisplayName']}: ${game.homeTeamScaledIndex}, ${game['awayTeamDetails.espnDisplayName']}: ${game.awayTeamScaledIndex} for game ID: ${game.id}`)
-            console.log(avg)
+            // console.log(avg)
             const std = stdDev(indexArray);
             const homeZ = zScore(game.homeTeamIndex, avg, std);
             const awayZ = zScore(game.awayTeamIndex, avg, std);
@@ -395,7 +395,7 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
             if (scaledHomeZ > 45 || scaledAwayZ > 45 || scaledHomeZ < 0 || scaledAwayZ < 0) {
                 Zoutliers++
             }
-            console.log(`${game['homeTeamDetails.espnDisplayName']}: ${scaledHomeZ}, ${game['awayTeamDetails.espnDisplayName']}: ${scaledAwayZ} for game ID: ${game.id}`)
+            // console.log(`${game['homeTeamDetails.espnDisplayName']}: ${scaledHomeZ}, ${game['awayTeamDetails.espnDisplayName']}: ${scaledAwayZ} for game ID: ${game.id}`)
 
             // Update the Odds database with the calculated indices
             const winrate = await calculateWinrate(allPastGames, sport, game['homeTeamDetails.espnDisplayName'], game['awayTeamDetails.espnDisplayName'], scaledHomeZ, scaledAwayZ, game.predictedWinner, game.predictionConfidence);
