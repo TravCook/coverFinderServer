@@ -392,12 +392,14 @@ const oddsSeed = async () => {
     };
     await fetchDataWithBackoff(sports.filter(sport => {
         const { startMonth, endMonth, multiYear } = sport;
+        // Get current month (1-12)
+        const currentMonth = new Date().getMonth() + 1;
         if (multiYear) {
-            if (startMonth <= moment().month() + 1 || moment().month() + 1 <= endMonth) {
+            if (startMonth <= currentMonth || currentMonth <= endMonth) {
                 return true;
             }
         } else {
-            if (moment().month() + 1 >= startMonth && moment().month() + 1 <= endMonth) {
+            if (currentMonth >= startMonth && currentMonth <= endMonth) {
                 return true;
             }
         }
@@ -470,6 +472,56 @@ const oddsSeed = async () => {
 
             await indexAdjuster(sportGamesSQL, sport, allPastGamesSQL, sport['MlModelWeights.featureImportanceScores'])
         }
+        let inSeason = false
+        const { startMonth, endMonth, multiYear } = sport;
+        // Get current month (1-12)
+        const currentMonth = new Date().getMonth() + 1;
+        const currentYear = new Date().getFullYear()
+        if (multiYear) {
+            if (startMonth <= currentMonth || currentMonth <= endMonth) {
+                inSeason = true
+            }
+        } else {
+            if (currentMonth >= startMonth && currentMonth <= endMonth) {
+                inSeason = true
+            }
+        }
+        if (inSeason) {
+            // During season, keep the sport's statYear as is
+            await db.Sports.update(
+                { statYear },
+                { where: { id } }
+            );
+        } else {
+            // Off-season
+            let newStatYear;
+
+            if (!multiYear) {
+                // Single-year season (e.g. baseball)
+                if (currentMonth < startMonth) {
+                    newStatYear = currentYear;
+                } else {
+                    newStatYear = currentYear + 1;
+                }
+            } else {
+                // Multi-year season (e.g. basketball)
+                if (currentMonth > endMonth && currentMonth < startMonth) {
+                    if (sport.name === 'americanfootball_nfl' || sport.name === 'americanfootball_ncaaf') {
+                        newStatYear = currentYear
+                    } else {
+                        newStatYear = currentYear + 1;
+                    }
+                } else {
+                    newStatYear = currentYear;
+                }
+            }
+            console.log(`TEST WOULD HAVE UPDATED ${sport.name} WITH THE STAT YEAR OF ${newStatYear}`)
+            // await db.Sports.update(
+            //     { statYear: newStatYear },
+            //     { where: { id } }
+            // );
+        }
+
     }
     if (global.gc) global.gc();
     console.log(`ODDS FETCHED AND STORED @ ${moment().format('HH:mm:ss')}`)
