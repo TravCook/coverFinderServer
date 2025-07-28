@@ -732,7 +732,7 @@ const trainSportModelKFold = async (sport, gameData, search, upcomingGames) => {
         const testYsScore = [];
         const testYsWins = [];
 
-        const teamStatsHistory = {}; // teamID => [pastStatsObjects]
+        const teamStatsHistory = [] // teamID => [pastStatsObjects]
         let scorepredictionsArray = []
         let winProbPredicitonsArray = []
         let statMap
@@ -760,8 +760,8 @@ const trainSportModelKFold = async (sport, gameData, search, upcomingGames) => {
             const homeRawStats = game['homeStats.data'];
             const awayRawStats = game['awayStats.data'];
 
-            const normalizedHome = getZScoreNormalizedStats(homeTeamId, homeRawStats, teamStatsHistory, true, search, sport);
-            const normalizedAway = getZScoreNormalizedStats(awayTeamId, awayRawStats, teamStatsHistory, true, search, sport);
+            const normalizedHome = getZScoreNormalizedStats( homeRawStats, teamStatsHistory, true, search, sport);
+            const normalizedAway = getZScoreNormalizedStats( awayRawStats, teamStatsHistory, true, search, sport);
 
             if (!normalizedHome || !normalizedAway) {
                 console.log(game.id)
@@ -782,17 +782,15 @@ const trainSportModelKFold = async (sport, gameData, search, upcomingGames) => {
             }
 
             if (statFeatures.length / 2 === statMap.length && isValidStatBlock(homeRawStats) && isValidStatBlock(awayRawStats)) {
-                // Update history AFTER using current stats
-                if (!teamStatsHistory[homeTeamId]) teamStatsHistory[homeTeamId] = [];
-                if (!teamStatsHistory[awayTeamId]) teamStatsHistory[awayTeamId] = [];
 
-                teamStatsHistory[homeTeamId].push(homeRawStats);
-                if (teamStatsHistory[homeTeamId].length > (search ? sport.hyperParameters.historyLength : 50)) {
-                    teamStatsHistory[homeTeamId].shift(); // remove oldest game
+
+                teamStatsHistory.push(homeRawStats);
+                if (teamStatsHistory.length > (search ? sport.hyperParameters.historyLength : 50)) {
+                    teamStatsHistory.shift(); // remove oldest game
                 }
-                teamStatsHistory[awayTeamId].push(awayRawStats);
-                if (teamStatsHistory[awayTeamId].length > (search ? sport.hyperParameters.historyLength : 50)) {
-                    teamStatsHistory[awayTeamId].shift(); // remove oldest game
+                teamStatsHistory.push(awayRawStats);
+                if (teamStatsHistory.length > (search ? sport.hyperParameters.historyLength : 50)) {
+                    teamStatsHistory.shift(); // remove oldest game
                 }
             }
             let [averagedScore, averagedWinProb] = await repeatPredictions(model, tf.tensor2d([statFeatures]), 10);
