@@ -505,12 +505,12 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
         const awayRawStats = game['awayStats.data'];
 
         do {
-            for (const game of pastGames) {
+            pastGames.forEach((game) => {
                 const homeRawStats = game['homeStats.data'];
                 const awayRawStats = game['awayStats.data'];
                 teamStatsHistory.push(homeRawStats);
                 teamStatsHistory.push(awayRawStats);
-            }
+            })
         } while (
             teamStatsHistory.length > (50)
         )
