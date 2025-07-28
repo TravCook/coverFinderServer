@@ -1,6 +1,7 @@
 const db = require('../../../models_sql');
 const statsMinMax = require('../../seeds/sampledGlobalStats.json')
 const fs = require('fs')
+const path = require('path');
 const tf = require('@tensorflow/tfjs-node');
 const moment = require('moment')
 const cliProgress = require('cli-progress');
@@ -302,7 +303,15 @@ const getZScoreNormalizedStats = (teamId, currentStats, teamStatsHistory, predic
         normalized[key] = (transformedStats[key] - means[key]) / stds[key];
     });
     if (isFinalTrainingGame) {
-        fs.writeFileSync('./seeds/global_normalization.json', JSON.stringify({ means: means, stds: stds }, null, 2));
+        const outputDir = './seeds';
+        const outputPath = path.join(outputDir, 'global_normalization.json');
+
+        // Make sure the directory exists
+        if (!fs.existsSync(outputDir)) {
+            fs.mkdirSync(outputDir, { recursive: true }); // `recursive` ensures nested dirs
+        }
+
+        fs.writeFileSync(outputPath, JSON.stringify({ means: means, stds: stds }, null, 2));
     }
 
     return normalized;
@@ -342,8 +351,8 @@ const mlModelTraining = async (gameData, xs, ysWins, ysScore, sport, search, gam
             normalizedHome = getZScoreNormalizedStats(homeTeamId, homeRawStats, teamStatsHistory, false, search, sport, true);
             normalizedAway = getZScoreNormalizedStats(awayTeamId, awayRawStats, teamStatsHistory, false, search, sport, true);
         } else {
-            normalizedHome = getZScoreNormalizedStats(homeTeamId, homeRawStats, teamStatsHistory, false, search, sport);
-            normalizedAway = getZScoreNormalizedStats(awayTeamId, awayRawStats, teamStatsHistory, false, search, sport);
+            normalizedHome = getZScoreNormalizedStats(homeTeamId, homeRawStats, teamStatsHistory, false, search, sport, false);
+            normalizedAway = getZScoreNormalizedStats(awayTeamId, awayRawStats, teamStatsHistory, false, search, sport, false);
         }
 
         if (!normalizedHome || !normalizedAway) {
