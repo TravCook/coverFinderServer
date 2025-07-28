@@ -477,6 +477,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
     let misMatched = 0
     let matchedScore = 0
     let spreadMatch = 0
+    let totalMatch = 0
     const teamStatsHistory = []; // teamID => [pastStatsObjects]
     let statMap
     switch (sport.name) {
@@ -496,6 +497,12 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
             statMap = basketballStatMap
             break
     }
+    for (const pastGame of pastGames) {
+        const homeRawStats = pastGame['homeStats.data'];
+        const awayRawStats = pastGame['awayStats.data'];
+        teamStatsHistory.push(homeRawStats);
+        teamStatsHistory.push(awayRawStats);
+    }
     for (const game of sportOdds) {
         if (Date.parse(game.commence_time) <= Date.now() && !past) continue; // Skip upcoming games if already started
         const homeTeamId = game.homeTeamId;
@@ -503,18 +510,6 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
 
         const homeRawStats = game['homeStats.data'];
         const awayRawStats = game['awayStats.data'];
-        console.info(`BEFORE STAT FILLING ${sport.name} @ ${moment().format('HH:mm:ss')}`);
-        // do {
-        for (const pastGame of pastGames) {
-            const homeRawStats = pastGame['homeStats.data'];
-            const awayRawStats = pastGame['awayStats.data'];
-            teamStatsHistory.push(homeRawStats);
-            teamStatsHistory.push(awayRawStats);
-        }
-        // } while (
-        //     teamStatsHistory.length < (50)
-        // )
-        console.info(`AFTER STAT FILLING ${sport.name} @ ${moment().format('HH:mm:ss')}`);
 
         const normalizedHome = getZScoreNormalizedStats(homeRawStats, teamStatsHistory, true, search, sport, false);
         const normalizedAway = getZScoreNormalizedStats(awayRawStats, teamStatsHistory, true, search, sport, false);
@@ -526,19 +521,6 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
 
         const statFeatures = extractSportFeatures(normalizedHome, normalizedAway, sport.name, 0);
 
-        // if (isValidStatBlock(homeRawStats) && isValidStatBlock(awayRawStats)) {
-        //     // Update history AFTER using current stats
-
-        //     teamStatsHistory.push(homeRawStats);
-        //     if (teamStatsHistory.length > (50)) {
-        //         teamStatsHistory.shift(); // remove oldest game
-        //     }
-        //     teamStatsHistory.push(awayRawStats);
-        //     if (teamStatsHistory.length > (50)) {
-        //         teamStatsHistory.shift(); // remove oldest game
-        //     }
-        // }
-
         if (statFeatures.some(isNaN)) {
             console.error('NaN detected in features Predictions:', game.id);
             return;
@@ -547,8 +529,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
 
 
         const [predScore, predWinProb] = await repeatPredictions(model, tf.tensor2d([statFeatures]), 100);
-        // console.log(predScore)
-        // console.log(predWinProb)
+
         let homeScore = predScore[0]
         let awayScore = predScore[1]
 
@@ -618,6 +599,9 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
             }
             if (Math.abs(homeScore - awayScore) === Math.abs(game.homeScore - game.awayScore)) {
                 spreadMatch++
+            }
+            if((homeScore + awayScore) ===( game.homeScore + game.awayScore)){
+                totalMatch++
             }
 
         }
