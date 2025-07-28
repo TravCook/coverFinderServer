@@ -235,8 +235,19 @@ const getZScoreNormalizedStats = (teamId, currentStats, teamStatsHistory, predic
 
     // Not enough data — return raw stats
     if (history.length < 5) {
-        return { ...currentStats };
+        // Use fallback normalization with mean = 0, std = 1 to maintain model expectations
+        const fallback = {};
+        Object.keys(currentStats).forEach(key => {
+            let val = currentStats[key];
+            if (typeof val === 'string') {
+                const [wins] = val.split('-').map(Number);
+                val = wins;
+            }
+            fallback[key] = (val - 0) / 1;  // trivial z-score
+        });
+        return fallback;
     }
+
 
     // Normalize win-loss strings first
     const normalizeWinLoss = (value) => {
@@ -517,14 +528,13 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
 
         const predictedWinner = predScore[0] > predScore[1] ? 'home' : 'away';
         const predictionConfidence = predWinProb > .50 ? predWinProb : 1 - predWinProb;
-
+        if (Math.round(homeScore) === Math.round(awayScore)) {
+            predictedWinner === 'home' ? homeScore = homeScore + 1 : awayScore = awayScore + 1
+        }
         // Track the game so we can compare two predictions later
         const updatePayload = {
-            predictedHomeScore: homeScore,
-            predictedAwayScore: awayScore,
             predictedWinner,
             predictionConfidence,
-            predictionCorrect: predictedWinner === game.winner,
             predictedHomeScore: Math.round(homeScore),
             predictedAwayScore: Math.round(awayScore),
         };
