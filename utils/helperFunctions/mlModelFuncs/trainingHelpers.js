@@ -237,20 +237,20 @@ const getZScoreNormalizedStats = ( currentStats, teamStatsHistory, prediction, s
     // console.log(history)
     // Not enough data — return raw stats
     if (history.length < 5) {
-        // const fallback = {};
-        // Object.keys(currentStats).forEach(key => {
-        //     let val = currentStats[key];
-        //     if (typeof val === 'string') {
-        //         const [wins] = val.split('-').map(Number);
-        //         val = wins;
-        //     }
+        const fallback = {};
+        Object.keys(currentStats).forEach(key => {
+            let val = currentStats[key];
+            if (typeof val === 'string') {
+                const [wins] = val.split('-').map(Number);
+                val = wins;
+            }
 
-        //     const mean = fallbackStats.means[key] ?? 0;
-        //     const std = fallbackStats.stds[key] ?? 1;
-        //     fallback[key] = (val - mean) / std;
-        // });
-        // return fallback;
-        return { ...currentStats }
+            const mean = fallbackStats.means[key] ?? 0;
+            const std = fallbackStats.stds[key] ?? 1;
+            fallback[key] = (val - mean) / std;
+        });
+        return fallback;
+        // return { ...currentStats }
     }
 
 
