@@ -498,7 +498,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
         //     })
 
         // } while (teamStatsHistory[homeTeamId].length < 50 && teamStatsHistory[awayTeamId].length < 50)
-        console.log(teamStatsHistory[homeTeamId].length, teamStatsHistory[awayTeamId].length)
+        // console.log(teamStatsHistory[homeTeamId].length, teamStatsHistory[awayTeamId].length)
         const normalizedHome = getZScoreNormalizedStats(homeTeamId, homeRawStats, teamStatsHistory, true, search, sport);
         const normalizedAway = getZScoreNormalizedStats(awayTeamId, awayRawStats, teamStatsHistory, true, search, sport);
 
