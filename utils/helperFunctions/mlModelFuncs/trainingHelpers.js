@@ -234,7 +234,7 @@ const getZScoreNormalizedStats = (teamId, currentStats, teamStatsHistory, predic
     const history = teamStatsHistory[teamId] || [];
 
     // Not enough data — return raw stats
-    if (history.length < 5 && !prediction) {
+    if (history.length < 5) {
         return { ...currentStats };
     }
 
