@@ -337,23 +337,15 @@ const mlModelTraining = async (gameData, xs, ysWins, ysScore, sport, search, gam
             statMap = basketballStatMap
             break
     }
-    gameIndex = 0
     let teamStatsHistory = [];
     gameData.forEach(game => {
-        gameIndex++
         const homeRawStats = game['homeStats.data'];
         const awayRawStats = game['awayStats.data'];
         let normalizedHome
         let normalizedAway
-        if (gameIndex === gameData.length - 1) {
-            console.log(gameIndex)
-            console.log(gameData.length - 1)
-            normalizedHome = getZScoreNormalizedStats(homeRawStats, teamStatsHistory, false, search, sport, true);
-            normalizedAway = getZScoreNormalizedStats(awayRawStats, teamStatsHistory, false, search, sport, true);
-        } else {
-            normalizedHome = getZScoreNormalizedStats(homeRawStats, teamStatsHistory, false, search, sport, false);
-            normalizedAway = getZScoreNormalizedStats(awayRawStats, teamStatsHistory, false, search, sport, false);
-        }
+
+        normalizedHome = getZScoreNormalizedStats(homeRawStats, teamStatsHistory, false, search, sport, false);
+        normalizedAway = getZScoreNormalizedStats(awayRawStats, teamStatsHistory, false, search, sport, false);
 
         if (!normalizedHome || !normalizedAway) {
             console.log(game.id)
