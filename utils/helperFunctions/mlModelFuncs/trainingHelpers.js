@@ -487,16 +487,16 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
 
         const statFeatures = extractSportFeatures(normalizedHome, normalizedAway, sport.name, 0);
 
-        if (isValidStatBlock(gameHomeStats) && isValidStatBlock(gameAwayStats)) {
+        if (isValidStatBlock(homeRawStats) && isValidStatBlock(awayRawStats)) {
             // Update history AFTER using current stats
             if (!teamStatsHistory[homeTeamId]) teamStatsHistory[homeTeamId] = [];
             if (!teamStatsHistory[awayTeamId]) teamStatsHistory[awayTeamId] = [];
 
-            teamStatsHistory[homeTeamId].push(gameHomeStats);
+            teamStatsHistory[homeTeamId].push(homeRawStats);
             if (teamStatsHistory[homeTeamId].length > (50)) {
                 teamStatsHistory[homeTeamId].shift(); // remove oldest game
             }
-            teamStatsHistory[awayTeamId].push(gameAwayStats);
+            teamStatsHistory[awayTeamId].push(awayRawStats);
             if (teamStatsHistory[awayTeamId].length > (50)) {
                 teamStatsHistory[awayTeamId].shift(); // remove oldest game
             }
