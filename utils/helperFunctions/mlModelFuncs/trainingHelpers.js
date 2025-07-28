@@ -830,7 +830,7 @@ const trainSportModelKFold = async (sport, gameData, search, upcomingGames) => {
         return testWinRate
     }
 
-    const inputToHiddenWeights = model.layers[1].getWeights()[0].arraySync(); // Input → First hidden layer
+    const inputToHiddenWeights = finalModel.layers[1].getWeights()[0].arraySync(); // Input → First hidden layer
     let currentWeights = inputToHiddenWeights; // Shape: [numInputFeatures, hiddenUnits]
 
     const hiddenLayerCount = hyperParams.hiddenLayerNum;
@@ -839,14 +839,14 @@ const trainSportModelKFold = async (sport, gameData, search, upcomingGames) => {
     // Propagate through each hidden layer
     for (let i = 0; i < hiddenLayerCount; i++) {
         const layerIndex = 2 + i * (dropoutRate > 0 ? 2 : 1); // Skip dropout layers
-        const layerWeights = model.layers[layerIndex].getWeights()[0].arraySync(); // Shape: [hiddenUnits, hiddenUnits]
+        const layerWeights = finalModel.layers[layerIndex].getWeights()[0].arraySync(); // Shape: [hiddenUnits, hiddenUnits]
 
         // Matrix multiply: feature weights * current layer's weights
         currentWeights = math.multiply(currentWeights, layerWeights);
     }
 
     // Multiply by weights of winProbOutput layer
-    const winProbOutputLayer = model.getLayer('scoreOutput');
+    const winProbOutputLayer = finalModel.getLayer('scoreOutput');
     const finalOutputWeights = winProbOutputLayer.getWeights()[0].arraySync(); // Shape: [hiddenUnits, 1]
 
     const featureToOutputWeights = math.multiply(currentWeights, finalOutputWeights); // Shape: [numFeatures, 1]
