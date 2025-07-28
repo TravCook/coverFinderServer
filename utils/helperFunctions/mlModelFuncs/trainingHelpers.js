@@ -871,14 +871,14 @@ const trainSportModelKFold = async (sport, gameData, search, upcomingGames) => {
         const layerWeights = finalModel.layers[layerIndex].getWeights()[0].arraySync(); // Shape: [hiddenUnits, hiddenUnits]
 
         // Matrix multiply: feature weights * current layer's weights
-        currentWeights = Math.multiply(currentWeights, layerWeights);
+        currentWeights = tf.matMul(tf.tensor2d(currentWeights), tf.tensor2d(layerWeights));
     }
 
     // Multiply by weights of winProbOutput layer
     const winProbOutputLayer = finalModel.getLayer('scoreOutput');
     const finalOutputWeights = winProbOutputLayer.getWeights()[0].arraySync(); // Shape: [hiddenUnits, 1]
 
-    const featureToOutputWeights = Math.multiply(currentWeights, finalOutputWeights); // Shape: [numFeatures, 1]
+    const featureToOutputWeights = tf.matMul(tf.tensor2d(currentWeights), tf.tensor2d(finalOutputWeights));; // Shape: [numFeatures, 1]
 
     // Calculate absolute importance values (or square for stronger contrast)
     let featureImportanceScores = featureToOutputWeights.map(weightArr => Math.abs(weightArr[0]));
