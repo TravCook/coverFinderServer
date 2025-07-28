@@ -231,7 +231,7 @@ const loadOrCreateModel = async (xs, sport, search) => {
     }
 };
 
-const getZScoreNormalizedStats = (teamId, currentStats, teamStatsHistory, prediction, search, sport) => {
+const getZScoreNormalizedStats = (teamId, currentStats, teamStatsHistory, prediction, search, sport, isFinalTrainingGame) => {
     const history = teamStatsHistory[teamId] || [];
 
     // Not enough data — return raw stats
@@ -349,13 +349,23 @@ const mlModelTraining = async (gameData, xs, ysWins, ysScore, sport, search, gam
             statMap = basketballStatMap
             break
     }
+    gameIndex = 0
     gameData.forEach(game => {
+        gameIndex++
         const homeTeamId = game.homeTeamId;
         const awayTeamId = game.awayTeamId;
         const homeRawStats = game['homeStats.data'];
         const awayRawStats = game['awayStats.data'];
-        const normalizedHome = getZScoreNormalizedStats(homeTeamId, homeRawStats, teamStatsHistory, false, search, sport);
-        const normalizedAway = getZScoreNormalizedStats(awayTeamId, awayRawStats, teamStatsHistory, false, search, sport);
+        let normalizedHome
+        let normalizedAway
+        if(gameIndex === gameData.length - 1){
+        normalizedHome = getZScoreNormalizedStats(homeTeamId, homeRawStats, teamStatsHistory, false, search, sport, true);
+        normalizedAway = getZScoreNormalizedStats(awayTeamId, awayRawStats, teamStatsHistory, false, search, sport, true);
+        }else{
+        normalizedHome = getZScoreNormalizedStats(homeTeamId, homeRawStats, teamStatsHistory, false, search, sport);
+        normalizedAway = getZScoreNormalizedStats(awayTeamId, awayRawStats, teamStatsHistory, false, search, sport);
+        }
+
         if (!normalizedHome || !normalizedAway) {
             console.log(game.id)
             return;
