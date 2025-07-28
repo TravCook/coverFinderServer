@@ -5,6 +5,7 @@ const tf = require('@tensorflow/tfjs-node');
 const moment = require('moment')
 const cliProgress = require('cli-progress');
 const { baseballStatMap, basketballStatMap, footballStatMap, hockeyStatMap } = require('../../statMaps')
+// const fallbackStats = require('./global_normalization.json'); // Load once outside function
 
 function pearsonCorrelation(x, y) {
     const n = x.length;
@@ -235,20 +236,21 @@ const getZScoreNormalizedStats = (teamId, currentStats, teamStatsHistory, predic
 
     // Not enough data — return raw stats
     if (history.length < 5) {
-        // Use fallback normalization with mean = 0, std = 1 to maintain model expectations
-        const fallback = {};
-        Object.keys(currentStats).forEach(key => {
-            let val = currentStats[key];
-            if (typeof val === 'string') {
-                const [wins] = val.split('-').map(Number);
-                val = wins;
-            }
-            fallback[key] = (val - 0) / 1;  // trivial z-score
-        });
-        if (prediction) console.log(history.length)
-        return fallback;
-        
-    } 
+        // const fallback = {};
+        // Object.keys(currentStats).forEach(key => {
+        //     let val = currentStats[key];
+        //     if (typeof val === 'string') {
+        //         const [wins] = val.split('-').map(Number);
+        //         val = wins;
+        //     }
+
+        //     const mean = fallbackStats.means[key] ?? 0;
+        //     const std = fallbackStats.stds[key] ?? 1;
+        //     fallback[key] = (val - mean) / std;
+        // });
+        // return fallback;
+        return {...currentStats}
+    }
 
 
     // Normalize win-loss strings first
@@ -299,6 +301,29 @@ const getZScoreNormalizedStats = (teamId, currentStats, teamStatsHistory, predic
     keys.forEach(key => {
         normalized[key] = (transformedStats[key] - means[key]) / stds[key];
     });
+    if (isFinalTrainingGame) {
+        const globalMeans = {};
+        const globalStds = {};
+
+        const statKeys = Object.keys(someTeamStats); // Grab from 1 sample
+        for (const key of statKeys) {
+            const values = []; // Across all teams/games
+            for (const teamId in teamStatsHistory) {
+                const teamGames = teamStatsHistory[teamId];
+                for (const game of teamGames) {
+                    values.push(normalizeWinLoss(game[key]));
+                }
+            }
+
+            const mean = values.reduce((a, b) => a + b, 0) / values.length;
+            const std = Math.sqrt(values.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / values.length);
+
+            globalMeans[key] = mean;
+            globalStds[key] = std || 1; // Avoid divide-by-zero
+        }
+
+        fs.writeFileSync('./seeds/global_normalization.json', JSON.stringify({ means: globalMeans, stds: globalStds }, null, 2));
+    }
 
     return normalized;
 };
@@ -483,8 +508,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
     }
     for (const game of sportOdds) {
         if (Date.parse(game.commence_time) <= Date.now() && !past) continue; // Skip upcoming games if already started
-        const homeTeamId = game.homeTeamId;
-        const awayTeamId = game.awayTeamId;
+
 
         const homeRawStats = game['homeStats.data'];
         const awayRawStats = game['awayStats.data'];
@@ -502,16 +526,15 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
 
         if (isValidStatBlock(homeRawStats) && isValidStatBlock(awayRawStats)) {
             // Update history AFTER using current stats
-            if (!teamStatsHistory[homeTeamId]) teamStatsHistory[homeTeamId] = [];
-            if (!teamStatsHistory[awayTeamId]) teamStatsHistory[awayTeamId] = [];
+            if (!teamStatsHistory) teamStatsHistory = [];
 
-            teamStatsHistory[homeTeamId].push(homeRawStats);
-            if (teamStatsHistory[homeTeamId].length > (50)) {
-                teamStatsHistory[homeTeamId].shift(); // remove oldest game
+            teamStatsHistory.push(homeRawStats);
+            if (teamStatsHistory.length > (50)) {
+                teamStatsHistory.shift(); // remove oldest game
             }
-            teamStatsHistory[awayTeamId].push(awayRawStats);
-            if (teamStatsHistory[awayTeamId].length > (50)) {
-                teamStatsHistory[awayTeamId].shift(); // remove oldest game
+            teamStatsHistory.push(awayRawStats);
+            if (teamStatsHistory.length > (50)) {
+                teamStatsHistory.shift(); // remove oldest game
             }
         }
 
