@@ -249,7 +249,7 @@ const getZScoreNormalizedStats = (teamId, currentStats, teamStatsHistory, predic
         //     fallback[key] = (val - mean) / std;
         // });
         // return fallback;
-        return {...currentStats}
+        return { ...currentStats }
     }
 
 
@@ -302,27 +302,7 @@ const getZScoreNormalizedStats = (teamId, currentStats, teamStatsHistory, predic
         normalized[key] = (transformedStats[key] - means[key]) / stds[key];
     });
     if (isFinalTrainingGame) {
-        const globalMeans = {};
-        const globalStds = {};
-
-        const statKeys = Object.keys(someTeamStats); // Grab from 1 sample
-        for (const key of statKeys) {
-            const values = []; // Across all teams/games
-            for (const teamId in teamStatsHistory) {
-                const teamGames = teamStatsHistory[teamId];
-                for (const game of teamGames) {
-                    values.push(normalizeWinLoss(game[key]));
-                }
-            }
-
-            const mean = values.reduce((a, b) => a + b, 0) / values.length;
-            const std = Math.sqrt(values.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / values.length);
-
-            globalMeans[key] = mean;
-            globalStds[key] = std || 1; // Avoid divide-by-zero
-        }
-
-        fs.writeFileSync('./seeds/global_normalization.json', JSON.stringify({ means: globalMeans, stds: globalStds }, null, 2));
+        fs.writeFileSync('./seeds/global_normalization.json', JSON.stringify({ means: means, stds: stds }, null, 2));
     }
 
     return normalized;
@@ -358,12 +338,12 @@ const mlModelTraining = async (gameData, xs, ysWins, ysScore, sport, search, gam
         const awayRawStats = game['awayStats.data'];
         let normalizedHome
         let normalizedAway
-        if(gameIndex === gameData.length - 1){
-        normalizedHome = getZScoreNormalizedStats(homeTeamId, homeRawStats, teamStatsHistory, false, search, sport, true);
-        normalizedAway = getZScoreNormalizedStats(awayTeamId, awayRawStats, teamStatsHistory, false, search, sport, true);
-        }else{
-        normalizedHome = getZScoreNormalizedStats(homeTeamId, homeRawStats, teamStatsHistory, false, search, sport);
-        normalizedAway = getZScoreNormalizedStats(awayTeamId, awayRawStats, teamStatsHistory, false, search, sport);
+        if (gameIndex === gameData.length - 1) {
+            normalizedHome = getZScoreNormalizedStats(homeTeamId, homeRawStats, teamStatsHistory, false, search, sport, true);
+            normalizedAway = getZScoreNormalizedStats(awayTeamId, awayRawStats, teamStatsHistory, false, search, sport, true);
+        } else {
+            normalizedHome = getZScoreNormalizedStats(homeTeamId, homeRawStats, teamStatsHistory, false, search, sport);
+            normalizedAway = getZScoreNormalizedStats(awayTeamId, awayRawStats, teamStatsHistory, false, search, sport);
         }
 
         if (!normalizedHome || !normalizedAway) {
