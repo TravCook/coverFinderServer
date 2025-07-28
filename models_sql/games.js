@@ -99,11 +99,13 @@ module.exports = (sequelize, DataTypes) => {
         },
         predictedHomeScore: {
             type: DataTypes.INTEGER,
-            allowNull: true
+            allowNull: false,
+            defaultValue: 0
         },
         predictedAwayScore: {
             type: DataTypes.INTEGER,
-            allowNull: true
+            allowNull: false,
+            defaultValue: 0
         }
     }, {
         sequelize,
