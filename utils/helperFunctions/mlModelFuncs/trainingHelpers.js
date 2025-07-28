@@ -483,7 +483,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
     let misMatched = 0
     let matchedScore = 0
     let spreadMatch = 0
-    const teamStatsHistory = {}; // teamID => [pastStatsObjects]
+    const teamStatsHistory = []; // teamID => [pastStatsObjects]
     let statMap
     switch (sport.name) {
         case 'baseball_mlb':
@@ -523,7 +523,6 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
 
         if (isValidStatBlock(homeRawStats) && isValidStatBlock(awayRawStats)) {
             // Update history AFTER using current stats
-            if (!teamStatsHistory) teamStatsHistory = [];
 
             teamStatsHistory.push(homeRawStats);
             if (teamStatsHistory.length > (50)) {
