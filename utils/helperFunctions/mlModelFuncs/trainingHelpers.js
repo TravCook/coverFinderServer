@@ -431,7 +431,7 @@ const mlModelTraining = async (gameData, xs, ysWins, ysScore, sport, search, gam
 
 const predictions = async (sportOdds, ff, model, sport, past, search, pastGames) => {
     console.info(`STARTING PREDICTIONS FOR ${sport.name} @ ${moment().format('HH:mm:ss')}`);
-
+    console.log(`${new Date(pastGames[0].commence_time).toLocaleString()} - ${new Date(pastGames[pastGames.length-1].commence_time).toLocaleString()}`)
     if (past) {
         sportOdds = sportOdds.filter(game => game.predictedWinner === 'home' || game.predictedWinner === 'away');
     }
@@ -816,7 +816,7 @@ const trainSportModelKFold = async (sport, gameData, search, upcomingGames) => {
             // console.log('Done!');
         }
     }
-    let testWinRate = await predictions(sportGames, [], finalModel, sport, false, search, gameData.sort((gameA, gameB) => new Date(b.commence_time) - new Date(a.commence_time)))
+    let testWinRate = await predictions(sportGames, [], finalModel, sport, false, search, gameData.sort((gameA, gameB) => new Date(gameB.commence_time) - new Date(gameA.commence_time)))
     // await predictions(gameData, [], finalModel, sport, true) // Predictions for past games DO NOT RUN THIS AGAIN FOR BASEBALL. MAYBE FOR OTHER SPORTS BUT NOT LIKELY. DO NOT UNCOMMENT UNLESS YOU COMPLETELY CHANGE THE ARCHITECTURE OF THE MODEL OR THE DATASET. IT WILL OVERWRITE PAST GAME ODDS AND PREDICTIONS.
     // After all folds, calculate and log the overall performance
     const avgF1Score = foldResults.reduce((sum, fold) => sum + fold.f1Score, 0) / foldResults.length;
