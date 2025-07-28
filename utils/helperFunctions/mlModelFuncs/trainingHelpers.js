@@ -476,29 +476,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
         const homeRawStats = game['homeStats.data'];
         const awayRawStats = game['awayStats.data'];
 
-        // do {
-        //     pastGames.map((game) => {
-        //         let gameHomeStats = game['homeStats.data']
-        //         let gameAwayStats = game['awayStats.data']
 
-        //         if (isValidStatBlock(gameHomeStats) && isValidStatBlock(gameAwayStats)) {
-        //             // Update history AFTER using current stats
-        //             if (!teamStatsHistory[homeTeamId]) teamStatsHistory[homeTeamId] = [];
-        //             if (!teamStatsHistory[awayTeamId]) teamStatsHistory[awayTeamId] = [];
-
-        //             teamStatsHistory[homeTeamId].push(gameHomeStats);
-        //             if (teamStatsHistory[homeTeamId].length > (50)) {
-        //                 teamStatsHistory[homeTeamId].shift(); // remove oldest game
-        //             }
-        //             teamStatsHistory[awayTeamId].push(gameAwayStats);
-        //             if (teamStatsHistory[awayTeamId].length > (50)) {
-        //                 teamStatsHistory[awayTeamId].shift(); // remove oldest game
-        //             }
-        //         }
-        //     })
-
-        // } while (teamStatsHistory[homeTeamId].length < 50 && teamStatsHistory[awayTeamId].length < 50)
-        // console.log(teamStatsHistory[homeTeamId].length, teamStatsHistory[awayTeamId].length)
         const normalizedHome = getZScoreNormalizedStats(homeTeamId, homeRawStats, teamStatsHistory, true, search, sport);
         const normalizedAway = getZScoreNormalizedStats(awayTeamId, awayRawStats, teamStatsHistory, true, search, sport);
 
@@ -508,6 +486,21 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
         }
 
         const statFeatures = extractSportFeatures(normalizedHome, normalizedAway, sport.name, 0);
+
+        if (isValidStatBlock(gameHomeStats) && isValidStatBlock(gameAwayStats)) {
+            // Update history AFTER using current stats
+            if (!teamStatsHistory[homeTeamId]) teamStatsHistory[homeTeamId] = [];
+            if (!teamStatsHistory[awayTeamId]) teamStatsHistory[awayTeamId] = [];
+
+            teamStatsHistory[homeTeamId].push(gameHomeStats);
+            if (teamStatsHistory[homeTeamId].length > (50)) {
+                teamStatsHistory[homeTeamId].shift(); // remove oldest game
+            }
+            teamStatsHistory[awayTeamId].push(gameAwayStats);
+            if (teamStatsHistory[awayTeamId].length > (50)) {
+                teamStatsHistory[awayTeamId].shift(); // remove oldest game
+            }
+        }
 
         if (statFeatures.some(isNaN)) {
             console.error('NaN detected in features Predictions:', game.id);
@@ -601,7 +594,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
     console.log(`OUT OF ${sportOdds.length} GAMES [TOTAL WINS: ${totalWins}, TOTAL LOSSES: ${totalLosses}]: MATCHED SPREADS: ${spreadMatch} MATCHED SCORES: ${matchedScore} MISMATCHED PREDICTIONS: ${misMatched} PREDICTIONS CHANGED: ${predictionsChanged} | NEW WINNER PREDICTIONS: ${newWinnerPredictions} | NEW LOSER PREDICTIONS: ${newLoserPredictions} | NEW CONFIDENCE PREDICTIONS: ${newConfidencePredictions}`);
     console.log(`50/50 MATCHUPS: ${fiftyfiftyMatchups} (${((fiftyfiftyMatchups / sportOdds.length) * 100).toFixed(1)}%) | 60-70% MATCHUPS: ${sixtyToSeventyMatchups} (${((sixtyToSeventyMatchups / sportOdds.length) * 100).toFixed(1)}%) | 70-80% MATCHUPS: ${seventyToEightyMatchups} (${((seventyToEightyMatchups / sportOdds.length) * 100).toFixed(1)}%) | 80-90% MATCHUPS: ${eightyToNinetyMatchups} (${((eightyToNinetyMatchups / sportOdds.length) * 100).toFixed(1)}%) | HIGH CONFIDENCE GAMES: ${highConfGames} (${((highConfGames / sportOdds.length) * 100).toFixed(1)}%) | HIGH CONFIDENCE LOSERS: ${highConfLosers}`)
     // console.info(`FINISHED PREDICTIONS FOR ${sport.name} @ ${moment().format('HH:mm:ss')}`);
-    if(search) return totalWins / sportOdds.length
+    if (search) return totalWins / sportOdds.length
 };
 
 const evaluateMetrics = (ysTensor, yPredTensor) => {
