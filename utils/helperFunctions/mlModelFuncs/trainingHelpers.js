@@ -513,8 +513,8 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
         const awayRawStats = game['awayStats.data'];
 
 
-        const normalizedHome = getZScoreNormalizedStats(homeTeamId, homeRawStats, teamStatsHistory, true, search, sport);
-        const normalizedAway = getZScoreNormalizedStats(awayTeamId, awayRawStats, teamStatsHistory, true, search, sport);
+        const normalizedHome = getZScoreNormalizedStats(homeTeamId, homeRawStats, teamStatsHistory, true, search, sport, false);
+        const normalizedAway = getZScoreNormalizedStats(awayTeamId, awayRawStats, teamStatsHistory, true, search, sport, false);
 
         if (!normalizedHome || !normalizedAway) {
             console.log(game.id)
