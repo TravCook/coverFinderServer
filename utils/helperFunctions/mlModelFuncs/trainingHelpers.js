@@ -234,7 +234,7 @@ const loadOrCreateModel = async (xs, sport, search) => {
 
 const getZScoreNormalizedStats = ( currentStats, teamStatsHistory, prediction, search, sport, isFinalTrainingGame) => {
     const history = teamStatsHistory || [];
-    console.log(history)
+    // console.log(history)
     // Not enough data — return raw stats
     if (history.length < 5) {
         // const fallback = {};
