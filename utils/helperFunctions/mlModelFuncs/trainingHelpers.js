@@ -319,7 +319,6 @@ const getZScoreNormalizedStats = ( currentStats, teamStatsHistory, prediction, s
 
 const mlModelTraining = async (gameData, xs, ysWins, ysScore, sport, search, gameCount, sortedGameData) => {
     // Function to calculate decay weight based on number of games processed
-    const teamStatsHistory = {}; // teamID => [pastStatsObjects]
     let statMap
     switch (sport.name) {
         case 'baseball_mlb':
