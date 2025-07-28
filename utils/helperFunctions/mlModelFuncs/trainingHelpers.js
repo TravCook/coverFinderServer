@@ -232,7 +232,7 @@ const loadOrCreateModel = async (xs, sport, search) => {
     }
 };
 
-const getZScoreNormalizedStats = ( currentStats, teamStatsHistory, prediction, search, sport, isFinalTrainingGame) => {
+const getZScoreNormalizedStats = (currentStats, teamStatsHistory, prediction, search, sport, isFinalTrainingGame) => {
     const history = teamStatsHistory || [];
     // console.log(history)
     // Not enough data — return raw stats
@@ -346,11 +346,13 @@ const mlModelTraining = async (gameData, xs, ysWins, ysScore, sport, search, gam
         let normalizedHome
         let normalizedAway
         if (gameIndex === gameData.length - 1) {
-            normalizedHome = getZScoreNormalizedStats( homeRawStats, teamStatsHistory, false, search, sport, true);
-            normalizedAway = getZScoreNormalizedStats( awayRawStats, teamStatsHistory, false, search, sport, true);
+            console.log(gameIndex)
+            console.log(gameData.length - 1)
+            normalizedHome = getZScoreNormalizedStats(homeRawStats, teamStatsHistory, false, search, sport, true);
+            normalizedAway = getZScoreNormalizedStats(awayRawStats, teamStatsHistory, false, search, sport, true);
         } else {
-            normalizedHome = getZScoreNormalizedStats( homeRawStats, teamStatsHistory, false, search, sport, false);
-            normalizedAway = getZScoreNormalizedStats( awayRawStats, teamStatsHistory, false, search, sport, false);
+            normalizedHome = getZScoreNormalizedStats(homeRawStats, teamStatsHistory, false, search, sport, false);
+            normalizedAway = getZScoreNormalizedStats(awayRawStats, teamStatsHistory, false, search, sport, false);
         }
 
         if (!normalizedHome || !normalizedAway) {
@@ -372,7 +374,7 @@ const mlModelTraining = async (gameData, xs, ysWins, ysScore, sport, search, gam
 
         if (statFeatures.length / 2 === statMap.length && isValidStatBlock(homeRawStats) && isValidStatBlock(awayRawStats)) {
             // Update history AFTER using current stats
-            
+
 
             teamStatsHistory.push(homeRawStats);
             if (teamStatsHistory.length > (50)) {
@@ -511,8 +513,8 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
         const awayRawStats = game['awayStats.data'];
 
 
-        const normalizedHome = getZScoreNormalizedStats( homeRawStats, teamStatsHistory, true, search, sport, false);
-        const normalizedAway = getZScoreNormalizedStats( awayRawStats, teamStatsHistory, true, search, sport, false);
+        const normalizedHome = getZScoreNormalizedStats(homeRawStats, teamStatsHistory, true, search, sport, false);
+        const normalizedAway = getZScoreNormalizedStats(awayRawStats, teamStatsHistory, true, search, sport, false);
 
         if (!normalizedHome || !normalizedAway) {
             console.log(game.id)
@@ -759,8 +761,8 @@ const trainSportModelKFold = async (sport, gameData, search, upcomingGames) => {
             const homeRawStats = game['homeStats.data'];
             const awayRawStats = game['awayStats.data'];
 
-            const normalizedHome = getZScoreNormalizedStats( homeRawStats, teamStatsHistory, true, search, sport);
-            const normalizedAway = getZScoreNormalizedStats( awayRawStats, teamStatsHistory, true, search, sport);
+            const normalizedHome = getZScoreNormalizedStats(homeRawStats, teamStatsHistory, true, search, sport);
+            const normalizedAway = getZScoreNormalizedStats(awayRawStats, teamStatsHistory, true, search, sport);
 
             if (!normalizedHome || !normalizedAway) {
                 console.log(game.id)
@@ -859,35 +861,36 @@ const trainSportModelKFold = async (sport, gameData, search, upcomingGames) => {
         return testWinRate
     }
 
-    const inputToHiddenWeights = finalModel.layers[1].getWeights()[0].arraySync(); // Input → First hidden layer
-    let currentWeights = inputToHiddenWeights; // Shape: [numInputFeatures, hiddenUnits]
-
+    const dropoutRate = sport['hyperParams.dropoutReg'] || 0;
     const hiddenLayerCount = sport['hyperParams.hiddenLayerNum'];
     const hiddenUnits = sport['hyperParams.layerNeurons'];
 
-    // Propagate through each hidden layer
+    // Step 1: Get input-to-hidden weights as tensor
+    let currentWeights = finalModel.layers[1].getWeights()[0]; // Tensor shape: [numInputFeatures, hiddenUnits]
+
+    // Step 2: Propagate through each hidden layer
     for (let i = 0; i < hiddenLayerCount; i++) {
         const layerIndex = 2 + i * (dropoutRate > 0 ? 2 : 1); // Skip dropout layers
-        const layerWeights = finalModel.layers[layerIndex].getWeights()[0].arraySync(); // Shape: [hiddenUnits, hiddenUnits]
-
-        // Matrix multiply: feature weights * current layer's weights
-        currentWeights = tf.matMul(tf.tensor2d(currentWeights), tf.tensor2d(layerWeights));
+        const layerWeights = finalModel.layers[layerIndex].getWeights()[0]; // Tensor shape: [hiddenUnits, hiddenUnits]
+        currentWeights = tf.matMul(currentWeights, layerWeights); // Shape preserved: [numInputFeatures, hiddenUnits]
     }
 
-    // Multiply by weights of winProbOutput layer
-    const winProbOutputLayer = finalModel.getLayer('scoreOutput');
-    const finalOutputWeights = winProbOutputLayer.getWeights()[0].arraySync(); // Shape: [hiddenUnits, 1]
+    // Step 3: Multiply by final layer weights
+    const scoreOutputLayer = finalModel.getLayer('scoreOutput'); // or 'winProbOutput' if that's what you meant
+    const finalOutputWeights = scoreOutputLayer.getWeights()[0]; // Tensor shape: [hiddenUnits, 2] if it's a score head
 
-    const featureToOutputWeights = tf.matMul(tf.tensor2d(currentWeights), tf.tensor2d(finalOutputWeights));; // Shape: [numFeatures, 1]
+    // Multiply: [numInputFeatures, hiddenUnits] x [hiddenUnits, 2] → [numInputFeatures, 2]
+    const featureToOutputWeights = tf.matMul(currentWeights, finalOutputWeights); // Tensor
 
-    // Calculate absolute importance values (or square for stronger contrast)
-    let featureImportanceScores = featureToOutputWeights.map(weightArr => Math.abs(weightArr[0]));
+    // Step 4: Reduce to importance score per feature (you can use max or mean)
+    let featureImportanceScores = tf.abs(featureToOutputWeights).sum(1); // Sum across outputs: shape [numFeatures]
 
-    // Normalize (optional)
-    const maxVal = Math.max(...featureImportanceScores);
-    featureImportanceScores = featureImportanceScores.map(val => val / maxVal);
+    // Step 5: Normalize
+    const maxVal = featureImportanceScores.max();
+    featureImportanceScores = featureImportanceScores.div(maxVal); // Still a tensor
 
-    // Map to stat labels
+    // Step 6: Convert to array and map to stat labels
+    const featureScoresArr = await featureImportanceScores.array(); // [numFeatures]
     const statMaps = {
         'baseball_mlb': baseballStatMap,
         'basketball_nba': basketballStatMap,
@@ -900,15 +903,21 @@ const trainSportModelKFold = async (sport, gameData, search, upcomingGames) => {
 
     const featureImportanceWithLabels = statMaps[sport.name].map((stat, index) => ({
         feature: stat,
-        importance: featureImportanceScores[index]
+        importance: featureScoresArr[index]
     }));
-    console.log(featureImportanceWithLabels)
+
+    // Step 7: Store in DB (you still need raw weights for this)
+    const inputToHiddenWeights = await finalModel.layers[1].getWeights()[0].array();
+    const hiddenToOutputWeights = await scoreOutputLayer.getWeights()[0].array();
+
+    console.log(featureImportanceWithLabels);
+
     // await db.MlModelWeights.upsert({
     //     sport: sport.id,
-    //     inputToHiddenWeights: inputToHiddenWeights,  // Store the 40x128 matrix
-    //     hiddenToOutputWeights: hiddenToOutputWeights, // Store the 128x1 vector
-    //     featureImportanceScores: featureImportanceWithLabels,  // Store the importance scores
-    // })
+    //     inputToHiddenWeights: inputToHiddenWeights,
+    //     hiddenToOutputWeights: hiddenToOutputWeights,
+    //     featureImportanceScores: featureImportanceWithLabels
+    // });
 
     if (global.gc) global.gc();
     console.log(`ml model done for ${sport.name} @ ${moment().format('HH:mm:ss')}`);
