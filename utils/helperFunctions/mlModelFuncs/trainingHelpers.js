@@ -6,7 +6,7 @@ const tf = require('@tensorflow/tfjs-node');
 const moment = require('moment')
 const cliProgress = require('cli-progress');
 const { baseballStatMap, basketballStatMap, footballStatMap, hockeyStatMap } = require('../../statMaps')
-// const fallbackStats = require('./global_normalization.json'); // Load once outside function
+const fallbackStats = require('../../seeds/global_normalization.json'); // Load once outside function
 
 function pearsonCorrelation(x, y) {
     const n = x.length;
