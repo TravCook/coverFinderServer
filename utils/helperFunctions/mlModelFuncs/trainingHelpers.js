@@ -6,7 +6,6 @@ const tf = require('@tensorflow/tfjs-node');
 const moment = require('moment')
 const cliProgress = require('cli-progress');
 const { baseballStatMap, basketballStatMap, footballStatMap, hockeyStatMap } = require('../../statMaps')
-const fallbackStats = require('../../seeds/global_normalization.json'); // Load once outside function
 
 function pearsonCorrelation(x, y) {
     const n = x.length;
@@ -237,20 +236,20 @@ const getZScoreNormalizedStats = (currentStats, teamStatsHistory, prediction, se
     // console.log(history)
     // Not enough data — return raw stats
     if (history.length < 5) {
-        const fallback = {};
-        Object.keys(currentStats).forEach(key => {
-            let val = currentStats[key];
-            if (typeof val === 'string') {
-                const [wins] = val.split('-').map(Number);
-                val = wins;
-            }
+        // const fallback = {};
+        // Object.keys(currentStats).forEach(key => {
+        //     let val = currentStats[key];
+        //     if (typeof val === 'string') {
+        //         const [wins] = val.split('-').map(Number);
+        //         val = wins;
+        //     }
 
-            const mean = fallbackStats.means[key] ?? 0;
-            const std = fallbackStats.stds[key] ?? 1;
-            fallback[key] = (val - mean) / std;
-        });
-        return fallback;
-        // return { ...currentStats }
+        //     const mean = fallbackStats.means[key] ?? 0;
+        //     const std = fallbackStats.stds[key] ?? 1;
+        //     fallback[key] = (val - mean) / std;
+        // });
+        // return fallback;
+        return { ...currentStats }
     }
 
 
@@ -404,7 +403,7 @@ const mlModelTraining = async (gameData, xs, ysWins, ysScore, sport, search, gam
     // Define the model
     const model = await loadOrCreateModel(xs, sport, search)
     model.compile({
-        optimizer: tf.train.adam(),
+        optimizer: tf.train.adam(search ? sport.hyperParameters.learningRate : sport['hyperParams.learningRate']),
         loss: {
             scoreOutput: 'meanSquaredError',
             winProbOutput: 'binaryCrossentropy'
