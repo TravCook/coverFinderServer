@@ -246,6 +246,8 @@ const getZScoreNormalizedStats = (teamId, currentStats, teamStatsHistory, predic
             fallback[key] = (val - 0) / 1;  // trivial z-score
         });
         return fallback;
+    }else{
+        console.log(history.length)
     }
 
 
