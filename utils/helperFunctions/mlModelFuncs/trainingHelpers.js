@@ -247,7 +247,7 @@ const getZScoreNormalizedStats = (teamId, currentStats, teamStatsHistory, predic
         });
         return fallback;
     }else{
-        console.log(history.length)
+       if(prediction) console.log(history.length)
     }
 
 
