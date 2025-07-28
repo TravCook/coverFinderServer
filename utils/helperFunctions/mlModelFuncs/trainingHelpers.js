@@ -245,10 +245,10 @@ const getZScoreNormalizedStats = (teamId, currentStats, teamStatsHistory, predic
             }
             fallback[key] = (val - 0) / 1;  // trivial z-score
         });
+        if (prediction) console.log(history.length)
         return fallback;
-    }else{
-       if(prediction) console.log(history.length)
-    }
+        
+    } 
 
 
     // Normalize win-loss strings first
@@ -498,7 +498,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
             return;
         }
 
-        const statFeatures = extractSportFeatures(homeRawStats, awayRawStats, sport.name, 0);
+        const statFeatures = extractSportFeatures(normalizedHome, normalizedAway, sport.name, 0);
 
         if (isValidStatBlock(homeRawStats) && isValidStatBlock(awayRawStats)) {
             // Update history AFTER using current stats
@@ -854,14 +854,14 @@ const trainSportModelKFold = async (sport, gameData, search, upcomingGames) => {
         const layerWeights = finalModel.layers[layerIndex].getWeights()[0].arraySync(); // Shape: [hiddenUnits, hiddenUnits]
 
         // Matrix multiply: feature weights * current layer's weights
-        currentWeights = math.multiply(currentWeights, layerWeights);
+        currentWeights = Math.multiply(currentWeights, layerWeights);
     }
 
     // Multiply by weights of winProbOutput layer
     const winProbOutputLayer = finalModel.getLayer('scoreOutput');
     const finalOutputWeights = winProbOutputLayer.getWeights()[0].arraySync(); // Shape: [hiddenUnits, 1]
 
-    const featureToOutputWeights = math.multiply(currentWeights, finalOutputWeights); // Shape: [numFeatures, 1]
+    const featureToOutputWeights = Math.multiply(currentWeights, finalOutputWeights); // Shape: [numFeatures, 1]
 
     // Calculate absolute importance values (or square for stronger contrast)
     let featureImportanceScores = featureToOutputWeights.map(weightArr => Math.abs(weightArr[0]));
