@@ -512,6 +512,17 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
         const homeRawStats = game['homeStats.data'];
         const awayRawStats = game['awayStats.data'];
 
+        do {
+            for (const game of pastGames) {
+                const homeRawStats = game['homeStats.data'];
+                const awayRawStats = game['awayStats.data'];
+                teamStatsHistory.push(homeRawStats);
+                teamStatsHistory.push(awayRawStats);
+            }
+        } while (
+            teamStatsHistory.length > (50)
+        )
+
 
         const normalizedHome = getZScoreNormalizedStats(homeRawStats, teamStatsHistory, true, search, sport, false);
         const normalizedAway = getZScoreNormalizedStats(awayRawStats, teamStatsHistory, true, search, sport, false);
@@ -523,18 +534,18 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
 
         const statFeatures = extractSportFeatures(normalizedHome, normalizedAway, sport.name, 0);
 
-        if (isValidStatBlock(homeRawStats) && isValidStatBlock(awayRawStats)) {
-            // Update history AFTER using current stats
+        // if (isValidStatBlock(homeRawStats) && isValidStatBlock(awayRawStats)) {
+        //     // Update history AFTER using current stats
 
-            teamStatsHistory.push(homeRawStats);
-            if (teamStatsHistory.length > (50)) {
-                teamStatsHistory.shift(); // remove oldest game
-            }
-            teamStatsHistory.push(awayRawStats);
-            if (teamStatsHistory.length > (50)) {
-                teamStatsHistory.shift(); // remove oldest game
-            }
-        }
+        //     teamStatsHistory.push(homeRawStats);
+        //     if (teamStatsHistory.length > (50)) {
+        //         teamStatsHistory.shift(); // remove oldest game
+        //     }
+        //     teamStatsHistory.push(awayRawStats);
+        //     if (teamStatsHistory.length > (50)) {
+        //         teamStatsHistory.shift(); // remove oldest game
+        //     }
+        // }
 
         if (statFeatures.some(isNaN)) {
             console.error('NaN detected in features Predictions:', game.id);
@@ -910,14 +921,13 @@ const trainSportModelKFold = async (sport, gameData, search, upcomingGames) => {
     const inputToHiddenWeights = await finalModel.layers[1].getWeights()[0].array();
     const hiddenToOutputWeights = await scoreOutputLayer.getWeights()[0].array();
 
-    console.log(featureImportanceWithLabels);
 
-    // await db.MlModelWeights.upsert({
-    //     sport: sport.id,
-    //     inputToHiddenWeights: inputToHiddenWeights,
-    //     hiddenToOutputWeights: hiddenToOutputWeights,
-    //     featureImportanceScores: featureImportanceWithLabels
-    // });
+    await db.MlModelWeights.upsert({
+        sport: sport.id,
+        inputToHiddenWeights: inputToHiddenWeights,
+        hiddenToOutputWeights: hiddenToOutputWeights,
+        featureImportanceScores: featureImportanceWithLabels
+    });
 
     if (global.gc) global.gc();
     console.log(`ml model done for ${sport.name} @ ${moment().format('HH:mm:ss')}`);
