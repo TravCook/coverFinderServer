@@ -77,8 +77,8 @@ const updateTeamStats = (team, statName, value, perGameValue, displayValue, cate
         'passingFirstDowns': [{ modelField: 'USFBpassingFirstDowns', category: 'passing' }],
         'passingTouchdowns': [{ modelField: 'USFBpassingTouchdowns', category: 'passing' }],
         'passingYards': [
-            { USFBpassingYards: 'USFBPassingYards', category: 'passing' },
-            { USFBpassingYardsPerGame: 'USFBPassingYardsPerGame', isPerGame: true, category: 'passing' }
+            { modelField: 'USFBpassingYards', category: 'passing' },
+            { modelField: 'USFBPassingYardsPerGame', isPerGame: true, category: 'passing' }
         ],
         'passingAttempts': [
             { modelField: 'USFBpassingAttempts', category: 'passing' },

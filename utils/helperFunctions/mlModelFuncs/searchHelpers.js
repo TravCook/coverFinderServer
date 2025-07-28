@@ -22,7 +22,7 @@ const score = (ci, sampleSize) => {
     const ciWidthPenalty = (ci.upper - ci.lower); // narrower = better
     const sizeBonus = Math.log(sampleSize); // diminishing returns to size
 
-    return ciMidpoint - ciWidthPenalty + sizeBonus * 0.00001; // tune 0.01 as weight
+    return ciMidpoint - ciWidthPenalty + sizeBonus * 0.03; // tune 0.01 as weight
 };
 
 
@@ -31,16 +31,20 @@ const hyperparameterRandSearch = async (sports) => {
 
 
     const space = {
-        learningRate: { min: 0.0001, max: 0.01 }, // Adjusted to allow for a range
-        batchSize: { min: 16, max: 128 }, // Adjusted to allow for a range
-        epochs: { min: 10, max: 100 }, // Adjusted to allow for a range
-        hiddenLayerNum: { min: 1, max: 5 }, // Adjusted to allow for a range
-        layerNeurons: { min: 16, max: 256 }, // Adjusted to allow for a range
-        l2reg: { min: 0.0001, max: 0.01 }, // Adjusted to allow for a range
-        // dropoutReg: { min: 0, max: 0.001 } // Adjusted to allow for a range
+        learningRate: { min: 0.0001, max: 0.01 },
+        batchSize: { min: 16, max: 128 },
+        epochs: { min: 10, max: 100 },
+        hiddenLayerNum: { min: 1, max: 5 },
+        layerNeurons: { min: 16, max: 256 },
+        l2reg: { min: 0, max: 0.01 },
+        dropoutReg: {min: 0, max: .01},
+        kFolds: { min: 4, max: 10 },
+        historyLength: { min: 5, max: 60 },
+        gameDecayValue: { min: .95, max: .99 },
+        decayStepSize: { min: 1, max: 150 }
     };
     for (let sport of sports) {
-        if(sport.name !== 'baseball_mlb') continue
+        // if (sport.name !== 'baseball_mlb') continue
         console.log(`--------------- ${sport.name} @ ${moment().format('HH:mm:ss')}-------------------`)
         const validBatchSizes = [32, 64, 128];
         const validLayerNeurons = [16, 32, 64, 128, 256];
@@ -48,10 +52,15 @@ const hyperparameterRandSearch = async (sports) => {
             const sanitizedParams = {
                 learningRate: params.learningRate,
                 l2reg: params.l2reg,
+                dropoutReg: params.dropoutReg,
                 batchSize: roundToNearest(params.batchSize, validBatchSizes),
                 epochs: Math.round(params.epochs),
                 hiddenLayerNum: Math.round(params.hiddenLayerNum),
                 layerNeurons: roundToNearest(params.layerNeurons, validLayerNeurons),
+                kFolds: Math.round(params.kFolds),
+                historyLength: Math.round(params.historyLength),
+                gameDecayValue: params.gameDecayValue,
+                decayStepSize: Math.round(params.decayStepSize)
             };
             const testSport = {
                 ...sport,  // ensure sport is in outer scope
@@ -89,17 +98,17 @@ const hyperparameterRandSearch = async (sports) => {
                     }], order: [['commence_time', 'ASC']], raw: true
             });
 
-            const avgF1Score = await trainSportModelKFold(testSport, pastGames, true, upcomingGames);
+            const testWinRate = await trainSportModelKFold(testSport, pastGames, true, upcomingGames);
 
             return {
-                loss: -avgF1Score,     // minimize negative F1 (i.e. maximize F1)
+                loss: -testWinRate,     // minimize negative F1 (i.e. maximize F1)
             };
         }
 
         // Initialize the optimizer
         const optimizer = new BayesianOptimizer({
         });
-        await optimizer.optimize(objective, space, 20);
+        await optimizer.optimize(objective, space, 15);
         // Get the best parameters found
         const bestParams = optimizer.getBestParams();
         console.log(`Best Parameters for ${sport.name}:`, bestParams);
@@ -107,10 +116,15 @@ const hyperparameterRandSearch = async (sports) => {
         const processedParams = {
             learningRate: bestParams.learningRate,
             l2Reg: bestParams.l2reg,
+            dropoutReg: bestParams.dropoutReg,
             batchSize: roundToNearest(bestParams.batchSize, validBatchSizes),
             epochs: Math.round(bestParams.epochs),
             hiddenLayerNum: Math.round(bestParams.hiddenLayerNum),
             layerNeurons: roundToNearest(bestParams.layerNeurons, validLayerNeurons),
+            kFolds: Math.round(bestParams.kFolds),
+            historyLength: Math.round(bestParams.historyLength),
+            gameDecayValue: bestParams.gameDecayValue,
+            decayStepSize: Math.round(bestParams.decayStepSize)
         };
         console.log(`Processed Parameters for ${sport.name}:`, processedParams);
         await db.HyperParams.update({
@@ -118,9 +132,13 @@ const hyperparameterRandSearch = async (sports) => {
             batchSize: processedParams.batchSize,
             learningRate: processedParams.learningRate,
             l2Reg: processedParams.l2Reg,
-            // dropoutReg: processedParams.dropoutReg,
+            dropoutReg: processedParams.dropoutReg,
             hiddenLayers: processedParams.hiddenLayerNum,
             layerNeurons: processedParams.layerNeurons,
+            kFolds: processedParams.kFolds,
+            historyLength: processedParams.historyLength,
+            decayFactor: processedParams.gameDecayValue,
+            gameDecayThreshold: processedParams.decayStepSize
         }, {
             where: {
                 sport: sport.id
@@ -131,7 +149,7 @@ const hyperparameterRandSearch = async (sports) => {
     console.log(`FINISHED HYPERPARAM SEARCH @ ${moment().format('HH:mm:ss')}`)
 }
 //TODO: STORE THIS FOR LATER
-const valueBetGridSearch = async (sports) => {
+const valueBetGridSearch = async (sport) => {
     console.log(`STARTING VALUE BET SEARCH @ ${moment().format('HH:mm:ss')}`)
     const sportsbooks = [
         'betonlineag',
@@ -158,7 +176,7 @@ const valueBetGridSearch = async (sports) => {
     let confidenceLowNum = [.50, .55, .60, .65, .70, .75, .80, .85, .90, .95, 1.00];
     let confidenceRangeNum = [0, .05, .10, .15, .20, .25, .30, .35, .40, .45, .50];
 
-    for (const sport of sports) {
+
         let sportGames = await db.Games.findAll({
             where: { sport_key: sport.name, predictedWinner: { [Op.in]: ['home', 'away'] }, complete: true }, include: [
                 {
@@ -198,14 +216,16 @@ const valueBetGridSearch = async (sports) => {
             ]
         })
         let plainGames = sportGames.map(game => game.get({ plain: true })); // Convert Sequelize instances to plain objects
-        if (plainGames.length > 0) {
+        if (sport.name === 'baseball_mlb') {
             // Parallelize across sportsbooks
             for (const sportsbook of sportsbooks) {
                 let sportsbookSettings = await db.ValueBetSettings.findOne({ where: { bookmaker: sportsbook, sport: sport.id }, raw: true });
                 let storeCI =
                     sportsbookSettings?.bestConfidenceInterval ||
                     { lower: 0, upper: 0 }
-                let bestCIScore = sportsbookSettings?.bestCISCore || 0
+                let bestCIScore =
+                    // sportsbookSettings?.bestCISCore || 
+                    0
                 let finalSettings = {
                     bookmaker: sportsbook,
                     settings: {
@@ -222,20 +242,34 @@ const valueBetGridSearch = async (sports) => {
                         for (const confidenceLow of confidenceLowNum) {
                             for (const confidenceRange of confidenceRangeNum) {
                                 let totalGames = plainGames.filter((game) => {
-                                    const bookmaker = game.bookmakers.find(bookmaker => bookmaker.key === sportsbook);
-                                    if (bookmaker) {
-                                        const outcome = bookmaker.markets.find(market => market.key === 'h2h').outcomes;
-                                        const lowerImpliedProbOutcome = outcome.find(o => (
-                                            ((game.predictedWinner === 'home' ? game.homeTeamScaledIndex - game.awayTeamScaledIndex : game.awayTeamScaledIndex - game.homeTeamScaledIndex) > (indexDifSmall) &&
-                                                (game.predictedWinner === 'home' ? game.homeTeamScaledIndex - game.awayTeamScaledIndex : game.awayTeamScaledIndex - game.homeTeamScaledIndex) < (indexDifSmall + indexDiffRange)) &&
-                                            (game.predictionConfidence > confidenceLow && game.predictionConfidence < (confidenceLow + confidenceRange)) &&
-                                            (o.impliedProbability * 100) < (game.winPercent) &&
-                                            ((game.predictedWinner === 'home' && game.homeTeamDetails.espnDisplayName === o.name) || (game.predictedWinner === 'away' && game.awayTeamDetails.espnDisplayName === o.name))
-                                        ));
-                                        return lowerImpliedProbOutcome !== undefined;
-                                    }
-                                    return false;
+                                    const bookmaker = game.bookmakers.find(b => b.key === sportsbook);
+                                    if (!bookmaker) return false;
+
+                                    const market = bookmaker.markets.find(m => m.key === 'h2h');
+                                    if (!market || !market.outcomes) return false;
+
+                                    const indexDiff = game.predictedWinner === 'home' ?
+                                        game.homeTeamScaledIndex - game.awayTeamScaledIndex :
+                                        game.awayTeamScaledIndex - game.homeTeamScaledIndex;
+
+                                    const predictionConfidence = game.predictionConfidence;
+
+                                    return market.outcomes.some(o => {
+                                        const isCorrectTeam = (
+                                            (game.predictedWinner === 'home' && game.homeTeamDetails.espnDisplayName === o.name) ||
+                                            (game.predictedWinner === 'away' && game.awayTeamDetails.espnDisplayName === o.name)
+                                        );
+                                        return (
+                                            indexDiff >= indexDifSmall &&
+                                            indexDiff < (indexDifSmall + indexDiffRange) &&
+                                            predictionConfidence > confidenceLow &&
+                                            predictionConfidence < (confidenceLow + confidenceRange) &&
+                                            (o.impliedProbability * 100) < game.winPercent &&
+                                            isCorrectTeam
+                                        );
+                                    });
                                 });
+
                                 let correctGames = totalGames.filter((game) => game.predictionCorrect === true);
                                 let winRate = totalGames.length > 0 ? correctGames.length / totalGames.length : 0;
                                 function calculateConfidenceInterval(winrate, sampleSize, confidenceLevel) {
@@ -269,7 +303,6 @@ const valueBetGridSearch = async (sports) => {
                                 }
                                 let newCI
                                 if (totalGames.length > plainGames.length / 20) { // Ensure we have enough games to calculate a meaningful CI
-
                                     newCI = calculateConfidenceInterval(winRate, totalGames.length, 95);
 
                                     const newScore = score(newCI, totalGames.length)
@@ -277,7 +310,7 @@ const valueBetGridSearch = async (sports) => {
                                         storeCI = newCI
                                         finalWinrate = winRate;
                                         finalTotalGames = totalGames.length;
-                                        bestCISCore = newScore
+                                        bestCIScore = newScore
                                         finalSettings.settings = {
                                             indexDiffSmallNum: indexDifSmall,
                                             indexDiffRangeNum: indexDiffRange,
@@ -316,7 +349,7 @@ const valueBetGridSearch = async (sports) => {
 
             };
         }
-    }
+    
 };
 
 

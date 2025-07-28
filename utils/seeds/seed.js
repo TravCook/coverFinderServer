@@ -10,15 +10,12 @@ const { retrieveTeamsandStats } = require('../helperFunctions/dataHelpers/retrie
 const { removePastGames } = require('../helperFunctions/dataHelpers/removeHelper')
 const { indexAdjuster, pastGamesReIndex } = require('../helperFunctions/mlModelFuncs/indexHelpers')
 const { predictions, trainSportModelKFold } = require('../helperFunctions/mlModelFuncs/trainingHelpers')
-const { hyperparameterRandSearch, valueBetGridSearch } = require('../helperFunctions/mlModelFuncs/searchHelpers');
-const { normalizeTeamName, normalizeOutcomes, modelConfAnalyzer, } = require('../helperFunctions/dataHelpers/dataSanitizers')
-const { transporter, getImpliedProbability } = require('../constants')
-const { statMinMax, statMeanStdDev, generateGlobalStats } = require('../helperFunctions/dataHelpers/pastGamesHelper');
+const { valueBetGridSearch, hyperparameterRandSearch } = require('../helperFunctions/mlModelFuncs/searchHelpers');
+const { normalizeTeamName,modelConfAnalyzer, } = require('../helperFunctions/dataHelpers/dataSanitizers')
+const { transporter} = require('../constants')
 const Sequelize = require('sequelize');
 const { Op } = Sequelize;
 const { gameDBSaver, statDBSaver } = require('../helperFunctions/dataHelpers/databaseSavers');
-const { raw } = require('express');
-const { baseballStatMap, basketballStatMap, footballStatMap, hockeyStatMap } = require('../statMaps');
 
 // Suppress TensorFlow.js logging
 process.env.TF_CPP_MIN_LOG_LEVEL = '3'; // Suppress logs
@@ -26,7 +23,6 @@ process.env.TF_CPP_MIN_LOG_LEVEL = '3'; // Suppress logs
 const dataSeed = async () => {
     console.log("DB CONNECTED ------------------------------------------------- STARTING DATA SEED")
     // UPDATE TEAMS WITH MOST RECENT STATS // WORKING AS LONG AS DYNAMIC STAT YEAR CAN WORK CORRECTLY
-    // let sports = await Sport.find({})
     let sports = await db.Sports.findAll({})
     await retrieveTeamsandStats(sports)
     console.info(`Full Seeding complete! 🌱 @ ${moment().format('HH:mm:ss')}`);
@@ -67,7 +63,7 @@ const mlModelTrainSeed = async () => {
         // retrieve upcoming games
         let upcomingGames = odds.filter((game) => game.sport_key === sport.name)
         // Multi-year sports (e.g., NFL, NBA, NHL, etc.)
-        if (upcomingGames.length > 0) {
+        if (sport.name === 'baseball_mlb') {
             const pastGames = await db.Games.findAll({
                 where: { complete: true, sport_key: sport.name },
                 include: [
@@ -111,6 +107,9 @@ const mlModelTrainSeed = async () => {
         } else {
             console.log(`${sport.name} NOT IN SEASON`)
         }
+        if (global.gc) global.gc();
+        await valueBetGridSearch(sport)
+        if (global.gc) global.gc();
 
     }
 
@@ -245,11 +244,10 @@ const mlModelTrainSeed = async () => {
     });
     await emitToClients('gameUpdate', currentOdds);
     await emitToClients('pastGameUpdate', pastOdds);
-    if (global.gc) global.gc();
-    await valueBetGridSearch(sports)
-    if (global.gc) global.gc();
-    // await hyperparameterRandSearch(sports)
 
+
+
+    if (global.gc) global.gc();
     await modelConfAnalyzer();
     if (global.gc) global.gc();
 
@@ -810,55 +808,5 @@ const espnSeed = async () => {
 
 };
 
-//TAKES ABOUT 1 HOUR
-// const paramAndValueSeed = async () => {
-//     const sports = await Sport.find({}).sort({ name: 1 }).lean()
-//     await hyperparameterRandSearch(sports)
-//     if (global.gc) global.gc();
-// }
-
-// const teamInfoUpdater = async () => {
-//     const teams = await db.Teams.findAll()
-//     const sports = await db.Sports.findAll()
-//     for(const sport of sports){
-//         console.log(`Starting ${sport.name} Team updates`)
-//         let sportTeams = teams.filter((team) => team.league === sport.name)
-//         for(const team of sportTeams){
-//             const response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport.espnSport}/${sport.league}/teams/${team.espnID}`);
-//             const teamData = await response.json();
-//             let darkBGLogo = teamData.team.logos?.find((logo) => {
-//                 return logo.rel.find((rel) => rel === 'dark')
-//             })
-//             let lightBGLogo = teamData.team.logos?.find((logo) => {
-//                 return logo.rel.find((rel) => rel === 'default')
-//             })
-//             let school
-//             if(teamData.team.location && team.espnLeague.includes('college')){
-//                 school = teamData.team.location
-//             }
-//             await db.Teams.update({
-//                 school: school,
-//                 mainColor: teamData.team.color ? teamData.team.color : null,
-//                 secondaryColor: teamData.team.alternateColor ? teamData.team.alternateColor : null,
-//                 lightLogo: lightBGLogo ? lightBGLogo.href : team.logo,
-//                 darkLogo: darkBGLogo ? darkBGLogo.href : team.logo
-
-//             }, {
-//                 where: {id: team.id}
-//             })
-//         }
-//         console.log(`Finished ${sport.name} Team updates`)
-//     }
-
-// }
-
-// teamInfoUpdater()
-// modelConfAnalyzer()
-// removeSeed()
-// oddsSeed()
-// mlModelTrainSeed()
-// dataSeed()
-// statMinMax()
-//TODO: ANALYZE ML MODEL TRAIN SEED AND ADDRESS RAM ISSUES ON EC2 INSTANCE
-
+mlModelTrainSeed()
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed }

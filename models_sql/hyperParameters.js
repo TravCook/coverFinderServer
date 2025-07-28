@@ -70,6 +70,11 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.INTEGER,
             allowNull: false
         },
+        historyLength: {
+            type: DataTypes.FLOAT,
+            allowNull: false,
+            defaultValue: 0
+        }
     });
 
     HyperParams.associate = (models) => {

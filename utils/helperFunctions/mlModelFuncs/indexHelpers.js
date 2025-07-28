@@ -68,9 +68,10 @@ function calculateTeamIndex(teamStats, weightArray, statMap, normalizeStatFn) {
 }
 
 
-const calculateWinrate = (games, sport, homeTeam, awayTeam, homeTeamScaledIndex, awayTeamScaledIndex, predictedWinner, predictionConfidence) => {
+const calculateWinrate = (games, sport, homeTeam, awayTeam, homeTeamScaledIndex, awayTeamScaledIndex, predictedWinner, predictionConfidence, date) => {
+
     // Step 1: Filter games where predictions have been made
-    const usableGames = games.filter(usableGame => usableGame.predictedWinner);
+    const usableGames = games.filter((game) => new Date(game.commence_time) < new Date(date));
     // Step 2: Filter games that match the sport league
     const leagueGames = usableGames.filter(leagueGame => leagueGame.sport_key === sport.name);
     // Step 3: Filter games where the home_team matches the team
@@ -140,109 +141,10 @@ const calculateWinrate = (games, sport, homeTeam, awayTeam, homeTeamScaledIndex,
 
     // Calculate the average by dividing the sum by the number of keys
     const average = sum / values.length;
-
     // Return both individual winrates, and weighted average
     return average
 }
 
-
-// const getSeasonalIndexGames = async (sport, pastGames, inputGame, seasonsBack = 1) => {
-//     const inputDate = moment(inputGame.commence_time);
-//     const allGames = [];
-
-//     let pastGameWindow = inputDate.subtract(1, 'days').format('MM-DD');
-//     let futureGameWIndow = inputDate.add(7, 'days').format('MM-DD');
-
-//     for (let i = 0; i < seasonsBack; i++) {
-//         let seasonYear = inputDate.year() - i;
-
-//         // If sport spans years, start in October of previous year
-//         let seasonStart, seasonEnd;
-//         if (sport.multiYear) {
-//             seasonStart = moment(`${seasonYear - 1}-${pastGameWindow}`);
-//             seasonEnd = moment(`${seasonYear}-${pastGameWindow}`);
-//         } else {
-//             // For sports that run within a single year
-//             seasonStart = moment(`${seasonYear}-${pastGameWindow}`);
-//             seasonEnd = moment(`${seasonYear}-${futureGameWIndow}`);
-//         }
-//         const games = pastGames.filter((game) => {
-//             const gameDate = moment(game.commence_time);
-//             return gameDate.isBetween(seasonStart, seasonEnd, null, '[]') // Inclusive of start and end dates
-//             //    && (game.predictedWinner === 'home' || game.predictedWinner === 'away')  // Match only 'home' or 'away'
-
-//         })
-
-//         allGames.push(...games);
-//     }
-
-//     const indexArray = allGames
-//         .flatMap(game => {
-//             const home = Number(game.homeTeamIndex);
-//             const away = Number(game.awayTeamIndex);
-//             return [home, away].filter(i => !isNaN(i));
-//         })
-//         .sort((a, b) => a - b);
-
-//     return indexArray;
-// };
-
-const getSeasonalIndexGames = async (
-    sport,
-    pastGames,
-    inputGame,
-    seasonsBack,
-    numGamesBefore,
-    numGamesAfter
-) => {
-    const inputDate = moment(inputGame.commence_time);
-    const allGames = [];
-    for (let i = 0; i <= seasonsBack; i++) {
-        let seasonYear = inputDate.year() - i;
-        let targetDate;
-
-        if (sport.multiYear) {
-            targetDate = moment(inputDate).subtract(i, 'years');
-        } else {
-            targetDate = moment(inputDate).subtract(1, 'days').year(seasonYear);
-        }
-        // Get games from the target season
-        const seasonGames = pastGames.filter(game => {
-
-            const gameDate = moment(game.commence_time);
-
-            return sport.multiYear
-                ? gameDate.year() === seasonYear || gameDate.year() === seasonYear - 1
-                : gameDate.year() === seasonYear;
-        }).sort((a, b) => moment(a.commence_time) - moment(b.commence_time));
-
-        // Find the closest game to targetDate
-        let targetIndex = seasonGames.findIndex(game =>
-            moment(game.commence_time).format('YYYY-MM-DD') === targetDate.format('YYYY-MM-DD')
-        );
-
-        if (targetIndex === -1) {
-            let newTargetDate = targetDate.subtract(1, 'days');
-            targetIndex = seasonGames.findIndex(game =>
-                moment(game.commence_time).format('YYYY-MM-DD') === newTargetDate.format('YYYY-MM-DD')
-            );
-        }
-        // Get N games before and after
-        const startIdx = Math.max(0, targetIndex - numGamesBefore);
-        const endIdx = Math.min(seasonGames.length, targetIndex + numGamesAfter + 1);
-        const nearbyGames = seasonGames.slice(startIdx, endIdx);
-        allGames.push(...nearbyGames);
-
-    }
-    const indexArray = allGames
-        .flatMap(game => {
-            const home = Number(game.homeTeamIndex);
-            const away = Number(game.awayTeamIndex);
-            return [home, away].filter(i => !isNaN(i));
-        })
-        .sort((a, b) => a - b);
-    return indexArray;
-};
 
 const getTeamsIndexes = async (sport) => {
     let sportTeams = await db.Teams.findAll({ where: { league: sport.name } })
@@ -266,7 +168,6 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
     }
     let total = currentOdds.length
     let sport = await db.Sports.findOne({ where: { name: initalsport.name }, raw: true });
-    let updates = [];
     baseIndexBar.start(total, 0);
     let progress = 0
     for (const game of currentOdds) {
@@ -283,11 +184,9 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
                 'basketball_ncaab': basketballStatMap,
                 'basketball_wncaab': basketballStatMap,
             };
-            // console.log(statMap[initalsport.name].length)
             homeIndex = await calculateTeamIndex(game['homeStats.data'], weightArray, statMap[initalsport.name], normalizeStat);
             awayIndex = await calculateTeamIndex(game['awayStats.data'], weightArray, statMap[initalsport.name], normalizeStat);
 
-            // console.log(`${game['homeTeamDetails.espnDisplayName']}: ${homeIndex}, ${game['awayTeamDetails.espnDisplayName']}: ${awayIndex} for game ID: ${game.id}`)
             await db.Games.update({
                 homeTeamIndex: homeIndex,
                 awayTeamIndex: awayIndex,
@@ -303,15 +202,6 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
             baseIndexBar.stop();
         }
     }
-    const games = await db.Games.findAll({
-        where: {
-            sport_key: sport.name,
-            complete: true,
-        },
-        attributes: ['homeTeamIndex', 'awayTeamIndex', 'predictedWinner', 'commence_time'],
-        raw: true
-    });
-    console.log('Base indexes found and applied')
 
     if (past) {
         currentOdds = await db.Games.findAll({
@@ -398,7 +288,7 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
             // console.log(`${game['homeTeamDetails.espnDisplayName']}: ${scaledHomeZ}, ${game['awayTeamDetails.espnDisplayName']}: ${scaledAwayZ} for game ID: ${game.id}`)
 
             // Update the Odds database with the calculated indices
-            const winrate = await calculateWinrate(allPastGames, sport, game['homeTeamDetails.espnDisplayName'], game['awayTeamDetails.espnDisplayName'], scaledHomeZ, scaledAwayZ, game.predictedWinner, game.predictionConfidence);
+            const winrate = await calculateWinrate(currentOdds, sport, game['homeTeamDetails.espnDisplayName'], game['awayTeamDetails.espnDisplayName'], scaledHomeZ, scaledAwayZ, game.predictedWinner, game.predictionConfidence, game.commence_time);
             if (sport.name === game.sport_key) {
                 try {
                     await db.Games.update({
