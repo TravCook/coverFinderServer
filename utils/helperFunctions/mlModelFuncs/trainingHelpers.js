@@ -429,7 +429,7 @@ const mlModelTraining = async (gameData, xs, ysWins, ysScore, sport, search, gam
 
 }
 
-const predictions = async (sportOdds, ff, model, sport, past, search) => {
+const predictions = async (sportOdds, ff, model, sport, past, search, pastGames) => {
     console.info(`STARTING PREDICTIONS FOR ${sport.name} @ ${moment().format('HH:mm:ss')}`);
 
     if (past) {
@@ -477,6 +477,29 @@ const predictions = async (sportOdds, ff, model, sport, past, search) => {
         const homeRawStats = game['homeStats.data'];
         const awayRawStats = game['awayStats.data'];
 
+        do {
+            pastGames.map((game) => {
+                let gameHomeStats = game['homeStats.data']
+                let gameAwayStats = game['awayStats.data']
+
+                if (isValidStatBlock(gameHomeStats) && isValidStatBlock(gameAwayStats)) {
+                    // Update history AFTER using current stats
+                    if (!teamStatsHistory[homeTeamId]) teamStatsHistory[homeTeamId] = [];
+                    if (!teamStatsHistory[awayTeamId]) teamStatsHistory[awayTeamId] = [];
+
+                    teamStatsHistory[homeTeamId].push(gameHomeStats);
+                    if (teamStatsHistory[homeTeamId].length > (50)) {
+                        teamStatsHistory[homeTeamId].shift(); // remove oldest game
+                    }
+                    teamStatsHistory[awayTeamId].push(gameAwayStats);
+                    if (teamStatsHistory[awayTeamId].length > (50)) {
+                        teamStatsHistory[awayTeamId].shift(); // remove oldest game
+                    }
+                }
+            })
+
+        } while (teamStatsHistory[homeTeamId].length < 50 && teamStatsHistory[awayTeamId].length)
+
         const normalizedHome = getZScoreNormalizedStats(homeTeamId, homeRawStats, teamStatsHistory, true, search, sport);
         const normalizedAway = getZScoreNormalizedStats(awayTeamId, awayRawStats, teamStatsHistory, true, search, sport);
 
@@ -492,20 +515,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search) => {
             return;
         }
 
-        if (statFeatures.length / 2 === statMap.length && isValidStatBlock(homeRawStats) && isValidStatBlock(awayRawStats)) {
-            // Update history AFTER using current stats
-            if (!teamStatsHistory[homeTeamId]) teamStatsHistory[homeTeamId] = [];
-            if (!teamStatsHistory[awayTeamId]) teamStatsHistory[awayTeamId] = [];
 
-            teamStatsHistory[homeTeamId].push(homeRawStats);
-            if (teamStatsHistory[homeTeamId].length > (50)) {
-                teamStatsHistory[homeTeamId].shift(); // remove oldest game
-            }
-            teamStatsHistory[awayTeamId].push(awayRawStats);
-            if (teamStatsHistory[awayTeamId].length > (50)) {
-                teamStatsHistory[awayTeamId].shift(); // remove oldest game
-            }
-        }
 
         const [predScore, predWinProb] = await repeatPredictions(model, tf.tensor2d([statFeatures]), 100);
         // console.log(predScore)
@@ -806,7 +816,7 @@ const trainSportModelKFold = async (sport, gameData, search, upcomingGames) => {
             // console.log('Done!');
         }
     }
-    let testWinRate = await predictions(sportGames, [], finalModel, sport, false, search)
+    let testWinRate = await predictions(sportGames, [], finalModel, sport, false, search, gameData.sort((gameA, gameB) => new Date(b.commence_time) - new Date(a.commence_time)))
     // await predictions(gameData, [], finalModel, sport, true) // Predictions for past games DO NOT RUN THIS AGAIN FOR BASEBALL. MAYBE FOR OTHER SPORTS BUT NOT LIKELY. DO NOT UNCOMMENT UNLESS YOU COMPLETELY CHANGE THE ARCHITECTURE OF THE MODEL OR THE DATASET. IT WILL OVERWRITE PAST GAME ODDS AND PREDICTIONS.
     // After all folds, calculate and log the overall performance
     const avgF1Score = foldResults.reduce((sum, fold) => sum + fold.f1Score, 0) / foldResults.length;
