@@ -234,7 +234,7 @@ const getZScoreNormalizedStats = (teamId, currentStats, teamStatsHistory, predic
     const history = teamStatsHistory[teamId] || [];
 
     // Not enough data — return raw stats
-    if (history.length < 5) {
+    if (history.length < 5 && !prediction) {
         return { ...currentStats };
     }
 
@@ -516,7 +516,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
         let awayScore = predScore[1]
 
         const predictedWinner = predScore[0] > predScore[1] ? 'home' : 'away';
-        const predictionConfidence = predWinProb;
+        const predictionConfidence = predWinProb > .50 ? predWinProb : 1 - predWinProb;
 
         // Track the game so we can compare two predictions later
         const updatePayload = {
@@ -833,8 +833,8 @@ const trainSportModelKFold = async (sport, gameData, search, upcomingGames) => {
     const inputToHiddenWeights = finalModel.layers[1].getWeights()[0].arraySync(); // Input → First hidden layer
     let currentWeights = inputToHiddenWeights; // Shape: [numInputFeatures, hiddenUnits]
 
-    const hiddenLayerCount = hyperParams.hiddenLayerNum;
-    const hiddenUnits = hyperParams.layerNeurons;
+    const hiddenLayerCount = sport['hyperParams.hiddenLayerNum'];
+    const hiddenUnits = sport['hyperParams.layerNeurons'];
 
     // Propagate through each hidden layer
     for (let i = 0; i < hiddenLayerCount; i++) {
