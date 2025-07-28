@@ -873,7 +873,7 @@ const trainSportModelKFold = async (sport, gameData, search, upcomingGames) => {
         feature: stat,
         importance: featureImportanceScores[index]
     }));
-
+    console.log(featureImportanceWithLabels)
     // await db.MlModelWeights.upsert({
     //     sport: sport.id,
     //     inputToHiddenWeights: inputToHiddenWeights,  // Store the 40x128 matrix
