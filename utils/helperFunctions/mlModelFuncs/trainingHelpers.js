@@ -479,7 +479,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
             statMap = basketballStatMap
             break
     }
-    for (const game of sportOdds.slice(3,sportOdds.length - 1)) {
+    for (const game of sportOdds) {
         if (Date.parse(game.commence_time) <= Date.now() && !past) continue; // Skip upcoming games if already started
         const homeTeamId = game.homeTeamId;
         const awayTeamId = game.awayTeamId;
@@ -496,7 +496,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
             return;
         }
 
-        const statFeatures = extractSportFeatures(normalizedHome, normalizedAway, sport.name, 0);
+        const statFeatures = extractSportFeatures(homeRawStats, awayRawStats, sport.name, 0);
 
         if (isValidStatBlock(homeRawStats) && isValidStatBlock(awayRawStats)) {
             // Update history AFTER using current stats
