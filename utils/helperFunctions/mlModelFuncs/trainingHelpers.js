@@ -503,18 +503,18 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
 
         const homeRawStats = game['homeStats.data'];
         const awayRawStats = game['awayStats.data'];
-console.info(`BEFORE STAT FILLING ${sport.name} @ ${moment().format('HH:mm:ss')}`);
+        console.info(`BEFORE STAT FILLING ${sport.name} @ ${moment().format('HH:mm:ss')}`);
         do {
-            for (const game of pastGames) {
-                const homeRawStats = game['homeStats.data'];
-                const awayRawStats = game['awayStats.data'];
+            for (const pastGame of pastGames) {
+                const homeRawStats = pastGame['homeStats.data'];
+                const awayRawStats = pastGame['awayStats.data'];
                 teamStatsHistory.push(homeRawStats);
                 teamStatsHistory.push(awayRawStats);
             }
         } while (
             teamStatsHistory.length > (50)
         )
-console.info(`AFTER STAT FILLING ${sport.name} @ ${moment().format('HH:mm:ss')}`);
+        console.info(`AFTER STAT FILLING ${sport.name} @ ${moment().format('HH:mm:ss')}`);
 
         const normalizedHome = getZScoreNormalizedStats(homeRawStats, teamStatsHistory, true, search, sport, false);
         const normalizedAway = getZScoreNormalizedStats(awayRawStats, teamStatsHistory, true, search, sport, false);
