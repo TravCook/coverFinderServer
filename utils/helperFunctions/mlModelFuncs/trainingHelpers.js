@@ -523,15 +523,15 @@ const predictions = async (sportOdds, ff, model, sport, past, search) => {
             predictedWinner,
             predictionConfidence,
             predictionCorrect: predictedWinner === game.winner,
-            predictedHomeScore: homeScore,
-            predictedAwayScore: awayScore,
+            predictedHomeScore: Math.round(homeScore),
+            predictedAwayScore: Math.round(awayScore),
         };
 
         if (game.predictedWinner !== predictedWinner) {
             predictionsChanged++
             let oldWinner = game.predictedWinner === 'home' ? game['homeTeamDetails.espnDisplayName'] : game['awayTeamDetails.espnDisplayName'];
             let newWinner = predictedWinner === 'home' ? game['homeTeamDetails.espnDisplayName'] : game['awayTeamDetails.espnDisplayName'];
-            if (!past) console.log(`Prediction changed for game ${game.id}: ${oldWinner} → ${newWinner} (Confidence: ${predictionConfidence}) Score ([${homeScore}, ${awayScore}]) [${Math.round(predHomeScore)}, ${Math.round(predAwayScore)}]`);
+            if (!past) console.log(`Prediction changed for game ${game.id}: ${oldWinner} → ${newWinner} (Confidence: ${predictionConfidence}) Score ([home, away]) [${Math.round(homeScore)}, ${Math.round(awayScore)}]`);
         }
         if (game.predictionConfidence !== predictionConfidence) {
             newConfidencePredictions++
