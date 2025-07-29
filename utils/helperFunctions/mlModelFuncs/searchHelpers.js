@@ -43,7 +43,7 @@ const hyperparameterRandSearch = async (sports) => {
         gameDecayValue: { min: .95, max: .99 },
         decayStepSize: { min: 1, max: 150 }
     };
-    for (let sport of sports) {
+    for (let sport of sports.sort((a, b) => a.startMonth - b.startMonth)) {
         // if (sport.name !== 'baseball_mlb') continue
         console.log(`--------------- ${sport.name} @ ${moment().format('HH:mm:ss')}-------------------`)
         const validBatchSizes = [32, 64, 128];

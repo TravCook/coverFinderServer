@@ -5,7 +5,91 @@ const path = require('path');
 const tf = require('@tensorflow/tfjs-node');
 const moment = require('moment')
 const cliProgress = require('cli-progress');
-const { baseballStatMap, basketballStatMap, footballStatMap, hockeyStatMap } = require('../../statMaps')
+const { baseballStatMap, basketballStatMap, footballStatMap, hockeyStatMap, statConfigMap } = require('../../statMaps')
+
+
+function evaluateFoldMetrics(testXs, testYsScore, testYsWins, scorePreds, winProbPreds) {
+    const testXsTensor = tf.tensor2d(testXs);
+    const testYsScoreTensor = tf.tensor2d(testYsScore, [testYsScore.length, 2]);
+    const testYsWinsTensor = tf.tensor2d(testYsWins, [testYsWins.length, 1]);
+    const scorePredsTensor = tf.tensor2d(scorePreds, [scorePreds.length, 2]);
+    const winPredsTensor = tf.tensor2d(winProbPreds, [winProbPreds.length, 1]);
+
+    const metrics = evaluateMetrics(testYsWinsTensor, winPredsTensor);
+    const regressionMetrics = evaluateRegressionMetrics(testYsScoreTensor, scorePredsTensor);
+
+    testXsTensor.dispose();
+    testYsScoreTensor.dispose();
+    testYsWinsTensor.dispose();
+    scorePredsTensor.dispose();
+    winPredsTensor.dispose();
+
+    return {
+        mse: regressionMetrics.mse,
+        rmse: regressionMetrics.rmse,
+        mae: regressionMetrics.mae,
+        ...metrics,
+    };
+}
+
+function printOverallMetrics(foldResults) {
+    const avgF1 = avg(foldResults.map(f => f.f1Score));
+    const avgMAE = avg(foldResults.map(f => f.mae));
+
+    const totalCounts = ['truePositives', 'falsePositives', 'trueNegatives', 'falseNegatives'].reduce((acc, key) => {
+        acc[key] = foldResults.reduce((sum, f) => sum + f[key], 0);
+        return acc;
+    }, {});
+
+    const total = Object.values(totalCounts).reduce((sum, val) => sum + val, 0);
+
+    console.log(`--- Overall Performance Avg F1-Score: ${avgF1.toFixed(4)} ---`);
+    // for (const [label, count] of Object.entries(totalCounts)) {
+    //     console.log(`${label}: ${count} (${((count / total) * 100).toFixed(2)}%)`);
+    // }
+    console.log(`--- Overall Performance Avg MAE: ${avgMAE.toFixed(4)} ---`);
+}
+
+async function extractAndSaveFeatureImportances(model, sport) {
+    const dropoutRate = sport['hyperParams.dropoutReg'] || 0;
+    const hiddenLayerCount = sport['hyperParams.hiddenLayerNum'];
+
+    let currentWeights = model.layers[1].getWeights()[0]; // Input to first hidden
+    for (let i = 0; i < hiddenLayerCount; i++) {
+        const layerIndex = 2 + i * (dropoutRate > 0 ? 2 : 1);
+        const nextWeights = model.layers[layerIndex].getWeights()[0];
+        currentWeights = tf.matMul(currentWeights, nextWeights);
+    }
+
+    const scoreOutputLayer = model.getLayer('scoreOutput');
+    const finalWeights = scoreOutputLayer.getWeights()[0];
+    const featureToOutput = tf.matMul(currentWeights, finalWeights);
+
+    let importanceScores = tf.abs(featureToOutput).sum(1);
+    importanceScores = importanceScores.div(importanceScores.max());
+
+    const scoresArr = await importanceScores.array();
+    const statMap = statConfigMap[sport.espnSport].default
+
+    const featureImportanceWithLabels = statMap.map((stat, i) => ({
+        feature: stat,
+        importance: scoresArr[i]
+    }));
+
+    const inputToHiddenWeights = await model.layers[1].getWeights()[0].array();
+    const hiddenToOutputWeights = await scoreOutputLayer.getWeights()[0].array();
+
+    await db.MlModelWeights.upsert({
+        sport: sport.id,
+        inputToHiddenWeights,
+        hiddenToOutputWeights,
+        featureImportanceScores: featureImportanceWithLabels
+    });
+}
+
+function avg(arr) {
+    return arr.reduce((sum, val) => sum + val, 0) / arr.length;
+}
 
 function pearsonCorrelation(x, y) {
     const n = x.length;
@@ -150,7 +234,7 @@ const getHyperParams = (sport, search) => {
             ? sport.hyperParameters.epochs
             : sport['hyperParams.epochs'],
         l2reg: search
-            ? sport.hyperParameters.l2reg
+            ? sport.hyperParameters.l2Reg
             : sport['hyperParams.l2reg'],
         dropoutReg: search
             ? sport.hyperParameters.dropoutReg
@@ -231,24 +315,11 @@ const loadOrCreateModel = async (xs, sport, search) => {
     }
 };
 
-const getZScoreNormalizedStats = (currentStats, teamStatsHistory, prediction, search, sport, isFinalTrainingGame) => {
+const getZScoreNormalizedStats = (currentStats, teamStatsHistory, prediction, search, sport) => {
     const history = teamStatsHistory || [];
-    // console.log(history)
-    // Not enough data — return raw stats
-    if (history.length < 5) {
-        // const fallback = {};
-        // Object.keys(currentStats).forEach(key => {
-        //     let val = currentStats[key];
-        //     if (typeof val === 'string') {
-        //         const [wins] = val.split('-').map(Number);
-        //         val = wins;
-        //     }
 
-        //     const mean = fallbackStats.means[key] ?? 0;
-        //     const std = fallbackStats.stds[key] ?? 1;
-        //     fallback[key] = (val - mean) / std;
-        // });
-        // return fallback;
+    if (history.length < 5) {
+
         return { ...currentStats }
     }
 
@@ -301,17 +372,6 @@ const getZScoreNormalizedStats = (currentStats, teamStatsHistory, prediction, se
     keys.forEach(key => {
         normalized[key] = (transformedStats[key] - means[key]) / stds[key];
     });
-    if (isFinalTrainingGame) {
-        const outputDir = './utils/seeds';
-        const outputPath = path.join(outputDir, 'global_normalization.json');
-
-        // Make sure the directory exists
-        if (!fs.existsSync(outputDir)) {
-            fs.mkdirSync(outputDir, { recursive: true }); // `recursive` ensures nested dirs
-        }
-
-        fs.writeFileSync(outputPath, JSON.stringify({ means: means, stds: stds }, null, 2));
-    }
 
     return normalized;
 };
@@ -343,8 +403,8 @@ const mlModelTraining = async (gameData, xs, ysWins, ysScore, sport, search, gam
         let normalizedHome
         let normalizedAway
 
-        normalizedHome = getZScoreNormalizedStats(homeRawStats, teamStatsHistory, false, search, sport, false);
-        normalizedAway = getZScoreNormalizedStats(awayRawStats, teamStatsHistory, false, search, sport, false);
+        normalizedHome = getZScoreNormalizedStats(homeRawStats, teamStatsHistory, false, search, sport);
+        normalizedAway = getZScoreNormalizedStats(awayRawStats, teamStatsHistory, false, search, sport);
 
         if (!normalizedHome || !normalizedAway) {
             console.log(game.id)
@@ -368,11 +428,11 @@ const mlModelTraining = async (gameData, xs, ysWins, ysScore, sport, search, gam
 
 
             teamStatsHistory.push(homeRawStats);
-            if (teamStatsHistory.length > (50)) {
+            if (teamStatsHistory.length > (search ? sport.hyperParameters.historyLength : sport['hyperParams.historyLength'])) {
                 teamStatsHistory.shift(); // remove oldest game
             }
             teamStatsHistory.push(awayRawStats);
-            if (teamStatsHistory.length > (50)) {
+            if (teamStatsHistory.length > (search ? sport.hyperParameters.historyLength : sport['hyperParams.historyLength'])) {
                 teamStatsHistory.shift(); // remove oldest game
             }
         }
@@ -381,17 +441,6 @@ const mlModelTraining = async (gameData, xs, ysWins, ysScore, sport, search, gam
 
 
     checkFeatureLeakage(xs, ysScore, ysWins)
-    // Check if xs contains NaN values
-    // if (xs.some(row => row.some(isNaN))) {
-    //     console.error('NaN detected in xs:', xs);
-    //     // Handle NaN values (skip, replace, or log)
-    // }
-
-    // // Check if ys contains NaN values
-    // if (ys.some(isNaN)) {
-    //     console.error('NaN detected in ys:', ys);
-    //     // Handle NaN values
-    // }
 
     // Convert arrays to tensors
     const xsTensor = tf.tensor2d(xs);
@@ -436,7 +485,6 @@ const mlModelTraining = async (gameData, xs, ysWins, ysScore, sport, search, gam
     ysWinLabelsTensor.dispose();
     ysScoresTensor.dispose()
 
-
     // Save model specific to the sport
     if (!search) {
 
@@ -451,7 +499,7 @@ const mlModelTraining = async (gameData, xs, ysWins, ysScore, sport, search, gam
     xs = null
     ys = null
 
-    return { model, updatedGameCount: gameCount }
+    return { model, updatedGameCount: gameCount, teamStatsHistory }
     // Log loss and accuracy
 
 }
@@ -503,7 +551,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
         teamStatsHistory.push(awayRawStats);
     }
     for (const game of sportOdds) {
-        if (Date.parse(game.commence_time) <= Date.now() && !past) continue; // Skip upcoming games if already started
+        // if (Date.parse(game.commence_time) <= Date.now() && !past) continue; // Skip upcoming games if already started
         const homeTeamId = game.homeTeamId;
         const awayTeamId = game.awayTeamId;
 
@@ -527,13 +575,13 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
 
 
 
-        const [predScore, predWinProb] = await repeatPredictions(model, tf.tensor2d([statFeatures]), 100);
+        const [predScore, predWinProb] = await repeatPredictions(model, tf.tensor2d([statFeatures]), 10);
 
         let homeScore = predScore[0]
         let awayScore = predScore[1]
 
         const predictedWinner = predScore[0] > predScore[1] ? 'home' : 'away';
-        const predictionConfidence = predWinProb > .50 ? predWinProb : 1 - predWinProb;
+        const predictionConfidence = predWinProb > .50 ? predWinProb[0] : 1 - predWinProb[0];
         if (Math.round(homeScore) === Math.round(awayScore)) {
             predictedWinner === 'home' ? homeScore = homeScore + 1 : awayScore = awayScore + 1
         }
@@ -544,12 +592,12 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
             predictedHomeScore: Math.round(homeScore),
             predictedAwayScore: Math.round(awayScore),
         };
-        let oldWinner = game.predictedWinner === 'home' ? game['homeTeamDetails.espnDisplayName'] : game['awayTeamDetails.espnDisplayName'];
-        let newWinner = predictedWinner === 'home' ? game['homeTeamDetails.espnDisplayName'] : game['awayTeamDetails.espnDisplayName'];
-        if (!past) console.log(`Prediction changed for game ${game.id}: ${oldWinner} → ${newWinner} (Confidence: ${predictionConfidence}) Score ([home, away]) [${Math.round(homeScore)}, ${Math.round(awayScore)}]`);
+
         if (game.predictedWinner !== predictedWinner) {
             predictionsChanged++
-
+            let oldWinner = game.predictedWinner === 'home' ? game['homeTeamDetails.espnDisplayName'] : game['awayTeamDetails.espnDisplayName'];
+            let newWinner = predictedWinner === 'home' ? game['homeTeamDetails.espnDisplayName'] : game['awayTeamDetails.espnDisplayName'];
+            if (!past) console.log(`Prediction changed for game ${game.id}: ${oldWinner} → ${newWinner} (Confidence: ${predictionConfidence}) Score ([home, away]) [${Math.round(homeScore)}, ${Math.round(awayScore)}]`);
         }
         if (game.predictionConfidence !== predictionConfidence) {
             newConfidencePredictions++
@@ -599,13 +647,13 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
             if (Math.abs(homeScore - awayScore) === Math.abs(game.homeScore - game.awayScore)) {
                 spreadMatch++
             }
-            if((homeScore + awayScore) ===( game.homeScore + game.awayScore)){
+            if ((homeScore + awayScore) === (game.homeScore + game.awayScore)) {
                 totalMatch++
             }
 
         }
 
-        // await db.Games.update(updatePayload, { where: { id: game.id } });
+        if (!past) await db.Games.update(updatePayload, { where: { id: game.id } });
 
 
 
@@ -685,227 +733,126 @@ function evaluateRegressionMetrics(yTrueTensor, yPredTensor) {
     };
 }
 
-const trainSportModelKFold = async (sport, gameData, search, upcomingGames) => {
-    sportGames = upcomingGames.filter((game) => game.sport_key === sport.name) //USE THIS TO POPULATE UPCOMING GAME ODDS
-    let sortedGameData = gameData.sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time)).slice(0, gameData.length - (gameData.length * .10)); // Sort by commence_time
-    console.log(`${sortedGameData[0].commence_time.toLocaleString()} - ${sortedGameData[sortedGameData.length - 1].commence_time.toLocaleString()}`)
-    const numFolds = search ? sport.hyperParameters.kFolds : sport['hyperParams.kFolds'];  // Number of folds (you can adjust based on your data)
-    const bar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
-    let gameCount = 0
+const trainSportModelKFold = async (sport, gameData, search) => {
 
-    const total = numFolds
+    // Sort historical game data and slice off the most recent 10% for testing
+    const sortedGameData = gameData
+        .sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time))
+        .slice(0, gameData.length - Math.floor(gameData.length * 0.10));
+
+    console.log(`${sortedGameData[0].commence_time.toLocaleString()} - ${sortedGameData[sortedGameData.length - 1].commence_time.toLocaleString()}`);
+
+    const numFolds = search ? sport.hyperParameters.kFolds : sport['hyperParams.kFolds'];
+    const bar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
+    const totalFolds = numFolds;
+
+    let gameCount = 0;
     let foldResults = [];
-    let finalModel
-    bar.start(total, 0);
-    progress = 0
-    // Perform training and testing on each fold
+    let finalModel;
+    let progress = 0;
+
+    bar.start(totalFolds, 0);
+
     for (let foldIndex = 1; foldIndex <= numFolds; foldIndex++) {
+        // Define training and validation split for this fold
         const trainEnd = Math.floor((foldIndex / (numFolds + 1)) * sortedGameData.length);
-        const trainingData = sortedGameData.slice(0, trainEnd);
         const valStart = trainEnd;
         const valEnd = foldIndex === numFolds
             ? sortedGameData.length
             : Math.floor(((foldIndex + 1) / (numFolds + 1)) * sortedGameData.length);
 
+        const trainingData = sortedGameData.slice(0, trainEnd);
         const testData = sortedGameData.slice(valStart, valEnd);
 
+        // Train model
+        const { model, updatedGameCount, teamStatsHistory } = await mlModelTraining(
+            trainingData, [], [], [], sport, search, gameCount, sortedGameData
+        );
 
-        // Train the model with training data
-        const { model, updatedGameCount } = await mlModelTraining(trainingData, [], [], [], sport, search, gameCount, sortedGameData);
-        gameCount = updatedGameCount
-        finalModel = model
+        finalModel = model;
+        gameCount = updatedGameCount;
 
         const testXs = [];
         const testYsScore = [];
         const testYsWins = [];
 
-        const teamStatsHistory = [] // teamID => [pastStatsObjects]
-        let scorepredictionsArray = []
-        let winProbPredicitonsArray = []
-        let statMap
-        switch (sport.name) {
-            case 'baseball_mlb':
-                statMap = baseballStatMap
-                break
-            case 'icehockey_nhl':
-                statMap = hockeyStatMap
-                break
-            case 'americanfootball_nfl':
-            case 'americanfootball_ncaaf':
-                statMap = footballStatMap
-                break
-            case 'basketball_nba':
-            case 'basketball_ncaab':
-            case 'basketball_wncaab':
-                statMap = basketballStatMap
-                break
-        }
+        const scorePredictionsArray = [];
+        const winProbPredictionsArray = [];
+
+
+
         for (const game of testData) {
-            const homeTeamId = game.homeTeamId;
-            const awayTeamId = game.awayTeamId;
+            const homeStats = getZScoreNormalizedStats(game['homeStats.data'], teamStatsHistory, true, search, sport);
+            const awayStats = getZScoreNormalizedStats(game['awayStats.data'], teamStatsHistory, true, search, sport);
 
-            const homeRawStats = game['homeStats.data'];
-            const awayRawStats = game['awayStats.data'];
-
-            const normalizedHome = getZScoreNormalizedStats(homeRawStats, teamStatsHistory, true, search, sport);
-            const normalizedAway = getZScoreNormalizedStats(awayRawStats, teamStatsHistory, true, search, sport);
-
-            if (!normalizedHome || !normalizedAway) {
-                console.log(game.id)
+            if (!homeStats || !awayStats) {
+                console.log(game.id);
                 return;
             }
-            const gameIndexFromEnd = sortedGameData.length - 1 - gameCount;
-            const statFeatures = extractSportFeatures(normalizedHome, normalizedAway, sport.name, gameIndexFromEnd);
-            const homeScoreLabel = [game.homeScore, game.awayScore]
-            const homeWinLabel = game.winner === 'home' ? 1 : 0
 
-            if (statFeatures.some(isNaN) || homeWinLabel === null) {
+            const gameIndexFromEnd = sortedGameData.length - 1 - gameCount;
+            const statFeatures = extractSportFeatures(homeStats, awayStats, sport.name, gameIndexFromEnd);
+
+            const homeScoreLabel = [game.homeScore, game.awayScore];
+            const homeWinLabel = game.winner === 'home' ? 1 : 0;
+
+            if (statFeatures.some(isNaN) || homeWinLabel == null) {
                 console.error('NaN detected in features during kFoldTest:', game.id);
                 process.exit(0);
-            } else {
-                testXs.push(statFeatures);
-                testYsScore.push(homeScoreLabel);
-                testYsWins.push(homeWinLabel)
             }
 
-            if (statFeatures.length / 2 === statMap.length && isValidStatBlock(homeRawStats) && isValidStatBlock(awayRawStats)) {
+            testXs.push(statFeatures);
+            testYsScore.push(homeScoreLabel);
+            testYsWins.push(homeWinLabel);
 
+            const [avgScore, avgWinProb] = await repeatPredictions(model, tf.tensor2d([statFeatures]), 10);
+            scorePredictionsArray.push(avgScore);
+            winProbPredictionsArray.push(avgWinProb);
 
-                teamStatsHistory.push(homeRawStats);
-                if (teamStatsHistory.length > (search ? sport.hyperParameters.historyLength : 50)) {
-                    teamStatsHistory.shift(); // remove oldest game
-                }
-                teamStatsHistory.push(awayRawStats);
-                if (teamStatsHistory.length > (search ? sport.hyperParameters.historyLength : 50)) {
-                    teamStatsHistory.shift(); // remove oldest game
-                }
-            }
-            let [averagedScore, averagedWinProb] = await repeatPredictions(model, tf.tensor2d([statFeatures]), 10);
-            scorepredictionsArray.push(averagedScore)
-            winProbPredicitonsArray.push(averagedWinProb)
-            gameCount++
-        };
-        // Create tensors
-        const testXsTensor = tf.tensor2d(testXs);
-        const testYsScoreTensor = tf.tensor2d(testYsScore, [testYsScore.length, 2]);
-        const testYsWinsTensor = tf.tensor2d(testYsWins, [testYsWins.length, 1]);
-        const scorePredictionsTensor = tf.tensor2d(scorepredictionsArray, [scorepredictionsArray.length, 2]);
-        const winProbPredictionTensor = tf.tensor2d(winProbPredicitonsArray, [winProbPredicitonsArray.length, 1])
-
-
-        // const confidences = predictionsArray.map(p => Math.abs(p - 0.5) * 2);  // Converts 0.5→0, 1.0/0.0→1.0
-        // console.log("High-confidence predictions:", confidences.filter(c => c > 0.9).length);
-        const metrics = evaluateMetrics(testYsWinsTensor, winProbPredictionTensor);
-
-        const regressionMetrics = evaluateRegressionMetrics(testYsScoreTensor, scorePredictionsTensor);
-
-        foldResults.push({
-            foldIndex,
-            mse: regressionMetrics.mse,
-            rmse: regressionMetrics.rmse,
-            mae: regressionMetrics.mae,
-            precision: metrics.precision,
-            recall: metrics.recall,
-            f1Score: metrics.f1Score,
-            truePositives: metrics.truePositives,
-            falsePositives: metrics.falsePositives,
-            trueNegatives: metrics.trueNegatives,
-            falseNegatives: metrics.falseNegatives
-        });
-
-        testXsTensor.dispose();
-        testYsScoreTensor.dispose();
-        testYsWinsTensor.dispose();
-        scorePredictionsTensor.dispose()
-        winProbPredictionTensor.dispose()
-        progress += 1
-        bar.update(progress)
-        if (progress >= total) {
-            bar.stop();
-            // console.log('Done!');
+            gameCount++;
         }
-    }
-    let testWinRate = await predictions(sportGames, [], finalModel, sport, false, search, gameData.sort((gameA, gameB) => new Date(gameB.commence_time) - new Date(gameA.commence_time)))
-    // await predictions(gameData, [], finalModel, sport, true) // Predictions for past games DO NOT RUN THIS AGAIN FOR BASEBALL. MAYBE FOR OTHER SPORTS BUT NOT LIKELY. DO NOT UNCOMMENT UNLESS YOU COMPLETELY CHANGE THE ARCHITECTURE OF THE MODEL OR THE DATASET. IT WILL OVERWRITE PAST GAME ODDS AND PREDICTIONS.
-    // After all folds, calculate and log the overall performance
-    const avgF1Score = foldResults.reduce((sum, fold) => sum + fold.f1Score, 0) / foldResults.length;
-    const totalTruePositives = foldResults.reduce((sum, fold) => sum + fold.truePositives, 0)
-    const totalFalsePositives = foldResults.reduce((sum, fold) => sum + fold.falsePositives, 0)
-    const totalTrueNegatives = foldResults.reduce((sum, fold) => sum + fold.trueNegatives, 0)
-    const totalFalseNegatives = foldResults.reduce((sum, fold) => sum + fold.falseNegatives, 0)
-    const avgMAE = foldResults.reduce((sum, fold) => sum + fold.mae, 0) / foldResults.length;
 
-    console.log(`--- Overall Performance Avg F1-Score: ${avgF1Score} ---`);
-    console.log(`truePositives: ${totalTruePositives} (${(totalTruePositives / (totalTruePositives + totalFalseNegatives + totalFalsePositives + totalTrueNegatives) * 100).toFixed(2)}%)`);
-    console.log(`falsePositives: ${totalFalsePositives} (${(totalFalsePositives / (totalTruePositives + totalFalseNegatives + totalFalsePositives + totalTrueNegatives) * 100).toFixed(2)}%)`);
-    console.log(`falseNegatives: ${totalFalseNegatives} (${(totalFalseNegatives / (totalTruePositives + totalFalseNegatives + totalFalsePositives + totalTrueNegatives) * 100).toFixed(2)}%)`);
-    console.log(`trueNegatives: ${totalTrueNegatives} (${(totalTrueNegatives / (totalTruePositives + totalFalseNegatives + totalFalsePositives + totalTrueNegatives) * 100).toFixed(2)}%)`);
-    console.log(`--- Overall Performance Avg MAE: ${avgMAE} ---`);
-    console.log(`TEST WIN RATE ${(testWinRate * 100).toFixed(2)}`)
+        // Evaluate fold
+        const foldMetrics = evaluateFoldMetrics(
+            testXs,
+            testYsScore,
+            testYsWins,
+            scorePredictionsArray,
+            winProbPredictionsArray
+        );
+
+        foldResults.push({ foldIndex, ...foldMetrics });
+
+        progress += 1;
+        bar.update(progress);
+    }
+
+    bar.stop();
+
+    // Aggregate results
+    printOverallMetrics(foldResults);
 
     if (search) {
-        return testWinRate
+        const testSlice = gameData
+            .sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time))
+            .slice(gameData.length - Math.floor(gameData.length * 0.10) - 1, gameData.length - 1);
+
+        const historySlice = gameData
+            .sort((a, b) => new Date(b.commence_time) - new Date(a.commence_time))
+            .slice(0, search ? sport.hyperParameters.historyLength : sport['hyperParams.historyLength']);
+
+        const testWinRate = await predictions(testSlice, [], finalModel, sport, false, search, historySlice);
+
+        console.log(`TEST WIN RATE ${(testWinRate * 100).toFixed(2)}`);
+        return testWinRate;
     }
 
-    const dropoutRate = sport['hyperParams.dropoutReg'] || 0;
-    const hiddenLayerCount = sport['hyperParams.hiddenLayerNum'];
-    const hiddenUnits = sport['hyperParams.layerNeurons'];
-
-    // Step 1: Get input-to-hidden weights as tensor
-    let currentWeights = finalModel.layers[1].getWeights()[0]; // Tensor shape: [numInputFeatures, hiddenUnits]
-
-    // Step 2: Propagate through each hidden layer
-    for (let i = 0; i < hiddenLayerCount; i++) {
-        const layerIndex = 2 + i * (dropoutRate > 0 ? 2 : 1); // Skip dropout layers
-        const layerWeights = finalModel.layers[layerIndex].getWeights()[0]; // Tensor shape: [hiddenUnits, hiddenUnits]
-        currentWeights = tf.matMul(currentWeights, layerWeights); // Shape preserved: [numInputFeatures, hiddenUnits]
-    }
-
-    // Step 3: Multiply by final layer weights
-    const scoreOutputLayer = finalModel.getLayer('scoreOutput'); // or 'winProbOutput' if that's what you meant
-    const finalOutputWeights = scoreOutputLayer.getWeights()[0]; // Tensor shape: [hiddenUnits, 2] if it's a score head
-
-    // Multiply: [numInputFeatures, hiddenUnits] x [hiddenUnits, 2] → [numInputFeatures, 2]
-    const featureToOutputWeights = tf.matMul(currentWeights, finalOutputWeights); // Tensor
-
-    // Step 4: Reduce to importance score per feature (you can use max or mean)
-    let featureImportanceScores = tf.abs(featureToOutputWeights).sum(1); // Sum across outputs: shape [numFeatures]
-
-    // Step 5: Normalize
-    const maxVal = featureImportanceScores.max();
-    featureImportanceScores = featureImportanceScores.div(maxVal); // Still a tensor
-
-    // Step 6: Convert to array and map to stat labels
-    const featureScoresArr = await featureImportanceScores.array(); // [numFeatures]
-    const statMaps = {
-        'baseball_mlb': baseballStatMap,
-        'basketball_nba': basketballStatMap,
-        'basketball_ncaab': basketballStatMap,
-        'basketball_wncaab': basketballStatMap,
-        'americanfootball_nfl': footballStatMap,
-        'americanfootball_ncaaf': footballStatMap,
-        'icehockey_nhl': hockeyStatMap
-    };
-
-    const featureImportanceWithLabels = statMaps[sport.name].map((stat, index) => ({
-        feature: stat,
-        importance: featureScoresArr[index]
-    }));
-
-    // Step 7: Store in DB (you still need raw weights for this)
-    const inputToHiddenWeights = await finalModel.layers[1].getWeights()[0].array();
-    const hiddenToOutputWeights = await scoreOutputLayer.getWeights()[0].array();
-
-
-    await db.MlModelWeights.upsert({
-        sport: sport.id,
-        inputToHiddenWeights: inputToHiddenWeights,
-        hiddenToOutputWeights: hiddenToOutputWeights,
-        featureImportanceScores: featureImportanceWithLabels
-    });
+    // Extract feature importances
+    await extractAndSaveFeatureImportances(finalModel, sport);
 
     if (global.gc) global.gc();
     console.log(`ml model done for ${sport.name} @ ${moment().format('HH:mm:ss')}`);
+    return finalModel;
 };
 
 module.exports = { getStat, getWinLoss, getHomeAwayWinLoss, normalizeStat, extractSportFeatures, mlModelTraining, predictions, trainSportModelKFold, loadOrCreateModel, evaluateMetrics }

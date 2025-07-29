@@ -522,5 +522,45 @@ const footballOtherStats = [
   'USFBtotalTouchdowns',
   'USFBtouchdownsPerGame',
 ]
-
-module.exports = { baseballStatMap, basketballStatMap, hockeyStatMap, footballStatMap, battingStats, pitchingStats, fieldingStats, generalStats, footballDefenseStats, footballKickingStats, footballOtherStats, footballPassingStats, footballRecievingStats, footballReturningStats, footballRushingStats, hockeyDefenseStats, hockeyOffenseStats, hockeyPenaltyStats, basketballDefenseStats, basketballOffenseStats };
+const statConfigMap = {
+    baseball: {
+        default: baseballStatMap,
+        categories: {
+            general: generalStats,
+            batting: battingStats,
+            pitching: pitchingStats,
+            fielding: fieldingStats
+        }
+    },
+    football: {
+        default: footballStatMap,
+        categories: {
+            general: generalStats,
+            passing: footballPassingStats,
+            recieving: footballRecievingStats,
+            rushing: footballRushingStats,
+            defense: footballDefenseStats,
+            kicking: footballKickingStats,
+            returning: footballReturningStats,
+            other: footballOtherStats
+        }
+    },
+    basketball: {
+        default: basketballStatMap,
+        categories: {
+            general: generalStats,
+            offense: basketballOffenseStats,
+            defense: basketballDefenseStats
+        }
+    },
+    hockey: {
+        default: hockeyStatMap,
+        categories: {
+            general: generalStats,
+            offense: hockeyOffenseStats,
+            defense: hockeyDefenseStats,
+            penalty: hockeyPenaltyStats
+        }
+    }
+};
+module.exports = { baseballStatMap, basketballStatMap, hockeyStatMap, footballStatMap, battingStats, pitchingStats, fieldingStats, generalStats, footballDefenseStats, footballKickingStats, footballOtherStats, footballPassingStats, footballRecievingStats, footballReturningStats, footballRushingStats, hockeyDefenseStats, hockeyOffenseStats, hockeyPenaltyStats, basketballDefenseStats, basketballOffenseStats, statConfigMap };
