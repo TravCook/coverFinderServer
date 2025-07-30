@@ -288,7 +288,7 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
             // console.log(`${game['homeTeamDetails.espnDisplayName']}: ${scaledHomeZ}, ${game['awayTeamDetails.espnDisplayName']}: ${scaledAwayZ} for game ID: ${game.id}`)
 
             // Update the Odds database with the calculated indices
-            const winrate = await calculateWinrate(currentOdds, sport, game['homeTeamDetails.espnDisplayName'], game['awayTeamDetails.espnDisplayName'], scaledHomeZ, scaledAwayZ, game.predictedWinner, game.predictionConfidence, game.commence_time);
+            const winrate = await calculateWinrate(allPastGames, sport, game['homeTeamDetails.espnDisplayName'], game['awayTeamDetails.espnDisplayName'], scaledHomeZ, scaledAwayZ, game.predictedWinner, game.predictionConfidence, game.commence_time);
             if (sport.name === game.sport_key) {
                 try {
                     await db.Games.update({
