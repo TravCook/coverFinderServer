@@ -99,7 +99,7 @@ const mlModelTrainSeed = async () => {
                     raw: true
                 });
                 if (global.gc) global.gc();
-                // await pastGamesReIndex(upcomingGames, newSport)
+                await pastGamesReIndex(upcomingGames, newSport)
                 if (global.gc) global.gc();
             } else {
                 console.log(`NOT ENOUGH ${sport.name} DATA`)
@@ -109,196 +109,194 @@ const mlModelTrainSeed = async () => {
             console.log(`${sport.name} NOT IN SEASON`)
         }
         if (global.gc) global.gc();
-        // await valueBetGridSearch(sport)
+        await valueBetGridSearch(sport)
         if (global.gc) global.gc();
 
     }
-    // hyperparameterRandSearch(sports)
 
-
-    // const today = new Date();
-    // today.setHours(0, 0, 0, 0);  // Set time to midnight
-    // const currentOdds = await db.Games.findAll({
-    //     where: {
-    //         complete: false
-    //     },
-    //     include: [
-    //         {
-    //             model: db.Teams,
-    //             as: 'homeTeamDetails', // alias for HomeTeam join
-    //             // No where clause needed here
-    //         },
-    //         {
-    //             model: db.Teams,
-    //             as: 'awayTeamDetails', // alias for AwayTeam join
-    //         },
-    //         {
-    //             model: db.Bookmakers,
-    //             as: 'bookmakers',
-    //             where: {
-    //                 gameId: { [Op.eq]: Sequelize.col('Games.id') } // Ensure the gameId matches the Games table
-    //             },
-    //             include: [
-    //                 {
-    //                     model: db.Markets,
-    //                     as: 'markets',
-    //                     where: {
-    //                         bookmakerId: { [Op.eq]: Sequelize.col('bookmakers.id') } // Ensure the bookmakerId matches the Bookmakers table
-    //                     },
-    //                     include: [
-    //                         {
-    //                             model: db.Outcomes,
-    //                             as: 'outcomes',
-    //                             where: {
-    //                                 marketId: { [Op.eq]: Sequelize.col('bookmakers->markets.id') } // Ensure the marketId matches the Markets table
-    //                             }
-    //                         }
-    //                     ]
-    //                 }
-    //             ]
-    //         },
-    //         {
-    //             model: db.Stats,
-    //             as: `homeStats`,
-    //             required: true,
-    //             where: {
-    //                 [Op.and]: [
-    //                     { teamId: { [Op.eq]: Sequelize.col('Games.homeTeam') } },
-    //                     { gameId: { [Op.eq]: Sequelize.col('Games.id') } }
-    //                 ]
-    //             }
-    //         },
-    //         {
-    //             model: db.Stats,
-    //             as: `awayStats`,
-    //             required: true,
-    //             where: {
-    //                 [Op.and]: [
-    //                     { teamId: { [Op.eq]: Sequelize.col('Games.awayTeam') } },
-    //                     { gameId: { [Op.eq]: Sequelize.col('Games.id') } }
-    //                 ]
-    //             }
-    //         }
-    //     ]
-    // });
-    // const pastOdds = await db.Games.findAll({
-    //     where: {
-    //         complete: true,
-    //         commence_time: { [Op.gte]: today } // Ensure the commence_time is greater than or equal to today
-    //     },
-    //     include: [
-    //         {
-    //             model: db.Teams,
-    //             as: 'homeTeamDetails', // alias for HomeTeam join
-    //             // No where clause needed here
-    //         },
-    //         {
-    //             model: db.Teams,
-    //             as: 'awayTeamDetails', // alias for AwayTeam join
-    //         },
-    //         {
-    //             model: db.Bookmakers,
-    //             as: 'bookmakers',
-    //             where: {
-    //                 gameId: { [Op.eq]: Sequelize.col('Games.id') } // Ensure the gameId matches the Games table
-    //             },
-    //             include: [
-    //                 {
-    //                     model: db.Markets,
-    //                     as: 'markets',
-    //                     where: {
-    //                         bookmakerId: { [Op.eq]: Sequelize.col('bookmakers.id') } // Ensure the bookmakerId matches the Bookmakers table
-    //                     },
-    //                     include: [
-    //                         {
-    //                             model: db.Outcomes,
-    //                             as: 'outcomes',
-    //                             where: {
-    //                                 marketId: { [Op.eq]: Sequelize.col('bookmakers->markets.id') } // Ensure the marketId matches the Markets table
-    //                             }
-    //                         }
-    //                     ]
-    //                 }
-    //             ]
-    //         },
-    //         {
-    //             model: db.Stats,
-    //             as: `homeStats`,
-    //             required: true,
-    //             where: {
-    //                 [Op.and]: [
-    //                     { teamId: { [Op.eq]: Sequelize.col('Games.homeTeam') } },
-    //                     { gameId: { [Op.eq]: Sequelize.col('Games.id') } }
-    //                 ]
-    //             }
-    //         },
-    //         {
-    //             model: db.Stats,
-    //             as: `awayStats`,
-    //             required: true,
-    //             where: {
-    //                 [Op.and]: [
-    //                     { teamId: { [Op.eq]: Sequelize.col('Games.awayTeam') } },
-    //                     { gameId: { [Op.eq]: Sequelize.col('Games.id') } }
-    //                 ]
-    //             }
-    //         }
-    //     ]
-    // });
-    // await emitToClients('gameUpdate', currentOdds);
-    // await emitToClients('pastGameUpdate', pastOdds);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);  // Set time to midnight
+    const currentOdds = await db.Games.findAll({
+        where: {
+            complete: false
+        },
+        include: [
+            {
+                model: db.Teams,
+                as: 'homeTeamDetails', // alias for HomeTeam join
+                // No where clause needed here
+            },
+            {
+                model: db.Teams,
+                as: 'awayTeamDetails', // alias for AwayTeam join
+            },
+            {
+                model: db.Bookmakers,
+                as: 'bookmakers',
+                where: {
+                    gameId: { [Op.eq]: Sequelize.col('Games.id') } // Ensure the gameId matches the Games table
+                },
+                include: [
+                    {
+                        model: db.Markets,
+                        as: 'markets',
+                        where: {
+                            bookmakerId: { [Op.eq]: Sequelize.col('bookmakers.id') } // Ensure the bookmakerId matches the Bookmakers table
+                        },
+                        include: [
+                            {
+                                model: db.Outcomes,
+                                as: 'outcomes',
+                                where: {
+                                    marketId: { [Op.eq]: Sequelize.col('bookmakers->markets.id') } // Ensure the marketId matches the Markets table
+                                }
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                model: db.Stats,
+                as: `homeStats`,
+                required: true,
+                where: {
+                    [Op.and]: [
+                        { teamId: { [Op.eq]: Sequelize.col('Games.homeTeam') } },
+                        { gameId: { [Op.eq]: Sequelize.col('Games.id') } }
+                    ]
+                }
+            },
+            {
+                model: db.Stats,
+                as: `awayStats`,
+                required: true,
+                where: {
+                    [Op.and]: [
+                        { teamId: { [Op.eq]: Sequelize.col('Games.awayTeam') } },
+                        { gameId: { [Op.eq]: Sequelize.col('Games.id') } }
+                    ]
+                }
+            }
+        ]
+    });
+    const pastOdds = await db.Games.findAll({
+        where: {
+            complete: true,
+            commence_time: { [Op.gte]: today } // Ensure the commence_time is greater than or equal to today
+        },
+        include: [
+            {
+                model: db.Teams,
+                as: 'homeTeamDetails', // alias for HomeTeam join
+                // No where clause needed here
+            },
+            {
+                model: db.Teams,
+                as: 'awayTeamDetails', // alias for AwayTeam join
+            },
+            {
+                model: db.Bookmakers,
+                as: 'bookmakers',
+                where: {
+                    gameId: { [Op.eq]: Sequelize.col('Games.id') } // Ensure the gameId matches the Games table
+                },
+                include: [
+                    {
+                        model: db.Markets,
+                        as: 'markets',
+                        where: {
+                            bookmakerId: { [Op.eq]: Sequelize.col('bookmakers.id') } // Ensure the bookmakerId matches the Bookmakers table
+                        },
+                        include: [
+                            {
+                                model: db.Outcomes,
+                                as: 'outcomes',
+                                where: {
+                                    marketId: { [Op.eq]: Sequelize.col('bookmakers->markets.id') } // Ensure the marketId matches the Markets table
+                                }
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                model: db.Stats,
+                as: `homeStats`,
+                required: true,
+                where: {
+                    [Op.and]: [
+                        { teamId: { [Op.eq]: Sequelize.col('Games.homeTeam') } },
+                        { gameId: { [Op.eq]: Sequelize.col('Games.id') } }
+                    ]
+                }
+            },
+            {
+                model: db.Stats,
+                as: `awayStats`,
+                required: true,
+                where: {
+                    [Op.and]: [
+                        { teamId: { [Op.eq]: Sequelize.col('Games.awayTeam') } },
+                        { gameId: { [Op.eq]: Sequelize.col('Games.id') } }
+                    ]
+                }
+            }
+        ]
+    });
+    await emitToClients('gameUpdate', currentOdds);
+    await emitToClients('pastGameUpdate', pastOdds);
 
 
 
-    // if (global.gc) global.gc();
-    // await modelConfAnalyzer();
-    // if (global.gc) global.gc();
+    if (global.gc) global.gc();
+    await modelConfAnalyzer();
+    if (global.gc) global.gc();
 
 
-    // const currentDate = new Date();
-    // const yesterday = new Date(currentDate);
-    // yesterday.setDate(currentDate.getDate() - 1);
-    // yesterday.setHours(0, 0, 0, 0);
-    // let yesterdayGames = await db.Games.findAll({
-    //     where: { commence_time: { [Op.gte]: yesterday }, complete: true, predictedWinner: { [Op.in]: ['home', 'away'] } },
-    // })
-    // const stats = {
-    //     date: new Date().toLocaleDateString(),
-    //     totalPredictions: yesterdayGames.length,
-    //     wins: yesterdayGames.filter((game) => game.predictionCorrect === true).length,
-    //     losses: yesterdayGames.filter((game) => game.predictionCorrect === false).length,
-    //     //TODO ADD SPORTS BREAKDOWN STATS
-    //     //TODO ADD BIGGEST WIN
-    // };
+    const currentDate = new Date();
+    const yesterday = new Date(currentDate);
+    yesterday.setDate(currentDate.getDate() - 1);
+    yesterday.setHours(0, 0, 0, 0);
+    let yesterdayGames = await db.Games.findAll({
+        where: { commence_time: { [Op.gte]: yesterday }, complete: true, predictedWinner: { [Op.in]: ['home', 'away'] } },
+    })
+    const stats = {
+        date: new Date().toLocaleDateString(),
+        totalPredictions: yesterdayGames.length,
+        wins: yesterdayGames.filter((game) => game.predictionCorrect === true).length,
+        losses: yesterdayGames.filter((game) => game.predictionCorrect === false).length,
+        //TODO ADD SPORTS BREAKDOWN STATS
+        //TODO ADD BIGGEST WIN
+    };
 
-    // const html = `
-    //     <h2>📊 Daily Sports Prediction Report - ${stats.date}</h2>
-    //     <p>This is your automated status report. App is running (PM2 active).</p>
-    //     <hr />
-    //     <h3>🏁 Overall Summary</h3>
-    //     <ul>
-    //       <li>Total Predictions: <strong>${stats.totalPredictions}</strong></li>
-    //       <li>Wins: <strong style="color:green">${stats.wins}</strong></li>
-    //       <li>Losses: <strong style="color:red">${stats.losses}</strong></li>
-    //       <li>Win Rate: <strong>${((stats.wins / stats.totalPredictions) * 100).toFixed(1)}%</strong></li>
-    //     </ul>
+    const html = `
+        <h2>📊 Daily Sports Prediction Report - ${stats.date}</h2>
+        <p>This is your automated status report. App is running (PM2 active).</p>
+        <hr />
+        <h3>🏁 Overall Summary</h3>
+        <ul>
+          <li>Total Predictions: <strong>${stats.totalPredictions}</strong></li>
+          <li>Wins: <strong style="color:green">${stats.wins}</strong></li>
+          <li>Losses: <strong style="color:red">${stats.losses}</strong></li>
+          <li>Win Rate: <strong>${((stats.wins / stats.totalPredictions) * 100).toFixed(1)}%</strong></li>
+        </ul>
 
-    //     <hr />
-    //     <p style="color:gray;font-size:0.9em;">App check-in via PM2 successful — ${new Date().toLocaleTimeString()}</p>
-    //   `;
+        <hr />
+        <p style="color:gray;font-size:0.9em;">App check-in via PM2 successful — ${new Date().toLocaleTimeString()}</p>
+      `;
 
 
-    // const mailOptions = {
-    //     from: '"BetterBetsAPI" betterbetsApp@gmail.com',
-    //     to: process.env.NODEMAILER_RECIPIENT,
-    //     subject: `Daily Sports Report - ${stats.date}`,
-    //     html,
-    // };
+    const mailOptions = {
+        from: '"BetterBetsAPI" betterbetsApp@gmail.com',
+        to: process.env.NODEMAILER_RECIPIENT,
+        subject: `Daily Sports Report - ${stats.date}`,
+        html,
+    };
 
-    // const info = await transporter.sendMail(mailOptions);
+    const info = await transporter.sendMail(mailOptions);
 
-    // console.log("Message sent:", info.messageId);
-    // if (global.gc) global.gc();
+    console.log("Message sent:", info.messageId);
+    if (global.gc) global.gc();
 
 }
 
@@ -307,105 +305,105 @@ const oddsSeed = async () => {
     const sports = await db.Sports.findAll({ include: [{ model: db.MlModelWeights, as: 'MlModelWeights' }, { model: db.HyperParams, as: 'hyperParams' }], raw: true, order: [['name', 'ASC']] });
     // RETRIEVE ODDS
     console.log(`BEGINNING ODDS SEEDING @ ${moment().format('HH:mm:ss')}`)
-    const axiosWithBackoff = async (url, retries = 5, delayMs = 1000) => {
-        try {
-            const response = await axios.get(url);
-            return response;
-        } catch (error) {
-            if (retries === 0) throw error;
-            console.log(`Retrying request... (${retries} attempts left)`);
-            // await delay(delayMs);
-            return axiosWithBackoff(url, retries - 1, delayMs * 2);  // Exponential backoff
-        }
-    };
-    const fetchDataWithBackoff = async (sports) => {
-        let requests
-        const currentDate = new Date()
-        const currentHour = currentDate.getHours()
-        // console.log(sqlSports)
-        if (currentHour >= 0 && currentHour < 5) {
-            requests = sports.map(sport =>
+    // const axiosWithBackoff = async (url, retries = 5, delayMs = 1000) => {
+    //     try {
+    //         const response = await axios.get(url);
+    //         return response;
+    //     } catch (error) {
+    //         if (retries === 0) throw error;
+    //         console.log(`Retrying request... (${retries} attempts left)`);
+    //         // await delay(delayMs);
+    //         return axiosWithBackoff(url, retries - 1, delayMs * 2);  // Exponential backoff
+    //     }
+    // };
+    // const fetchDataWithBackoff = async (sports) => {
+    //     let requests
+    //     const currentDate = new Date()
+    //     const currentHour = currentDate.getHours()
+    //     // console.log(sqlSports)
+    //     if (currentHour >= 0 && currentHour < 5) {
+    //         requests = sports.map(sport =>
 
-                axiosWithBackoff(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_TCDEV}&regions=us&oddsFormat=american&markets=h2h`)
+    //             axiosWithBackoff(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_TCDEV}&regions=us&oddsFormat=american&markets=h2h`)
 
-            );
-        } else if (currentHour >= 5 && currentHour < 11) {
-            requests = sports.map(sport =>
+    //         );
+    //     } else if (currentHour >= 5 && currentHour < 11) {
+    //         requests = sports.map(sport =>
 
-                axiosWithBackoff(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_TRAVM}&regions=us&oddsFormat=american&markets=h2h`)
+    //             axiosWithBackoff(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_TRAVM}&regions=us&oddsFormat=american&markets=h2h`)
 
-            );
-        } else if (currentHour >= 11 && currentHour < 17) {
-            requests = sports.map(sport =>
+    //         );
+    //     } else if (currentHour >= 11 && currentHour < 17) {
+    //         requests = sports.map(sport =>
 
-                axiosWithBackoff(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_LOWRES}&regions=us&oddsFormat=american&markets=h2h`)
+    //             axiosWithBackoff(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_LOWRES}&regions=us&oddsFormat=american&markets=h2h`)
 
-            );
-        } else if (currentHour >= 17 && currentHour < 24) {
-            requests = sports.map(sport =>
+    //         );
+    //     } else if (currentHour >= 17 && currentHour < 24) {
+    //         requests = sports.map(sport =>
 
-                axiosWithBackoff(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_SMOKEY}&regions=us&oddsFormat=american&markets=h2h`)
+    //             axiosWithBackoff(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_SMOKEY}&regions=us&oddsFormat=american&markets=h2h`)
 
-            );
-        }
-        const data = await Promise.all(requests)
-        try {
-            for (const item of data) {
-                for (const event of item.data) {
-                    if (moment().isBefore(moment(event.commence_time))) {
-                        if (!event.sport_key) {
-                            console.error(`sportType is undefined for event: ${event.id}`);
-                        } else {
-                            const dbSport = sports.find(s => s.name === event.sport_key);
-                            const savedGame = await gameDBSaver(event, dbSport);
-                            if (savedGame) {
-                                const plainGame = savedGame.get({ plain: true });
+    //         );
+    //     }
+    //     const data = await Promise.all(requests)
+    //     try {
+    //         for (const item of data) {
+    //             for (const event of item.data) {
+    //                 if (moment().isBefore(moment(event.commence_time))) {
+    //                     if (!event.sport_key) {
+    //                         console.error(`sportType is undefined for event: ${event.id}`);
+    //                     } else {
+    //                         const dbSport = sports.find(s => s.name === event.sport_key);
+    //                         const savedGame = await gameDBSaver(event, dbSport);
+    //                         if (savedGame) {
+    //                             const plainGame = savedGame.get({ plain: true });
 
-                                const homeTeamSQL = await db.Teams.findOne({
-                                    where: {
-                                        espnDisplayName: normalizeTeamName(event.home_team, event.sport_key),
-                                        league: dbSport.name
-                                    },
-                                    raw: true
-                                });
+    //                             const homeTeamSQL = await db.Teams.findOne({
+    //                                 where: {
+    //                                     espnDisplayName: normalizeTeamName(event.home_team, event.sport_key),
+    //                                     league: dbSport.name
+    //                                 },
+    //                                 raw: true
+    //                             });
 
-                                const awayTeamSQL = await db.Teams.findOne({
-                                    where: {
-                                        espnDisplayName: normalizeTeamName(event.away_team, event.sport_key),
-                                        league: dbSport.name
-                                    },
-                                    raw: true
-                                });
+    //                             const awayTeamSQL = await db.Teams.findOne({
+    //                                 where: {
+    //                                     espnDisplayName: normalizeTeamName(event.away_team, event.sport_key),
+    //                                     league: dbSport.name
+    //                                 },
+    //                                 raw: true
+    //                             });
 
-                                await statDBSaver(event, homeTeamSQL, dbSport, plainGame);
-                                await statDBSaver(event, awayTeamSQL, dbSport, plainGame);
-                            }
+    //                             await statDBSaver(event, homeTeamSQL, dbSport, plainGame);
+    //                             await statDBSaver(event, awayTeamSQL, dbSport, plainGame);
+    //                         }
 
-                        }
-                    }
-                }
-            }
+    //                     }
+    //                 }
+    //             }
+    //         }
 
-            console.info('Odds Seeding complete! 🌱');
-        } catch (err) {
-            if (err) throw (err)
-        }
-    };
-    await fetchDataWithBackoff(sports.filter(sport => {
-        const { startMonth, endMonth, multiYear } = sport;
-        // Get current month (1-12)
-        const currentMonth = new Date().getMonth() + 1;
-        if (multiYear) {
-            if (startMonth <= currentMonth || currentMonth <= endMonth) {
-                return true;
-            }
-        } else {
-            if (currentMonth >= startMonth && currentMonth <= endMonth) {
-                return true;
-            }
-        }
-        return false;
-    }));
+    //         console.info('Odds Seeding complete! 🌱');
+    //     } catch (err) {
+    //         if (err) throw (err)
+    //     }
+    // };
+    // await fetchDataWithBackoff(sports.filter(sport => {
+    //     const { startMonth, endMonth, multiYear } = sport;
+    //     // Get current month (1-12)
+    //     const currentMonth = new Date().getMonth() + 1;
+    //     if (multiYear) {
+    //         if (startMonth <= currentMonth || currentMonth <= endMonth) {
+    //             return true;
+    //         }
+    //     } else {
+    //         if (currentMonth >= startMonth && currentMonth <= endMonth) {
+    //             return true;
+    //         }
+    //     }
+    //     return false;
+    // }));
     let allPastGamesSQL = await db.Games.findAll({
         where: {
             complete: true, // Only include completed games
@@ -488,7 +486,8 @@ const oddsSeed = async () => {
                     loss: 'binaryCrossentropy',
                     metrics: ['accuracy']
                 });
-                await predictions(sportGamesSQL, [], model, sport,false, false, allPastGamesSQL.sort((gameA, gameB) => new Date(gameB.commence_time) - new Date(gameA.commence_time)).slice(0, sport['hyperParams.historyLength']))
+                let historyGames = allPastGamesSQL.filter((game) => game.sport_key === sport.name).sort((gameA, gameB) => new Date(gameB.commence_time) - new Date(gameA.commence_time)).slice(0, sport['hyperParams.historyLength'])
+                await predictions(sportGamesSQL, [], model, sport,false, false, historyGames)
             } else {
                 console.log(`Model not found for ${sport.name}. Skipping predictions.`);
             }
@@ -833,4 +832,5 @@ const espnSeed = async () => {
 
 };
 
+mlModelTrainSeed()
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed }
