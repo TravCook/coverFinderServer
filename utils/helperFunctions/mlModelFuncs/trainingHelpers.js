@@ -459,7 +459,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
     }
 
     for (const game of sportOdds) {
-
+        if(new Date(game.commence_time) > new Date()) continue;
         const homeRawStats = game['homeStats.data'];
         const awayRawStats = game['awayStats.data'];
 
