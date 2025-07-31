@@ -81,6 +81,7 @@ const gameDBSaver = async (game, sport, past) => {
                         impliedProbability: outcome.impliedProb ? outcome.impliedProb : await getImpliedProbability(outcome.price), // Include the implied probability of the outcome
                         marketId: SQLmarket.id, // Use the SQL market ID
                         teamId: outcomeTeam ? outcomeTeam.id : null, // Use the SQL team ID if available
+                        point: outcome.point ? outcome.point : null
                     }, {
                         where: { name: outcome.name, marketId: SQLmarket.id } // Ensure uniqueness by name and marketKey
                     })

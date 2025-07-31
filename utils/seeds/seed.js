@@ -811,4 +811,5 @@ const espnSeed = async () => {
 
 };
 
+oddsSeed()
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed }

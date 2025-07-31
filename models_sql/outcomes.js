@@ -31,6 +31,10 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.FLOAT,
             allowNull: false,
         },
+        point: {
+            type: DataTypes.FLOAT,
+            allowNull: true
+        }
         
     },{
         sequelize,
