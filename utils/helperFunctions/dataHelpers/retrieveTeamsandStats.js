@@ -4,6 +4,7 @@ const {  baseballStatMap, basketballStatMap, hockeyStatMap, footballStatMap, bat
 const { calculateTeamIndex } = require('../mlModelFuncs/indexHelpers.js');
 const { normalizeStat, predictions } = require('../mlModelFuncs/trainingHelpers.js')
 const db = require('../../../models_sql');
+const { isSportInSeason } = require('../mlModelFuncs/sportHelpers.js');
 
 const getTeamRecordUrl = (month, startMonth, endMonth, espnSport, league, statYear, espnID) => {
     let type = 2; // Default type
@@ -543,18 +544,8 @@ const fetchAllTeamData = async (sport, teams, statYear, TeamModel, statWeights) 
 const retrieveTeamsandStats = async (sports) => {
 
     for (let sport of sports) {
-        const currentDate = new Date();
-        const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11, so we add 1 to make it 1-12
-        // const sportGames = await Odds.find({sport_key: sport.name})
-        const sportGames = await db.Games.findAll({
-            where: {
-                complete: false,
-                sport_key: sport.name,
-            },
-            order: [['commence_time', 'ASC']],
-            raw: true
-        })
-        if (sportGames.length > 0) {
+        let inSeason = isSportInSeason(sport)
+        if (inSeason) {
         console.log(`STARTING ${sport.name} TEAM SEEDING @ ${moment().format('HH:mm:ss')}`)
 
         let teams = await db.Teams.findAll({

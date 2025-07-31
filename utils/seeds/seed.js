@@ -16,6 +16,7 @@ const { transporter} = require('../constants')
 const Sequelize = require('sequelize');
 const { Op } = Sequelize;
 const { gameDBSaver, statDBSaver } = require('../helperFunctions/dataHelpers/databaseSavers');
+const { isSportInSeason} = require('../helperFunctions/mlModelFuncs/sportHelpers')
 
 // Suppress TensorFlow.js logging
 process.env.TF_CPP_MIN_LOG_LEVEL = '3'; // Suppress logs
@@ -62,8 +63,9 @@ const mlModelTrainSeed = async () => {
     for (let sport of sports) {
         // retrieve upcoming games
         let upcomingGames = odds.filter((game) => game.sport_key === sport.name)
+        let inSeason = isSportInSeason(sport)
         // Multi-year sports (e.g., NFL, NBA, NHL, etc.)
-        if (sport.name === 'baseball_mlb') {
+        if (inSeason) {
             const pastGames = await db.Games.findAll({
                 where: { complete: true, sport_key: sport.name },
                 include: [
@@ -324,25 +326,25 @@ const oddsSeed = async () => {
         if (currentHour >= 0 && currentHour < 5) {
             requests = sports.map(sport =>
 
-                axiosWithBackoff(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_TCDEV}&regions=us&oddsFormat=american&markets=h2h`)
+                axiosWithBackoff(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_TCDEV}&regions=us&oddsFormat=american&markets=h2h,spreads,totals`)
 
             );
         } else if (currentHour >= 5 && currentHour < 11) {
             requests = sports.map(sport =>
 
-                axiosWithBackoff(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_TRAVM}&regions=us&oddsFormat=american&markets=h2h`)
+                axiosWithBackoff(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_TRAVM}&regions=us&oddsFormat=american&markets=h2h,spreads,totals`)
 
             );
         } else if (currentHour >= 11 && currentHour < 17) {
             requests = sports.map(sport =>
 
-                axiosWithBackoff(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_LOWRES}&regions=us&oddsFormat=american&markets=h2h`)
+                axiosWithBackoff(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_LOWRES}&regions=us&oddsFormat=american&markets=h2h,spreads,totals`)
 
             );
         } else if (currentHour >= 17 && currentHour < 24) {
             requests = sports.map(sport =>
 
-                axiosWithBackoff(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_SMOKEY}&regions=us&oddsFormat=american&markets=h2h`)
+                axiosWithBackoff(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_SMOKEY}&regions=us&oddsFormat=american&markets=h2h,spreads,totals`)
 
             );
         }
@@ -494,20 +496,7 @@ const oddsSeed = async () => {
 
             await indexAdjuster(sportGamesSQL, sport, allPastGamesSQL, sport['MlModelWeights.featureImportanceScores'])
         }
-        let inSeason = false
-        const { startMonth, endMonth, multiYear } = sport;
-        // Get current month (1-12)
-        const currentMonth = new Date().getMonth() + 1;
-        const currentYear = new Date().getFullYear()
-        if (multiYear) {
-            if (startMonth <= currentMonth || currentMonth <= endMonth) {
-                inSeason = true
-            }
-        } else {
-            if (currentMonth >= startMonth && currentMonth <= endMonth) {
-                inSeason = true
-            }
-        }
+        let inSeason = isSportInSeason(sport)
         if (inSeason) {
             // During season, keep the sport's statYear as is
             // await db.Sports.update(

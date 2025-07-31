@@ -38,7 +38,7 @@ app.use(routes);
 const timezone = 'America/Denver';
 const cronJobs = [
   {
-    cronTime: '0 */1 4-23 * * *', //every 1 minutes 1.2 mb -- removes old games && updates live scores 
+    cronTime: '0 */5 4-23 * * *', //every 1 minutes 1.2 mb -- removes old games && updates live scores 
     onTick: dataSeed.removeSeed,
     timezone
   },
