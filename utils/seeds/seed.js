@@ -11,12 +11,12 @@ const { removePastGames } = require('../helperFunctions/dataHelpers/removeHelper
 const { indexAdjuster, pastGamesReIndex } = require('../helperFunctions/mlModelFuncs/indexHelpers')
 const { predictions, trainSportModelKFold } = require('../helperFunctions/mlModelFuncs/trainingHelpers')
 const { valueBetGridSearch, hyperparameterRandSearch } = require('../helperFunctions/mlModelFuncs/searchHelpers');
-const { normalizeTeamName,modelConfAnalyzer, } = require('../helperFunctions/dataHelpers/dataSanitizers')
-const { transporter} = require('../constants')
+const { normalizeTeamName, modelConfAnalyzer, } = require('../helperFunctions/dataHelpers/dataSanitizers')
+const { transporter } = require('../constants')
 const Sequelize = require('sequelize');
 const { Op } = Sequelize;
 const { gameDBSaver, statDBSaver } = require('../helperFunctions/dataHelpers/databaseSavers');
-const { isSportInSeason} = require('../helperFunctions/mlModelFuncs/sportHelpers')
+const { isSportInSeason } = require('../helperFunctions/mlModelFuncs/sportHelpers')
 
 // Suppress TensorFlow.js logging
 process.env.TF_CPP_MIN_LOG_LEVEL = '3'; // Suppress logs
@@ -391,21 +391,7 @@ const oddsSeed = async () => {
             if (err) throw (err)
         }
     };
-    await fetchDataWithBackoff(sports.filter(sport => {
-        const { startMonth, endMonth, multiYear } = sport;
-        // Get current month (1-12)
-        const currentMonth = new Date().getMonth() + 1;
-        if (multiYear) {
-            if (startMonth <= currentMonth || currentMonth <= endMonth) {
-                return true;
-            }
-        } else {
-            if (currentMonth >= startMonth && currentMonth <= endMonth) {
-                return true;
-            }
-        }
-        return false;
-    }));
+    await fetchDataWithBackoff(sports.filter(sport => isSportInSeason(sport)));
     let allPastGamesSQL = await db.Games.findAll({
         where: {
             complete: true, // Only include completed games
@@ -421,27 +407,27 @@ const oddsSeed = async () => {
                 model: db.Teams,
                 as: 'awayTeamDetails', // alias for AwayTeam join
             }, {
-                    model: db.Stats,
-                    as: `homeStats`,
-                    required: true,
-                    where: {
-                        [Op.and]: [
-                            { teamId: { [Op.eq]: Sequelize.col('Games.homeTeam') } },
-                            { gameId: { [Op.eq]: Sequelize.col('Games.id') } }
-                        ]
-                    }
-                },
-                {
-                    model: db.Stats,
-                    as: `awayStats`,
-                    required: true,
-                    where: {
-                        [Op.and]: [
-                            { teamId: { [Op.eq]: Sequelize.col('Games.awayTeam') } },
-                            { gameId: { [Op.eq]: Sequelize.col('Games.id') } }
-                        ]
-                    }
+                model: db.Stats,
+                as: `homeStats`,
+                required: true,
+                where: {
+                    [Op.and]: [
+                        { teamId: { [Op.eq]: Sequelize.col('Games.homeTeam') } },
+                        { gameId: { [Op.eq]: Sequelize.col('Games.id') } }
+                    ]
                 }
+            },
+            {
+                model: db.Stats,
+                as: `awayStats`,
+                required: true,
+                where: {
+                    [Op.and]: [
+                        { teamId: { [Op.eq]: Sequelize.col('Games.awayTeam') } },
+                        { gameId: { [Op.eq]: Sequelize.col('Games.id') } }
+                    ]
+                }
+            }
         ], where: { predictionCorrect: { [Op.not]: null } }, order: [['commence_time', 'DESC']], raw: true
     })
     for (const sport of sports) {
@@ -479,7 +465,7 @@ const oddsSeed = async () => {
                     }
                 }], order: [['commence_time', 'DESC']], raw: true
         })
-        if (sportGamesSQL.length > 0) {
+        if (isSportInSeason(sport)) {
             const modelPath = `./model_checkpoint/${sport.name}_model/model.json`;
             if (fs.existsSync(modelPath)) {
                 model = await tf.loadLayersModel(`file://./model_checkpoint/${sport.name}_model/model.json`);
@@ -489,7 +475,7 @@ const oddsSeed = async () => {
                     metrics: ['accuracy']
                 });
                 let historyGames = allPastGamesSQL.filter((game) => game.sport_key === sport.name).sort((gameA, gameB) => new Date(gameB.commence_time) - new Date(gameA.commence_time)).slice(0, sport['hyperParams.historyLength'])
-                await predictions(sportGamesSQL, [], model, sport,false, false, historyGames)
+                await predictions(sportGamesSQL, [], model, sport, false, false, historyGames)
             } else {
                 console.log(`Model not found for ${sport.name}. Skipping predictions.`);
             }
@@ -507,6 +493,10 @@ const oddsSeed = async () => {
         } else {
             // Off-season
             let newStatYear;
+            const { startMonth, endMonth, multiYear } = sport;
+            // Get current month (1-12)
+            const currentMonth = new Date().getMonth() + 1;
+            const currentYear = new Date().getFullYear()
 
             if (!multiYear) {
                 // Single-year season (e.g. baseball)

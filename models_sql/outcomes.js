@@ -17,7 +17,7 @@ module.exports = (sequelize, DataTypes) => {
         },
         teamId: {
             type: DataTypes.INTEGER,
-            allowNull: false, // Allow null for non-team outcomes
+            allowNull: true, // Allow null for non-team outcomes
         },
         name: {
             type: DataTypes.STRING,
