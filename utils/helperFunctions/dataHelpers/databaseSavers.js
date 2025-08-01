@@ -55,7 +55,7 @@ const gameDBSaver = async (game, sport, past) => {
         upsertPayload.complete = past ? true : false;
 
         const [gameSQL, createdGame] = await db.Games.upsert(upsertPayload, {
-            where: { oddsApiID: game.id } 
+            where: { oddsApiID: game.id }
         })
         for (let bookmaker of game.bookmakers) {
             const [SQLbookmaker, createdSQLBookmaker] = await db.Bookmakers.upsert({

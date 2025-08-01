@@ -459,7 +459,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
     }
 
     for (const game of sportOdds) {
-        if(new Date(game.commence_time) > new Date()) continue;
+        if (new Date(game.commence_time) < new Date()) return
         const homeRawStats = game['homeStats.data'];
         const awayRawStats = game['awayStats.data'];
 
@@ -560,8 +560,9 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
         if (!past && !search) {
             await db.Games.update(updatePayload, { where: { id: game.id } });
         }
-    }
 
+
+    }
     // Summary output
     if (past || search) {
         console.log(`OUT OF ${sportOdds.length} GAMES [TOTAL WINS: ${totalWins}, TOTAL LOSSES: ${totalLosses}]: MATCHED SPREADS: ${spreadMatch} MATCHED SCORES: ${matchedScore} MISMATCHED PREDICTIONS: ${misMatched} PREDICTIONS CHANGED: ${predictionsChanged} | NEW WINNER PREDICTIONS: ${newWinnerPredictions} | NEW LOSER PREDICTIONS: ${newLoserPredictions} | NEW CONFIDENCE PREDICTIONS: ${newConfidencePredictions}`);
@@ -579,6 +580,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
     if (search) {
         return totalWins / sportOdds.length;
     }
+
 };
 
 const trainSportModelKFold = async (sport, gameData, search) => {
