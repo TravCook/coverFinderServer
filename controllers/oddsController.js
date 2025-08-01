@@ -55,9 +55,9 @@ async function getCachedOdds(cacheKey, query, filterDays = 30) {
 module.exports = {
     async getAllOdds(req, res) {
     //     const today = new Date()
-    //     const sevenDaysAgo = new Date(today);
-    //     sevenDaysAgo.setDate(today.getDate() - 85); // 30 days ago
-    //     sevenDaysAgo.setHours(0, 0, 0, 0); // Set to midnight 
+        const sevenDaysAgo = new Date(today);
+        sevenDaysAgo.setDate(today.getDate() - 180); // 30 days ago
+        sevenDaysAgo.setHours(0, 0, 0, 0); // Set to midnight 
         try {
             let data = myCache.get('fullData');
             if (!data) {
@@ -127,7 +127,7 @@ module.exports = {
                 const pastGames = await db.Games.findAll({
                     where: {
                         complete: true,
-                        // commence_time: { [Op.gte]: sevenDaysAgo } // Only include games from the last 7 days
+                        commence_time: { [Op.gte]: sevenDaysAgo } // Only include games from the last 7 days
                     },
                     include: [
                         {
