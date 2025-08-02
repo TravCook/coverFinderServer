@@ -43,12 +43,12 @@ const cronJobs = [
     timezone
   },
   {
-    cronTime: '0 0 4,8,12,16,20 * * *', // Runs at 8:00 AM, 2:00 PM, and 9:00 PM -- retrieves odds from the-odds-api -- 53 sec TODO: MAYBE SET IT UP FOR EVER 2 HOURS WITH THE OTHER 4 ENV VARIABLES
+    cronTime: '0 0 4,8,12,16,20 * * *', // Runs at 8:00 AM, 2:00 PM, and 9:00 PM -- retrieves odds from the-odds-api -- 53 sec TODO: 1,3,6,9,12,14,16,18,22
     onTick: dataSeed.oddsSeed,
     timezone,
   },
   {
-    cronTime: '0 30 3-23 * * *', //every hour, at the 30min mark, except 12-3 when ML train runs -- gets team stats and saves to db -- 2 min
+    cronTime: '0 30 */2 * * *', //every hour, at the 30min mark, except 12-3 when ML train runs -- gets team stats and saves to db -- 2 min
     onTick: dataSeed.dataSeed,
     timezone
   },
