@@ -74,7 +74,19 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.FLOAT,
             allowNull: false,
             defaultValue: 0
-        }
+        },
+        scoreMAE: {
+            type: DataTypes.FLOAT,
+            allowNull: true
+        },
+        spreadMAE: {
+            type: DataTypes.FLOAT,
+            allowNull: true
+        },
+        totalMAE: {
+            type: DataTypes.FLOAT,
+            allowNull: true
+        },
     });
 
     HyperParams.associate = (models) => {

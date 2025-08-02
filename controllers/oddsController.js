@@ -166,14 +166,9 @@ module.exports = {
                         },
                     ],
                 });
-                const sports = await db.Sports.findAll({ include: [{ model: db.MlModelWeights, as: 'MlModelWeights', model: db.ValueBetSettings, as: 'valueBetSettings', where: {sport: {[Op.eq]: Sequelize.col('Sports.id')}} }], order: [['name', 'ASC']] });
+                const sports = await db.Sports.findAll({ include: [{model: db.HyperParams, as: 'hyperParams', where: {sport: {[Op.eq]: Sequelize.col('Sports.id')}} },{ model: db.ValueBetSettings, as: 'valueBetSettings', where: {sport: {[Op.eq]: Sequelize.col('Sports.id')}} }], order: [['name', 'ASC']] });
                 const weights = await db.MlModelWeights.findAll({raw: true});
                 const teams = await db.Teams.findAll({raw: true});
-                // let filterTeams = teams.filter((team) => {
-                //     return games.find((game) => {
-                //         return game.sport_key === team.league;
-                //     })
-                // })
                 let plainGames = games.map((game) => game.get({ plain: true }))
                 let plainPastGames = pastGames.map((game) => game.get({ plain: true }))
                 let plainSports = sports.map((sport) => sport.get({ plain: true }))
