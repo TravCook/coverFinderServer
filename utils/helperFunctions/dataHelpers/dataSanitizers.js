@@ -44,7 +44,13 @@ const normalizeTeamName = (teamName, league) => {
         "Texas A&M-CC Islanders": "Texas A&M-Corpus Christi Islanders",
         "Maryland-Eastern Shore Hawks": "Maryland Eastern Shore Hawks",
         "IU Indy Jaguars": "IU Indianapolis Jaguars",
-        "Oakland Athletics": "Athletics Athletics"
+        "Oakland Athletics": "Athletics Athletics",
+        "Hawaii Rainbow Warriors": `Hawai'i Rainbow Warriors`,
+        "San Jose State Spartans": `San José State Spartans`,
+        "Southern Mississippi Golden Eagles": `Southern Miss Golden Eagles`,
+        "Umass Minutemen": `Massachusetts Minutemen`,
+        "Louisiana Ragin Cajuns": `Louisiana Ragin' Cajuns`
+
 
     }
 
