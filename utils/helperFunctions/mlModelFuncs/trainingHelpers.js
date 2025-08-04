@@ -703,6 +703,15 @@ const trainSportModelKFold = async (sport, gameData, search) => {
 
     // Aggregate results
     const { avgSpreadMAE, avgTotalMAE, avgMAE } = printOverallMetrics(foldResults);
+    await db.HyperParams.update({
+            scoreMAE: avgMAE,
+            totalMAE: avgTotalMAE,
+            spreadMAE: avgSpreadMAE
+        }, {
+            where: {
+                sport: sport.id
+            }
+        })
 
     if (search) {
         // After k-folds
