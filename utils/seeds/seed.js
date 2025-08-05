@@ -37,7 +37,7 @@ const mlModelTrainSeed = async () => {
     console.log("DB CONNECTED ------------------------------------------------- STARTING ML SEED")
     const sports = await db.Sports.findAll({ include: [{ model: db.MlModelWeights, as: 'MlModelWeights' }, { model: db.HyperParams, as: 'hyperParams' }], raw: true, order: [['name', 'ASC']] });
     const odds = await db.Games.findAll({
-        where: { complete: false, commence_time: { [Op.gte]: fourYearsAgo } }, include: [
+        where: { complete: false }, include: [
             { model: db.Teams, as: 'homeTeamDetails' },
             { model: db.Teams, as: 'awayTeamDetails' },
             { model: db.Sports, as: 'sportDetails' },
@@ -61,11 +61,10 @@ const mlModelTrainSeed = async () => {
             }], order: [['commence_time', 'ASC']], raw: true
     });
     for (let sport of sports) {
-        // retrieve upcoming games
-        let upcomingGames = odds.filter((game) => game.sport_key === sport.name)
         let inSeason = isSportInSeason(sport)
         // Multi-year sports (e.g., NFL, NBA, NHL, etc.)
         if (inSeason) {
+            let upcomingGames = odds.filter((game) => game.sport_key === sport.name)
             const pastGames = await db.Games.findAll({
                 where: { complete: true, sport_key: sport.name },
                 include: [
@@ -107,12 +106,13 @@ const mlModelTrainSeed = async () => {
                 console.log(`NOT ENOUGH ${sport.name} DATA`)
             }
             console.log(`${sport.name} ML DONE @ ${moment().format('HH:mm:ss')}`)
+            if (global.gc) global.gc();
+            await valueBetGridSearch(sport)
+            if (global.gc) global.gc();
         } else {
             console.log(`${sport.name} NOT IN SEASON`)
         }
-        if (global.gc) global.gc();
-        await valueBetGridSearch(sport)
-        if (global.gc) global.gc();
+
 
     }
 

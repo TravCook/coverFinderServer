@@ -22,7 +22,7 @@ const score = (ci, sampleSize) => {
     const ciWidthPenalty = (ci.upper - ci.lower); // narrower = better
     const sizeBonus = Math.log(sampleSize); // diminishing returns to size
 
-    return ciMidpoint - ciWidthPenalty + sizeBonus * 0.03; // tune 0.01 as weight
+    return ciMidpoint - ciWidthPenalty + sizeBonus * 0.02; // tune 0.01 as weight
 };
 
 
