@@ -469,8 +469,8 @@ const fetchAllTeamData = async (sport, teams, statYear, TeamModel, statWeights) 
             updateTeamRecord(team, teamRecordJson);
 
             // Fetch team stats
-            const teamStatResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/${sport.espnSport}/leagues/${sport.league}/seasons/${statYear}/types/2/teams/${team.espnID}/statistics?lang=en&region=us`);
-            const teamStatJson = await teamStatResponse.json();
+            let teamStatResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/${sport.espnSport}/leagues/${sport.league}/seasons/${statYear}/types/2/teams/${team.espnID}/statistics?lang=en&region=us`);
+            let teamStatJson = await teamStatResponse.json();
             if (teamStatJson.splits) {
                 for (const category of teamStatJson.splits.categories) {
                     for (const stat of category.stats) {
@@ -478,7 +478,15 @@ const fetchAllTeamData = async (sport, teams, statYear, TeamModel, statWeights) 
                     }
                 }
             }else{
-                console.log(`https://sports.core.api.espn.com/v2/sports/${sport.espnSport}/leagues/${sport.league}/seasons/${statYear}/types/2/teams/${team.espnID}/statistics?lang=en&region=us`)
+                teamStatResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/${sport.espnSport}/leagues/${sport.league}/seasons/${statYear - 1}/types/2/teams/${team.espnID}/statistics?lang=en&region=us`);
+                teamStatJson = await teamStatResponse.json();
+                if (teamStatJson.splits) {
+                for (const category of teamStatJson.splits.categories) {
+                    for (const stat of category.stats) {
+                        team = updateTeamStats(team, stat.name, stat.value, stat.perGameValue, stat.displayValue, category.name);
+                    }
+                }
+            }
             }
             let statMap
             let statCategories
