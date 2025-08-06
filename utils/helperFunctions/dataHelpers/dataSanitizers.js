@@ -48,7 +48,7 @@ const normalizeTeamName = (teamName, league) => {
         "Hawaii Rainbow Warriors": `Hawai'i Rainbow Warriors`,
         "San Jose State Spartans": `San José State Spartans`,
         "Southern Mississippi Golden Eagles": `Southern Miss Golden Eagles`,
-        "Umass Minutemen": `Massachusetts Minutemen`,
+        "UMass Minutemen": `Massachusetts Minutemen`,
         "Louisiana Ragin Cajuns": `Louisiana Ragin' Cajuns`
 
 

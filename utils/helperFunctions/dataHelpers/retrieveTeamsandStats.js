@@ -477,6 +477,8 @@ const fetchAllTeamData = async (sport, teams, statYear, TeamModel, statWeights) 
                         team = updateTeamStats(team, stat.name, stat.value, stat.perGameValue, stat.displayValue, category.name);
                     }
                 }
+            }else{
+                console.log(`https://sports.core.api.espn.com/v2/sports/${sport.espnSport}/leagues/${sport.league}/seasons/${statYear}/types/2/teams/${team.espnID}/statistics?lang=en&region=us`)
             }
             let statMap
             let statCategories
