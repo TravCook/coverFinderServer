@@ -45,7 +45,6 @@ async function extractAndSaveFeatureImportances(model, sport) {
     });
 }
 
-
 function pearsonCorrelation(x, y) {
     const n = x.length;
     const sumX = x.reduce((a, b) => a + b, 0);
@@ -146,7 +145,6 @@ const repeatPredictions = async (model, inputTensor, numPasses) => {
     const averagedScore = predictions[0].map((_, i) =>
         predictions.reduce((sum, run) => sum + run[i], 0) / numPasses
     );
-
     const averagedWinProb = winProbs[0].map((_, i) =>
         winProbs.reduce((sum, run) => sum + run[i], 0) / numPasses
     );
@@ -193,7 +191,7 @@ const loadOrCreateModel = async (xs, sport, search) => {
         } else {
             const tf = require('@tensorflow/tfjs');
             const hyperParams = getHyperParams(sport, search);
-            const l2Strength = hyperParams.l2reg || 0;
+            const l2Strength = hyperParams.l2reg || 0; // Default L2 regularization strength
             const dropoutRate = hyperParams.dropoutReg || 0; // Optional
 
             const input = tf.input({ shape: [xs[0].length] });
@@ -255,8 +253,7 @@ const getZScoreNormalizedStats = (currentStats, teamStatsHistory, prediction, se
 
         return { ...currentStats }
     }
-
-
+    
     // Normalize win-loss strings first
     const normalizeWinLoss = (value) => {
         if (typeof value === 'string') {
@@ -330,7 +327,6 @@ const mlModelTraining = async (gameData, xs, ysWins, ysScore, sport, search, gam
         const statFeatures = extractSportFeatures(normalizedHome, normalizedAway, sport.name)
         const winLabel = game.winner === 'home' ? 1 : 0;
         const scoreLabel = [game.homeScore, game.awayScore];
-
         if (statFeatures.some(isNaN) || scoreLabel == null) {
             console.error('NaN or invalid value detected in features during Training:', game.id);
             process.exit(0);
@@ -358,7 +354,6 @@ const mlModelTraining = async (gameData, xs, ysWins, ysScore, sport, search, gam
 
         gameCount++;
     }
-
     checkFeatureLeakage(xs, ysScore, ysWins);
 
     // --- Tensor Conversion ---
@@ -463,8 +458,8 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
         const homeRawStats = game['homeStats.data'];
         const awayRawStats = game['awayStats.data'];
 
-        const normalizedHome = getZScoreNormalizedStats(homeRawStats, teamStatsHistory, true, search, sport, false);
-        const normalizedAway = getZScoreNormalizedStats(awayRawStats, teamStatsHistory, true, search, sport, false);
+        const normalizedHome = getZScoreNormalizedStats(homeRawStats, teamStatsHistory, true, search, sport);
+        const normalizedAway = getZScoreNormalizedStats(awayRawStats, teamStatsHistory, true, search, sport);
 
         if (!normalizedHome || !normalizedAway) {
             console.log(game.id);
@@ -508,7 +503,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
                     ? game['homeTeamDetails.espnDisplayName']
                     : game['awayTeamDetails.espnDisplayName'];
 
-                console.log(`Prediction changed for game ${game.id}: ${oldWinner} → ${newWinner} (Confidence: ${predictionConfidence}) Score ([home, away]) [${Math.round(homeScore)}, ${Math.round(awayScore)}]`);
+                console.log(`Prediction changed for game ${game.id}: ${predictedWinner === 'home' ? 'HOME' : 'AWAY'} ${oldWinner} → ${newWinner}  (Confidence: ${predictionConfidence}) Score ([home, away]) [${Math.round(homeScore)}, ${Math.round(awayScore)}]`);
             }
         }
 
@@ -704,14 +699,14 @@ const trainSportModelKFold = async (sport, gameData, search) => {
     // Aggregate results
     const { avgSpreadMAE, avgTotalMAE, avgMAE } = printOverallMetrics(foldResults);
     await db.HyperParams.update({
-            scoreMAE: avgMAE,
-            totalMAE: avgTotalMAE,
-            spreadMAE: avgSpreadMAE
-        }, {
-            where: {
-                sport: sport.id
-            }
-        })
+        scoreMAE: avgMAE,
+        totalMAE: avgTotalMAE,
+        spreadMAE: avgSpreadMAE
+    }, {
+        where: {
+            sport: sport.id
+        }
+    })
 
     if (search) {
         // After k-folds
