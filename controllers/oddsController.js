@@ -54,7 +54,7 @@ async function getCachedOdds(cacheKey, query, filterDays = 30) {
 
 module.exports = {
     async getAllOdds(req, res) {
-    //     const today = new Date()
+        //     const today = new Date()
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 180); // 30 days ago
         sevenDaysAgo.setHours(0, 0, 0, 0); // Set to midnight 
@@ -166,9 +166,9 @@ module.exports = {
                         },
                     ],
                 });
-                const sports = await db.Sports.findAll({ include: [{model: db.HyperParams, as: 'hyperParams', where: {sport: {[Op.eq]: Sequelize.col('Sports.id')}} },{ model: db.ValueBetSettings, as: 'valueBetSettings', where: {sport: {[Op.eq]: Sequelize.col('Sports.id')}} }], order: [['name', 'ASC']] });
-                const weights = await db.MlModelWeights.findAll({raw: true});
-                const teams = await db.Teams.findAll({raw: true});
+                const sports = await db.Sports.findAll({ include: [{ model: db.HyperParams, as: 'hyperParams', where: { sport: { [Op.eq]: Sequelize.col('Sports.id') } } }, { model: db.ValueBetSettings, as: 'valueBetSettings', where: { sport: { [Op.eq]: Sequelize.col('Sports.id') } } }], order: [['name', 'ASC']] });
+                const weights = await db.MlModelWeights.findAll({ raw: true });
+                const teams = await db.Teams.findAll({ raw: true });
                 let plainGames = games.map((game) => game.get({ plain: true }))
                 let plainPastGames = pastGames.map((game) => game.get({ plain: true }))
                 let plainSports = sports.map((sport) => sport.get({ plain: true }))
@@ -178,7 +178,7 @@ module.exports = {
             } else {
                 data = JSON.parse(data);
             }
-
+            if (global.gc) global.gc();
             return res.json(data);
         } catch (err) {
             return res.status(500).json({ message: err.message });
