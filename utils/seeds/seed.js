@@ -65,7 +65,7 @@ const mlModelTrainSeed = async () => {
         // Multi-year sports (e.g., NFL, NBA, NHL, etc.)
         if (inSeason) {
             let upcomingGames = odds.filter((game) => game.sport_key === sport.name)
-            const pastGames = await db.Games.findAll({
+            let pastGames = await db.Games.findAll({
                 where: { complete: true, sport_key: sport.name },
                 include: [
                     { model: db.Teams, as: 'homeTeamDetails' },
@@ -109,6 +109,7 @@ const mlModelTrainSeed = async () => {
             if (global.gc) global.gc();
             await valueBetGridSearch(sport)
             if (global.gc) global.gc();
+            pastGames = null
         } else {
             console.log(`${sport.name} NOT IN SEASON`)
         }
