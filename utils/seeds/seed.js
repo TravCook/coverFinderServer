@@ -501,7 +501,7 @@ const oddsSeed = async () => {
                 const historyLength = sport['hyperParams.historyLength'];
                 const teamStatsHistory = {};
 
-                for (const game of pastGames.sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time))) {
+                for (const game of allPastGamesSQL.filter((game) => game.sport_key === sport.name).sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time))) {
                     const homeTeamId = game.homeTeamId;
                     const awayTeamId = game.awayTeamId;
 
