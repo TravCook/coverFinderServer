@@ -498,7 +498,30 @@ const oddsSeed = async () => {
                     loss: 'binaryCrossentropy',
                     metrics: ['accuracy']
                 });
-                let historyGames = allPastGamesSQL.filter((game) => game.sport_key === sport.name).sort((gameA, gameB) => new Date(gameB.commence_time) - new Date(gameA.commence_time)).slice(0, sport['hyperParams.historyLength'])
+                const historyLength = sport['hyperParams.historyLength'];
+                const teamStatsHistory = {};
+
+                for (const game of pastGames.sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time))) {
+                    const homeTeamId = game.homeTeamId;
+                    const awayTeamId = game.awayTeamId;
+
+                    if (!teamStatsHistory[homeTeamId]) teamStatsHistory[homeTeamId] = [];
+                    if (!teamStatsHistory[awayTeamId]) teamStatsHistory[awayTeamId] = [];
+
+                    if (isValidStatBlock(game['homeStats.data'])) {
+                        teamStatsHistory[homeTeamId].push(game['homeStats.data']);
+                        if (teamStatsHistory[homeTeamId].length > historyLength) {
+                            teamStatsHistory[homeTeamId].shift();
+                        }
+                    }
+
+                    if (isValidStatBlock(game['awayStats.data'])) {
+                        teamStatsHistory[awayTeamId].push(game['awayStats.data']);
+                        if (teamStatsHistory[awayTeamId].length > historyLength) {
+                            teamStatsHistory[awayTeamId].shift();
+                        }
+                    }
+                }
                 await predictions(sportGamesSQL, [], model, sport, false, false, historyGames)
             } else {
                 console.log(`Model not found for ${sport.name}. Skipping predictions.`);
