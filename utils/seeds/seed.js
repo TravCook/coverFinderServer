@@ -522,7 +522,7 @@ const oddsSeed = async () => {
                         }
                     }
                 }
-                await predictions(sportGamesSQL, [], model, sport, false, false, historyGames)
+                await predictions(sportGamesSQL, [], model, sport, false, false, teamStatsHistory)
             } else {
                 console.log(`Model not found for ${sport.name}. Skipping predictions.`);
             }
