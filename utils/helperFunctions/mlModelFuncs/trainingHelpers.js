@@ -196,26 +196,30 @@ const loadOrCreateModel = async (xs, sport, search) => {
 
             const input = tf.input({ shape: [xs[0].length] });
 
-            // Shared hidden layers
             let x = tf.layers.dense({
                 units: hyperParams.layerNeurons,
-                activation: 'relu',
-                kernelRegularizer: tf.regularizers.l2({ l2: l2Strength }),
-                biasInitializer: 'zeros',
+                useBias: true,
+                kernelRegularizer: tf.regularizers.l2({ l2: l2Strength })
             }).apply(input);
+
+            x = tf.layers.batchNormalization().apply(x);
+            x = tf.layers.leakyReLU({ alpha: 0.1 }).apply(x);
 
             for (let i = 0; i < hyperParams.hiddenLayerNum; i++) {
                 x = tf.layers.dense({
                     units: hyperParams.layerNeurons,
-                    activation: 'relu',
-                    kernelRegularizer: tf.regularizers.l2({ l2: l2Strength }),
-                    biasInitializer: 'zeros',
+                    useBias: true,
+                    kernelRegularizer: tf.regularizers.l2({ l2: l2Strength })
                 }).apply(x);
+
+                x = tf.layers.batchNormalization().apply(x);
+                x = tf.layers.leakyReLU({ alpha: 0.1 }).apply(x);
 
                 if (dropoutRate > 0) {
                     x = tf.layers.dropout({ rate: dropoutRate }).apply(x);
                 }
             }
+
 
             // Score output: regression head (predicts [homeScore, awayScore])
             const scoreOutput = tf.layers.dense({
@@ -246,78 +250,131 @@ const loadOrCreateModel = async (xs, sport, search) => {
     }
 };
 
-const getZScoreNormalizedStats = (currentStats, teamStatsHistory, prediction, search, sport) => {
-    const history = teamStatsHistory || [];
 
-    if (history.length < 5) {
 
-        return { ...currentStats }
+const decayCache = {}; // Module/global scope
+
+const getDecayWeights = (length, baseDecay, stepSize) => {
+    const key = `${length}_${baseDecay}_${stepSize}`;
+    if (decayCache[key]) return decayCache[key];
+
+    const weights = [];
+    for (let i = 0; i < length; i++) {
+        const stepsFromLatest = length - 1 - i;
+        weights.push(Math.pow(baseDecay, stepsFromLatest / stepSize));
     }
-    
-    // Normalize win-loss strings first
-    const normalizeWinLoss = (value) => {
-        if (typeof value === 'string') {
-            const [wins, losses] = value.split('-').map(Number);
-            return wins
-        }
-        return value !== undefined ? value : 0;
-    };
+    decayCache[key] = weights;
+    return weights;
+};
 
-    const transformedStats = { ...currentStats };
+const normalizeWinLoss = (value) => {
+    if (typeof value === 'string') {
+        const [wins, losses] = value.split('-').map(Number);
+        return wins;
+    }
+    return value !== undefined ? value : 0;
+};
+
+const computeZScores = (history, currentStats, weights) => {
+    const keys = Object.keys(currentStats);
+    const transformed = { ...currentStats };
+
     ['seasonWinLoss', 'homeWinLoss', 'awayWinLoss'].forEach(key => {
-        transformedStats[key] = normalizeWinLoss(transformedStats[key]);
+        transformed[key] = normalizeWinLoss(transformed[key]);
     });
 
-    const keys = Object.keys(transformedStats);
     const means = {};
     const stds = {};
 
-    // Set decay hyperparameters
-    const baseDecay = search ? sport.hyperParameters.gameDecayValue : sport['hyperParams.decayFactor'];     // Decay multiplier per step
-    const stepSize = search ? sport.hyperParameters.decayStepSize : sport['hyperParams.gameDecayThreshold'];         // Decay every 1 step in history (from oldest to newest)
     keys.forEach(key => {
-        const decayedValues = [];
-        const weights = [];
+        const decayed = [];
+        const rawWeights = [];
 
-        // Loop from oldest to newest
         for (let i = 0; i < history.length; i++) {
-            const rawValue = normalizeWinLoss(history[i][key]);
-            const stepsFromLatest = history.length - 1 - i;
-            const weight = Math.pow(baseDecay, stepsFromLatest / stepSize);
-            if (prediction) decayedValues.push(rawValue)
-            if (!prediction) decayedValues.push(rawValue * weight);
-            weights.push(weight);
+            const raw = normalizeWinLoss(history[i][key]);
+            decayed.push(raw * weights[i]);
+            rawWeights.push(weights[i]);
         }
-        const totalWeight = weights.reduce((a, b) => a + b, 0);
-        const mean = decayedValues.reduce((sum, val) => sum + val, 0) / totalWeight;
 
-        const variance = decayedValues.reduce((sum, val, i) => {
-            return sum + weights[i] * Math.pow(val - mean, 2);
+        const totalWeight = rawWeights.reduce((a, b) => a + b, 0);
+        const mean = decayed.reduce((sum, val) => sum + val, 0) / totalWeight;
+
+        const variance = decayed.reduce((sum, val, i) => {
+            return sum + rawWeights[i] * Math.pow(val - mean, 2);
         }, 0) / totalWeight;
+
         means[key] = mean;
-        stds[key] = Math.sqrt(variance) || 1;  // avoid divide-by-zero
+        stds[key] = Math.sqrt(variance) || 1;
     });
 
     const normalized = {};
     keys.forEach(key => {
-        normalized[key] = (transformedStats[key] - means[key]) / stds[key];
+        normalized[key] = (transformed[key] - means[key]) / stds[key];
     });
 
     return normalized;
 };
 
+const getZScoreNormalizedStats = (
+    currentStats,
+    teamStatsHistoryMap,
+    teamId,
+    prediction,
+    search,
+    sport,
+) => {
+    const teamHistory = (teamStatsHistoryMap && teamStatsHistoryMap[teamId]) || [];
+    const global = Object.values(teamStatsHistoryMap).flat();
+
+    const baseDecay = search ? sport.hyperParameters.gameDecayValue : sport['hyperParams.decayFactor'];
+    const stepSize = search ? sport.hyperParameters.decayStepSize : sport['hyperParams.gameDecayThreshold'];
+
+    // Early exit: if neither has enough data, return raw
+    if (teamHistory.length < 3 && global.length < 3) return { ...currentStats };
+
+    // Use weights
+    const teamWeights = getDecayWeights(teamHistory.length, baseDecay, stepSize);
+    const globalWeights = getDecayWeights(global.length, baseDecay, stepSize);
+
+    // Compute both
+    const teamZ = teamHistory.length >= 3
+        ? computeZScores(teamHistory, currentStats, teamWeights)
+        : null;
+
+    const globalZ = global.length >= 3
+        ? computeZScores(global, currentStats, globalWeights)
+        : null;
+
+    // Determine blend ratio
+    const teamRatio = Math.min(1, teamHistory.length / 10); // More games = heavier team weight
+    const globalRatio = 1 - teamRatio;
+
+    const finalZ = {};
+    const keys = Object.keys(currentStats);
+
+    keys.forEach(key => {
+        const tZ = teamZ?.[key] ?? 0;
+        const gZ = globalZ?.[key] ?? 0;
+        finalZ[key] = (tZ * teamRatio) + (gZ * globalRatio);
+    });
+
+    return finalZ;
+};
+
+
 const mlModelTraining = async (gameData, xs, ysWins, ysScore, sport, search, gameCount, sortedGameData) => {
     const statMap = statConfigMap[sport.espnSport].default;
     const hyperParams = await getHyperParams(sport, search)
-    let teamStatsHistory = [];
+    let teamStatsHistory = {};
 
     // --- Feature Extraction + Labeling ---
     for (const game of gameData) {
         const homeStats = game['homeStats.data'];
         const awayStats = game['awayStats.data'];
 
-        const normalizedHome = getZScoreNormalizedStats(homeStats, teamStatsHistory, false, search, sport);
-        const normalizedAway = getZScoreNormalizedStats(awayStats, teamStatsHistory, false, search, sport);
+        const normalizedHome = getZScoreNormalizedStats(homeStats, teamStatsHistory, game.homeTeam, false, search, sport);
+        const normalizedAway = getZScoreNormalizedStats(awayStats, teamStatsHistory, game.awayTeam, false, search, sport);
+
 
         if (!normalizedHome || !normalizedAway) {
             console.log(game.id);
@@ -336,21 +393,25 @@ const mlModelTraining = async (gameData, xs, ysWins, ysScore, sport, search, gam
         ysWins.push([winLabel]);
         ysScore.push(scoreLabel);
 
-        if (
-            statFeatures.length / 2 === statMap.length &&
-            isValidStatBlock(homeStats) &&
-            isValidStatBlock(awayStats)
-        ) {
-            teamStatsHistory.push(homeStats);
-            if (teamStatsHistory.length > hyperParams.historyLength) {
-                teamStatsHistory.shift();
-            }
+        const homeTeamId = game.homeTeamId;
+        const awayTeamId = game.awayTeamId;
 
-            teamStatsHistory.push(awayStats);
-            if (teamStatsHistory.length > hyperParams.historyLength) {
-                teamStatsHistory.shift();
+        if (isValidStatBlock(homeStats)) {
+            if (!teamStatsHistory[homeTeamId]) teamStatsHistory[homeTeamId] = [];
+            teamStatsHistory[homeTeamId].push(homeStats);
+            if (teamStatsHistory[homeTeamId].length > hyperParams.historyLength) {
+                teamStatsHistory[homeTeamId].shift();
             }
         }
+
+        if (isValidStatBlock(awayStats)) {
+            if (!teamStatsHistory[awayTeamId]) teamStatsHistory[awayTeamId] = [];
+            teamStatsHistory[awayTeamId].push(awayStats);
+            if (teamStatsHistory[awayTeamId].length > hyperParams.historyLength) {
+                teamStatsHistory[awayTeamId].shift();
+            }
+        }
+
 
         gameCount++;
     }
@@ -372,7 +433,7 @@ const mlModelTraining = async (gameData, xs, ysWins, ysScore, sport, search, gam
         },
         lossWeights: {
             scoreOutput: 1.0,
-            winProbOutput: 1.0,
+            winProbOutput: 1.0, //TODO ADD THESE TO HYPERPARAMS AND SEARCH
         },
         metrics: {
             scoreOutput: ['mae'],
@@ -386,13 +447,13 @@ const mlModelTraining = async (gameData, xs, ysWins, ysScore, sport, search, gam
         winProbOutput: ysWinLabelsTensor,
     }, {
         epochs: hyperParams.epochs,
-        batchSize: hyperParams.epochs,
+        batchSize: hyperParams.batchSize,
         validationSplit: 0.4,
         verbose: false,
         callbacks: [
             tf.callbacks.earlyStopping({
                 monitor: 'val_loss',
-                patience: hyperParams.epochs * .10,
+                patience: hyperParams.epochs * .10, //ADD TO HYPER PARAM SEARCH
                 restoreBestWeight: true
             })
         ]
@@ -445,21 +506,16 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
     let spreadMatch = 0;
     let totalMatch = 0;
 
-    const teamStatsHistory = [];
-
-    // Populate stat history from past games
-    for (const pastGame of pastGames) {
-        teamStatsHistory.push(pastGame['homeStats.data']);
-        teamStatsHistory.push(pastGame['awayStats.data']);
-    }
+    const teamStatsHistory = pastGames; // pastGames is now the map
 
     for (const game of sportOdds) {
         if (new Date(game.commence_time) < new Date()) return
         const homeRawStats = game['homeStats.data'];
         const awayRawStats = game['awayStats.data'];
 
-        const normalizedHome = getZScoreNormalizedStats(homeRawStats, teamStatsHistory, true, search, sport);
-        const normalizedAway = getZScoreNormalizedStats(awayRawStats, teamStatsHistory, true, search, sport);
+        const normalizedHome = getZScoreNormalizedStats(homeRawStats, teamStatsHistory, game.homeTeam, false, search, sport);
+        const normalizedAway = getZScoreNormalizedStats(awayRawStats, teamStatsHistory, game.awayTeam, false, search, sport);
+
 
         if (!normalizedHome || !normalizedAway) {
             console.log(game.id);
@@ -481,7 +537,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
 
         // Avoid ties
         if (Math.round(homeScore) === Math.round(awayScore)) {
-            predictedWinner === 'home' ? homeScore++ : awayScore++;
+            predWinProb > 0.5 ? homeScore++ : awayScore++;
         }
 
         const updatePayload = {
@@ -630,15 +686,18 @@ const trainSportModelKFold = async (sport, gameData, search) => {
 
 
         for (const game of testData) {
-            const homeStats = getZScoreNormalizedStats(game['homeStats.data'], teamStatsHistory, true, search, sport);
-            const awayStats = getZScoreNormalizedStats(game['awayStats.data'], teamStatsHistory, true, search, sport);
+            const homeStats = game['homeStats.data'];
+            const awayStats = game['awayStats.data'];
+            const normalizedHome = getZScoreNormalizedStats(homeStats, teamStatsHistory, game.homeTeam, false, search, sport);
+            const normalizedAway = getZScoreNormalizedStats(awayStats, teamStatsHistory, game.awayTeam, false, search, sport);
+
 
             if (!homeStats || !awayStats) {
                 console.log(game.id);
                 return;
             }
 
-            const statFeatures = await extractSportFeatures(homeStats, awayStats, sport.name)
+            const statFeatures = await extractSportFeatures(normalizedHome, normalizedAway, sport.name)
 
             const homeScoreLabel = [game.homeScore, game.awayScore];
             const homeWinLabel = game.winner === 'home' ? 1 : 0;
@@ -754,4 +813,4 @@ const trainSportModelKFold = async (sport, gameData, search) => {
     return finalModel;
 };
 
-module.exports = { normalizeStat, extractSportFeatures, mlModelTraining, predictions, trainSportModelKFold, loadOrCreateModel }
+module.exports = { normalizeStat, extractSportFeatures, mlModelTraining, predictions, trainSportModelKFold, loadOrCreateModel, isValidStatBlock }
