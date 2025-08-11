@@ -49,9 +49,7 @@ const normalizeTeamName = (teamName, league) => {
         "San Jose State Spartans": `San José State Spartans`,
         "Southern Mississippi Golden Eagles": `Southern Miss Golden Eagles`,
         "UMass Minutemen": `Massachusetts Minutemen`,
-        "Louisiana Ragin Cajuns": `Louisiana Ragin' Cajuns`
-
-
+        "Louisiana Ragin Cajuns": `Louisiana Ragin' Cajuns`,
     }
 
     if (league === 'basketball_ncaab' || league === 'basketball_wncaab') {
