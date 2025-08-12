@@ -494,9 +494,19 @@ const oddsSeed = async () => {
             if (fs.existsSync(modelPath)) {
                 model = await tf.loadLayersModel(`file://./model_checkpoint/${sport.name}_model/model.json`);
                 model.compile({
-                    optimizer: tf.train.adam(sport['hyperParams.learningRate']),
-                    loss: 'binaryCrossentropy',
-                    metrics: ['accuracy']
+                    optimizer: tf.train.adam(hyperParams.learningRate),
+                    loss: {
+                        scoreOutput: 'meanSquaredError',
+                        winProbOutput: 'binaryCrossentropy',
+                    },
+                    lossWeights: {
+                        scoreOutput: 1,
+                        winProbOutput: .7, //TODO ADD THESE TO HYPERPARAMS AND SEARCH
+                    },
+                    metrics: {
+                        scoreOutput: ['mae'],
+                        winProbOutput: ['accuracy'],
+                    }
                 });
                 const historyLength = sport['hyperParams.historyLength'];
                 const teamStatsHistory = {};
@@ -858,5 +868,5 @@ const espnSeed = async () => {
 
 };
 
-
+oddsSeed()
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed }
