@@ -95,19 +95,23 @@ const getNumericStat = (stats, statName) => {
 };
 
 const isValidStatBlock = (statsObj, sport) => {
-    const requiredKeys = new Set(statConfigMap[sport.espnSport].default);
+    const config = statConfigMap[sport?.espnSport];
+    if (!config || !config.default) return false;
 
-    // Check that all required keys are present
-    const hasAllRequiredFields = [...requiredKeys].every(key => statsObj.hasOwnProperty(key));
+    const requiredKeys = config.default;
 
-    if (!hasAllRequiredFields) return false;
+    for (const key of requiredKeys) {
+        if (!(key in statsObj)) return false;
+    }
 
-    // Check that all numeric-looking values are valid numbers
-    return Object.entries(statsObj).every(([key, val]) => {
-        if (typeof val === 'string') return true; // allow strings like "0-2"
-        return typeof val === 'number' && !isNaN(val);
-    });
+    for (const [key, val] of Object.entries(statsObj)) {
+        if (typeof val === 'string') continue;
+        if (typeof val !== 'number' || isNaN(val)) return false;
+    }
+
+    return true;
 };
+
 
 
 // Feature extraction per sport
