@@ -512,7 +512,7 @@ const oddsSeed = async () => {
                 const teamStatsHistory = {};
 
 
-                for (const game of pastGames.sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time))) {
+                for (const game of allPastGamesSQL.sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time))) {
                     const homeTeamId = game.homeTeam;
                     const awayTeamId = game.awayTeam;
 
