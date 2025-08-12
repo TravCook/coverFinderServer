@@ -494,7 +494,7 @@ const oddsSeed = async () => {
             if (fs.existsSync(modelPath)) {
                 model = await tf.loadLayersModel(`file://./model_checkpoint/${sport.name}_model/model.json`);
                 model.compile({
-                    optimizer: tf.train.adam(hyperParams.learningRate),
+                    optimizer: tf.train.adam(sport['hyperParams.learningRate']),
                     loss: {
                         scoreOutput: 'meanSquaredError',
                         winProbOutput: 'binaryCrossentropy',
