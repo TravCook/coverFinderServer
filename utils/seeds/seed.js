@@ -97,20 +97,20 @@ const mlModelTrainSeed = async () => {
                 const teamStatsHistory = {};
 
                 for (const game of pastGames.sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time))) {
-                    const homeTeamId = game.homeTeamId;
-                    const awayTeamId = game.awayTeamId;
+                    const homeTeamId = game.homeTeam;
+                    const awayTeamId = game.awayTeam;
 
                     if (!teamStatsHistory[homeTeamId]) teamStatsHistory[homeTeamId] = [];
                     if (!teamStatsHistory[awayTeamId]) teamStatsHistory[awayTeamId] = [];
 
-                    if (isValidStatBlock(game['homeStats.data'])) {
+                    if (isValidStatBlock(game['homeStats.data'], sport)) {
                         teamStatsHistory[homeTeamId].push(game['homeStats.data']);
                         if (teamStatsHistory[homeTeamId].length > historyLength) {
                             teamStatsHistory[homeTeamId].shift();
                         }
                     }
 
-                    if (isValidStatBlock(game['awayStats.data'])) {
+                    if (isValidStatBlock(game['awayStats.data'], sport)) {
                         teamStatsHistory[awayTeamId].push(game['awayStats.data']);
                         if (teamStatsHistory[awayTeamId].length > historyLength) {
                             teamStatsHistory[awayTeamId].shift();
@@ -139,7 +139,7 @@ const mlModelTrainSeed = async () => {
 
 
     }
-
+    
     const today = new Date();
     today.setHours(0, 0, 0, 0);  // Set time to midnight
     const currentOdds = await db.Games.findAll({
@@ -508,14 +508,14 @@ const oddsSeed = async () => {
                     if (!teamStatsHistory[homeTeamId]) teamStatsHistory[homeTeamId] = [];
                     if (!teamStatsHistory[awayTeamId]) teamStatsHistory[awayTeamId] = [];
 
-                    if (isValidStatBlock(game['homeStats.data'])) {
+                    if (isValidStatBlock(game['homeStats.data'], sport)) {
                         teamStatsHistory[homeTeamId].push(game['homeStats.data']);
                         if (teamStatsHistory[homeTeamId].length > historyLength) {
                             teamStatsHistory[homeTeamId].shift();
                         }
                     }
 
-                    if (isValidStatBlock(game['awayStats.data'])) {
+                    if (isValidStatBlock(game['awayStats.data'], sport)) {
                         teamStatsHistory[awayTeamId].push(game['awayStats.data']);
                         if (teamStatsHistory[awayTeamId].length > historyLength) {
                             teamStatsHistory[awayTeamId].shift();
@@ -859,4 +859,5 @@ const espnSeed = async () => {
 };
 
 
+mlModelTrainSeed()
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed }

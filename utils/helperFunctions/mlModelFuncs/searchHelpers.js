@@ -40,11 +40,13 @@ const hyperparameterRandSearch = async (sports) => {
         dropoutReg: {min: 0, max: .01},
         kFolds: { min: 4, max: 10 },
         historyLength: { min: 5, max: 60 },
-        gameDecayValue: { min: .95, max: .99 },
-        decayStepSize: { min: 1, max: 150 }
+        gameDecayValue: { min: .90, max: .99 },
+        decayStepSize: { min: 1, max: 150 },
+        // scoreLossWeight: { min: 0.1, max: 1.0 },
+        // winPCTLossWeight: { min: 0.1, max: 1.0 },
     };
     for (let sport of sports.sort((a, b) => a.startMonth - b.startMonth)) {
-        // if (sport.name !== 'baseball_mlb') continue
+        if (sport.name !== 'baseball_mlb') continue
         console.log(`--------------- ${sport.name} @ ${moment().format('HH:mm:ss')}-------------------`)
         const validBatchSizes = [32, 64, 128];
         const validLayerNeurons = [16, 32, 64, 128, 256];
@@ -98,10 +100,10 @@ const hyperparameterRandSearch = async (sports) => {
                     }], order: [['commence_time', 'ASC']], raw: true
             });
 
-            const testWinRate = await trainSportModelKFold(testSport, pastGames, true, upcomingGames);
+            const hyperParamScore = await trainSportModelKFold(testSport, pastGames, true, upcomingGames);
 
             return {
-                loss: -testWinRate,     // minimize negative F1 (i.e. maximize F1)
+                loss: -hyperParamScore,     // minimize negative hyperParamScore (i.e. maximize hyperParamScore)
             };
         }
 

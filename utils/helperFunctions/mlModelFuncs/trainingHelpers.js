@@ -7,6 +7,7 @@ const moment = require('moment')
 const cliProgress = require('cli-progress');
 const { baseballStatMap, basketballStatMap, footballStatMap, hockeyStatMap, statConfigMap } = require('../../statMaps')
 const { evaluateFoldMetrics, printOverallMetrics } = require('./metricsHelpers')
+const { getZScoreNormalizedStats } = require('./normalizeHelpers')
 
 async function extractAndSaveFeatureImportances(model, sport) {
     const dropoutRate = sport['hyperParams.dropoutReg'] || 0;
@@ -93,13 +94,21 @@ const getNumericStat = (stats, statName) => {
     return val;
 };
 
-const isValidStatBlock = (statsObj) => {
+const isValidStatBlock = (statsObj, sport) => {
+    const requiredKeys = new Set(statConfigMap[sport.espnSport].default);
+
+    // Check that all required keys are present
+    const hasAllRequiredFields = [...requiredKeys].every(key => statsObj.hasOwnProperty(key));
+
+    if (!hasAllRequiredFields) return false;
+
+    // Check that all numeric-looking values are valid numbers
     return Object.entries(statsObj).every(([key, val]) => {
-        // Only check numeric-looking fields (not strings like "1-0")
-        if (typeof val === 'string') return true;
+        if (typeof val === 'string') return true; // allow strings like "0-2"
         return typeof val === 'number' && !isNaN(val);
     });
-}
+};
+
 
 // Feature extraction per sport
 const extractSportFeatures = (homeStats, awayStats, league) => {
@@ -250,118 +259,6 @@ const loadOrCreateModel = async (xs, sport, search) => {
     }
 };
 
-
-
-const decayCache = {}; // Module/global scope
-
-const getDecayWeights = (length, baseDecay, stepSize) => {
-    const key = `${length}_${baseDecay}_${stepSize}`;
-    if (decayCache[key]) return decayCache[key];
-
-    const weights = [];
-    for (let i = 0; i < length; i++) {
-        const stepsFromLatest = length - 1 - i;
-        weights.push(Math.pow(baseDecay, stepsFromLatest / stepSize));
-    }
-    decayCache[key] = weights;
-    return weights;
-};
-
-const normalizeWinLoss = (value) => {
-    if (typeof value === 'string') {
-        const [wins, losses] = value.split('-').map(Number);
-        return wins;
-    }
-    return value !== undefined ? value : 0;
-};
-
-const computeZScores = (history, currentStats, weights) => {
-    const keys = Object.keys(currentStats);
-    const transformed = { ...currentStats };
-
-    ['seasonWinLoss', 'homeWinLoss', 'awayWinLoss'].forEach(key => {
-        transformed[key] = normalizeWinLoss(transformed[key]);
-    });
-
-    const means = {};
-    const stds = {};
-
-    keys.forEach(key => {
-        const decayed = [];
-        const rawWeights = [];
-
-        for (let i = 0; i < history.length; i++) {
-            const raw = normalizeWinLoss(history[i][key]);
-            decayed.push(raw * weights[i]);
-            rawWeights.push(weights[i]);
-        }
-
-        const totalWeight = rawWeights.reduce((a, b) => a + b, 0);
-        const mean = decayed.reduce((sum, val) => sum + val, 0) / totalWeight;
-
-        const variance = decayed.reduce((sum, val, i) => {
-            return sum + rawWeights[i] * Math.pow(val - mean, 2);
-        }, 0) / totalWeight;
-
-        means[key] = mean;
-        stds[key] = Math.sqrt(variance) || 1;
-    });
-
-    const normalized = {};
-    keys.forEach(key => {
-        normalized[key] = (transformed[key] - means[key]) / stds[key];
-    });
-
-    return normalized;
-};
-
-const getZScoreNormalizedStats = (
-    currentStats,
-    teamStatsHistoryMap,
-    teamId,
-    prediction,
-    search,
-    sport,
-) => {
-    const teamHistory = (teamStatsHistoryMap && teamStatsHistoryMap[teamId]) || [];
-    const global = Object.values(teamStatsHistoryMap).flat();
-
-    const baseDecay = search ? sport.hyperParameters.gameDecayValue : sport['hyperParams.decayFactor'];
-    const stepSize = search ? sport.hyperParameters.decayStepSize : sport['hyperParams.gameDecayThreshold'];
-
-    // Early exit: if neither has enough data, return raw
-    if (teamHistory.length < 3 && global.length < 3) return { ...currentStats };
-
-    // Use weights
-    const teamWeights = getDecayWeights(teamHistory.length, baseDecay, stepSize);
-    const globalWeights = getDecayWeights(global.length, baseDecay, stepSize);
-
-    // Compute both
-    const teamZ = teamHistory.length >= 3
-        ? computeZScores(teamHistory, currentStats, teamWeights)
-        : null;
-
-    const globalZ = global.length >= 3
-        ? computeZScores(global, currentStats, globalWeights)
-        : null;
-
-    // Determine blend ratio
-    const teamRatio = Math.min(1, teamHistory.length / 10); // More games = heavier team weight
-    const globalRatio = 1 - teamRatio;
-
-    const finalZ = {};
-    const keys = Object.keys(currentStats);
-
-    keys.forEach(key => {
-        const tZ = teamZ?.[key] ?? 0;
-        const gZ = globalZ?.[key] ?? 0;
-        finalZ[key] = (tZ * teamRatio) + (gZ * globalRatio);
-    });
-
-    return finalZ;
-};
-
-
 const mlModelTraining = async (gameData, xs, ysWins, ysScore, sport, search, gameCount, sortedGameData) => {
     const statMap = statConfigMap[sport.espnSport].default;
     const hyperParams = await getHyperParams(sport, search)
@@ -393,10 +290,10 @@ const mlModelTraining = async (gameData, xs, ysWins, ysScore, sport, search, gam
         ysWins.push([winLabel]);
         ysScore.push(scoreLabel);
 
-        const homeTeamId = game.homeTeamId;
-        const awayTeamId = game.awayTeamId;
+        const homeTeamId = game.homeTeam;
+        const awayTeamId = game.awayTeam;
 
-        if (isValidStatBlock(homeStats)) {
+        if (isValidStatBlock(homeStats, sport)) {
             if (!teamStatsHistory[homeTeamId]) teamStatsHistory[homeTeamId] = [];
             teamStatsHistory[homeTeamId].push(homeStats);
             if (teamStatsHistory[homeTeamId].length > hyperParams.historyLength) {
@@ -404,7 +301,7 @@ const mlModelTraining = async (gameData, xs, ysWins, ysScore, sport, search, gam
             }
         }
 
-        if (isValidStatBlock(awayStats)) {
+        if (isValidStatBlock(awayStats, sport)) {
             if (!teamStatsHistory[awayTeamId]) teamStatsHistory[awayTeamId] = [];
             teamStatsHistory[awayTeamId].push(awayStats);
             if (teamStatsHistory[awayTeamId].length > hyperParams.historyLength) {
@@ -432,8 +329,8 @@ const mlModelTraining = async (gameData, xs, ysWins, ysScore, sport, search, gam
             winProbOutput: 'binaryCrossentropy',
         },
         lossWeights: {
-            scoreOutput: 1.0,
-            winProbOutput: 1.0, //TODO ADD THESE TO HYPERPARAMS AND SEARCH
+            scoreOutput: 1,
+            winProbOutput: .7, //TODO ADD THESE TO HYPERPARAMS AND SEARCH
         },
         metrics: {
             scoreOutput: ['mae'],
@@ -453,7 +350,7 @@ const mlModelTraining = async (gameData, xs, ysWins, ysScore, sport, search, gam
         callbacks: [
             tf.callbacks.earlyStopping({
                 monitor: 'val_loss',
-                patience: hyperParams.epochs * .10, //ADD TO HYPER PARAM SEARCH
+                patience: hyperParams.epochs * .3, //ADD TO HYPER PARAM SEARCH
                 restoreBestWeight: true
             })
         ]
@@ -463,16 +360,6 @@ const mlModelTraining = async (gameData, xs, ysWins, ysScore, sport, search, gam
     xsTensor.dispose();
     ysScoresTensor.dispose();
     ysWinLabelsTensor.dispose();
-
-    // --- Model Saving ---
-    if (!search) {
-        const modelDir = `./model_checkpoint/${sport.name}_model`;
-        if (!fs.existsSync(modelDir)) {
-            console.log('Creating model directory...');
-            fs.mkdirSync(modelDir, { recursive: true });
-        }
-        await model.save(`file://${modelDir}`);
-    }
 
     return { model, updatedGameCount: gameCount, teamStatsHistory };
 };
@@ -485,7 +372,6 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
             game.predictedWinner === 'home' || game.predictedWinner === 'away'
         );
     }
-
     // Stats and counters
     let predictionsChanged = 0;
     let newWinnerPredictions = 0;
@@ -509,7 +395,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
     const teamStatsHistory = pastGames; // pastGames is now the map
 
     for (const game of sportOdds) {
-        if (new Date(game.commence_time) < new Date()) return
+        // if (new Date(game.commence_time) < new Date()) return
         const homeRawStats = game['homeStats.data'];
         const awayRawStats = game['awayStats.data'];
 
@@ -529,7 +415,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
             return;
         }
 
-        const [predScore, predWinProb] = await repeatPredictions(model, tf.tensor2d([statFeatures]), 100);
+        const [predScore, predWinProb] = await repeatPredictions(model, tf.tensor2d([statFeatures]), search ? 10 : 100);
         let [homeScore, awayScore] = predScore;
 
         let predictedWinner = homeScore > awayScore ? 'home' : 'away';
@@ -671,6 +557,7 @@ const trainSportModelKFold = async (sport, gameData, search) => {
             trainingData, [], [], [], sport, search, gameCount, sortedGameData
         );
 
+
         finalModel = model;
         gameCount = updatedGameCount;
 
@@ -770,7 +657,7 @@ const trainSportModelKFold = async (sport, gameData, search) => {
     if (search) {
         // After k-folds
         const fullTrainingData = sortedGameData;
-        const { model: finalModel90 } = await mlModelTraining(
+        const { model: finalModel } = await mlModelTraining(
             fullTrainingData, [], [], [], sport, search, gameCount, sortedGameData
         );
 
@@ -778,17 +665,38 @@ const trainSportModelKFold = async (sport, gameData, search) => {
             .sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time))
             .slice(gameData.length - Math.floor(gameData.length * 0.10));
 
-        const historySlice = gameData
-            .sort((a, b) => new Date(b.commence_time) - new Date(a.commence_time))
-            .slice(0, sport.hyperParameters.historyLength);
+        const historyLength = hyperParams.historyLength || 10; // Default to 10 if not set
+        const teamStatsHistory = {};
 
-        const testWinRate = await predictions(testSlice, [], finalModel90, sport, false, search, historySlice);
+        for (const game of gameData.sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time))) {
+            const homeTeamId = game.homeTeam;
+            const awayTeamId = game.awayTeam;
+
+            if (!teamStatsHistory[homeTeamId]) teamStatsHistory[homeTeamId] = [];
+            if (!teamStatsHistory[awayTeamId]) teamStatsHistory[awayTeamId] = [];
+
+            if (isValidStatBlock(game['homeStats.data'], sport)) {
+                teamStatsHistory[homeTeamId].push(game['homeStats.data']);
+                if (teamStatsHistory[homeTeamId].length > historyLength) {
+                    teamStatsHistory[homeTeamId].shift();
+                }
+            }
+
+            if (isValidStatBlock(game['awayStats.data'], sport)) {
+                teamStatsHistory[awayTeamId].push(game['awayStats.data']);
+                if (teamStatsHistory[awayTeamId].length > historyLength) {
+                    teamStatsHistory[awayTeamId].shift();
+                }
+            }
+        }
+
+        const testWinRate = await predictions(testSlice, [], finalModel, sport, false, search, teamStatsHistory);
         console.log(`--- Overall WINRATE ON UNSEEN DATA: ${(testWinRate * 100).toFixed(2)} ---`);
 
         const compositeScore =
             ((testWinRate * 100) * 1) -
             (avgMAE * .3) -
-            (avgSpreadMAE * .15) -
+            (avgSpreadMAE * .5) -
             (avgTotalMAE * .1)
 
 
@@ -804,6 +712,17 @@ const trainSportModelKFold = async (sport, gameData, search) => {
     );
 
     finalModel = retrainedModel;
+
+
+    // --- Model Saving ---
+    if (!search) {
+        const modelDir = `./model_checkpoint/${sport.name}_model`;
+        if (!fs.existsSync(modelDir)) {
+            console.log('Creating model directory...');
+            fs.mkdirSync(modelDir, { recursive: true });
+        }
+        await finalModel.save(`file://${modelDir}`);
+    }
 
     // Extract feature importances
     await extractAndSaveFeatureImportances(finalModel, sport);
