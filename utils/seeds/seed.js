@@ -502,8 +502,8 @@ const oddsSeed = async () => {
                 const teamStatsHistory = {};
 
                 for (const game of allPastGamesSQL.filter((game) => game.sport_key === sport.name).sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time))) {
-                    const homeTeamId = game.homeTeamId;
-                    const awayTeamId = game.awayTeamId;
+                    const homeTeamId = game.homeTeam;
+                    const awayTeamId = game.awayTeam;
 
                     if (!teamStatsHistory[homeTeamId]) teamStatsHistory[homeTeamId] = [];
                     if (!teamStatsHistory[awayTeamId]) teamStatsHistory[awayTeamId] = [];
