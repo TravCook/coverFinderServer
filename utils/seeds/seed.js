@@ -139,7 +139,7 @@ const mlModelTrainSeed = async () => {
 
 
     }
-    
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);  // Set time to midnight
     const currentOdds = await db.Games.findAll({
@@ -859,5 +859,5 @@ const espnSeed = async () => {
 };
 
 
-mlModelTrainSeed()
+dataSeed()
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed }
