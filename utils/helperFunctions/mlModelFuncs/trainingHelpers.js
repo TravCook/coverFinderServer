@@ -708,7 +708,8 @@ const trainSportModelKFold = async (sport, gameData, search) => {
         return compositeScore;
     }
 
-    const fullTrainingData = sortedGameData; // All but final 10%
+    const fullTrainingData = gameData
+        .sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time)); // All
     const xs = [], ysWins = [], ysScore = [];
 
     const { model: retrainedModel } = await mlModelTraining(

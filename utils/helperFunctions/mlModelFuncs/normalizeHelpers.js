@@ -38,7 +38,7 @@ const getZScoreNormalizedStats = (currentStats, teamStatsHistory, teamId, predic
         .filter(teamHistory => teamHistory && teamHistory.length >= minGamesPerTeam);
 
     // Case 1: Not enough teams with data → return raw stats
-    if (teamsWithEnoughData.length < 5 && history.length < minGamesPerTeam) {
+    if (teamsWithEnoughData.length < 5 ) {
         return { ...currentStats };
     }
 

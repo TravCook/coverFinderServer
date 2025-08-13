@@ -63,7 +63,7 @@ const mlModelTrainSeed = async () => {
     for (let sport of sports) {
         let inSeason = isSportInSeason(sport)
         // Multi-year sports (e.g., NFL, NBA, NHL, etc.)
-        if (inSeason) {
+        if (sport.name === 'baseball_mlb') {
             let upcomingGames = odds.filter((game) => game.sport_key === sport.name)
             let pastGames = await db.Games.findAll({
                 where: { complete: true, sport_key: sport.name },
@@ -323,7 +323,7 @@ const mlModelTrainSeed = async () => {
 
     console.log("Message sent:", info.messageId);
     if (global.gc) global.gc();
-
+    // hyperParameterRandSearch(sports)
 }
 
 const oddsSeed = async () => {
