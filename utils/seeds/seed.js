@@ -867,5 +867,5 @@ const espnSeed = async () => {
     // fetchAllTeamData(sport, teams, sport.statYear)
 
 };
-dataSeed()
+oddsSeed()
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed }
