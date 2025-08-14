@@ -63,7 +63,7 @@ const mlModelTrainSeed = async () => {
     for (let sport of sports) {
         let inSeason = isSportInSeason(sport)
         // Multi-year sports (e.g., NFL, NBA, NHL, etc.)
-        if (inSeason) {
+        if (sport.name === 'baseball_mlb') {
             let upcomingGames = odds.filter((game) => game.sport_key === sport.name)
             let pastGames = await db.Games.findAll({
                 where: { complete: true, sport_key: sport.name },
@@ -323,11 +323,10 @@ const mlModelTrainSeed = async () => {
 
     console.log("Message sent:", info.messageId);
     if (global.gc) global.gc();
-    // hyperParameterRandSearch(sports)
+
 }
 
 const oddsSeed = async () => {
-    // const sports = await Sport.find({})
     const sports = await db.Sports.findAll({ include: [{ model: db.MlModelWeights, as: 'MlModelWeights' }, { model: db.HyperParams, as: 'hyperParams' }], raw: true, order: [['name', 'ASC']] });
     // RETRIEVE ODDS
     console.log(`BEGINNING ODDS SEEDING @ ${moment().format('HH:mm:ss')}`)
@@ -868,5 +867,5 @@ const espnSeed = async () => {
     // fetchAllTeamData(sport, teams, sport.statYear)
 
 };
-
+mlModelTrainSeed()
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed }

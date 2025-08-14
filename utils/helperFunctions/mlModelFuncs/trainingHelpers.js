@@ -148,11 +148,12 @@ const repeatPredictions = async (model, inputTensor, numPasses) => {
     const winProbs = []
 
     for (let i = 0; i < numPasses; i++) {
-        const [predictedScores, predictedWinProb] = await model.predict(inputTensor); // Shape: [1, 2]
+        const [predictedScores, predictedWinProb] = await model.apply(inputTensor, { training: true });
         let score = predictedScores.arraySync()
         let winProb = predictedWinProb.arraySync()
         predictions.push(score[0]); // Each prediction is [homeScore, awayScore]
         winProbs.push(winProb[0])
+
     }
     // Average over all passes
     const averagedScore = predictions[0].map((_, i) =>
@@ -179,9 +180,6 @@ const getHyperParams = (sport, search) => {
         l2reg: search
             ? sport.hyperParameters.l2reg
             : sport['hyperParams.l2Reg'],
-        dropoutReg: search
-            ? sport.hyperParameters.dropoutReg
-            : sport['hyperParams.dropoutReg'],
         hiddenLayerNum: search
             ? sport.hyperParameters.hiddenLayerNum
             : sport['hyperParams.hiddenLayers'],
@@ -192,7 +190,16 @@ const getHyperParams = (sport, search) => {
         kernalInitializer: sport['hyperParams.kernalInitializer'] || 'glorotUniform',
         decayFactor: search ? sport.hyperParameters.gameDecayValue : sport['hyperParams.decayFactor'],
         gameDecayThreshold: search ? sport.hyperParameters.decayStepSize : sport['hyperParams.gameDecayThreshold'],
-        historyLength: search ? sport.hyperParameters.historyLength : sport['hyperParams.historyLength']
+        historyLength: search ? sport.hyperParameters.historyLength : sport['hyperParams.historyLength'],
+        scoreLoss: search
+            ? sport.hyperParameters.scoreLossWeight
+            : sport['hyperParams.scoreLoss'],
+        winPctLoss: search
+            ? sport.hyperParameters.winPctLossWeight
+            : sport['hyperParams.winPctLoss'],
+        earlyStopPatience: search
+            ? sport.hyperParameters.earlyStopPatience
+            : sport['hyperParams.earlyStopPatience']
     };
 };
 
@@ -205,7 +212,6 @@ const loadOrCreateModel = async (xs, sport, search) => {
             const tf = require('@tensorflow/tfjs');
             const hyperParams = getHyperParams(sport, search);
             const l2Strength = hyperParams.l2reg || 0; // Default L2 regularization strength
-            const dropoutRate = hyperParams.dropoutReg || 0; // Optional
 
             const input = tf.input({ shape: [xs[0].length] });
 
@@ -215,24 +221,13 @@ const loadOrCreateModel = async (xs, sport, search) => {
                 kernelRegularizer: tf.regularizers.l2({ l2: l2Strength })
             }).apply(input);
 
-            x = tf.layers.batchNormalization().apply(x);
-            x = tf.layers.leakyReLU({ alpha: 0.1 }).apply(x);
-
             for (let i = 0; i < hyperParams.hiddenLayerNum; i++) {
                 x = tf.layers.dense({
                     units: hyperParams.layerNeurons,
                     useBias: true,
                     kernelRegularizer: tf.regularizers.l2({ l2: l2Strength })
                 }).apply(x);
-
-                x = tf.layers.batchNormalization().apply(x);
-                x = tf.layers.leakyReLU({ alpha: 0.1 }).apply(x);
-
-                if (dropoutRate > 0) {
-                    x = tf.layers.dropout({ rate: dropoutRate }).apply(x);
-                }
             }
-
 
             // Score output: regression head (predicts [homeScore, awayScore])
             const scoreOutput = tf.layers.dense({
@@ -333,8 +328,8 @@ const mlModelTraining = async (gameData, xs, ysWins, ysScore, sport, search, gam
             winProbOutput: 'binaryCrossentropy',
         },
         lossWeights: {
-            scoreOutput: 1,
-            winProbOutput: .7, //TODO ADD THESE TO HYPERPARAMS AND SEARCH
+            scoreOutput: hyperParams.scoreLoss,
+            winProbOutput: hyperParams.winPctLoss, //TODO ADD THESE TO HYPERPARAMS AND SEARCH
         },
         metrics: {
             scoreOutput: ['mae'],
@@ -354,7 +349,7 @@ const mlModelTraining = async (gameData, xs, ysWins, ysScore, sport, search, gam
         callbacks: [
             tf.callbacks.earlyStopping({
                 monitor: 'val_loss',
-                patience: hyperParams.epochs * .3, //ADD TO HYPER PARAM SEARCH
+                patience: hyperParams.earlyStopPatience, //ADD TO HYPER PARAM SEARCH
                 restoreBestWeight: true
             })
         ]
@@ -395,6 +390,35 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
     let matchedScore = 0;
     let spreadMatch = 0;
     let totalMatch = 0;
+
+    let confidenceBuckets
+    if (sport.name === 'americanfootball_nfl' || sport.name === 'basketball_nba' || sport.name === 'icehockey_nhl') {
+
+        confidenceBuckets = [
+            { range: [0.5, 0.6], total: 0, correct: 0 },
+            { range: [0.6, 0.7], total: 0, correct: 0 },
+            { range: [0.7, 0.8], total: 0, correct: 0 },
+            { range: [0.8, 0.9], total: 0, correct: 0 },
+            { range: [0.9, 1], total: 0, correct: 0 },
+        ];
+    }
+    else {
+
+        confidenceBuckets = [
+            { range: [0.5, 0.55], total: 0, correct: 0 },
+            { range: [0.55, 0.6], total: 0, correct: 0 },
+            { range: [0.6, 0.65], total: 0, correct: 0 },
+            { range: [0.65, 0.7], total: 0, correct: 0 },
+            { range: [0.7, 0.75], total: 0, correct: 0 },
+            { range: [0.75, 0.8], total: 0, correct: 0 },
+            { range: [0.8, 0.85], total: 0, correct: 0 },
+            { range: [0.85, 0.9], total: 0, correct: 0 },
+            { range: [0.9, 0.95], total: 0, correct: 0 },
+            { range: [0.95, 1], total: 0, correct: 0 },
+        ];
+
+    }
+
 
     const teamStatsHistory = pastGames; // pastGames is now the map
 
@@ -502,6 +526,26 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
             await db.Games.update(updatePayload, { where: { id: game.id } });
         }
 
+        if (past || search) {
+            for (let i = 0; i < confidenceBuckets.length; i++) {
+                const bucket = confidenceBuckets[i];
+                const [low, high] = confidenceBuckets[i].range;
+                const isLastBucket = i === confidenceBuckets.length - 1;
+
+                if (
+                    predictionConfidence >= low &&
+                    (predictionConfidence < high || (isLastBucket && predictionConfidence === high))
+                ) {
+                    bucket.total++;
+                    if (predictedWinner === game.winner) {
+                        bucket.correct++;
+                    }
+                    break;
+                }
+            }
+
+        }
+
 
     }
     // Summary output
@@ -509,17 +553,38 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
         console.log(`OUT OF ${sportOdds.length} GAMES [TOTAL WINS: ${totalWins}, TOTAL LOSSES: ${totalLosses}]: MATCHED SPREADS: ${spreadMatch} MATCHED SCORES: ${matchedScore} MISMATCHED PREDICTIONS: ${misMatched} PREDICTIONS CHANGED: ${predictionsChanged} | NEW WINNER PREDICTIONS: ${newWinnerPredictions} | NEW LOSER PREDICTIONS: ${newLoserPredictions} | NEW CONFIDENCE PREDICTIONS: ${newConfidencePredictions}`);
     }
 
-    console.log(
-        `50/50 MATCHUPS: ${fiftyfiftyMatchups} (${((fiftyfiftyMatchups / sportOdds.length) * 100).toFixed(1)}%) | ` +
-        `60-70% MATCHUPS: ${sixtyToSeventyMatchups} (${((sixtyToSeventyMatchups / sportOdds.length) * 100).toFixed(1)}%) | ` +
-        `70-80% MATCHUPS: ${seventyToEightyMatchups} (${((seventyToEightyMatchups / sportOdds.length) * 100).toFixed(1)}%) | ` +
-        `80-90% MATCHUPS: ${eightyToNinetyMatchups} (${((eightyToNinetyMatchups / sportOdds.length) * 100).toFixed(1)}%) | ` +
-        `HIGH CONFIDENCE GAMES: ${highConfGames} (${((highConfGames / sportOdds.length) * 100).toFixed(1)}%) | ` +
-        `HIGH CONFIDENCE LOSERS: ${highConfLosers}`
-    );
+    let bucketCalibrationPenalty = 0;
+    let bucketCount = 0;
+
+    for (const bucket of confidenceBuckets) {
+        if (bucket.total === 0) continue;
+
+        const empiricalAccuracy = bucket.correct / bucket.total;
+        const idealConfidence = bucket.range[1]; // upper bound is your "ideal"
+
+        // Penalize both overconfidence and underconfidence
+        const error = Math.abs(empiricalAccuracy - idealConfidence);
+
+        bucketCalibrationPenalty += error;
+        bucketCount++;
+    }
+
+    const avgBucketCalibrationError = bucketCount > 0 ? bucketCalibrationPenalty / bucketCount : 0;
+    const calibrationScore = 1 - avgBucketCalibrationError; // closer to 1 is better
+
+    for (const bucket of confidenceBuckets) {
+        if (bucket.total === 0) continue;
+        const acc = (bucket.correct / bucket.total * 100).toFixed(1);
+        console.log(`Confidence ${Math.round(bucket.range[0] * 100)}–${Math.round(bucket.range[1] * 100)}%: Accuracy ${acc}% (${bucket.correct}/${bucket.total})`);
+    }
+
 
     if (search) {
-        return totalWins / sportOdds.length;
+        return {
+            winRate: totalWins / sportOdds.length,
+            calibrationScore,
+        };
+
     }
 
 };
@@ -648,7 +713,7 @@ const trainSportModelKFold = async (sport, gameData, search) => {
 
     // Aggregate results
     const { avgSpreadMAE, avgTotalMAE, avgMAE } = printOverallMetrics(foldResults);
-    await db.HyperParams.update({
+    if (!search) await db.HyperParams.update({
         scoreMAE: avgMAE,
         totalMAE: avgTotalMAE,
         spreadMAE: avgSpreadMAE
@@ -694,14 +759,17 @@ const trainSportModelKFold = async (sport, gameData, search) => {
             }
         }
 
-        const testWinRate = await predictions(testSlice, [], finalModel, sport, false, search, teamStatsHistory);
-        console.log(`--- Overall WINRATE ON UNSEEN DATA: ${(testWinRate * 100).toFixed(2)} ---`);
+        const { winRate, calibrationScore } = await predictions(testSlice, [], finalModel, sport, false, search, teamStatsHistory);
+        console.log(`--- Overall WINRATE ON UNSEEN DATA: ${(winRate * 100).toFixed(2)} ---`);
 
         const compositeScore =
-            ((testWinRate * 100) * 1) -
-            (avgMAE * .3) -
-            (avgSpreadMAE * .5) -
-            (avgTotalMAE * .1)
+            ((winRate * 100) * 0.4) +            // Strong weight on winner accuracy
+            ((calibrationScore * 100) * 0.3) +       // Nearly as strong on calibration
+            (-(avgSpreadMAE) * 0.2) +                // Moderate penalty for spread error
+            (-(avgTotalMAE) * 0.07) +                // Small penalty for total score error
+            (-(avgMAE) * 0.03);                      // Minimal weight for full-score accuracy
+
+
 
 
         console.log(`--- FINAL HYPERPARAM SCORE: ${(compositeScore).toFixed(2)} ---`);

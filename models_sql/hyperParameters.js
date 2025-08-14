@@ -87,6 +87,21 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.FLOAT,
             allowNull: true
         },
+        scoreLoss: {
+            type: DataTypes.FLOAT,
+            allowNull: false,
+            defaultValue: 1.0
+        },
+        winPctLoss: {
+            type: DataTypes.FLOAT,
+            allowNull: false,
+            defaultValue: 1.0
+        },
+        earlyStopPatience: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            defaultValue: 10
+        }
     });
 
     HyperParams.associate = (models) => {
