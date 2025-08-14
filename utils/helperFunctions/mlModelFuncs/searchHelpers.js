@@ -47,7 +47,7 @@ const hyperparameterRandSearch = async (sports) => {
         earlyStopPatience: { min: 5, max: 20 }
     };
     for (let sport of sports.sort((a, b) => a.startMonth - b.startMonth)) {
-        // if (sport.name !== 'baseball_mlb') continue
+        if (sport.name === 'baseball_mlb' || sport.name === 'americanfootball_ncaaf') continue
         console.log(`--------------- ${sport.name} @ ${moment().format('HH:mm:ss')}-------------------`)
         const validBatchSizes = [16, 32, 64, 128];
         const validLayerNeurons = [16, 32, 64, 128, 256];
