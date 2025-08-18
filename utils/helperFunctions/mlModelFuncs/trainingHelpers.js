@@ -460,8 +460,8 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
         };
 
         // Track changes and distributions
-        // if (game.predictedWinner !== predictedWinner) {
-        //     predictionsChanged++;
+        if (game.predictedWinner !== predictedWinner) {
+            predictionsChanged++;
 
         if (!past && !search) {
             const oldWinner = game.predictedWinner === 'home'
@@ -473,7 +473,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
 
             console.log(`Prediction changed for game ${game.id}: ${predictedWinner === 'home' ? 'HOME' : 'AWAY'} ${oldWinner} → ${newWinner}  (Confidence: ${predictionConfidence}) Score ([home, away]) [${homeScore}, ${awayScore}]`);
         }
-        // }
+        }
 
         if (game.predictionConfidence !== predictionConfidence) {
             newConfidencePredictions++;
