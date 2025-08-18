@@ -877,5 +877,4 @@ const modelReset = async () => {
     await oddsSeed()
 }
 
-modelReset()
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed }
