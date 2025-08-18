@@ -143,28 +143,7 @@ const extractSportFeatures = (homeStats, awayStats, league) => {
     }
 }
 
-const repeatPredictions = async (model, inputTensor, numPasses) => {
-    const predictions = [];
-    const winProbs = []
 
-    for (let i = 0; i < numPasses; i++) {
-        const [predictedScores, predictedWinProb] = await model.apply(inputTensor, { training: true });
-        let score = predictedScores.arraySync()
-        let winProb = predictedWinProb.arraySync()
-        predictions.push(score[0]); // Each prediction is [homeScore, awayScore]
-        winProbs.push(winProb[0])
-
-    }
-    // Average over all passes
-    const averagedScore = predictions[0].map((_, i) =>
-        predictions.reduce((sum, run) => sum + run[i], 0) / numPasses
-    );
-    const averagedWinProb = winProbs[0].map((_, i) =>
-        winProbs.reduce((sum, run) => sum + run[i], 0) / numPasses
-    );
-
-    return [averagedScore, averagedWinProb]; // Returns [avgHomeScore, avgAwayScore]
-};
 
 const getHyperParams = (sport, search) => {
     return {
@@ -180,6 +159,9 @@ const getHyperParams = (sport, search) => {
         l2reg: search
             ? sport.hyperParameters.l2reg
             : sport['hyperParams.l2Reg'],
+        dropoutReg: search
+            ? sport.hyperParameters.dropoutReg
+            : sport['hyperParams.dropoutReg'],
         hiddenLayerNum: search
             ? sport.hyperParameters.hiddenLayerNum
             : sport['hyperParams.hiddenLayers'],
@@ -209,53 +191,68 @@ const loadOrCreateModel = async (xs, sport, search) => {
         if (fs.existsSync(modelPath) && !search) {
             return await tf.loadLayersModel(`file://${modelPath}`);
         } else {
-            const tf = require('@tensorflow/tfjs');
             const hyperParams = getHyperParams(sport, search);
             const l2Strength = hyperParams.l2reg || 0; // Default L2 regularization strength
-
             const input = tf.input({ shape: [xs[0].length] });
-
-            let x = tf.layers.dense({
-                units: hyperParams.layerNeurons,
-                useBias: true,
-                kernelRegularizer: tf.regularizers.l2({ l2: l2Strength })
-            }).apply(input);
-
+            let shared
             for (let i = 0; i < hyperParams.hiddenLayerNum; i++) {
-                x = tf.layers.dense({
+                shared = tf.layers.dense({
                     units: hyperParams.layerNeurons,
-                    useBias: true,
                     kernelRegularizer: tf.regularizers.l2({ l2: l2Strength })
-                }).apply(x);
-            }
+                }).apply(input);
 
+                let batchNorm = tf.layers.batchNormalization().apply(shared); // optional but good with ReLU variants
+                let leakyRelu = tf.layers.leakyReLU({ alpha: 0.01 }).apply(shared);
+
+                if (hyperParams.dropoutReg > 0) {
+                    let dropout = tf.layers.dropout({ rate: hyperParams.dropoutReg }).apply(shared);
+                }
+            }
             // Score output: regression head (predicts [homeScore, awayScore])
             const scoreOutput = tf.layers.dense({
-                units: 2,
-                activation: 'linear',
-                name: 'scoreOutput',
-                kernelRegularizer: tf.regularizers.l2({ l2: l2Strength }),
-            }).apply(x);
-
+                units: 2, activation: 'linear', name: 'scoreOutput',
+                kernelRegularizer: tf.regularizers.l2({ l2: l2Strength })
+            }).apply(shared);
             // Win probability output: classification head (sigmoid)
             const winProbOutput = tf.layers.dense({
-                units: 1,
-                activation: 'sigmoid',
-                name: 'winProbOutput',
-                kernelRegularizer: tf.regularizers.l2({ l2: l2Strength }),
-            }).apply(x);
-
+                units: 1, activation: 'sigmoid', name: 'winProbOutput',
+                kernelRegularizer: tf.regularizers.l2({ l2: l2Strength })
+            }).apply(shared);
             // Define the model
             const model = tf.model({
                 inputs: input,
                 outputs: [scoreOutput, winProbOutput]
             });
-
             return model;
+
         }
     } catch (err) {
         console.error("Model loading/creation error:", err);
     }
+};
+
+const repeatPredictions = async (model, inputTensor, numPasses) => {
+    const predictions = [];
+    const winProbs = []
+
+    for (let i = 0; i < numPasses; i++) {
+        const [predictedScores, predictedWinProb] = await model.apply(inputTensor, { training: true });
+        // const [predictedScores, predictedWinProb] = await model.predict(inputTensor);
+        let score = predictedScores.arraySync()
+        let winProb = predictedWinProb.arraySync()
+        predictions.push(score[0]); // Each prediction is [homeScore, awayScore]
+        winProbs.push(winProb[0])
+
+    }
+    // Average over all passes
+    const averagedScore = predictions[0].map((_, i) =>
+        predictions.reduce((sum, run) => sum + run[i], 0) / numPasses
+    );
+    const averagedWinProb = winProbs[0].map((_, i) =>
+        winProbs.reduce((sum, run) => sum + run[i], 0) / numPasses
+    );
+
+    return [averagedScore, averagedWinProb]; // Returns [avgHomeScore, avgAwayScore]
 };
 
 const mlModelTraining = async (gameData, xs, ysWins, ysScore, sport, search, gameCount, sortedGameData) => {
@@ -277,7 +274,7 @@ const mlModelTraining = async (gameData, xs, ysWins, ysScore, sport, search, gam
             continue;
         }
 
-        const statFeatures = extractSportFeatures(normalizedHome, normalizedAway, sport.name)
+        const statFeatures = await extractSportFeatures(normalizedHome, normalizedAway, sport.name)
         const winLabel = game.winner === 'home' ? 1 : 0;
         const scoreLabel = [game.homeScore, game.awayScore];
         if (statFeatures.some(isNaN) || scoreLabel == null) {
@@ -317,7 +314,6 @@ const mlModelTraining = async (gameData, xs, ysWins, ysScore, sport, search, gam
     const xsTensor = tf.tensor2d(xs);
     const ysScoresTensor = tf.tensor2d(ysScore, [ysScore.length, 2]);
     const ysWinLabelsTensor = tf.tensor2d(ysWins, [ysWins.length, 1]);
-
     // --- Model Setup ---
     const model = await loadOrCreateModel(xs, sport, search);
 
@@ -344,7 +340,7 @@ const mlModelTraining = async (gameData, xs, ysWins, ysScore, sport, search, gam
     }, {
         epochs: hyperParams.epochs,
         batchSize: hyperParams.batchSize,
-        validationSplit: 0.4,
+        validationSplit: 0.3,
         verbose: false,
         callbacks: [
             tf.callbacks.earlyStopping({
@@ -390,6 +386,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
     let matchedScore = 0;
     let spreadMatch = 0;
     let totalMatch = 0;
+    let tieGames = 0;
 
     let confidenceBuckets
     if (sport.name === 'americanfootball_nfl' || sport.name === 'basketball_nba' || sport.name === 'icehockey_nhl') {
@@ -423,7 +420,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
     const teamStatsHistory = pastGames; // pastGames is now the map
 
     for (const game of sportOdds) {
-        if (new Date(game.commence_time) < new Date()) return
+        if (new Date(game.commence_time) < new Date() && !search) continue
         const homeRawStats = game['homeStats.data'];
         const awayRawStats = game['awayStats.data'];
 
@@ -446,14 +443,15 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
         const [predScore, predWinProb] = await repeatPredictions(model, tf.tensor2d([statFeatures]), search ? 10 : 100);
         let [homeScore, awayScore] = predScore;
 
-        let predictedWinner = homeScore > awayScore ? 'home' : 'away';
+        
         let predictionConfidence = predWinProb > 0.5 ? predWinProb[0] : 1 - predWinProb[0];
 
         // Avoid ties
         if (Math.round(homeScore) === Math.round(awayScore)) {
-            predWinProb > 0.5 ? homeScore++ : awayScore++;
+            tieGames++;
+            predWinProb[0] > 0.5 ? homeScore++ : awayScore++;
         }
-
+        let predictedWinner = homeScore > awayScore ? 'home' : 'away';
         const updatePayload = {
             predictedWinner,
             predictionConfidence,
@@ -462,20 +460,20 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
         };
 
         // Track changes and distributions
-        if (game.predictedWinner !== predictedWinner) {
-            predictionsChanged++;
+        // if (game.predictedWinner !== predictedWinner) {
+        //     predictionsChanged++;
 
-            if (!past && !search) {
-                const oldWinner = game.predictedWinner === 'home'
-                    ? game['homeTeamDetails.espnDisplayName']
-                    : game['awayTeamDetails.espnDisplayName'];
-                const newWinner = predictedWinner === 'home'
-                    ? game['homeTeamDetails.espnDisplayName']
-                    : game['awayTeamDetails.espnDisplayName'];
+        if (!past && !search) {
+            const oldWinner = game.predictedWinner === 'home'
+                ? game['homeTeamDetails.espnDisplayName']
+                : game['awayTeamDetails.espnDisplayName'];
+            const newWinner = predictedWinner === 'home'
+                ? game['homeTeamDetails.espnDisplayName']
+                : game['awayTeamDetails.espnDisplayName'];
 
-                console.log(`Prediction changed for game ${game.id}: ${predictedWinner === 'home' ? 'HOME' : 'AWAY'} ${oldWinner} → ${newWinner}  (Confidence: ${predictionConfidence}) Score ([home, away]) [${Math.round(homeScore)}, ${Math.round(awayScore)}]`);
-            }
+            console.log(`Prediction changed for game ${game.id}: ${predictedWinner === 'home' ? 'HOME' : 'AWAY'} ${oldWinner} → ${newWinner}  (Confidence: ${predictionConfidence}) Score ([home, away]) [${homeScore}, ${awayScore}]`);
         }
+        // }
 
         if (game.predictionConfidence !== predictionConfidence) {
             newConfidencePredictions++;
@@ -550,7 +548,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
     }
     // Summary output
     if (past || search) {
-        console.log(`OUT OF ${sportOdds.length} GAMES [TOTAL WINS: ${totalWins}, TOTAL LOSSES: ${totalLosses}]: MATCHED SPREADS: ${spreadMatch} MATCHED SCORES: ${matchedScore} MISMATCHED PREDICTIONS: ${misMatched} PREDICTIONS CHANGED: ${predictionsChanged} | NEW WINNER PREDICTIONS: ${newWinnerPredictions} | NEW LOSER PREDICTIONS: ${newLoserPredictions} | NEW CONFIDENCE PREDICTIONS: ${newConfidencePredictions}`);
+        console.log(`OUT OF ${sportOdds.length} GAMES [TOTAL WINS: ${totalWins}, TOTAL LOSSES: ${totalLosses}]: MATCHED SPREADS: ${spreadMatch} MATCHED SCORES: ${matchedScore} MISMATCHED PREDICTIONS: ${misMatched} TIE GAMES: ${tieGames}`);
     }
 
     let bucketCalibrationPenalty = 0;
@@ -580,9 +578,19 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
 
 
     if (search) {
+        const mismatchRate = misMatched / sportOdds.length;
+        const mismatchPenalty = Math.pow(mismatchRate, 2); // squaring increases punishment
+
+        const CALIBRATION_WEIGHT = 0.7;
+        const MISMATCH_WEIGHT = 0.3;
+
+        const combinedScore =
+            (calibrationScore * CALIBRATION_WEIGHT) +
+            ((1 - mismatchPenalty) * MISMATCH_WEIGHT);
+
         return {
             winRate: totalWins / sportOdds.length,
-            calibrationScore,
+            calibrationScore: calibrationScore,
         };
 
     }
@@ -685,6 +693,7 @@ const trainSportModelKFold = async (sport, gameData, search) => {
             gameCount++;
         }
 
+
         // Evaluate fold
         const foldMetrics = evaluateFoldMetrics(
             testXs,
@@ -712,7 +721,7 @@ const trainSportModelKFold = async (sport, gameData, search) => {
     bar.stop();
 
     // Aggregate results
-    const { avgSpreadMAE, avgTotalMAE, avgMAE } = printOverallMetrics(foldResults);
+    const { avgSpreadMAE, avgTotalMAE, avgMAE, totalCounts } = printOverallMetrics(foldResults);
     if (!search) await db.HyperParams.update({
         scoreMAE: avgMAE,
         totalMAE: avgTotalMAE,
@@ -724,6 +733,12 @@ const trainSportModelKFold = async (sport, gameData, search) => {
     })
 
     if (search) {
+        if (Object.values(totalCounts).some(count => count === 0)) {
+            console.log(`--- WARNING: MODEL ONLY PREDICTED ONE CLASS ---`)
+            console.log(`--- FINAL HYPERPARAM SCORE: 0 ---`);
+            return 0;
+
+        };
         // After k-folds
         const fullTrainingData = sortedGameData;
         const { model: finalModel } = await mlModelTraining(

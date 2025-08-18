@@ -6,6 +6,7 @@ const { Op } = Sequelize;
 const { trainSportModelKFold } = require('../../helperFunctions/mlModelFuncs/trainingHelpers')
 const cliProgress = require('cli-progress');
 const fs = require('fs');
+const path = require('path');
 const { BayesianOptimizer } = require("bayesian-optimizer");
 
 function roundToNearest(value, options) {
@@ -27,30 +28,33 @@ const score = (ci, sampleSize) => {
 
 
 const hyperparameterRandSearch = async (sports) => {
-    console.log(`STARTING HYPERPARAM SEARCH @ ${moment().format('HH:mm:ss')}`)
-
+    console.log(`STARTING HYPERPARAM SEARCH @ ${moment().format('HH:mm:ss')}`);
 
     const space = {
-        learningRate: { min: 0.0001, max: 0.01 },
-        batchSize: { min: 16, max: 128 },
-        epochs: { min: 10, max: 100 },
-        hiddenLayerNum: { min: 0, max: 10 },
-        layerNeurons: { min: 16, max: 256 },
-        l2reg: { min: 0, max: 1 },
-        dropoutReg: { min: 0, max: 1 },
-        kFolds: { min: 4, max: 10 },
-        historyLength: { min: 5, max: 60 },
-        gameDecayValue: { min: .90, max: .99 },
-        decayStepSize: { min: 1, max: 150 },
-        scoreLossWeight: { min: 0.1, max: 1.0 },
-        winPctLossWeight: { min: 0.1, max: 1.0 },
-        earlyStopPatience: { min: 5, max: 20 }
+        learningRate: { type: 'log', min: 1e-5, max: 1e-2 },
+        batchSize: { type: 'int', min: 16, max: 128 },
+        epochs: { type: 'int', min: 30, max: 150 },
+        hiddenLayerNum: { type: 'int', min: 1, max: 6 },
+        layerNeurons: { type: 'int', min: 32, max: 256 },
+        l2reg: { type: 'log', min: 1e-7, max: 1e-2 },
+        dropoutReg: { type: 'float', min: 0.0, max: 0.5 },
+        kFolds: { type: 'int', min: 5, max: 10 },
+        historyLength: { type: 'int', min: 5, max: 150 },
+        gameDecayValue: { type: 'float', min: 0.85, max: 0.99 },
+        decayStepSize: { type: 'int', min: 5, max: 100 },
+        scoreLossWeight: { type: 'float', min: 1.0, max: 10.0 },
+        winPctLossWeight: { type: 'float', min: 0.1, max: 5.0 },
+        earlyStopPatience: { type: 'float', min: 1.0, max: 10.0 }
     };
+
     for (let sport of sports.sort((a, b) => a.startMonth - b.startMonth)) {
-        if (sport.name === 'baseball_mlb' || sport.name === 'americanfootball_ncaaf') continue
-        console.log(`--------------- ${sport.name} @ ${moment().format('HH:mm:ss')}-------------------`)
+        if(sport.name === 'baseball_mlb' || sport.name === 'americanfootball_ncaaf') continue; // Skip baseball for now
         const validBatchSizes = [16, 32, 64, 128];
         const validLayerNeurons = [16, 32, 64, 128, 256];
+
+        console.log(`--------------- ${sport.name} @ ${moment().format('HH:mm:ss')} -------------------`);
+
+
         async function objective(params) {
             const sanitizedParams = {
                 learningRate: params.learningRate,
@@ -68,16 +72,16 @@ const hyperparameterRandSearch = async (sports) => {
                 winPctLossWeight: params.winPctLossWeight,
                 earlyStopPatience: Math.round(params.earlyStopPatience)
             };
+
             const testSport = {
-                ...sport,  // ensure sport is in outer scope
+                ...sport,
                 hyperParameters: sanitizedParams
             };
-            let upcomingGames = await db.Games.findAll({
-                where: {
-                    sport_key: sport.name,
-                    complete: false
-                }
-            })
+
+            const upcomingGames = await db.Games.findAll({
+                where: { sport_key: sport.name, complete: false }
+            });
+
             const pastGames = await db.Games.findAll({
                 where: { complete: true, sport_key: sport.name },
                 include: [
@@ -101,21 +105,23 @@ const hyperparameterRandSearch = async (sports) => {
                                 { gameId: { [Op.eq]: Sequelize.col('Games.id') } }
                             ]
                         }
-                    }], order: [['commence_time', 'ASC']], raw: true
+                    }
+                ],
+                order: [['commence_time', 'ASC']],
+                raw: true
             });
 
             const hyperParamScore = await trainSportModelKFold(testSport, pastGames, true, upcomingGames);
 
+
             return {
-                loss: -hyperParamScore,     // minimize negative hyperParamScore (i.e. maximize hyperParamScore)
+                loss: -hyperParamScore // We want to maximize this, so minimize negative
             };
         }
 
-        // Initialize the optimizer
-        const optimizer = new BayesianOptimizer({
-        });
-        await optimizer.optimize(objective, space, 19);
-        // Get the best parameters found
+        const optimizer = new BayesianOptimizer({});
+        await optimizer.optimize(objective, space, 9);
+
         const bestParams = optimizer.getBestParams();
         console.log(`Best Parameters for ${sport.name}:`, bestParams);
 
@@ -135,31 +141,15 @@ const hyperparameterRandSearch = async (sports) => {
             winPctLoss: bestParams.winPctLossWeight,
             earlyStopPatience: Math.round(bestParams.earlyStopPatience)
         };
-        console.log(`Processed Parameters for ${sport.name}:`, processedParams);
-        await db.HyperParams.update({
-            epochs: processedParams.epochs,
-            batchSize: processedParams.batchSize,
-            learningRate: processedParams.learningRate,
-            l2Reg: processedParams.l2Reg,
-            dropoutReg: processedParams.dropoutReg,
-            hiddenLayers: processedParams.hiddenLayerNum,
-            layerNeurons: processedParams.layerNeurons,
-            kFolds: processedParams.kFolds,
-            historyLength: processedParams.historyLength,
-            decayFactor: processedParams.gameDecayValue,
-            gameDecayThreshold: processedParams.decayStepSize,
-            scoreLoss: processedParams.scoreLoss,
-            winPctLoss: processedParams.winPctLoss,
-            earlyStopPatience: processedParams.earlyStopPatience
-        }, {
-            where: {
-                sport: sport.id
-            }
-        })
+
+        await db.HyperParams.update(processedParams, {
+            where: { sport: sport.id }
+        });
 
     }
-    console.log(`FINISHED HYPERPARAM SEARCH @ ${moment().format('HH:mm:ss')}`)
-}
+
+    console.log(`✅ FINISHED HYPERPARAM SEARCH @ ${moment().format('HH:mm:ss')}`);
+};
 //TODO: STORE THIS FOR LATER
 const valueBetGridSearch = async (sport) => {
     console.log(`STARTING VALUE BET SEARCH @ ${moment().format('HH:mm:ss')}`)
