@@ -542,7 +542,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
         }
 
         if (!past && !search) {
-            // await db.Games.update(updatePayload, { where: { id: game.id } });
+            await db.Games.update(updatePayload, { where: { id: game.id } });
         }
 
         if (past || search) {
@@ -747,15 +747,15 @@ const trainSportModelKFold = async (sport, gameData, search) => {
 
     // Aggregate results
     const { avgSpreadMAE, avgTotalMAE, avgMAE, totalCounts } = printOverallMetrics(foldResults);
-    // if (!search) await db.HyperParams.update({
-    //     scoreMAE: avgMAE,
-    //     totalMAE: avgTotalMAE,
-    //     spreadMAE: avgSpreadMAE
-    // }, {
-    //     where: {
-    //         sport: sport.id
-    //     }
-    // })
+    if (!search) await db.HyperParams.update({
+        scoreMAE: avgMAE,
+        totalMAE: avgTotalMAE,
+        spreadMAE: avgSpreadMAE
+    }, {
+        where: {
+            sport: sport.id
+        }
+    })
 
     if (search) {
         if (Object.values(totalCounts).some(count => count === 0)) {
@@ -825,17 +825,17 @@ const trainSportModelKFold = async (sport, gameData, search) => {
 
 
     // // --- Model Saving ---
-    // if (!search) {
-    //     const modelDir = `./model_checkpoint/${sport.name}_model`;
-    //     if (!fs.existsSync(modelDir)) {
-    //         console.log('Creating model directory...');
-    //         fs.mkdirSync(modelDir, { recursive: true });
-    //     }
-    //     await finalModel.save(`file://${modelDir}`);
-    // }
+    if (!search) {
+        const modelDir = `./model_checkpoint/${sport.name}_model`;
+        if (!fs.existsSync(modelDir)) {
+            console.log('Creating model directory...');
+            fs.mkdirSync(modelDir, { recursive: true });
+        }
+        await finalModel.save(`file://${modelDir}`);
+    }
 
     // // Extract feature importances
-    // await extractAndSaveFeatureImportances(finalModel, sport);
+    await extractAndSaveFeatureImportances(finalModel, sport);
 
     if (global.gc) global.gc();
     console.log(`ml model done for ${sport.name} @ ${moment().format('HH:mm:ss')}`);
