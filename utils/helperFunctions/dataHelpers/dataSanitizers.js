@@ -14,7 +14,7 @@ const normalizeTeamName = (teamName, league) => {
         "Boston Univ. Terriers": "Boston University Terriers",
         "Army Knights": "Army Black Knights",
         "Gardner-Webb Bulldogs": "Gardner-Webb Runnin' Bulldogs",
-        "Albany Great Danes": "UAlbany Great Danes",
+        "Albany": "UAlbany Great Danes",
         "Florida Int'l Golden Panthers": "Florida International Panthers",
         "N Colorado Bears": "Northern Colorado Bears",
         "Long Beach State 49ers": "Long Beach State Beach",
@@ -50,6 +50,7 @@ const normalizeTeamName = (teamName, league) => {
         "Southern Mississippi Golden Eagles": `Southern Miss Golden Eagles`,
         "UMass Minutemen": `Massachusetts Minutemen`,
         "Louisiana Ragin Cajuns": `Louisiana Ragin' Cajuns`,
+        "Southeastern Louisiana Lions": `SE Louisiana Lions`,
     }
 
     if (league === 'basketball_ncaab' || league === 'basketball_wncaab') {
