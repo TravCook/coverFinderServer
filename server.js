@@ -16,7 +16,7 @@ Math.seedrandom(122021)
 
 // Initialize the app and create a port
 const app = express();
-const PORT = process.env.PORT || 3069;
+const PORT = process.env.PORT || 3001;
 
 // Set up body parsing, static, and route middleware
 app.use(cors({ origin: '*' }));
