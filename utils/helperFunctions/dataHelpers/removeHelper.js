@@ -58,7 +58,7 @@ const removePastGames = async (currentOdds) => {
 
                         } else if (event.competitions[0].status.type.description === 'In Progress' || event.competitions[0].status.type.description === 'Halftime' || event.competitions[0].status.type.description === 'End of Period') {
                             let timeRemaining, homeScore, awayScore
-                            let currentScoreboard = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${game['sportDetails.espnSport']}/${game['homeTeamDetails.espnLeague']}/scoreboard`)
+                            let currentScoreboard = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${game['sportDetails.espnSport']}/${game['homeTeamDetails.espnLeague']}/scoreboard?dates=${moment(currentOdds[0].commence_time).format('YYYYMMDD')}-${moment(currentOdds[currentOdds.length-1].commence_time).format('YYYYMMDD')}`, { signal }, timeout = 10000);
                             let scoreboardJSON = await currentScoreboard.json()
                             for (let SBevent of scoreboardJSON.events) {
                                 if (Math.abs(moment(event.date).diff(gameTime, 'minutes')) <= 90 && (SBevent.name === `${game['awayTeamDetails.espnDisplayName']} at ${game['homeTeamDetails.espnDisplayName']}` || SBevent.shortName === `${game['awayTeamDetails.abbreviation']} @ ${game['homeTeamDetails.abbreviation']}`)) {

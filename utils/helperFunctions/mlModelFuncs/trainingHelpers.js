@@ -237,8 +237,8 @@ const repeatPredictions = async (model, inputTensor, numPasses) => {
     const winProbs = []
 
     for (let i = 0; i < numPasses; i++) {
-        const [predictedScores, predictedWinProb] = await model.apply(inputTensor, { training: true });
-        // const [predictedScores, predictedWinProb] = await model.predict(inputTensor);
+        // const [predictedScores, predictedWinProb] = await model.apply(inputTensor, { training: true });
+        const [predictedScores, predictedWinProb] = await model.predict(inputTensor);
         let score = predictedScores.arraySync()
         let winProb = predictedWinProb.arraySync()
         predictions.push(score[0]); // Each prediction is [homeScore, awayScore]
@@ -481,8 +481,8 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
         };
 
         // Track changes and distributions
-        // if (game.predictedWinner !== predictedWinner) {
-        //     predictionsChanged++;
+        if (game.predictedWinner !== predictedWinner) {
+            predictionsChanged++;
 
         if (!past && !search) {
             const oldWinner = game.predictedWinner === 'home'
@@ -494,7 +494,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
 
             console.log(`Prediction changed for game ${game.id}: ${predictedWinner === 'home' ? 'HOME' : 'AWAY'} ${oldWinner} → ${newWinner}  (Confidence: ${predictionConfidence}) Score ([home, away]) [${Math.round(homeScore)}, ${Math.round(awayScore)}]`);
         }
-        // }
+        }
 
         if (game.predictionConfidence !== predictionConfidence) {
             newConfidencePredictions++;
