@@ -7,7 +7,6 @@ const removePastGames = async (currentOdds) => {
 
         // Check if the game is in the past based on commence_time
         if (new Date(game.commence_time) < new Date()) {
-
             const controller = new AbortController();  // Create the AbortController
             const signal = controller.signal;          // Get the signal from the controller
             if (game['homeTeamDetails.id'] && game['awayTeamDetails.id']) {
@@ -15,12 +14,13 @@ const removePastGames = async (currentOdds) => {
                     // Fetch home team schedule from ESPN API
                     let homeTeamSchedule = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${game['sportDetails.espnSport']}/${game['homeTeamDetails.espnLeague']}/teams/${game['homeTeamDetails.espnID']}/schedule`, { signal }, timeout = 10000);
                     let homeTeamSchedJSON = await homeTeamSchedule.json();
-                    const gameTime = moment(game.commence_time);
+                    const gameTime = new Date(game.commence_time);
                     //find the event on the schedule
                     const event = homeTeamSchedJSON.events.find((event) => (event.name === `${game['awayTeamDetails.espnDisplayName']} at ${game['homeTeamDetails.espnDisplayName']}`
                         || event.shortName === `${game['awayTeamDetails.espnDisplayName']} @ ${game['homeTeamDetails.espnDisplayName']}`
                         || event.shortName === `${game['homeTeamDetails.espnDisplayName']} VS ${game['awayTeamDetails.espnDisplayName']}`)
-                        && Math.abs(moment(event.date).diff(gameTime, 'minutes')) <= 90)
+                        && Math.abs(new Date(event.date) - gameTime) < 1000 * 60 * 90
+                    );
                     if (event) {
                         if (event.competitions[0].status.type.completed === true) {
                             let homeScore, awayScore, predictionCorrect, winner
@@ -57,10 +57,12 @@ const removePastGames = async (currentOdds) => {
                             })
 
                         } else if (event.competitions[0].status.type.description === 'In Progress' || event.competitions[0].status.type.description === 'Halftime' || event.competitions[0].status.type.description === 'End of Period') {
+
                             let timeRemaining, homeScore, awayScore
-                            let currentScoreboard = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${game['sportDetails.espnSport']}/${game['homeTeamDetails.espnLeague']}/scoreboard?dates=${moment(currentOdds[0].commence_time).format('YYYYMMDD')}-${moment(currentOdds[currentOdds.length-1].commence_time).format('YYYYMMDD')}`, { signal }, timeout = 10000);
+                            let currentScoreboard = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${game['sportDetails.espnSport']}/${game['homeTeamDetails.espnLeague']}/scoreboard?dates=${moment(currentOdds[0].commence_time).format('YYYYMMDD')}-${moment(currentOdds[currentOdds.length - 1].commence_time).format('YYYYMMDD')}`, { signal }, timeout = 10000);
                             let scoreboardJSON = await currentScoreboard.json()
-                            for (let SBevent of scoreboardJSON.events) {
+                            let SBevent = scoreboardJSON.events.find(ev => ev.id === event.id)
+                            if (SBevent) {
                                 if (Math.abs(moment(event.date).diff(gameTime, 'minutes')) <= 90 && (SBevent.name === `${game['awayTeamDetails.espnDisplayName']} at ${game['homeTeamDetails.espnDisplayName']}` || SBevent.shortName === `${game['awayTeamDetails.abbreviation']} @ ${game['homeTeamDetails.abbreviation']}`)) {
                                     // Determine the scores and winner
                                     SBevent.competitions[0].competitors.forEach((team) => {
@@ -71,15 +73,8 @@ const removePastGames = async (currentOdds) => {
                                         }
                                     });
 
-
-                                    timeRemaining = SBevent.competitions[0].status.type.shortDetail
+                                    timeRemaining = SBevent.status.type.shortDetail
                                     try {
-                                        // await Odds.findOneAndUpdate({ _id: game._doc._id }, {
-                                        //     ...newGame,
-                                        //     homeScore: homeScore,
-                                        //     awayScore: awayScore,
-                                        //     timeRemaining: timeRemaining,
-                                        // }, { new: true });
                                         await db.Games.update({
                                             homeScore: homeScore,
                                             awayScore: awayScore,
@@ -99,7 +94,7 @@ const removePastGames = async (currentOdds) => {
 
                             }
                         }
-                        else if (event.competitions[0].status.type.description === 'Postponed' ) {
+                        else if (event.competitions[0].status.type.description === 'Postponed') {
                             await db.Games.destroy({
                                 where: {
                                     id: game.id
@@ -110,7 +105,7 @@ const removePastGames = async (currentOdds) => {
                         // else if () {
                         //     await db.Games.update({
                         //         timeRemaining: null,
-                                
+
                         //     },{
                         //         where: {
                         //             id: game.id
