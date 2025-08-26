@@ -203,10 +203,10 @@ const loadOrCreateModel = async (xs, sport, search) => {
                     // kernelRegularizer: tf.regularizers.l2({ l2: l2Strength })
                 }).apply(shared);
 
-                shared = tf.layers.batchNormalization().apply(shared); // optional but good with ReLU variants
-                shared = tf.layers.leakyReLU({ alpha: 0.3 }).apply(shared);
+                // shared = tf.layers.batchNormalization().apply(shared); // optional but good with ReLU variants
+                // shared = tf.layers.leakyReLU({ alpha: 0.3 }).apply(shared);
                 // if (i % 2 === 0) {
-                    shared = tf.layers.dropout({ rate: hyperParams.dropoutReg }).apply(shared);
+                    // shared = tf.layers.dropout({ rate: hyperParams.dropoutReg }).apply(shared);
                 // }
             }
             // Score output: regression head (predicts [homeScore, awayScore])

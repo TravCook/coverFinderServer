@@ -415,7 +415,7 @@ const oddsSeed = async () => {
             if (err) throw (err)
         }
     };
-    await fetchDataWithBackoff(sports);
+    await fetchDataWithBackoff(sports.filter(sport => isSportInSeason(sport)));
     let allPastGamesSQL = await db.Games.findAll({
         where: {
             complete: true, // Only include completed games
@@ -882,5 +882,4 @@ const hyperParam = async () => {
     hyperparameterRandSearch(sports)
 }
 
-oddsSeed()
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed }
