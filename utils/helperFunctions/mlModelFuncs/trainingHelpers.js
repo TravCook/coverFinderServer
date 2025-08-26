@@ -159,9 +159,9 @@ const getHyperParams = (sport, search) => {
         // l2reg: search
         //     ? sport.hyperParameters.l2reg
         //     : sport['hyperParams.l2Reg'],
-        // dropoutReg: search
-        //     ? sport.hyperParameters.dropoutReg
-        //     : sport['hyperParams.dropoutReg'],
+        dropoutReg: search
+            ? sport.hyperParameters.dropoutReg
+            : sport['hyperParams.dropoutReg'],
         hiddenLayerNum: search
             ? sport.hyperParameters.hiddenLayerNum
             : sport['hyperParams.hiddenLayers'],
@@ -203,10 +203,10 @@ const loadOrCreateModel = async (xs, sport, search) => {
                     // kernelRegularizer: tf.regularizers.l2({ l2: l2Strength })
                 }).apply(shared);
 
-                // shared = tf.layers.batchNormalization().apply(shared); // optional but good with ReLU variants
-                // shared = tf.layers.leakyReLU({ alpha: 0.3 }).apply(shared);
+                shared = tf.layers.batchNormalization().apply(shared); // optional but good with ReLU variants
+                shared = tf.layers.leakyReLU({ alpha: 0.3 }).apply(shared);
                 // if (i % 2 === 0) {
-                //     shared = tf.layers.dropout({ rate: hyperParams.dropoutReg }).apply(shared);
+                    shared = tf.layers.dropout({ rate: hyperParams.dropoutReg }).apply(shared);
                 // }
             }
             // Score output: regression head (predicts [homeScore, awayScore])
@@ -542,7 +542,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
         }
 
         if (!past && !search) {
-            await db.Games.update(updatePayload, { where: { id: game.id } });
+            // await db.Games.update(updatePayload, { where: { id: game.id } });
         }
 
         if (past || search) {
@@ -612,6 +612,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
             (winRate * WINRATE_WEIGHT) +
             (calibrationScore * CALIBRATION_WEIGHT) +
             ((1 - mismatchPenalty) * MISMATCH_WEIGHT);
+            // matchedScore
 
         console.log(`(Winrate: ${(winRate * 100).toFixed(2)}%, Calibration: ${calibrationScore.toFixed(4)}, Mismatch Penalty: ${(1 - mismatchPenalty).toFixed(4)}) Combined Score: ${combinedScore.toFixed(4)}`);
 

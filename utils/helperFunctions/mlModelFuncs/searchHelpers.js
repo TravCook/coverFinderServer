@@ -37,7 +37,7 @@ const hyperparameterRandSearch = async (sports) => {
         hiddenLayerNum: { type: 'int', min: 1, max: 6 },
         layerNeurons: { type: 'int', min: 32, max: 256 },
         // l2reg: { type: 'log', min: 1e-7, max: 1e-2 },
-        // dropoutReg: { type: 'float', min: 0.0, max: 0.5 },
+        dropoutReg: { type: 'float', min: 0.0, max: 0.5 },
         kFolds: { type: 'int', min: 5, max: 10 },
         historyLength: { type: 'int', min: 5, max: 150 },
         gameDecayValue: { type: 'float', min: 0.85, max: 0.99 },
@@ -48,7 +48,7 @@ const hyperparameterRandSearch = async (sports) => {
     };
 
     for (let sport of sports.sort((a, b) => a.startMonth - b.startMonth)) {
-        // if(sport.name === 'baseball_mlb' || sport.name === 'americanfootball_ncaaf') continue; // Skip baseball for now
+        // if(sport.name !== 'baseball_mlb' ) continue; // Skip baseball for now
         const validBatchSizes = [16, 32, 64, 128];
         const validLayerNeurons = [16, 32, 64, 128, 256];
 
@@ -59,7 +59,7 @@ const hyperparameterRandSearch = async (sports) => {
             const sanitizedParams = {
                 learningRate: params.learningRate,
                 // l2reg: params.l2reg,
-                // dropoutReg: params.dropoutReg,
+                dropoutReg: params.dropoutReg,
                 batchSize: roundToNearest(params.batchSize, validBatchSizes),
                 epochs: Math.round(params.epochs),
                 hiddenLayerNum: Math.round(params.hiddenLayerNum),
@@ -128,7 +128,7 @@ const hyperparameterRandSearch = async (sports) => {
         const processedParams = {
             learningRate: bestParams.learningRate,
             // l2Reg: bestParams.l2reg,
-            // dropoutReg: bestParams.dropoutReg,
+            dropoutReg: bestParams.dropoutReg,
             batchSize: roundToNearest(bestParams.batchSize, validBatchSizes),
             epochs: Math.round(bestParams.epochs),
             hiddenLayerNum: Math.round(bestParams.hiddenLayerNum),
