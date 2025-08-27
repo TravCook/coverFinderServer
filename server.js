@@ -37,26 +37,26 @@ app.use(routes);
 // Cron job configurations
 const timezone = 'America/Denver';
 const cronJobs = [
-  // {
-  //   cronTime: '0 */5 4-23 * * *', //every 1 minutes 1.2 mb -- removes old games && updates live scores 
-  //   onTick: dataSeed.removeSeed,
-  //   timezone
-  // },
-  // {
-  //   cronTime: '0 0 4,8,12,16,20 * * *', // Runs at 8:00 AM, 2:00 PM, and 9:00 PM -- retrieves odds from the-odds-api -- 53 sec TODO: 1,3,6,9,12,14,16,18,22
-  //   onTick: dataSeed.oddsSeed,
-  //   timezone,
-  // },
-  // {
-  //   cronTime: '0 30 */4 * * *', //every hour, at the 30min mark, except 12-3 when ML train runs -- gets team stats and saves to db -- 2 min
-  //   onTick: dataSeed.dataSeed,
-  //   timezone
-  // },
-  // {
-  //   cronTime: '0 0 0 * * 1-7', //once a day at midnight, not sunday -- train ML model to past games
-  //   onTick: dataSeed.mlModelTrainSeed,
-  //   timezone
-  // },
+  {
+    cronTime: '0 */5 4-23 * * *', //every 1 minutes 1.2 mb -- removes old games && updates live scores 
+    onTick: dataSeed.removeSeed,
+    timezone
+  },
+  {
+    cronTime: '0 0 4,8,12,16,20 * * *', // Runs at 8:00 AM, 2:00 PM, and 9:00 PM -- retrieves odds from the-odds-api -- 53 sec TODO: 1,3,6,9,12,14,16,18,22
+    onTick: dataSeed.oddsSeed,
+    timezone,
+  },
+  {
+    cronTime: '0 30 */4 * * *', //every hour, at the 30min mark, except 12-3 when ML train runs -- gets team stats and saves to db -- 2 min
+    onTick: dataSeed.dataSeed,
+    timezone
+  },
+  {
+    cronTime: '0 0 0 * * 1-7', //once a day at midnight, not sunday -- train ML model to past games
+    onTick: dataSeed.mlModelTrainSeed,
+    timezone
+  },
   // {
   //   cronTime: '0 0 0 * * */7', // Once a week at 12 am -- complete random searches for params and value bets
   //   onTick: dataSeed.paramAndValueSeed,
