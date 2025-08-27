@@ -193,7 +193,9 @@ const loadOrCreateModel = async (xs, sport, search) => {
         } else {
             const hyperParams = getHyperParams(sport, search);
             const l2Strength = hyperParams.l2reg || 0; // Default L2 regularization strength
-            const input = tf.input({ shape: [xs[0].length] });
+            tf.random.setSeed(randomSeed);
+            const input = tf.input({ shape: [xs[0].length], seed: randomSeed });
+
 
             let shared = input
             for (let i = 0; i < hyperParams.hiddenLayerNum; i++) {
@@ -203,10 +205,10 @@ const loadOrCreateModel = async (xs, sport, search) => {
                     // kernelRegularizer: tf.regularizers.l2({ l2: l2Strength })
                 }).apply(shared);
 
-                shared = tf.layers.batchNormalization().apply(shared); // optional but good with ReLU variants
-                shared = tf.layers.leakyReLU({ alpha: 0.3 }).apply(shared);
+                // shared = tf.layers.batchNormalization().apply(shared); // optional but good with ReLU variants
+                // shared = tf.layers.leakyReLU({ alpha: 0.3 }).apply(shared);
                 // if (i % 2 === 0) {
-                shared = tf.layers.dropout({ rate: hyperParams.dropoutReg }).apply(shared);
+                // shared = tf.layers.dropout({ rate: hyperParams.dropoutReg }).apply(shared);
                 // }
             }
             // Score output: regression head (predicts [homeScore, awayScore])
@@ -375,7 +377,6 @@ const mlModelTraining = async (gameData, xs, ysWins, ysScore, sport, search, gam
 
     return { model, updatedGameCount: gameCount, teamStatsHistory };
 };
-
 
 const predictions = async (sportOdds, ff, model, sport, past, search, pastGames) => {
     console.info(`STARTING PREDICTIONS FOR ${sport.name} @ ${moment().format('HH:mm:ss')}`);
@@ -613,13 +614,13 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
         const combinedScore =
             (winRate * WINRATE_WEIGHT) +
             (calibrationScore * CALIBRATION_WEIGHT)
-            // matchedScore
+        // matchedScore
 
-            console.log(`(Winrate: ${(winRate * 100).toFixed(2)}%, Calibration: ${calibrationScore.toFixed(4)}, Combined Score: ${combinedScore.toFixed(4)} Combined Score with Split: ${(combinedScore * splitMatchScore).toFixed(4)})`);
+        console.log(`(Winrate: ${(winRate * 100).toFixed(2)}%, Calibration: ${calibrationScore.toFixed(4)}, Combined Score: ${combinedScore.toFixed(4)} Combined Score with Split: ${(combinedScore * splitMatchScore).toFixed(4)})`);
 
         return {
             winRate,
-            combinedScore,
+            combinedScore: combinedScore * splitMatchScore,
         };
 
     }
@@ -808,10 +809,14 @@ const trainSportModelKFold = async (sport, gameData, search) => {
 
         const compositeScore =
             ((combinedScore * 100)) +           // ↓ Combined Score of winrate and calibration (done in predictions)
-            (-(avgSpreadMAE) * 0.15) +           // ↓ Slightly reduce spread MAE penalty
-            (-(avgTotalMAE) * 0.06) +            // ↓ Slightly reduce total MAE penalty
-            (-(avgMAE) * 0.04);                  // ↑ Slight increase to avg MAE to differentiate
-
+            (-(avgSpreadMAE) * 0.6) +           // ↓ Slightly reduce spread MAE penalty
+            (-(avgTotalMAE) * 0.4) +            // ↓ Slightly reduce total MAE penalty
+            (-(avgMAE) * 0.8);                  // ↑ Slight increase to avg MAE to differentiate
+        console.log(`Composite Score Breakdown:`);
+        console.log(`  - Combined Score (Winrate & Calibration): ${(combinedScore * 100).toFixed(2)}`);
+        console.log(`  - Spread MAE Penalty: ${(-avgSpreadMAE * 0.6).toFixed(2)}`);
+        console.log(`  - Total MAE Penalty: ${(-avgTotalMAE * 0.4).toFixed(2)}`);
+        console.log(`  - Avg MAE Penalty: ${(-avgMAE * 0.8).toFixed(2)}`);
         console.log(`--- FINAL HYPERPARAM SCORE: ${(compositeScore).toFixed(2)} ---`);
         return compositeScore;
     }
