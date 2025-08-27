@@ -193,7 +193,6 @@ const loadOrCreateModel = async (xs, sport, search) => {
         } else {
             const hyperParams = getHyperParams(sport, search);
             const l2Strength = hyperParams.l2reg || 0; // Default L2 regularization strength
-            tf.random.setSeed(randomSeed);
             const input = tf.input({ shape: [xs[0].length], seed: randomSeed });
 
 
