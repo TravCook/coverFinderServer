@@ -203,10 +203,10 @@ const loadOrCreateModel = async (xs, sport, search) => {
                     // kernelRegularizer: tf.regularizers.l2({ l2: l2Strength })
                 }).apply(shared);
 
-                // shared = tf.layers.batchNormalization().apply(shared); // optional but good with ReLU variants
-                // shared = tf.layers.leakyReLU({ alpha: 0.3 }).apply(shared);
+                shared = tf.layers.batchNormalization().apply(shared); // optional but good with ReLU variants
+                shared = tf.layers.leakyReLU({ alpha: 0.3 }).apply(shared);
                 // if (i % 2 === 0) {
-                    // shared = tf.layers.dropout({ rate: hyperParams.dropoutReg }).apply(shared);
+                shared = tf.layers.dropout({ rate: hyperParams.dropoutReg }).apply(shared);
                 // }
             }
             // Score output: regression head (predicts [homeScore, awayScore])
@@ -385,6 +385,8 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
             game.predictedWinner === 'home' || game.predictedWinner === 'away'
         );
     }
+
+    let sportOddsHomeAwaySplit = sportOdds.filter(g => g.winner === 'home').length / sportOdds.length;
     // Stats and counters
     let predictionsChanged = 0;
     let newWinnerPredictions = 0;
@@ -484,16 +486,16 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
         if (game.predictedWinner !== predictedWinner) {
             predictionsChanged++;
 
-        if (!past && !search) {
-            const oldWinner = game.predictedWinner === 'home'
-                ? game['homeTeamDetails.espnDisplayName']
-                : game['awayTeamDetails.espnDisplayName'];
-            const newWinner = predictedWinner === 'home'
-                ? game['homeTeamDetails.espnDisplayName']
-                : game['awayTeamDetails.espnDisplayName'];
+            if (!past && !search) {
+                const oldWinner = game.predictedWinner === 'home'
+                    ? game['homeTeamDetails.espnDisplayName']
+                    : game['awayTeamDetails.espnDisplayName'];
+                const newWinner = predictedWinner === 'home'
+                    ? game['homeTeamDetails.espnDisplayName']
+                    : game['awayTeamDetails.espnDisplayName'];
 
-            console.log(`Prediction changed for game ${game.id}: ${predictedWinner === 'home' ? 'HOME' : 'AWAY'} ${oldWinner} → ${newWinner}  (Confidence: ${predictionConfidence}) Score ([home, away]) [${Math.round(homeScore)}, ${Math.round(awayScore)}]`);
-        }
+                console.log(`Prediction changed for game ${game.id}: ${predictedWinner === 'home' ? 'HOME' : 'AWAY'} ${oldWinner} → ${newWinner}  (Confidence: ${predictionConfidence}) Score ([home, away]) [${Math.round(homeScore)}, ${Math.round(awayScore)}]`);
+            }
         }
 
         if (game.predictionConfidence !== predictionConfidence) {
@@ -542,7 +544,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
         }
 
         if (!past && !search) {
-            // await db.Games.update(updatePayload, { where: { id: game.id } });
+            await db.Games.update(updatePayload, { where: { id: game.id } });
         }
 
         if (past || search) {
@@ -600,21 +602,20 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
 
     if (search) {
         const winRate = totalWins / sportOdds.length;
-        const mismatchRate = misMatched / sportOdds.length;
-        const mismatchPenalty = Math.pow(mismatchRate, 2); // squaring increases punishment
+        let predictedHomeAwaySplit = home / sportOdds.length;
+
+        const splitMatchScore = 1 - Math.abs(predictedHomeAwaySplit - sportOddsHomeAwaySplit) * 2;
 
         // Updated weights
         const WINRATE_WEIGHT = 0.5;
         const CALIBRATION_WEIGHT = 0.3;
-        const MISMATCH_WEIGHT = 0.2;
 
         const combinedScore =
             (winRate * WINRATE_WEIGHT) +
-            (calibrationScore * CALIBRATION_WEIGHT) +
-            ((1 - mismatchPenalty) * MISMATCH_WEIGHT);
+            (calibrationScore * CALIBRATION_WEIGHT)
             // matchedScore
 
-        console.log(`(Winrate: ${(winRate * 100).toFixed(2)}%, Calibration: ${calibrationScore.toFixed(4)}, Mismatch Penalty: ${(1 - mismatchPenalty).toFixed(4)}) Combined Score: ${combinedScore.toFixed(4)}`);
+            console.log(`(Winrate: ${(winRate * 100).toFixed(2)}%, Calibration: ${calibrationScore.toFixed(4)}, Combined Score: ${combinedScore.toFixed(4)} Combined Score with Split: ${(combinedScore * splitMatchScore).toFixed(4)})`);
 
         return {
             winRate,
@@ -696,6 +697,8 @@ const trainSportModelKFold = async (sport, gameData, search) => {
 
             if (statFeatures.some(isNaN) || homeWinLabel == null) {
                 console.error('NaN detected in features during kFoldTest:', game.id);
+                console.log(game.awayTeam, game.homeTeam);
+                console.log(teamStatsHistory[game.homeTeam].length, teamStatsHistory[game.awayTeam].length);
                 process.exit(0);
             }
 
@@ -804,8 +807,7 @@ const trainSportModelKFold = async (sport, gameData, search) => {
         console.log(`--- Overall WINRATE ON UNSEEN DATA: ${(winRate * 100).toFixed(2)} ---`);
 
         const compositeScore =
-            ((winRate * 100) * 0.5) +            // ↑ Increase weight on winrate
-            ((combinedScore * 100) * 0.25) +  // ↓ Slightly reduce calibration
+            ((combinedScore * 100)) +           // ↓ Combined Score of winrate and calibration (done in predictions)
             (-(avgSpreadMAE) * 0.15) +           // ↓ Slightly reduce spread MAE penalty
             (-(avgTotalMAE) * 0.06) +            // ↓ Slightly reduce total MAE penalty
             (-(avgMAE) * 0.04);                  // ↑ Slight increase to avg MAE to differentiate

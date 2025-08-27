@@ -30,7 +30,6 @@ const transformStats = (stats) => {
 const getZScoreNormalizedStats = (currentStats, teamStatsHistory, teamId, prediction, search, sport) => {
     const history = (teamStatsHistory && teamStatsHistory[teamId]) || [];
     const minGamesPerTeam = 3;
-
     const transformedStats = transformStats(currentStats);
 
     // Determine teams with enough data
@@ -41,9 +40,8 @@ const getZScoreNormalizedStats = (currentStats, teamStatsHistory, teamId, predic
     if (teamsWithEnoughData.length < 5 ) {
         return { ...currentStats };
     }
-
     // Case 2: Some teams have data, but this one doesn't → use global normalization
-    if (teamsWithEnoughData.length < 30 && history.length < minGamesPerTeam) {
+    if (teamsWithEnoughData.length < 32 && history.length < minGamesPerTeam) {
         const allStats = Object.values(teamStatsHistory)
             .filter(Boolean)
             .flat();
