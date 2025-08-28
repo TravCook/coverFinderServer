@@ -604,11 +604,13 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
         const winRate = totalWins / sportOdds.length;
         let predictedHomeAwaySplit = home / sportOdds.length;
 
-        const splitMatchScore = 1 - Math.abs(predictedHomeAwaySplit - sportOddsHomeAwaySplit) * 2;
+        const splitMatchScore = Math.pow(1 - Math.abs(predictedHomeAwaySplit - sportOddsHomeAwaySplit) * 2, 2);
+
 
         // Updated weights
         const WINRATE_WEIGHT = 0.5;
         const CALIBRATION_WEIGHT = 0.3;
+
 
         const combinedScore =
             (winRate * WINRATE_WEIGHT) +
