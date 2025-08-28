@@ -771,10 +771,10 @@ const trainSportModelKFold = async (sport, gameData, search) => {
 
         };
         // After k-folds
-        const fullTrainingData = sortedGameData;
-        const { model: finalModel } = await mlModelTraining(
-            fullTrainingData, [], [], [], sport, search, gameCount, sortedGameData
-        );
+        // const fullTrainingData = sortedGameData;
+        // const { model: finalModel } = await mlModelTraining(
+        //     fullTrainingData, [], [], [], sport, search, gameCount, sortedGameData
+        // );
 
         const testSlice = gameData
             .sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time))
