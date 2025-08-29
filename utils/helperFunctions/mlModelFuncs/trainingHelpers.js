@@ -213,7 +213,7 @@ const loadOrCreateModel = async (xs, sport, search) => {
             // Score output: regression head (predicts [homeScore, awayScore])
             const scoreOutput = tf.layers.dense({
                 units: 2, activation: 'linear', name: 'scoreOutput',
-                kernelRegularizer: tf.regularizers.l2({ l2: l2Strength })
+                // kernelRegularizer: tf.regularizers.l2({ l2: l2Strength })
             }).apply(shared);
             // Win probability output: classification head (sigmoid)
             const winProbOutput = tf.layers.dense({
