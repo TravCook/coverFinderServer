@@ -193,7 +193,7 @@ const loadOrCreateModel = async (xs, sport, search) => {
         } else {
             const hyperParams = getHyperParams(sport, search);
             const l2Strength = hyperParams.l2reg || 0; // Default L2 regularization strength
-            const input = tf.input({ shape: [xs[0].length] });
+            const input = tf.input({ shape: [xs[0].length]});
 
 
             let shared = input
