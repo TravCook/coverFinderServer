@@ -333,8 +333,8 @@ const repeatPredictions = async (model, inputTensor, numPasses) => {
     const winProbs = []
 
     for (let i = 0; i < numPasses; i++) {
-        const [predictedScores, predictedWinProb] = await model.apply(inputTensor, { training: true });
-        // const [predictedScores, predictedWinProb] = await model.predict(inputTensor);
+        // const [predictedScores, predictedWinProb] = await model.apply(inputTensor, { training: true });
+        const [predictedScores, predictedWinProb] = await model.predict(inputTensor);
         let score = predictedScores.arraySync()
         let winProb = predictedWinProb.arraySync()
         predictions.push(score[0]); // Each prediction is [homeScore, awayScore]
@@ -638,7 +638,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
         }
 
         if (!past && !search) {
-            // await db.Games.update(updatePayload, { where: { id: game.id } });
+            await db.Games.update(updatePayload, { where: { id: game.id } });
         }
 
         if (past || search) {
