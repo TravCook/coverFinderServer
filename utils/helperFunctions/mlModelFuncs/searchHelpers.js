@@ -31,21 +31,22 @@ const hyperparameterRandSearch = async (sports) => {
     console.log(`STARTING HYPERPARAM SEARCH @ ${moment().format('HH:mm:ss')}`);
 
     const space = {
-        learningRate: { type: 'log', min: 1e-5, max: 1e-2 },
-        batchSize: { type: 'int', min: 16, max: 128 },
-        epochs: { type: 'int', min: 30, max: 150 },
-        hiddenLayerNum: { type: 'int', min: 1, max: 6 },
-        layerNeurons: { type: 'int', min: 32, max: 256 },
-        l2reg: { type: 'log', min: 1e-7, max: 1e-2 },
-        dropoutReg: { type: 'float', min: 0.0, max: .9 },
-        kFolds: { type: 'int', min: 5, max: 10 },
-        historyLength: { type: 'int', min: 5, max: 150 },
-        gameDecayValue: { type: 'float', min: 0.85, max: 0.99 },
-        decayStepSize: { type: 'int', min: 5, max: 100 },
-        scoreLossWeight: { type: 'float', min: 1.0, max: 10.0 },
-        winPctLossWeight: { type: 'float', min: 0.1, max: 5.0 },
-        earlyStopPatience: { type: 'float', min: 1.0, max: 10.0 }
+        learningRate: { type: 'log', min: 1e-4, max: 5e-3 }, // previously good ones: ~0.0008–0.0045
+        batchSize: { type: 'int', min: 32, max: 64 },        // 32–64 consistently used
+        epochs: { type: 'int', min: 40, max: 120 },          // 40–120 were effective; long training = diminishing returns
+        hiddenLayerNum: { type: 'int', min: 3, max: 6 },     // 4–6 layers seem optimal
+        layerNeurons: { type: 'int', min: 64, max: 128 },    // 128 was most stable; 256 overfit or unstable
+        l2reg: { type: 'log', min: 1e-5, max: 5e-3 },         // Too high => poor diversity; too low => underregularized
+        dropoutReg: { type: 'float', min: 0.1, max: 0.4 },    // Lower dropout (0.18–0.34) worked better
+        kFolds: { type: 'int', min: 5, max: 10 },             // leave this as-is
+        historyLength: { type: 'int', min: 50, max: 130 },    // lower history (< 50) didn’t help much
+        gameDecayValue: { type: 'float', min: 0.88, max: 0.97 }, // 0.91–0.96 best
+        decayStepSize: { type: 'int', min: 10, max: 60 },     // too low or too high = instability
+        scoreLossWeight: { type: 'float', min: 4.0, max: 7.0 }, // very high = overfitting to score
+        winPctLossWeight: { type: 'float', min: 0.5, max: 3.0 }, // ~1–2.2 worked well
+        earlyStopPatience: { type: 'int', min: 3, max: 8 }     // fast convergence good; 1 or 10 often under/overfitted
     };
+
 
     for (let sport of sports.sort((a, b) => a.startMonth - b.startMonth)) {
         // if(sport.name === 'baseball_mlb' || sport.name === 'americanfootball_nfl' || sport.name === 'americanfootball_ncaaf' || sport.name === 'basketball_nba' ) continue; // Skip baseball for now
