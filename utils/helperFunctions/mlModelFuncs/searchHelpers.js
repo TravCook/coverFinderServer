@@ -36,8 +36,8 @@ const hyperparameterRandSearch = async (sports) => {
         epochs: { type: 'int', min: 30, max: 150 },
         hiddenLayerNum: { type: 'int', min: 1, max: 6 },
         layerNeurons: { type: 'int', min: 32, max: 256 },
-        // l2reg: { type: 'log', min: 1e-7, max: 1e-2 },
-        dropoutReg: { type: 'float', min: 0.0, max: 0.5 },
+        l2reg: { type: 'log', min: 1e-7, max: 1e-2 },
+        dropoutReg: { type: 'float', min: 0.0, max: .9 },
         kFolds: { type: 'int', min: 5, max: 10 },
         historyLength: { type: 'int', min: 5, max: 150 },
         gameDecayValue: { type: 'float', min: 0.85, max: 0.99 },
@@ -58,7 +58,7 @@ const hyperparameterRandSearch = async (sports) => {
         async function objective(params) {
             const sanitizedParams = {
                 learningRate: params.learningRate,
-                // l2reg: params.l2reg,
+                l2reg: params.l2reg,
                 dropoutReg: params.dropoutReg,
                 batchSize: roundToNearest(params.batchSize, validBatchSizes),
                 epochs: Math.round(params.epochs),
@@ -127,7 +127,7 @@ const hyperparameterRandSearch = async (sports) => {
 
         const processedParams = {
             learningRate: bestParams.learningRate,
-            // l2Reg: bestParams.l2reg,
+            l2Reg: bestParams.l2reg,
             dropoutReg: bestParams.dropoutReg,
             batchSize: roundToNearest(bestParams.batchSize, validBatchSizes),
             epochs: Math.round(bestParams.epochs),

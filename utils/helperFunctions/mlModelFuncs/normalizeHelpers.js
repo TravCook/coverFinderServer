@@ -37,7 +37,7 @@ const getZScoreNormalizedStats = (currentStats, teamStatsHistory, teamId, predic
         .filter(teamHistory => teamHistory && teamHistory.length >= minGamesPerTeam);
 
     // Case 1: Not enough teams with data → return raw stats
-    if (teamsWithEnoughData.length < 5 ) {
+    if (teamsWithEnoughData.length < 3 ) {
         return { ...currentStats };
     }
     // Case 2: Some teams have data, but this one doesn't → use global normalization
@@ -84,7 +84,7 @@ const getZScoreNormalizedStats = (currentStats, teamStatsHistory, teamId, predic
             const stepsFromLatest = history.length - 1 - i;
             const weight = Math.pow(baseDecay, stepsFromLatest / stepSize);
 
-            decayedValues.push(prediction ? rawValue : rawValue * weight);
+            decayedValues.push( rawValue * weight);
             weights.push(weight);
         }
 

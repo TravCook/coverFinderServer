@@ -156,9 +156,9 @@ const getHyperParams = (sport, search) => {
         epochs: search
             ? sport.hyperParameters.epochs
             : sport['hyperParams.epochs'],
-        // l2reg: search
-        //     ? sport.hyperParameters.l2reg
-        //     : sport['hyperParams.l2Reg'],
+        l2reg: search
+            ? sport.hyperParameters.l2reg
+            : sport['hyperParams.l2Reg'],
         dropoutReg: search
             ? sport.hyperParameters.dropoutReg
             : sport['hyperParams.dropoutReg'],
@@ -213,7 +213,7 @@ const loadOrCreateModel = async (xs, sport, search) => {
             // Score output: regression head (predicts [homeScore, awayScore])
             const scoreOutput = tf.layers.dense({
                 units: 2, activation: 'linear', name: 'scoreOutput',
-                // kernelRegularizer: tf.regularizers.l2({ l2: l2Strength })
+                kernelRegularizer: tf.regularizers.l2({ l2: l2Strength })
             }).apply(shared);
             // Win probability output: classification head (sigmoid)
             const winProbOutput = tf.layers.dense({
@@ -232,14 +232,109 @@ const loadOrCreateModel = async (xs, sport, search) => {
         console.error("Model loading/creation error:", err);
     }
 };
+// const loadOrCreateModel = async (xs, sport, search) => {
+//   const modelPath = `./model_checkpoint/${sport.name}_model/model.json`;
+//   try {
+//     if (fs.existsSync(modelPath) && !search) {
+//       return await tf.loadLayersModel(`file://${modelPath}`);
+//     } else {
+//       const hyperParams = getHyperParams(sport, search);
+//       const l2Strength = hyperParams.l2reg || 1e-4; // default small L2
+//       const input = tf.input({ shape: [xs[0].length] });
+
+//       // Helper function to add a residual dense block
+//       function residualDenseBlock(x, units, dropoutRate = hyperParams.dropoutReg || 0.2) {
+//         const dense1 = tf.layers.dense({
+//           units,
+//           kernelRegularizer: tf.regularizers.l2({ l2: l2Strength }),
+//           useBias: false
+//         }).apply(x);
+//         const bn1 = tf.layers.batchNormalization().apply(dense1);
+//         const act1 = tf.layers.leakyReLU({ alpha: 0.1 }).apply(bn1);
+//         const dropout1 = tf.layers.dropout({ rate: dropoutRate }).apply(act1);
+
+//         const dense2 = tf.layers.dense({
+//           units,
+//           kernelRegularizer: tf.regularizers.l2({ l2: l2Strength }),
+//           useBias: false
+//         }).apply(dropout1);
+//         const bn2 = tf.layers.batchNormalization().apply(dense2);
+
+//         // Residual connection: add input (x) and bn2
+//         let shortcut = x;
+//         // If dimensions mismatch, project x
+//         if (x.shape[x.shape.length - 1] !== units) {
+//           shortcut = tf.layers.dense({ units, useBias: false }).apply(x);
+//           shortcut = tf.layers.batchNormalization().apply(shortcut);
+//         }
+//         const added = tf.layers.add().apply([bn2, shortcut]);
+//         const output = tf.layers.leakyReLU({ alpha: 0.1 }).apply(added);
+//         return output;
+//       }
+
+//       // Build shared layers with residual blocks
+//       let shared = input;
+//       for (let i = 0; i < hyperParams.hiddenLayerNum; i++) {
+//         shared = residualDenseBlock(shared, hyperParams.layerNeurons, hyperParams.dropoutReg || 0.2);
+//       }
+
+//       // Dedicated head for score prediction (regression)
+//       let scoreHead = shared;
+//       for (let i = 0; i < 2; i++) {
+//         scoreHead = tf.layers.dense({
+//           units: Math.floor(hyperParams.layerNeurons / 2),
+//           kernelRegularizer: tf.regularizers.l2({ l2: l2Strength }),
+//           useBias: false
+//         }).apply(scoreHead);
+//         scoreHead = tf.layers.batchNormalization().apply(scoreHead);
+//         scoreHead = tf.layers.leakyReLU({ alpha: 0.1 }).apply(scoreHead);
+//         scoreHead = tf.layers.dropout({ rate: 0.3 }).apply(scoreHead);
+//       }
+//       const scoreOutput = tf.layers.dense({
+//         units: 2,
+//         activation: 'linear',
+//         name: 'scoreOutput',
+//         kernelRegularizer: tf.regularizers.l2({ l2: l2Strength })
+//       }).apply(scoreHead);
+
+//       // Dedicated head for win probability (classification)
+//       let winProbHead = shared;
+//       for (let i = 0; i < 1; i++) {
+//         winProbHead = tf.layers.dense({
+//           units: Math.floor(hyperParams.layerNeurons / 2),
+//           kernelRegularizer: tf.regularizers.l2({ l2: l2Strength }),
+//           useBias: false
+//         }).apply(winProbHead);
+//         winProbHead = tf.layers.batchNormalization().apply(winProbHead);
+//         winProbHead = tf.layers.leakyReLU({ alpha: 0.1 }).apply(winProbHead);
+//         winProbHead = tf.layers.dropout({ rate: 0.3 }).apply(winProbHead);
+//       }
+//       const winProbOutput = tf.layers.dense({
+//         units: 1,
+//         activation: 'sigmoid',
+//         name: 'winProbOutput',
+//         kernelRegularizer: tf.regularizers.l2({ l2: l2Strength })
+//       }).apply(winProbHead);
+
+//       const model = tf.model({
+//         inputs: input,
+//         outputs: [scoreOutput, winProbOutput]
+//       });
+
+//       return model;
+//     }
+//   } catch (err) {
+//     console.error("Model loading/creation error:", err);
+//   }
+// };
 
 const repeatPredictions = async (model, inputTensor, numPasses) => {
     const predictions = [];
     const winProbs = []
 
     for (let i = 0; i < numPasses; i++) {
-        // const [predictedScores, predictedWinProb] = await model.apply(inputTensor, { training: true });
-        const [predictedScores, predictedWinProb] = await model.predict(inputTensor);
+        const [predictedScores, predictedWinProb] = await model.apply(inputTensor, { training: true });
+        // const [predictedScores, predictedWinProb] = await model.predict(inputTensor);
         let score = predictedScores.arraySync()
         let winProb = predictedWinProb.arraySync()
         predictions.push(score[0]); // Each prediction is [homeScore, awayScore]
@@ -281,7 +376,6 @@ const mlModelTraining = async (gameData, xs, ysWins, ysScore, sport, search, gam
             console.error('NaN or invalid value detected in features during Training:', game.id);
             process.exit(0);
         }
-
         xs.push(statFeatures);
         ysWins.push([winLabel]);
         ysScore.push(scoreLabel);
@@ -483,8 +577,8 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
         };
 
         // Track changes and distributions
-        if (game.predictedWinner !== predictedWinner) {
-            predictionsChanged++;
+        // if (game.predictedWinner !== predictedWinner) {
+        //     predictionsChanged++;
 
             if (!past && !search) {
                 const oldWinner = game.predictedWinner === 'home'
@@ -496,7 +590,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
 
                 console.log(`Prediction changed for game ${game.id}: ${predictedWinner === 'home' ? 'HOME' : 'AWAY'} ${oldWinner} → ${newWinner}  (Confidence: ${predictionConfidence}) Score ([home, away]) [${Math.round(homeScore)}, ${Math.round(awayScore)}]`);
             }
-        }
+        // }
 
         if (game.predictionConfidence !== predictionConfidence) {
             newConfidencePredictions++;
@@ -544,7 +638,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
         }
 
         if (!past && !search) {
-            await db.Games.update(updatePayload, { where: { id: game.id } });
+            // await db.Games.update(updatePayload, { where: { id: game.id } });
         }
 
         if (past || search) {
@@ -771,10 +865,10 @@ const trainSportModelKFold = async (sport, gameData, search) => {
 
         };
         // After k-folds
-        // const fullTrainingData = sortedGameData;
-        // const { model: finalModel } = await mlModelTraining(
-        //     fullTrainingData, [], [], [], sport, search, gameCount, sortedGameData
-        // );
+        const fullTrainingData = sortedGameData;
+        const { model: finalModel } = await mlModelTraining(
+            fullTrainingData, [], [], [], sport, search, gameCount, sortedGameData
+        );
 
         const testSlice = gameData
             .sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time))
@@ -844,7 +938,7 @@ const trainSportModelKFold = async (sport, gameData, search) => {
     }
 
     // // Extract feature importances
-    await extractAndSaveFeatureImportances(finalModel, sport);
+    // await extractAndSaveFeatureImportances(finalModel, sport);
 
     if (global.gc) global.gc();
     console.log(`ml model done for ${sport.name} @ ${moment().format('HH:mm:ss')}`);
