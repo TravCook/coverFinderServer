@@ -869,7 +869,14 @@ const espnSeed = async () => {
 
 };
 
+const hyperParam = async () => {
+    const sports = await db.Sports.findAll({ include: [{ model: db.MlModelWeights, as: 'MlModelWeights' }, { model: db.HyperParams, as: 'hyperParams' }], raw: true, order: [['name', 'ASC']] });
+    hyperparameterRandSearch(sports)
+}
+
 const modelReset = async () => {
+    await hyperParam()
+    
     await mlModelTrainSeed()
 
     await dataSeed()
@@ -877,10 +884,6 @@ const modelReset = async () => {
     await oddsSeed()
 }
 
-const hyperParam = async () => {
-    const sports = await db.Sports.findAll({ include: [{ model: db.MlModelWeights, as: 'MlModelWeights' }, { model: db.HyperParams, as: 'hyperParams' }], raw: true, order: [['name', 'ASC']] });
-    hyperparameterRandSearch(sports)
-}
 
-modelReset()
+
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed }
