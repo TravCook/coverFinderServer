@@ -882,5 +882,5 @@ const hyperParam = async () => {
     hyperparameterRandSearch(sports)
 }
 
-// hyperParam()
+modelReset()
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed }
