@@ -842,7 +842,7 @@ const trainSportModelKFold = async (sport, gameData, search) => {
     }
 
     // // Extract feature importances
-    // await extractAndSaveFeatureImportances(finalModel, sport);
+    await extractAndSaveFeatureImportances(finalModel, sport);
 
     if (global.gc) global.gc();
     console.log(`ml model done for ${sport.name} @ ${moment().format('HH:mm:ss')}`);
