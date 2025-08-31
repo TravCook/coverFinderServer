@@ -156,12 +156,12 @@ const getHyperParams = (sport, search) => {
         epochs: search
             ? sport.hyperParameters.epochs
             : sport['hyperParams.epochs'],
-        l2reg: search
-            ? sport.hyperParameters.l2reg
-            : sport['hyperParams.l2Reg'],
-        dropoutReg: search
-            ? sport.hyperParameters.dropoutReg
-            : sport['hyperParams.dropoutReg'],
+        // l2reg: search
+        //     ? sport.hyperParameters.l2reg
+        //     : sport['hyperParams.l2Reg'],
+        // dropoutReg: search
+        //     ? sport.hyperParameters.dropoutReg
+        //     : sport['hyperParams.dropoutReg'],
         hiddenLayerNum: search
             ? sport.hyperParameters.hiddenLayerNum
             : sport['hyperParams.hiddenLayers'],

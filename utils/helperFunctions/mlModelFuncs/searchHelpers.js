@@ -36,8 +36,8 @@ const hyperparameterRandSearch = async (sports) => {
         epochs: { type: 'int', min: 40, max: 120 },          // 40–120 were effective; long training = diminishing returns
         hiddenLayerNum: { type: 'int', min: 3, max: 6 },     // 4–6 layers seem optimal
         layerNeurons: { type: 'int', min: 64, max: 128 },    // 128 was most stable; 256 overfit or unstable
-        l2reg: { type: 'log', min: 1e-5, max: 5e-3 },         // Too high => poor diversity; too low => underregularized
-        dropoutReg: { type: 'float', min: 0.1, max: 0.4 },    // Lower dropout (0.18–0.34) worked better
+        // l2reg: { type: 'log', min: 1e-5, max: 5e-3 },         // Too high => poor diversity; too low => underregularized
+        // dropoutReg: { type: 'float', min: 0.1, max: 0.4 },    // Lower dropout (0.18–0.34) worked better
         kFolds: { type: 'int', min: 5, max: 10 },             // leave this as-is
         historyLength: { type: 'int', min: 50, max: 130 },    // lower history (< 50) didn’t help much
         gameDecayValue: { type: 'float', min: 0.88, max: 0.97 }, // 0.91–0.96 best
@@ -128,8 +128,8 @@ const hyperparameterRandSearch = async (sports) => {
 
         const processedParams = {
             learningRate: bestParams.learningRate,
-            l2Reg: bestParams.l2reg,
-            dropoutReg: bestParams.dropoutReg,
+            // l2Reg: bestParams.l2reg,
+            // dropoutReg: bestParams.dropoutReg,
             batchSize: roundToNearest(bestParams.batchSize, validBatchSizes),
             epochs: Math.round(bestParams.epochs),
             hiddenLayerNum: Math.round(bestParams.hiddenLayerNum),
