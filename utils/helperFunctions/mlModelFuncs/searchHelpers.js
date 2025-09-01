@@ -49,7 +49,7 @@ const hyperparameterRandSearch = async (sports) => {
 
 
     for (let sport of sports.sort((a, b) => a.startMonth - b.startMonth)) {
-        // if(sport.name === 'baseball_mlb' || sport.name === 'americanfootball_nfl' || sport.name === 'americanfootball_ncaaf' || sport.name === 'basketball_nba' ) continue; // Skip baseball for now
+        if(sport.name === 'baseball_mlb' || sport.name === 'americanfootball_ncaaf' ) continue; // Skip baseball for now
         const validBatchSizes = [16, 32, 64, 128];
         const validLayerNeurons = [16, 32, 64, 128, 256];
 
@@ -59,8 +59,8 @@ const hyperparameterRandSearch = async (sports) => {
         async function objective(params) {
             const sanitizedParams = {
                 learningRate: params.learningRate,
-                l2reg: params.l2reg,
-                dropoutReg: params.dropoutReg,
+                // l2reg: params.l2reg,
+                // dropoutReg: params.dropoutReg,
                 batchSize: roundToNearest(params.batchSize, validBatchSizes),
                 epochs: Math.round(params.epochs),
                 hiddenLayerNum: Math.round(params.hiddenLayerNum),
@@ -121,7 +121,7 @@ const hyperparameterRandSearch = async (sports) => {
         }
 
         const optimizer = new BayesianOptimizer({});
-        await optimizer.optimize(objective, space, 9);
+        await optimizer.optimize(objective, space, 19);
 
         const bestParams = optimizer.getBestParams();
         console.log(`Best Parameters for ${sport.name}:`, bestParams);

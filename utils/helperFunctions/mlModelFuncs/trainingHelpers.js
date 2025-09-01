@@ -156,12 +156,12 @@ const getHyperParams = (sport, search) => {
         epochs: search
             ? sport.hyperParameters.epochs
             : sport['hyperParams.epochs'],
-        // l2reg: search
-        //     ? sport.hyperParameters.l2reg
-        //     : sport['hyperParams.l2Reg'],
-        // dropoutReg: search
-        //     ? sport.hyperParameters.dropoutReg
-        //     : sport['hyperParams.dropoutReg'],
+        l2reg: search
+            ? sport.hyperParameters.l2reg
+            : sport['hyperParams.l2Reg'],
+        dropoutReg: search
+            ? sport.hyperParameters.dropoutReg
+            : sport['hyperParams.dropoutReg'],
         hiddenLayerNum: search
             ? sport.hyperParameters.hiddenLayerNum
             : sport['hyperParams.hiddenLayers'],
@@ -272,7 +272,11 @@ const mlModelTraining = async (gameData, xs, ysWins, ysScore, sport, search, gam
             console.log(game.id);
             continue;
         }
-
+        let homeTeamAverageOdds = game.bookmakers?.length ? game.bookmakers.reduce((sum, bm) => {
+            const outcome = bm.markets.find(market => market.key === 'h2h')?.outcomes.find(o => o.name === game.homeTeamDetails.expnDisplayName);
+            return sum + (outcome ? outcome.price : 0);
+        }, 0): 0;
+        // console.log(homeTeamAverageOdds)
         const statFeatures = await extractSportFeatures(normalizedHome, normalizedAway, sport.name)
         const winLabel = game.winner === 'home' ? 1 : 0;
         const scoreLabel = [game.homeScore, game.awayScore];
@@ -542,7 +546,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
         }
 
         if (!past && !search) {
-            await db.Games.update(updatePayload, { where: { id: game.id } });
+            // await db.Games.update(updatePayload, { where: { id: game.id } });
         }
 
         if (past || search) {
