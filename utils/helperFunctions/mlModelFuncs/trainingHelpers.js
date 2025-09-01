@@ -546,7 +546,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
         }
 
         if (!past && !search) {
-            // await db.Games.update(updatePayload, { where: { id: game.id } });
+            await db.Games.update(updatePayload, { where: { id: game.id } });
         }
 
         if (past || search) {
