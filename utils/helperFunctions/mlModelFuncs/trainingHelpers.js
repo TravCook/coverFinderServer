@@ -542,16 +542,16 @@ const predictions = async (sportOdds, ff, model, sport, past, search, teamHistor
         if (game.predictedWinner !== predictedWinner) {
             predictionsChanged++;
 
-        if (!past && !search) {
-            const oldWinner = game.predictedWinner === 'home'
-                ? game['homeTeamDetails.espnDisplayName']
-                : game['awayTeamDetails.espnDisplayName'];
-            const newWinner = predictedWinner === 'home'
-                ? game['homeTeamDetails.espnDisplayName']
-                : game['awayTeamDetails.espnDisplayName'];
+            if (!past && !search) {
+                const oldWinner = game.predictedWinner === 'home'
+                    ? game['homeTeamDetails.espnDisplayName']
+                    : game['awayTeamDetails.espnDisplayName'];
+                const newWinner = predictedWinner === 'home'
+                    ? game['homeTeamDetails.espnDisplayName']
+                    : game['awayTeamDetails.espnDisplayName'];
 
-            console.log(`Prediction changed for game ${game.id}: ${predictedWinner === 'home' ? 'HOME' : 'AWAY'} ${oldWinner} → ${newWinner}  (Confidence: ${predictionConfidence}) Score ([home, away]) [${Math.round(homeScore)}, ${Math.round(awayScore)}]`);
-        }
+                console.log(`Prediction changed for game ${game.id}: ${predictedWinner === 'home' ? 'HOME' : 'AWAY'} ${oldWinner} → ${newWinner}  (Confidence: ${predictionConfidence}) Score ([home, away]) [${Math.round(homeScore)}, ${Math.round(awayScore)}]`);
+            }
         }
 
         if (game.predictionConfidence !== predictionConfidence) {
@@ -694,7 +694,7 @@ const trainSportModelKFold = async (sport, gameData, search) => {
     // Sort historical game data and slice off the most recent 10% for testing
     const sortedGameData = gameData
         // .sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time))
-        .slice(0, gameData.length - Math.floor(gameData.length * 0.10));
+        .slice(0, gameData.length - (gameData.length > 3000 ? Math.floor(gameData.length * 0.10) : Math.floor(gameData.length * .30)));
 
     console.log(`${sortedGameData[0].commence_time.toLocaleString()} - ${sortedGameData[sortedGameData.length - 1].commence_time.toLocaleString()}`);
 
@@ -854,7 +854,7 @@ const trainSportModelKFold = async (sport, gameData, search) => {
 
         const testSlice = gameData
             .sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time))
-            .slice(gameData.length - Math.floor(gameData.length * 0.10));
+            .slice(gameData.length - (gameData.length > 3000 ? Math.floor(gameData.length * 0.10) : Math.floor(gameData.length * .30)));
 
         const historyLength = hyperParams.historyLength || 10; // Default to 10 if not set
         const teamStatsHistory = {};
@@ -938,7 +938,7 @@ const trainSportModelKFold = async (sport, gameData, search) => {
     }
 
     // // Extract feature importances
-    // await extractAndSaveFeatureImportances(finalModel, sport);
+    await extractAndSaveFeatureImportances(finalModel, sport);
 
     if (global.gc) global.gc();
     console.log(`ml model done for ${sport.name} @ ${moment().format('HH:mm:ss')}`);
