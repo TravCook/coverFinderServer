@@ -533,7 +533,7 @@ const oddsSeed = async () => {
                         }
                     }
                 }
-                await predictions(sportGamesSQL, [], model, sport, false, false, teamStatsHistory)
+                await predictions(sportGamesSQL, [], model, sport, false, false, teamStatsHistory, allPastGAmesSQL.filter((game) => game.sport_key === sport.name))
             } else {
                 console.log(`Model not found for ${sport.name}. Skipping predictions.`);
             }
@@ -884,6 +884,6 @@ const modelReset = async () => {
 }
 
 // hyperParam()
-modelReset()
+// modelReset()
 
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed }
