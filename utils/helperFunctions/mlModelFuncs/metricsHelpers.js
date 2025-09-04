@@ -99,13 +99,13 @@ function printOverallMetrics(foldResults) {
 
     const total = Object.values(totalCounts).reduce((sum, val) => sum + val, 0);
 
-    console.log(`--- Overall Performance Avg F1-Score: ${avgF1.toFixed(4)} ---`);
-    for (const [label, count] of Object.entries(totalCounts)) {
-        console.log(`${label}: ${count} (${((count / total) * 100).toFixed(2)}%)`);
-    }
-    console.log(`Average Spread MAE: ${avgSpreadMAE.toFixed(2)}`);
-    console.log(`Average Total MAE: ${avgTotalMAE.toFixed(2)}`);
-    console.log(`--- Overall Performance Avg MAE: ${avgMAE.toFixed(4)} ---`);
+    // console.log(`--- Overall Performance Avg F1-Score: ${avgF1.toFixed(4)} ---`);
+    // for (const [label, count] of Object.entries(totalCounts)) {
+    //     console.log(`${label}: ${count} (${((count / total) * 100).toFixed(2)}%)`);
+    // }
+    // console.log(`Average Spread MAE: ${avgSpreadMAE.toFixed(2)}`);
+    // console.log(`Average Total MAE: ${avgTotalMAE.toFixed(2)}`);
+    // console.log(`--- Overall Performance Avg MAE: ${avgMAE.toFixed(4)} ---`);
     return {avgSpreadMAE, avgTotalMAE, avgMAE, totalCounts}
 }
 

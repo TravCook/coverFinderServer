@@ -31,25 +31,25 @@ const hyperparameterRandSearch = async (sports) => {
     console.log(`STARTING HYPERPARAM SEARCH @ ${moment().format('HH:mm:ss')}`);
 
     const space = {
-        learningRate: { type: 'log', min: 1e-4, max: 5e-3 }, // previously good ones: ~0.0008–0.0045
-        batchSize: { type: 'int', min: 32, max: 64 },        // 32–64 consistently used
-        epochs: { type: 'int', min: 40, max: 120 },          // 40–120 were effective; long training = diminishing returns
-        hiddenLayerNum: { type: 'int', min: 3, max: 6 },     // 4–6 layers seem optimal
-        layerNeurons: { type: 'int', min: 64, max: 128 },    // 128 was most stable; 256 overfit or unstable
-        // l2reg: { type: 'log', min: 1e-5, max: 5e-3 },         // Too high => poor diversity; too low => underregularized
-        // dropoutReg: { type: 'float', min: 0.1, max: 0.4 },    // Lower dropout (0.18–0.34) worked better
-        kFolds: { type: 'int', min: 5, max: 10 },             // leave this as-is
-        historyLength: { type: 'int', min: 50, max: 130 },    // lower history (< 50) didn’t help much
-        gameDecayValue: { type: 'float', min: 0.88, max: 0.97 }, // 0.91–0.96 best
-        decayStepSize: { type: 'int', min: 10, max: 60 },     // too low or too high = instability
-        scoreLossWeight: { type: 'float', min: 4.0, max: 7.0 }, // very high = overfitting to score
-        winPctLossWeight: { type: 'float', min: 0.5, max: 3.0 }, // ~1–2.2 worked well
-        earlyStopPatience: { type: 'int', min: 3, max: 8 }     // fast convergence good; 1 or 10 often under/overfitted
+        learningRate: { type: 'log', min: 1e-4, max: 5e-3 },
+        batchSize: { type: 'int', min: 16, max: 128 },
+        epochs: { type: 'int', min: 20, max: 160 },
+        hiddenLayerNum: { type: 'int', min: 2, max: 8 },
+        layerNeurons: { type: 'int', min: 16, max: 256 },
+        // l2reg: { type: 'log', min: 1e-5, max: 5e-2 },
+        // dropoutReg: { type: 'float', min: 0.1, max
+        kFolds: { type: 'int', min: 3, max: 12 },
+        historyLength: { type: 'int', min: 30, max: 150 },
+        gameDecayValue: { type: 'float', min: 0.85, max: 0.98 },
+        decayStepSize: { type: 'int', min: 5, max: 80 },
+        scoreLossWeight: { type: 'float', min: 2.0, max: 8.0 },
+        winPctLossWeight: { type: 'float', min: 0.3, max: 4.0 },
+        earlyStopPatience: { type: 'int', min: 2, max: 10 }
     };
 
 
     for (let sport of sports.sort((a, b) => a.startMonth - b.startMonth)) {
-        if(sport.name === 'baseball_mlb' || sport.name === 'americanfootball_ncaaf' ) continue; // Skip baseball for now
+        // if(sport.name === 'baseball_mlb' ) continue; // Skip baseball for now
         const validBatchSizes = [16, 32, 64, 128];
         const validLayerNeurons = [16, 32, 64, 128, 256];
 
@@ -121,7 +121,7 @@ const hyperparameterRandSearch = async (sports) => {
         }
 
         const optimizer = new BayesianOptimizer({});
-        await optimizer.optimize(objective, space, 19);
+        await optimizer.optimize(objective, space, 9);
 
         const bestParams = optimizer.getBestParams();
         console.log(`Best Parameters for ${sport.name}:`, bestParams);

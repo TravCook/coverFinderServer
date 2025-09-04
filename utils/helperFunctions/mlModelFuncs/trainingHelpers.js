@@ -33,7 +33,7 @@ async function extractAndSaveFeatureImportances(model, sport) {
     const featureImportanceWithLabels = statMap.map((stat, i) => ({
         feature: stat,
         importance: scoresArr[i]
-    }));
+    }))
 
     const inputToHiddenWeights = await model.layers[1].getWeights()[0].array();
     const hiddenToOutputWeights = await scoreOutputLayer.getWeights()[0].array();
@@ -115,7 +115,38 @@ const isValidStatBlock = (statsObj, sport) => {
 
 
 // Feature extraction per sport
-const extractSportFeatures = (homeStats, awayStats, league) => {
+const extractSportFeatures = (homeStats, awayStats, league, allPastGamesSorted, gameData) => {
+    // let gameDate = new Date(gameData.commence_time)
+    // let filteredPastGames = allPastGamesSorted.filter((g) => new Date(g.commence_time) < gameDate)
+    // let lastGameHomeTeam = filteredPastGames.find(g => g.homeTeam === gameData.homeTeam || g.awayTeam === gameData.homeTeam)?.commence_time
+    // let lastGameAwayTeam = filteredPastGames.find(g => g.homeTeam === gameData.awayTeam || g.awayTeam === gameData.awayTeam)?.commence_time
+    // let daysSinceLastGameHome = lastGameHomeTeam ? Math.max(0, Math.floor((gameDate - new Date(lastGameHomeTeam)) / (1000 * 60 * 60 * 24))) : 30;
+    // let daysSinceLastGameAway = lastGameAwayTeam ? Math.max(0, Math.floor((gameDate - new Date(lastGameAwayTeam)) / (1000 * 60 * 60 * 24))) : 30;
+    // let hourOfDay = gameDate.getHours() + (gameDate.getMinutes() / 60); // e.g., 14.5 for 2:30 PM
+    // let homeTeamLast5WinPct = filteredPastGames.filter(g => (g.homeTeam === gameData.homeTeam || g.awayTeam === gameData.homeTeam)).slice(0, 5)
+    //     .reduce((acc, g) => acc + (g.winner === 'home' && g.homeTeam === gameData.homeTeam ? 1 : g.winner === 'away' && g.awayTeam === gameData.homeTeam ? 1 : 0), 0) / 5;
+    // let awayTeamLast5WinPct = filteredPastGames.filter(g => (g.homeTeam === gameData.awayTeam || g.awayTeam === gameData.awayTeam)).slice(0, 5)
+    //     .reduce((acc, g) => acc + (g.winner === 'home' && g.homeTeam === gameData.awayTeam ? 1 : g.winner === 'away' && g.awayTeam === gameData.awayTeam ? 1 : 0), 0) / 5;
+    // let homeTeamWinPctVsAway = filteredPastGames.filter(g => (g.homeTeam === gameData.homeTeam && g.awayTeam === gameData.awayTeam) || (g.homeTeam === gameData.awayTeam && g.awayTeam === gameData.homeTeam))
+    //     .reduce((acc, g) => acc + (g.winner === 'home' && g.homeTeam === gameData.homeTeam ? 1 : g.winner === 'away' && g.awayTeam === gameData.homeTeam ? 1 : 0), 0) / Math.max(1, filteredPastGames.filter(g => (g.homeTeam === gameData.homeTeam && g.awayTeam === gameData.awayTeam) || (g.homeTeam === gameData.awayTeam && g.awayTeam === gameData.homeTeam)).length);
+    // let awayTeamWinPctVsHome = filteredPastGames.filter(g => (g.homeTeam === gameData.homeTeam && g.awayTeam === gameData.awayTeam) || (g.homeTeam === gameData.awayTeam && g.awayTeam === gameData.homeTeam))
+    //     .reduce((acc, g) => acc + (g.winner === 'home' && g.homeTeam === gameData.awayTeam ? 1 : g.winner === 'away' && g.awayTeam === gameData.awayTeam ? 1 : 0), 0) / Math.max(1, filteredPastGames.filter(g => (g.homeTeam === gameData.homeTeam && g.awayTeam === gameData.awayTeam) || (g.homeTeam === gameData.awayTeam && g.awayTeam === gameData.homeTeam)).length);
+    // let homeTeamWinStreak = filteredPastGames.filter(g => (g.homeTeam === gameData.homeTeam || g.awayTeam === gameData.homeTeam)).slice(0, 10).reduce((acc, g) => {
+    //     if (g.winner === 'home' && g.homeTeam === gameData.homeTeam) return acc + 1;
+    //     if (g.winner === 'away' && g.awayTeam === gameData.homeTeam) return acc + 1;
+    //     return 0;
+    // }, 0);
+    // let awayTeamWinStreak = filteredPastGames.filter(g => (g.homeTeam === gameData.awayTeam || g.awayTeam === gameData.awayTeam)).slice(0, 10).reduce((acc, g) => {
+    //     if (g.winner === 'home' && g.homeTeam === gameData.awayTeam) return acc + 1;
+    //     if (g.winner === 'away' && g.awayTeam === gameData.awayTeam) return acc + 1;
+    //     return 0;
+    // }, 0);
+    // console.log('DAYS SINCE LAST GAME [HOME AWAY]',daysSinceLastGameHome, daysSinceLastGameAway)
+    // console.log('HOUR OF DAY',hourOfDay)
+    // console.log('LAST 5 WINPCT [HOME AWAY]',homeTeamLast5WinPct, awayTeamLast5WinPct)
+    // console.log('WINPCTVS EACHOTHER [HOME AWAY]',homeTeamWinPctVsAway, awayTeamWinPctVsHome)
+    // console.log('WIN STREAK [HOME AWAY]',homeTeamWinStreak, awayTeamWinStreak)
+
     switch (league) {
         case 'americanfootball_nfl':
             return footballStatMap.map(key => getNumericStat(homeStats, key))
@@ -156,12 +187,12 @@ const getHyperParams = (sport, search) => {
         epochs: search
             ? sport.hyperParameters.epochs
             : sport['hyperParams.epochs'],
-        l2reg: search
-            ? sport.hyperParameters.l2reg
-            : sport['hyperParams.l2Reg'],
-        dropoutReg: search
-            ? sport.hyperParameters.dropoutReg
-            : sport['hyperParams.dropoutReg'],
+        // l2reg: search
+        //     ? sport.hyperParameters.l2reg
+        //     : sport['hyperParams.l2Reg'],
+        // dropoutReg: search
+        //     ? sport.hyperParameters.dropoutReg
+        //     : sport['hyperParams.dropoutReg'],
         hiddenLayerNum: search
             ? sport.hyperParameters.hiddenLayerNum
             : sport['hyperParams.hiddenLayers'],
@@ -169,7 +200,7 @@ const getHyperParams = (sport, search) => {
             ? sport.hyperParameters.layerNeurons
             : sport['hyperParams.layerNeurons'],
         kFolds: search ? sport.hyperParameters.kFolds : sport['hyperParams.kFolds'], // always comes from the saved hyperParams
-        kernalInitializer: sport['hyperParams.kernalInitializer'] || 'glorotUniform',
+        // kernalInitializer: sport['hyperParams.kernalInitializer'] || 'glorotUniform',
         decayFactor: search ? sport.hyperParameters.gameDecayValue : sport['hyperParams.decayFactor'],
         gameDecayThreshold: search ? sport.hyperParameters.decayStepSize : sport['hyperParams.gameDecayThreshold'],
         historyLength: search ? sport.hyperParameters.historyLength : sport['hyperParams.historyLength'],
@@ -185,6 +216,29 @@ const getHyperParams = (sport, search) => {
     };
 };
 
+
+const repeatPredictions = async (model, inputTensor, numPasses) => {
+    const predictions = [];
+    const winProbs = []
+
+    for (let i = 0; i < numPasses; i++) {
+        const [predictedScores, predictedWinProb] = await model.predict(inputTensor);
+        let score = predictedScores.arraySync()
+        let winProb = predictedWinProb.arraySync()
+        predictions.push(score[0]); // Each prediction is [homeScore, awayScore]
+        winProbs.push(winProb[0])
+
+    }
+    // Average over all passes
+    const averagedScore = predictions[0].map((_, i) =>
+        predictions.reduce((sum, run) => sum + run[i], 0) / numPasses
+    );
+    const averagedWinProb = winProbs[0].map((_, i) =>
+        winProbs.reduce((sum, run) => sum + run[i], 0) / numPasses
+    );
+    return [averagedScore, averagedWinProb]; // Returns [avgHomeScore, avgAwayScore]
+};
+
 const loadOrCreateModel = async (xs, sport, search) => {
     const modelPath = `./model_checkpoint/${sport.name}_model/model.json`;
     try {
@@ -193,7 +247,7 @@ const loadOrCreateModel = async (xs, sport, search) => {
         } else {
             const hyperParams = getHyperParams(sport, search);
             const l2Strength = hyperParams.l2reg || 0; // Default L2 regularization strength
-            const input = tf.input({ shape: [xs[0].length]});
+            const input = tf.input({ shape: [xs[0].length] });
 
 
             let shared = input
@@ -233,33 +287,20 @@ const loadOrCreateModel = async (xs, sport, search) => {
     }
 };
 
-const repeatPredictions = async (model, inputTensor, numPasses) => {
-    const predictions = [];
-    const winProbs = []
-
-    for (let i = 0; i < numPasses; i++) {
-        const [predictedScores, predictedWinProb] = await model.predict(inputTensor);
-        let score = predictedScores.arraySync()
-        let winProb = predictedWinProb.arraySync()
-        predictions.push(score[0]); // Each prediction is [homeScore, awayScore]
-        winProbs.push(winProb[0])
-
-    }
-    // Average over all passes
-    const averagedScore = predictions[0].map((_, i) =>
-        predictions.reduce((sum, run) => sum + run[i], 0) / numPasses
-    );
-    const averagedWinProb = winProbs[0].map((_, i) =>
-        winProbs.reduce((sum, run) => sum + run[i], 0) / numPasses
-    );
-    return [averagedScore, averagedWinProb]; // Returns [avgHomeScore, avgAwayScore]
-};
-
-const mlModelTraining = async (gameData, xs, ysWins, ysScore, sport, search, gameCount, sortedGameData) => {
+const mlModelTraining = async (gameData, xs, ysWins, ysScore, sport, search, gameCount, allPastGames) => {
     const statMap = statConfigMap[sport.espnSport].default;
     const hyperParams = await getHyperParams(sport, search)
     let teamStatsHistory = {};
+    // Step 1: Flatten all scores into one array
+    let allScores = allPastGames.flatMap(game => [game.homeScore, game.awayScore]);
 
+    // Step 2: Compute mean
+    let scoreMean = allScores.reduce((acc, score) => acc + score, 0) / allScores.length;
+
+    // Step 3: Compute standard deviation
+    let scoreStdDev = Math.sqrt(
+        allScores.reduce((acc, score) => acc + Math.pow(score - scoreMean, 2), 0) / allScores.length
+    );
     // --- Feature Extraction + Labeling ---
     for (const game of gameData) {
         const homeStats = game['homeStats.data'];
@@ -272,14 +313,11 @@ const mlModelTraining = async (gameData, xs, ysWins, ysScore, sport, search, gam
             console.log(game.id);
             continue;
         }
-        let homeTeamAverageOdds = game.bookmakers?.length ? game.bookmakers.reduce((sum, bm) => {
-            const outcome = bm.markets.find(market => market.key === 'h2h')?.outcomes.find(o => o.name === game.homeTeamDetails.expnDisplayName);
-            return sum + (outcome ? outcome.price : 0);
-        }, 0): 0;
-        // console.log(homeTeamAverageOdds)
-        const statFeatures = await extractSportFeatures(normalizedHome, normalizedAway, sport.name)
+
+        const statFeatures = await extractSportFeatures(normalizedHome, normalizedAway, sport.name, allPastGames, game)
         const winLabel = game.winner === 'home' ? 1 : 0;
-        const scoreLabel = [game.homeScore, game.awayScore];
+        const scoreLabel = [((game.homeScore - scoreMean) / scoreStdDev), ((game.awayScore - scoreMean) / scoreStdDev)];
+        // const scoreLabel = [game.homeScore, game.awayScore]
         if (statFeatures.some(isNaN) || scoreLabel == null) {
             console.error('NaN or invalid value detected in features during Training:', game.id);
             process.exit(0);
@@ -379,7 +417,7 @@ const mlModelTraining = async (gameData, xs, ysWins, ysScore, sport, search, gam
     return { model, updatedGameCount: gameCount, teamStatsHistory };
 };
 
-const predictions = async (sportOdds, ff, model, sport, past, search, pastGames) => {
+const predictions = async (sportOdds, ff, model, sport, past, search, teamHistory, pastGames) => {
     console.info(`STARTING PREDICTIONS FOR ${sport.name} @ ${moment().format('HH:mm:ss')}`);
 
     if (past) {
@@ -390,6 +428,10 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
 
     let sportOddsHomeAwaySplit = sportOdds.filter(g => g.winner === 'home').length / sportOdds.length;
     // Stats and counters
+    let minScorePredicted = Infinity;
+    let maxScorePredicted = -Infinity;
+    let minScoreReal = Infinity
+    let maxScoreReal = -Infinity
     let predictionsChanged = 0;
     let newWinnerPredictions = 0;
     let newLoserPredictions = 0;
@@ -440,9 +482,18 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
 
     }
 
+    const teamStatsHistory = teamHistory; // pastGames is now the map
 
-    const teamStatsHistory = pastGames; // pastGames is now the map
+    // Step 1: Flatten all scores into one array
+    let allScores = pastGames.flatMap(game => [game.homeScore, game.awayScore]);
 
+    // Step 2: Compute mean
+    let testScoreMean = allScores.reduce((acc, score) => acc + score, 0) / allScores.length;
+
+    // Step 3: Compute standard deviation
+    let testScoreStdDev = Math.sqrt(
+        allScores.reduce((acc, score) => acc + Math.pow(score - testScoreMean, 2), 0) / allScores.length
+    );
     for (const game of sportOdds) {
         if (new Date(game.commence_time) < new Date() && !search) continue
         const homeRawStats = game['homeStats.data'];
@@ -457,15 +508,18 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
             return;
         }
 
-        const statFeatures = await extractSportFeatures(normalizedHome, normalizedAway, sport.name)
+        const statFeatures = await extractSportFeatures(normalizedHome, normalizedAway, sport.name, pastGames, game)
 
         if (statFeatures.some(isNaN)) {
             console.error('NaN detected in features Predictions:', game.id);
             return;
         }
         const [predScore, predWinProb] = await repeatPredictions(model, tf.tensor2d([statFeatures]), search ? 10 : 100);
-        let [homeScore, awayScore] = predScore;
-
+        let [homeScore, awayScore] = [
+            (predScore[0] * testScoreStdDev) + testScoreMean,
+            (predScore[1] * testScoreStdDev) + testScoreMean
+        ]
+        // let [homeScore, awayScore] = predScore
 
         let predictionConfidence = predWinProb > 0.5 ? predWinProb[0] : 1 - predWinProb[0];
 
@@ -485,20 +539,20 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
         };
 
         // Track changes and distributions
-        if (game.predictedWinner !== predictedWinner) {
-            predictionsChanged++;
+        // if (game.predictedWinner !== predictedWinner) {
+        //     predictionsChanged++;
 
-            if (!past && !search) {
-                const oldWinner = game.predictedWinner === 'home'
-                    ? game['homeTeamDetails.espnDisplayName']
-                    : game['awayTeamDetails.espnDisplayName'];
-                const newWinner = predictedWinner === 'home'
-                    ? game['homeTeamDetails.espnDisplayName']
-                    : game['awayTeamDetails.espnDisplayName'];
+        if (!past && !search) {
+            const oldWinner = game.predictedWinner === 'home'
+                ? game['homeTeamDetails.espnDisplayName']
+                : game['awayTeamDetails.espnDisplayName'];
+            const newWinner = predictedWinner === 'home'
+                ? game['homeTeamDetails.espnDisplayName']
+                : game['awayTeamDetails.espnDisplayName'];
 
-                console.log(`Prediction changed for game ${game.id}: ${predictedWinner === 'home' ? 'HOME' : 'AWAY'} ${oldWinner} → ${newWinner}  (Confidence: ${predictionConfidence}) Score ([home, away]) [${Math.round(homeScore)}, ${Math.round(awayScore)}]`);
-            }
+            console.log(`Prediction changed for game ${game.id}: ${predictedWinner === 'home' ? 'HOME' : 'AWAY'} ${oldWinner} → ${newWinner}  (Confidence: ${predictionConfidence}) Score ([home, away]) [${Math.round(homeScore)}, ${Math.round(awayScore)}]`);
         }
+        // }
 
         if (game.predictionConfidence !== predictionConfidence) {
             newConfidencePredictions++;
@@ -543,10 +597,19 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
             if ((homeScore + awayScore) === (game.homeScore + game.awayScore)) {
                 totalMatch++;
             }
+
+            if (homeScore > maxScorePredicted) maxScorePredicted = Math.round(homeScore);
+            if (awayScore > maxScorePredicted) maxScorePredicted = Math.round(awayScore);
+            if (homeScore < minScorePredicted) minScorePredicted = Math.round(homeScore);
+            if (awayScore < minScorePredicted) minScorePredicted = Math.round(awayScore);
+            if (game.homeScore > maxScoreReal) maxScoreReal = Math.round(game.homeScore);
+            if (game.awayScore > maxScoreReal) maxScoreReal = Math.round(game.awayScore);
+            if (game.homeScore < minScoreReal) minScoreReal = Math.round(game.homeScore);
+            if (game.awayScore < minScoreReal) minScoreReal = Math.round(game.awayScore);
         }
 
         if (!past && !search) {
-            await db.Games.update(updatePayload, { where: { id: game.id } });
+            // await db.Games.update(updatePayload, { where: { id: game.id } });
         }
 
         if (past || search) {
@@ -573,6 +636,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
     }
     // Summary output
     if (past || search) {
+        console.log(`PREDICTION SCORE RANGE: [${minScorePredicted} - ${maxScorePredicted}] REAL SCORE RANGE: [${minScoreReal} - ${maxScoreReal}]`)
         console.log(`OUT OF ${sportOdds.length} GAMES [TOTAL WINS: ${totalWins}, TOTAL LOSSES: ${totalLosses}]: MATCHED SPREADS: ${spreadMatch} MATCHED SCORES: ${matchedScore} MISMATCHED PREDICTIONS: ${misMatched} TIE GAMES: ${tieGames} HOME: ${home} AWAY: ${away}`);
     }
 
@@ -585,12 +649,16 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
         const empiricalAccuracy = bucket.correct / bucket.total;
         const idealConfidence = bucket.range[1]; // upper bound is your "ideal"
 
-        // Penalize both overconfidence and underconfidence
-        const error = Math.abs(empiricalAccuracy - idealConfidence);
+        // Weight error more heavily for high-confidence buckets
+        const weight = idealConfidence; // or Math.pow(idealConfidence, 2) for stronger penalty
+        const error = weight * Math.abs(empiricalAccuracy - idealConfidence);
 
         bucketCalibrationPenalty += error;
         bucketCount++;
     }
+
+
+    const scoreRangeMAE = (Math.abs(minScoreReal - minScorePredicted) + Math.abs(maxScoreReal - maxScorePredicted)) / 2
 
     const avgBucketCalibrationError = bucketCount > 0 ? bucketCalibrationPenalty / bucketCount : 0;
     const calibrationScore = 1 - avgBucketCalibrationError; // closer to 1 is better
@@ -603,27 +671,17 @@ const predictions = async (sportOdds, ff, model, sport, past, search, pastGames)
 
 
     if (search) {
-        const winRate = totalWins / sportOdds.length;
+        const winRate = (totalWins / sportOdds.length) * 100;
         let predictedHomeAwaySplit = home / sportOdds.length;
 
         const splitMatchScore = Math.pow(1 - Math.abs(predictedHomeAwaySplit - sportOddsHomeAwaySplit) * 2, 2);
-
-
-        // Updated weights
-        const WINRATE_WEIGHT = 0.5;
-        const CALIBRATION_WEIGHT = 0.3;
-
-
-        const combinedScore =
-            (winRate * WINRATE_WEIGHT) +
-            (calibrationScore * CALIBRATION_WEIGHT)
-        // matchedScore
-
-        console.log(`(Winrate: ${(winRate * 100).toFixed(2)}%, Calibration: ${calibrationScore.toFixed(4)}, Combined Score: ${combinedScore.toFixed(4)} Combined Score with Split: ${(combinedScore * splitMatchScore).toFixed(4)})`);
+        // console.log(`(Winrate: ${(winRate * 100).toFixed(2)}%, Calibration: ${calibrationScore.toFixed(4)}`);
 
         return {
             winRate,
-            combinedScore: combinedScore * splitMatchScore,
+            calibrationScore,
+            splitMatchScore,
+            scoreRangeMAE
         };
 
     }
@@ -635,7 +693,7 @@ const trainSportModelKFold = async (sport, gameData, search) => {
     console.log(hyperParams)
     // Sort historical game data and slice off the most recent 10% for testing
     const sortedGameData = gameData
-        .sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time))
+        // .sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time))
         .slice(0, gameData.length - Math.floor(gameData.length * 0.10));
 
     console.log(`${sortedGameData[0].commence_time.toLocaleString()} - ${sortedGameData[sortedGameData.length - 1].commence_time.toLocaleString()}`);
@@ -651,6 +709,8 @@ const trainSportModelKFold = async (sport, gameData, search) => {
 
     bar.start(totalFolds, 0);
 
+    let sortedPastGames = gameData.sort((a, b) => new Date(b.commence_time) - new Date(a.commence_time));
+
     for (let foldIndex = 1; foldIndex <= numFolds; foldIndex++) {
         // Define training and validation split for this fold
         const trainEnd = Math.floor((foldIndex / (numFolds + 1)) * sortedGameData.length);
@@ -664,7 +724,7 @@ const trainSportModelKFold = async (sport, gameData, search) => {
 
         // Train model
         const { model, updatedGameCount, teamStatsHistory } = await mlModelTraining(
-            trainingData, [], [], [], sport, search, gameCount, sortedGameData
+            trainingData, [], [], [], sport, search, gameCount, sortedPastGames
         );
 
 
@@ -680,7 +740,16 @@ const trainSportModelKFold = async (sport, gameData, search) => {
         const spreadErrors = [];
         const totalErrors = [];
 
+        // Step 1: Flatten all scores into one array
+        let allScores = gameData.flatMap(game => [game.homeScore, game.awayScore]);
 
+        // Step 2: Compute mean
+        let testScoreMean = allScores.reduce((acc, score) => acc + score, 0) / allScores.length;
+
+        // Step 3: Compute standard deviation
+        let testScoreStdDev = Math.sqrt(
+            allScores.reduce((acc, score) => acc + Math.pow(score - testScoreMean, 2), 0) / allScores.length
+        );
 
         for (const game of testData) {
             const homeStats = game['homeStats.data'];
@@ -694,9 +763,9 @@ const trainSportModelKFold = async (sport, gameData, search) => {
                 return;
             }
 
-            const statFeatures = await extractSportFeatures(normalizedHome, normalizedAway, sport.name)
+            const statFeatures = await extractSportFeatures(normalizedHome, normalizedAway, sport.name, sortedPastGames, game)
 
-            const homeScoreLabel = [game.homeScore, game.awayScore];
+            const homeScoreLabel = [((game.homeScore - testScoreMean) / testScoreStdDev), ((game.awayScore - testScoreMean) / testScoreStdDev)];
             const homeWinLabel = game.winner === 'home' ? 1 : 0;
 
             if (statFeatures.some(isNaN) || homeWinLabel == null) {
@@ -710,7 +779,12 @@ const trainSportModelKFold = async (sport, gameData, search) => {
             testYsScore.push(homeScoreLabel);
             testYsWins.push(homeWinLabel);
             const [avgScore, avgWinProb] = await repeatPredictions(model, tf.tensor2d([statFeatures]), 10);
-            const [predHome, predAway] = avgScore;
+            let [predHome, predAway] = [
+                (avgScore[0] * testScoreStdDev) + testScoreMean,
+                (avgScore[1] * testScoreStdDev) + testScoreMean
+            ]
+            // let [predHome, predAway] = avgScore
+            // const [predHome, predAway] = avgScore;
             const [actualHome, actualAway] = [game.homeScore, game.awayScore];
 
             const predSpread = predHome - predAway;
@@ -775,7 +849,7 @@ const trainSportModelKFold = async (sport, gameData, search) => {
         // After k-folds
         const fullTrainingData = sortedGameData;
         const { model: finalModel } = await mlModelTraining(
-            fullTrainingData, [], [], [], sport, search, gameCount, sortedGameData
+            fullTrainingData, [], [], [], sport, search, gameCount, sortedPastGames
         );
 
         const testSlice = gameData
@@ -807,21 +881,39 @@ const trainSportModelKFold = async (sport, gameData, search) => {
             }
         }
 
-        const { winRate, combinedScore } = await predictions(testSlice, [], finalModel, sport, false, search, teamStatsHistory);
-        console.log(`--- Overall WINRATE ON UNSEEN DATA: ${(winRate * 100).toFixed(2)} ---`);
+        const { winRate,
+            calibrationScore,
+            splitMatchScore,
+            scoreRangeMAE } = await predictions(testSlice, [], finalModel, sport, false, search, teamStatsHistory, gameData);
+        console.log(`--- Overall WINRATE ON UNSEEN DATA: ${(winRate).toFixed(2)} ---`);
 
         const compositeScore =
-            ((combinedScore * 100)) +           // ↓ Combined Score of winrate and calibration (done in predictions)
-            (-(avgSpreadMAE) * 0.6) +           // ↓ Slightly reduce spread MAE penalty
-            (-(avgTotalMAE) * 0.4) +            // ↓ Slightly reduce total MAE penalty
-            (-(avgMAE) * 0.8);                  // ↑ Slight increase to avg MAE to differentiate
-        console.log(`Composite Score Breakdown:`);
-        console.log(`  - Combined Score (Winrate & Calibration): ${(combinedScore * 100).toFixed(2)}`);
-        console.log(`  - Spread MAE Penalty: ${(-avgSpreadMAE * 0.6).toFixed(2)}`);
-        console.log(`  - Total MAE Penalty: ${(-avgTotalMAE * 0.4).toFixed(2)}`);
-        console.log(`  - Avg MAE Penalty: ${(-avgMAE * 0.8).toFixed(2)}`);
+            (winRate * 1.5) +                 // Strong positive effect
+            (calibrationScore * 20) +         // 0.0–1.0 → 0–25
+            (splitMatchScore * 25) +          // 0.0–1.0 → 0–25
+            (-(scoreRangeMAE) * 3) +        // Moderate penalty (can be high)
+            (-(avgSpreadMAE) * 1.5) +            // Lower penalty
+            (-(avgTotalMAE) * 1.5) +             // Lower penalty
+            (-(avgMAE) * 2.0);                // Slightly stronger penalty (since it's often lower range)
+
+        console.log(`BREAKDOWN OF SCORE SOURCES:`);
+        console.log(`  - WinRate: ${(winRate).toFixed(2)}`);
+        console.log(`  - Calibration Score: ${(calibrationScore).toFixed(2)}`);
+        console.log(`  - SplitMatchScore: ${(splitMatchScore).toFixed(2)}`);
+        console.log(`  - ScoreRangeMAE: ${(scoreRangeMAE).toFixed(2)}`);
+        console.log(`  - Spread MAE: ${(avgSpreadMAE).toFixed(2)}`);
+        console.log(`  - Total MAE: ${(avgTotalMAE).toFixed(2)}`);
+        console.log(`  - Avg MAE: ${(avgMAE).toFixed(2)}`);
+        console.log(`-----------BREAKDOWN OF FINAL SCORE:--------------------`);
+        console.log(`  - WinRate: ${(winRate * 1.5).toFixed(2)}`);
+        console.log(`  + Calibration Score: ${(calibrationScore * 20).toFixed(2)}`);
+        console.log(`  + SplitMatchScore: ${(splitMatchScore * 30).toFixed(2)}`);
+        console.log(`  - ScoreRangeMAE: ${((-(scoreRangeMAE) * 3)).toFixed(2)}`);
+        console.log(`  - Spread MAE: ${((-(avgSpreadMAE) * 1.5)).toFixed(2)}`);
+        console.log(`  - Total MAE: ${((-(avgTotalMAE) * 1.5)).toFixed(2)}`);
+        console.log(`  - Avg MAE: ${((-(avgMAE) * 2.0)).toFixed(2)}`);
         console.log(`--- FINAL HYPERPARAM SCORE: ${(compositeScore).toFixed(2)} ---`);
-        return compositeScore;
+        return winRate;
     }
 
     const fullTrainingData = gameData
@@ -846,7 +938,7 @@ const trainSportModelKFold = async (sport, gameData, search) => {
     }
 
     // // Extract feature importances
-    await extractAndSaveFeatureImportances(finalModel, sport);
+    // await extractAndSaveFeatureImportances(finalModel, sport);
 
     if (global.gc) global.gc();
     console.log(`ml model done for ${sport.name} @ ${moment().format('HH:mm:ss')}`);

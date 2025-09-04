@@ -118,7 +118,7 @@ const mlModelTrainSeed = async () => {
                     }
                 }
 
-                await predictions(upcomingGames, [], model, sport, false, false, teamStatsHistory)
+                await predictions(upcomingGames, [], model, sport, false, false, teamStatsHistory, pastGames)
                 let newSport = await db.Sports.findOne({
                     where: { name: sport.name },
                     include: [{ model: db.MlModelWeights, as: 'MlModelWeights' }, { model: db.HyperParams, as: 'hyperParams' }],
@@ -884,6 +884,6 @@ const modelReset = async () => {
 }
 
 // hyperParam()
-// modelReset()
+modelReset()
 
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed }
