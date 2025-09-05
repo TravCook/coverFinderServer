@@ -31,25 +31,25 @@ const hyperparameterRandSearch = async (sports) => {
     console.log(`STARTING HYPERPARAM SEARCH @ ${moment().format('HH:mm:ss')}`);
 
     const space = {
-        learningRate: { type: 'log', min: 1e-4, max: 5e-3 },
+        learningRate: { type: 'fload', min: .0001, max: .001 },
         batchSize: { type: 'int', min: 16, max: 128 },
         epochs: { type: 'int', min: 20, max: 160 },
-        hiddenLayerNum: { type: 'int', min: 2, max: 8 },
-        layerNeurons: { type: 'int', min: 16, max: 256 },
+        hiddenLayerNum: { type: 'int', min: 4, max: 8 },
+        layerNeurons: { type: 'int', min: 64, max: 256 },
         // l2reg: { type: 'log', min: 1e-5, max: 5e-2 },
-        // dropoutReg: { type: 'float', min: 0.1, max
+        // dropoutReg: { type: 'float', min: 0, max: .3},
         kFolds: { type: 'int', min: 3, max: 12 },
-        historyLength: { type: 'int', min: 30, max: 150 },
+        historyLength: { type: 'int', min: 30, max: 100 },
         gameDecayValue: { type: 'float', min: 0.85, max: 0.98 },
         decayStepSize: { type: 'int', min: 5, max: 80 },
         scoreLossWeight: { type: 'float', min: 2.0, max: 8.0 },
         winPctLossWeight: { type: 'float', min: 0.3, max: 4.0 },
-        earlyStopPatience: { type: 'int', min: 2, max: 10 }
+        earlyStopPatience: { type: 'int', min: 4, max: 10 }
     };
 
 
     for (let sport of sports.sort((a, b) => a.startMonth - b.startMonth)) {
-        if(sport.name !== 'americanfootball_nfl' ) continue; // Skip baseball for now
+        // if(sport.name !== 'americanfootball_nfl' ) continue; // Skip baseball for now
         const validBatchSizes = [16, 32, 64, 128];
         const validLayerNeurons = [16, 32, 64, 128, 256];
 

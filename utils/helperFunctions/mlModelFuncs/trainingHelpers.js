@@ -287,9 +287,12 @@ const loadOrCreateModel = async (xs, sport, search) => {
     }
 };
 
-const mlModelTraining = async (gameData, xs, ysWins, ysScore, sport, search, gameCount, allPastGames) => {
+const mlModelTraining = async (gameData, sport, search, gameCount, allPastGames) => {
     const statMap = statConfigMap[sport.espnSport].default;
     const hyperParams = await getHyperParams(sport, search)
+    xs= [] 
+    ysWins = [] 
+    ysScore =[]
     let teamStatsHistory = {};
     // Step 1: Flatten all scores into one array
     let allScores = allPastGames.flatMap(game => [game.homeScore, game.awayScore]);
@@ -539,8 +542,8 @@ const predictions = async (sportOdds, ff, model, sport, past, search, teamHistor
         };
 
         // Track changes and distributions
-        if (game.predictedWinner !== predictedWinner) {
-            predictionsChanged++;
+        // if (game.predictedWinner !== predictedWinner) {
+        //     predictionsChanged++;
 
             if (!past && !search) {
                 const oldWinner = game.predictedWinner === 'home'
@@ -552,7 +555,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, teamHistor
 
                 console.log(`Prediction changed for game ${game.id}: ${predictedWinner === 'home' ? 'HOME' : 'AWAY'} ${oldWinner} → ${newWinner}  (Confidence: ${predictionConfidence}) Score ([home, away]) [${Math.round(homeScore)}, ${Math.round(awayScore)}]`);
             }
-        }
+        // }
 
         if (game.predictionConfidence !== predictionConfidence) {
             newConfidencePredictions++;
@@ -693,7 +696,6 @@ const trainSportModelKFold = async (sport, gameData, search) => {
     console.log(hyperParams)
     // Sort historical game data and slice off the most recent 10% for testing
     const sortedGameData = gameData
-        // .sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time))
         .slice(0, gameData.length - (gameData.length > 3000 ? Math.floor(gameData.length * 0.10) : Math.floor(gameData.length * .30)));
 
     console.log(`${sortedGameData[0].commence_time.toLocaleString()} - ${sortedGameData[sortedGameData.length - 1].commence_time.toLocaleString()}`);
@@ -724,7 +726,7 @@ const trainSportModelKFold = async (sport, gameData, search) => {
 
         // Train model
         const { model, updatedGameCount, teamStatsHistory } = await mlModelTraining(
-            trainingData, [], [], [], sport, search, gameCount, sortedPastGames
+            trainingData, sport, search, gameCount, sortedPastGames
         );
 
 
@@ -849,7 +851,7 @@ const trainSportModelKFold = async (sport, gameData, search) => {
         // After k-folds
         const fullTrainingData = sortedGameData;
         const { model: finalModel } = await mlModelTraining(
-            fullTrainingData, [], [], [], sport, search, gameCount, sortedPastGames
+            fullTrainingData, sport, search, gameCount, sortedPastGames
         );
 
         const testSlice = gameData
@@ -918,10 +920,10 @@ const trainSportModelKFold = async (sport, gameData, search) => {
 
     const fullTrainingData = gameData
         .sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time)); // All
-    const xs = [], ysWins = [], ysScore = [];
+
 
     const { model: retrainedModel } = await mlModelTraining(
-        fullTrainingData, xs, ysWins, ysScore, sport, search, gameCount, sortedGameData
+        fullTrainingData, sport, search, gameCount, sortedGameData
     );
 
     finalModel = retrainedModel;
