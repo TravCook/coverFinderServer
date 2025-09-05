@@ -1,9 +1,11 @@
 const moment = require('moment')
 const { Odds, PastGameOdds, UsaFootballTeam, BasketballTeam, BaseballTeam, HockeyTeam, Sport, Weights } = require('../../../models');
-const {  baseballStatMap, basketballStatMap, hockeyStatMap, footballStatMap, battingStats, pitchingStats, fieldingStats, generalStats, footballDefenseStats, footballKickingStats, footballOtherStats, footballPassingStats, footballRecievingStats, footballReturningStats, footballRushingStats, hockeyDefenseStats, hockeyOffenseStats, hockeyPenaltyStats, basketballDefenseStats, basketballOffenseStats} = require('../../statMaps');
+const { baseballStatMap, basketballStatMap, hockeyStatMap, footballStatMap, battingStats, pitchingStats, fieldingStats, generalStats, footballDefenseStats, footballKickingStats, footballOtherStats, footballPassingStats, footballRecievingStats, footballReturningStats, footballRushingStats, hockeyDefenseStats, hockeyOffenseStats, hockeyPenaltyStats, basketballDefenseStats, basketballOffenseStats } = require('../../statMaps');
 const { calculateTeamIndex } = require('../mlModelFuncs/indexHelpers.js');
 const { normalizeStat, predictions } = require('../mlModelFuncs/trainingHelpers.js')
 const db = require('../../../models_sql');
+const Sequelize = require('sequelize');
+const { Op } = Sequelize;
 const { isSportInSeason } = require('../mlModelFuncs/sportHelpers.js');
 
 const getTeamRecordUrl = (month, startMonth, endMonth, espnSport, league, statYear, espnID) => {
@@ -38,7 +40,7 @@ const updateTeamRecord = (team, teamRecordJson) => {
     }
 };
 // Helper function to update team stats
-const updateTeamStats = (team, statName, value, perGameValue, displayValue, category) => {
+const updateTeamStats = (team, statName, value, perGameValue, displayValue, category, pitcher) => {
     const statMap = {
         'assists': [
             { modelField: 'BSKBassists', category: 'offensive' },
@@ -405,23 +407,36 @@ const updateTeamStats = (team, statName, value, perGameValue, displayValue, cate
         for (const statInfo of statMap[statName]) {
             // Ensure the stats object exists
             team.currentStats = team.currentStats || {};
-
+            if (pitcher) {
+                team.pitcherStats[pitcher] = team.pitcherStats[pitcher] || {};
+            }
             // Check if the category matches
             if (statInfo.category === category) {
                 const statKey = statInfo.modelField;
 
                 // If it's a per-game stat, update with perGameValue
                 if (statInfo.isPerGame || statInfo.isDisplayValue) {
-                    statInfo.isDisplayValue ? team.currentStats[statKey] = displayValue : 0
-                    statInfo.isPerGame ? team.currentStats[statKey] = perGameValue : 0;
+
+                    if (pitcher) {
+                        statInfo.isDisplayValue ? team.pitcherStats[pitcher][statKey] = displayValue : 0
+                        statInfo.isPerGame ? team.pitcherStats[pitcher][statKey] = perGameValue : 0;
+                    } else {
+                        statInfo.isDisplayValue ? team.currentStats[statKey] = displayValue : 0
+                        statInfo.isPerGame ? team.currentStats[statKey] = perGameValue : 0;
+                    }
                 } else {
                     // If it's not a per-game stat, store the regular value
-                    team.currentStats[statKey] = value;
+
+                    if (pitcher) {
+                        team.pitcherStats[pitcher][statKey] = value;
+                    } else {
+                        team.currentStats[statKey] = value;
+                    }
                 }
             }
         }
     }
-
+    if (pitcher) return team.pitcherStats[pitcher]
     return team;
 };
 
@@ -469,55 +484,192 @@ const fetchAllTeamData = async (sport, teams, statYear, TeamModel, statWeights) 
             updateTeamRecord(team, teamRecordJson);
 
             // Fetch team stats
-            let teamStatResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/${sport.espnSport}/leagues/${sport.league}/seasons/${statYear}/types/2/teams/${team.espnID}/statistics?lang=en&region=us`);
-            let teamStatJson = await teamStatResponse.json();
-            if (teamStatJson.splits) {
-                for (const category of teamStatJson.splits.categories) {
-                    for (const stat of category.stats) {
-                        team = updateTeamStats(team, stat.name, stat.value, stat.perGameValue, stat.displayValue, category.name);
-                    }
+            // pseudocode for baseball stat re-work
+            // find event in teams upcoming games
+            // find probable pitcher
+            // retrieve pitching stats for pitcher
+            // retrieve batting and fielding stats for team
+            if (sport.name === 'baseball_mlb') {
+                let upcomingGames = await db.Games.findAll({
+                    where: { sport_key: sport.name, complete: false },
+                    include: [
+                        { model: db.Teams, as: 'homeTeamDetails' },
+                        { model: db.Teams, as: 'awayTeamDetails' },
+                        { model: db.Sports, as: 'sportDetails' },
+                        {
+                            model: db.Stats, as: `homeStats`, required: true,
+                            where: {
+                                [Op.and]: [
+                                    { teamId: { [Op.eq]: Sequelize.col('Games.homeTeam') } },
+                                    { gameId: { [Op.eq]: Sequelize.col('Games.id') } }
+                                ]
+                            }
+                        },
+                        {
+                            model: db.Stats, as: `awayStats`, required: true,
+                            where: {
+                                [Op.and]: [
+                                    { teamId: { [Op.eq]: Sequelize.col('Games.awayTeam') } },
+                                    { gameId: { [Op.eq]: Sequelize.col('Games.id') } }
+                                ]
+                            }
+                        }],
+                    raw: true
                 }
-            }else{
-                teamStatResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/${sport.espnSport}/leagues/${sport.league}/seasons/${statYear - 1}/types/2/teams/${team.espnID}/statistics?lang=en&region=us`);
-                teamStatJson = await teamStatResponse.json();
+                )
+                try {
+                    let currentScoreboard = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport.espnSport}/${sport.league}/teams/${team.espnID}/schedule`);
+                    let scoreBoardJSon = await currentScoreboard.json()
+                    let teamGames = upcomingGames.find(g => g.homeTeam === team.id || g.awayTeam === team.id)
+                    if (teamGames) {
+                        if (teamGames.length > 1) {
+                            for (let game of teamGames) {
+                                if (!game.probablePitcher) {
+                                    const gameTime = new Date(game.commence_time);
+                                    const event = scoreBoardJSon.events.find((event) => (event.name === `${game['awayTeamDetails.espnDisplayName']} at ${game['homeTeamDetails.espnDisplayName']}`
+                                        || event.shortName === `${game['awayTeamDetails.espnDisplayName']} @ ${game['homeTeamDetails.espnDisplayName']}`
+                                        || event.shortName === `${game['homeTeamDetails.espnDisplayName']} VS ${game['awayTeamDetails.espnDisplayName']}`)
+                                        && Math.abs(new Date(event.date) - gameTime) < 1000 * 60 * 90)
+                                    if (event) {
+                                        let competitionTeam = await event.competitions[0].competitors.find((c) => parseInt(c.id) === team.espnID)
+                                        let probablePitcher = competitionTeam.probables.find(p => p.name === 'probableStartingPitcher')
+
+                                        let pitcherStats = await fetch(`https://sports.core.api.espn.com/v2/sports/baseball/leagues/mlb/seasons/2025/types/2/athletes/${probablePitcher.playerId}/statistics?lang=en&region=us`)
+                                        let pitcherStatsJSON = await pitcherStats.json()
+                                        if (pitcherStatsJSON.splits) {
+                                            for (const category of pitcherStatsJSON.splits.categories) {
+                                                if (category.name !== 'pitching') continue
+                                                for (const stat of category.stats) {
+                                                    if (!team.pitcherStats) {
+                                                        team.pitcherStats = {}
+                                                    }
+                                                    if (!team.pitcherStats[probablePitcher.playerId]) {
+                                                        team.pitcherStats[probablePitcher.playerId] = {}
+                                                    }
+                                                    // team = updateTeamStats(team, stat.name, stat.value, stat.perGameValue, stat.displayValue, category.name); //UPDATE FUNCTION TO HANDLE UPDATING PITCHER STATS
+                                                    // need mutation to save pitcher stats to team
+                                                    team.pitcherStats[probablePitcher.playerId] = updateTeamStats(team, stat.name, stat.value, stat.perGameValue, stat.displayValue, category.name, probablePitcher.playerId)
+                                                }
+                                            }
+                                        }
+                                        await db.Games.update({
+                                            probablePitcher: probablePitcher.athlete
+                                        }, { where: { id: game.id } })
+                                    }
+                                }
+                            }
+                        } else {
+                            if (!teamGames.probablePitcher) {
+                                const gameTime = new Date(teamGames.commence_time);
+                                const event = scoreBoardJSon.events.find((event) => (event.name === `${teamGames['awayTeamDetails.espnDisplayName']} at ${teamGames['homeTeamDetails.espnDisplayName']}`
+                                    || event.shortName === `${teamGames['awayTeamDetails.espnDisplayName']} @ ${teamGames['homeTeamDetails.espnDisplayName']}`
+                                    || event.shortName === `${teamGames['homeTeamDetails.espnDisplayName']} VS ${teamGames['awayTeamDetails.espnDisplayName']}`)
+                                    && Math.abs(new Date(event.date) - gameTime) < 1000 * 60 * 90)
+                                if (event) {
+                                    let competitionTeam = await event.competitions[0].competitors.find((c) => parseInt(c.id) === team.espnID)
+                                    let probablePitcher = competitionTeam.probables.find(p => p.name === 'probableStartingPitcher')
+
+                                    let pitcherStats = await fetch(`https://sports.core.api.espn.com/v2/sports/baseball/leagues/mlb/seasons/2025/types/2/athletes/${probablePitcher.playerId}/statistics?lang=en&region=us`)
+                                    let pitcherStatsJSON = await pitcherStats.json()
+                                    if (pitcherStatsJSON.splits) {
+                                        for (const category of pitcherStatsJSON.splits.categories) {
+                                            if (category.name !== 'pitching') continue
+                                            for (const stat of category.stats) {
+                                                if (!team.pitcherStats) {
+                                                    team.pitcherStats = {}
+                                                }
+                                                if (!team.pitcherStats[probablePitcher.playerId]) {
+                                                    team.pitcherStats[probablePitcher.playerId] = {}
+                                                }
+                                                // need mutation to save pitcher stats to team
+                                                team.pitcherStats[probablePitcher.playerId] = updateTeamStats(team, stat.name, stat.value, stat.perGameValue, stat.displayValue, category.name, probablePitcher.playerId)
+
+                                            }
+                                        }
+                                    } 
+                                    await db.Games.update({
+                                        probablePitcher: probablePitcher.athlete
+                                    }, { where: { id: teamGames.id } })
+                                }
+                            }
+
+                        }
+                    }
+                    let teamStatResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/${sport.espnSport}/leagues/${sport.league}/seasons/${statYear}/types/2/teams/${team.espnID}/statistics?lang=en&region=us`);
+                    let teamStatJson = await teamStatResponse.json();
+                    if (teamStatJson.splits) {
+                        for (const category of teamStatJson.splits.categories) {
+                            for (const stat of category.stats) {
+                                team = updateTeamStats(team, stat.name, stat.value, stat.perGameValue, stat.displayValue, category.name, false);
+                            }
+                        }
+                    } else {
+                        teamStatResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/${sport.espnSport}/leagues/${sport.league}/seasons/${statYear - 1}/types/2/teams/${team.espnID}/statistics?lang=en&region=us`);
+                        teamStatJson = await teamStatResponse.json();
+                        if (teamStatJson.splits) {
+                            for (const category of teamStatJson.splits.categories) {
+                                for (const stat of category.stats) {
+                                    team = updateTeamStats(team, stat.name, stat.value, stat.perGameValue, stat.displayValue, category.name, false);
+                                }
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.log(err)
+                    console.log(`https://site.api.espn.com/apis/site/v2/sports/${sport.espnSport}/${sport.league}/teams/${team.espnID}/schedule`)
+                }
+
+            } else {
+                let teamStatResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/${sport.espnSport}/leagues/${sport.league}/seasons/${statYear}/types/2/teams/${team.espnID}/statistics?lang=en&region=us`);
+                let teamStatJson = await teamStatResponse.json();
                 if (teamStatJson.splits) {
-                for (const category of teamStatJson.splits.categories) {
-                    for (const stat of category.stats) {
-                        team = updateTeamStats(team, stat.name, stat.value, stat.perGameValue, stat.displayValue, category.name);
+                    for (const category of teamStatJson.splits.categories) {
+                        for (const stat of category.stats) {
+                            team = updateTeamStats(team, stat.name, stat.value, stat.perGameValue, stat.displayValue, category.name, false);
+                        }
+                    }
+                } else {
+                    teamStatResponse = await fetch(`https://sports.core.api.espn.com/v2/sports/${sport.espnSport}/leagues/${sport.league}/seasons/${statYear - 1}/types/2/teams/${team.espnID}/statistics?lang=en&region=us`);
+                    teamStatJson = await teamStatResponse.json();
+                    if (teamStatJson.splits) {
+                        for (const category of teamStatJson.splits.categories) {
+                            for (const stat of category.stats) {
+                                team = updateTeamStats(team, stat.name, stat.value, stat.perGameValue, stat.displayValue, category.name, false);
+                            }
+                        }
                     }
                 }
-            }
             }
             let statMap
             let statCategories
             switch (sport.name) {
                 case 'baseball_mlb':
                     statMap = baseballStatMap;
-                    statCategories = [{ label: 'general', statMap: generalStats },{ label: 'batting', statMap: battingStats }, { label: 'pitching', statMap: pitchingStats }, { label: 'fielding', statMap: fieldingStats },];
+                    statCategories = [{ label: 'general', statMap: generalStats }, { label: 'batting', statMap: battingStats }, { label: 'pitching', statMap: pitchingStats }, { label: 'fielding', statMap: fieldingStats },];
                     break;
                 case 'americanfootball_nfl':
                     statMap = footballStatMap;
-                    statCategories = [{ label: 'general', statMap: generalStats },{ label: 'rushing', statMap: footballRushingStats },{ label: 'passing', statMap: footballPassingStats },{ label: 'recieving', statMap: footballRecievingStats },{ label: 'defense', statMap: footballDefenseStats },{ label: 'kicking', statMap: footballKickingStats },{ label: 'other', statMap: footballOtherStats },{ label: 'returning', statMap: footballReturningStats } ];
+                    statCategories = [{ label: 'general', statMap: generalStats }, { label: 'rushing', statMap: footballRushingStats }, { label: 'passing', statMap: footballPassingStats }, { label: 'recieving', statMap: footballRecievingStats }, { label: 'defense', statMap: footballDefenseStats }, { label: 'kicking', statMap: footballKickingStats }, { label: 'other', statMap: footballOtherStats }, { label: 'returning', statMap: footballReturningStats }];
                     break;
                 case 'americanfootball_ncaaf':
                     statMap = footballStatMap;
-                    statCategories = [{ label: 'general', statMap: generalStats },{ label: 'rushing', statMap: footballRushingStats },{ label: 'passing', statMap: footballPassingStats },{ label: 'recieving', statMap: footballRecievingStats },{ label: 'defense', statMap: footballDefenseStats },{ label: 'kicking', statMap: footballKickingStats },{ label: 'other', statMap: footballOtherStats },{ label: 'returning', statMap: footballReturningStats }];
+                    statCategories = [{ label: 'general', statMap: generalStats }, { label: 'rushing', statMap: footballRushingStats }, { label: 'passing', statMap: footballPassingStats }, { label: 'recieving', statMap: footballRecievingStats }, { label: 'defense', statMap: footballDefenseStats }, { label: 'kicking', statMap: footballKickingStats }, { label: 'other', statMap: footballOtherStats }, { label: 'returning', statMap: footballReturningStats }];
                     break;
                 case 'basketball_nba':
                     statMap = basketballStatMap;
-                    statCategories = [{ label: 'general', statMap: generalStats }, { label: 'offense', statMap: basketballOffenseStats}, { label: 'defense', statMap: basketballDefenseStats}];
+                    statCategories = [{ label: 'general', statMap: generalStats }, { label: 'offense', statMap: basketballOffenseStats }, { label: 'defense', statMap: basketballDefenseStats }];
                     break;
                 case 'basketball_ncaab':
                     statMap = basketballStatMap;
-                    statCategories = [{ label: 'general', statMap: generalStats }, { label: 'offense', statMap: basketballOffenseStats}, { label: 'defense', statMap: basketballDefenseStats}];
+                    statCategories = [{ label: 'general', statMap: generalStats }, { label: 'offense', statMap: basketballOffenseStats }, { label: 'defense', statMap: basketballDefenseStats }];
                     break;
                 case 'basketball_wncaab':
                     statMap = basketballStatMap;
-                    statCategories = [{ label: 'general', statMap: generalStats }, { label: 'offense', statMap: basketballOffenseStats}, { label: 'defense', statMap: basketballDefenseStats}];
+                    statCategories = [{ label: 'general', statMap: generalStats }, { label: 'offense', statMap: basketballOffenseStats }, { label: 'defense', statMap: basketballDefenseStats }];
                     break;
                 case 'icehockey_nhl':
                     statMap = hockeyStatMap;
-                    statCategories = [{ label: 'general', statMap: generalStats }, { label: 'offense', statMap: hockeyOffenseStats}, { label: 'defense', statMap: hockeyDefenseStats}, { label: 'penalty', statMap: hockeyPenaltyStats}];
+                    statCategories = [{ label: 'general', statMap: generalStats }, { label: 'offense', statMap: hockeyOffenseStats }, { label: 'defense', statMap: hockeyDefenseStats }, { label: 'penalty', statMap: hockeyPenaltyStats }];
                     break;
             }
             let teamIndex = await calculateTeamIndex(team.currentStats, statWeights.featureImportanceScores, statMap, normalizeStat)
@@ -531,6 +683,7 @@ const fetchAllTeamData = async (sport, teams, statYear, TeamModel, statWeights) 
                 currentStats: team.currentStats,
                 statIndex: teamIndex,
                 statCategoryIndexes: statCategoryIndexes,
+                pitcherStats: team.pitcherStats
             }, {
                 where: {
                     id: team.id
@@ -556,22 +709,22 @@ const retrieveTeamsandStats = async (sports) => {
     for (let sport of sports) {
         let inSeason = isSportInSeason(sport)
         if (inSeason) {
-        console.log(`STARTING ${sport.name} TEAM SEEDING @ ${moment().format('HH:mm:ss')}`)
+            console.log(`STARTING ${sport.name} TEAM SEEDING @ ${moment().format('HH:mm:ss')}`)
 
-        let teams = await db.Teams.findAll({
-            where: {
-                league: sport.name,
-            },
-            raw: true
-        })
-        let statWeights = await db.MlModelWeights.findOne({
-            where: {
-                sport: sport.id
-            },
-            raw: true
-        })
-        await fetchAllTeamData(sport, teams, sport.statYear, db.Teams, statWeights)
-        console.log(`Finished ${sport.name} TEAM SEEDING @ ${moment().format('HH:mm:ss')}`)
+            let teams = await db.Teams.findAll({
+                where: {
+                    league: sport.name,
+                },
+                raw: true
+            })
+            let statWeights = await db.MlModelWeights.findOne({
+                where: {
+                    sport: sport.id
+                },
+                raw: true
+            })
+            await fetchAllTeamData(sport, teams, sport.statYear, db.Teams, statWeights)
+            console.log(`Finished ${sport.name} TEAM SEEDING @ ${moment().format('HH:mm:ss')}`)
         }
     }
     sportGames = null

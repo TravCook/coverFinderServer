@@ -106,6 +106,10 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.INTEGER,
             allowNull: false,
             defaultValue: 0
+        },
+        probablePitcher: {
+            type: DataTypes.JSONB,
+            allowNull: true
         }
     }, {
         sequelize,

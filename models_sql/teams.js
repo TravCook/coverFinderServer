@@ -60,6 +60,10 @@ module.exports = (sequelize, DataTypes) => {
         school: {
             type: DataTypes.STRING,
             allowNull: true
+        },
+        pitcherStats: {
+            type: DataTypes.JSONB,
+            allowNull: true
         }
     });
 

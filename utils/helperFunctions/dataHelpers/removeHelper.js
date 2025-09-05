@@ -6,7 +6,7 @@ const removePastGames = async (currentOdds) => {
     for (let game of currentOdds) {
 
         // Check if the game is in the past based on commence_time
-        if (new Date(game.commence_time) < new Date()) {
+        // if (new Date(game.commence_time) < new Date()) {
             const controller = new AbortController();  // Create the AbortController
             const signal = controller.signal;          // Get the signal from the controller
             if (game['homeTeamDetails.id'] && game['awayTeamDetails.id']) {
@@ -137,7 +137,7 @@ const removePastGames = async (currentOdds) => {
             homeTeam = null
             awayTeam = null
 
-        }
+        // }
     }
 }
 
