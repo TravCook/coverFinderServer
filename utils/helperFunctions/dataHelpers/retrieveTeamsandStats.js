@@ -566,6 +566,7 @@ const fetchAllTeamData = async (sport, teams, statYear, TeamModel, statWeights) 
                                 && Math.abs(new Date(event.date) - gameTime) < 1000 * 60 * 90)
                             if (event) {
                                 let competitionTeam = await event.competitions[0].competitors.find((c) => parseInt(c.id) === team.espnID)
+                                if(!competitionTeam.probables) return
                                 let probablePitcher = competitionTeam.probables.find(p => p.name === 'probableStartingPitcher')
 
                                 let pitcherStats = await fetch(`https://sports.core.api.espn.com/v2/sports/baseball/leagues/mlb/seasons/2025/types/2/athletes/${probablePitcher.playerId}/statistics?lang=en&region=us`)

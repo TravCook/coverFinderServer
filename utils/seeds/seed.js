@@ -401,8 +401,8 @@ const oddsSeed = async () => {
                                     raw: true
                                 });
 
-                                await statDBSaver(event, homeTeamSQL, dbSport, plainGame);
-                                await statDBSaver(event, awayTeamSQL, dbSport, plainGame);
+                                await statDBSaver(event, homeTeamSQL, dbSport, plainGame, 'home');
+                                await statDBSaver(event, awayTeamSQL, dbSport, plainGame, 'away');
                             }
 
                         }
@@ -415,7 +415,7 @@ const oddsSeed = async () => {
             if (err) throw (err)
         }
     };
-    await fetchDataWithBackoff(sports.filter(sport => isSportInSeason(sport)));
+    await fetchDataWithBackoff(sports.filter(sport => sport.name === 'baseball_mlb'));
     let allPastGamesSQL = await db.Games.findAll({
         where: {
             complete: true, // Only include completed games
@@ -883,7 +883,10 @@ const modelReset = async () => {
     await oddsSeed()
 }
 
+const pastBaseballPitcherStats = async () => {
+    
+}
+
 // hyperParam()
 // modelReset()
-// dataSeed()
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed }

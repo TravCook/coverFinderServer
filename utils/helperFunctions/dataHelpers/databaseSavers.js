@@ -93,7 +93,19 @@ const gameDBSaver = async (game, sport, past) => {
     }
 }
 
-const statDBSaver = async (game, team, sport, gameSQL) => {
+const statDBSaver = async (game, team, sport, gameSQL, homeAway) => {
+    let teamStats = team.currentStats
+    if (gameSQL.probablePitcher) {
+        let probablePitcher
+        if (homeAway === 'home') {
+            probablePitcher = gameSQL.probablePitcher.home
+        } else {
+            probablePitcher = gameSQL.probablePitcher.away
+        }
+        for (const stat in team.pitcherStats[probablePitcher.id]) {
+            if(stat !== 'BSBsaves' && stat !== 'BSBsavePct' && stat !== 'BSBshutouts') teamStats[stat] = team.pitcherStats[probablePitcher.id][stat]
+        }
+    }
     await db.Stats.upsert({
         gameId: gameSQL.id, // Use the SQL game ID
         teamId: team.id, // Use the SQL team ID
