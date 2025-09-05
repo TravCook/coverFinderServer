@@ -624,51 +624,7 @@ const pastGameStatsPoC = async () => {
                                 homeTeam.stats.homeWinLoss = incrementWinLoss(homeTeam.stats.homeWinLoss, false);     // Increment home losses for home
                                 homeTeam.stats.pointDiff = (homeTeam.stats.pointDiff || 0) + (homeScore - awayScore); // Update point difference for home
                             }
-                            // let gameExist = await PastGameOdds.aggregate([
-                            //     {
-                            //       $project: {
-                            //         // Ensure commence_time is already treated as a date
-                            //         commence_time_as_date: "$commence_time",  // No need for $toDate anymore
 
-                            //         // Truncate commence_time to the nearest 10-minute interval
-                            //         roundedCommenceTime: {
-                            //           $dateTrunc: {
-                            //             date: "$commence_time",  // Already a Date, no need for $toDate
-                            //             unit: "hour",  // Truncate to minute level
-                            //             binSize: 2  // 10-minute intervals
-                            //           }
-                            //         },
-                            //         home_team: 1,
-                            //         away_team: 1,
-                            //         sport_key: 1,
-                            //         id: 1,
-                            //         homeScore: 1,
-                            //         awayScore: 1
-                            //       }
-                            //     },
-                            //     {
-                            //       $match: {
-                            //         sport_key: sport.name,  // Replace with the dynamic sport variable
-                            //         home_team: homeTeam.espnDisplayName,  // Replace with the dynamic homeTeam
-                            //         away_team: awayTeam.espnDisplayName,  // Replace with the dynamic awayTeam
-                            //         roundedCommenceTime: new Date(event.date)  // Assuming event.commence_time is also a Date
-                            //       }
-                            //     },
-                            //     {
-                            //       $group: {
-                            //         _id: {
-                            //           commence_time: "$roundedCommenceTime",
-                            //           home_team: "$home_team",
-                            //           away_team: "$away_team",
-                            //           sport_key: "$sport_key",
-                            //           homeScore: "$homeScore",
-                            //           awayScore: "$awayScore"
-                            //         },
-                            //         count: { $sum: 1 },  // Count how many documents match this group
-                            //         ids: { $push: "$id" }
-                            //       }
-                            //     },
-                            //   ]);
                             let gameExist = []
                             if (gameExist.length > 0 && (homeScore !== undefined && homeScore !== null) && (awayScore !== undefined && awayScore !== null)) {
                                 existingGames++

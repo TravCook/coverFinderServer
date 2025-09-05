@@ -17,6 +17,7 @@ const Sequelize = require('sequelize');
 const { Op } = Sequelize;
 const { gameDBSaver, statDBSaver } = require('../helperFunctions/dataHelpers/databaseSavers');
 const { isSportInSeason } = require('../helperFunctions/mlModelFuncs/sportHelpers')
+const { statConfigMap } = require('../statMaps')
 
 // Suppress TensorFlow.js logging
 process.env.TF_CPP_MIN_LOG_LEVEL = '3'; // Suppress logs
@@ -875,7 +876,7 @@ const hyperParam = async () => {
 }
 
 const modelReset = async () => {
-    
+
     await mlModelTrainSeed()
 
     await dataSeed()
@@ -884,9 +885,94 @@ const modelReset = async () => {
 }
 
 const pastBaseballPitcherStats = async () => {
-    
+    let allPastBaseballGames = await db.Games.findAll({
+        where: { sport_key: 'baseball_mlb', complete: true }, include: [
+            { model: db.Teams, as: 'homeTeamDetails' },
+            { model: db.Teams, as: 'awayTeamDetails' },
+            { model: db.Sports, as: 'sportDetails' },
+            {
+                model: db.Stats, as: `homeStats`, required: true,
+                where: {
+                    [Op.and]: [
+                        { teamId: { [Op.eq]: Sequelize.col('Games.homeTeam') } },
+                        { gameId: { [Op.eq]: Sequelize.col('Games.id') } }
+                    ]
+                }
+            },
+            {
+                model: db.Stats, as: `awayStats`, required: true,
+                where: {
+                    [Op.and]: [
+                        { teamId: { [Op.eq]: Sequelize.col('Games.awayTeam') } },
+                        { gameId: { [Op.eq]: Sequelize.col('Games.id') } }
+                    ]
+                }
+            }]
+    })
+    let plainGames = allPastBaseballGames.map((game) => game.get({ plain: true }))
+    plainGames.sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time))
+
+    for (const game of plainGames) {
+        const year = new Date(game.commence_time).getFullYear()
+        let statMap = {
+            'earnedRuns': [{ modelField: 'BSBearnedRuns', category: 'pitching' }],
+            'wins': [{ modelField: 'BSBwins', category: 'pitching' }],
+            'ERA': [{ modelField: 'BSBearnedRunAverage', category: 'pitching' }],
+            'WHIP': [{ modelField: 'BSBwalksHitsPerInningPitched', category: 'pitching' }],
+            'winPct': [{ modelField: 'BSBwinPct', category: 'pitching' }],
+            'caughtStealingPct': [{ modelField: 'BSBpitcherCaughtStealingPct', category: 'pitching' }],
+            'pitchesPerInning': [{ modelField: 'BSBpitchesPerInning', category: 'pitching' }],
+            'runSupportAvg': [{ modelField: 'BSBrunSupportAverage', category: 'pitching' }],
+            'opponentAvg': [{ modelField: 'BSBopponentBattingAverage', category: 'pitching' }],
+            'opponentSlugAvg': [{ modelField: 'BSBopponentSlugAverage', category: 'pitching' }],
+            'opponentOnBasePct': [{ modelField: 'BSBopponentOnBasePct', category: 'pitching' }],
+            'opponentOPS': [{ modelField: 'BSBopponentOnBasePlusSlugging', category: 'pitching' }],
+            'strikeoutsPerNineInnings': [{ modelField: 'BSBstrikeoutsPerNine', category: 'pitching' }],
+            'strikeoutToWalkRatio': [{ modelField: 'BSBpitcherStrikeoutToWalkRatio', category: 'pitching' }]
+        }
+        try {
+
+            oldTeamSched = await fetch(`https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/teams/${game.homeTeamDetails.espnID}/schedule?season=${year}`);
+            oldTeamSchedJSON = await oldTeamSched.json();
+            let event = oldTeamSchedJSON.events.find((e) => e.id === game.oddsApiID || (e.shortName === `${game.awayTeamDetails.abbreviation} @ ${game.homeTeamDetails.abbreviation}` && Math.abs(new Date(e.date) - new Date(game.commence_time)) < 1000 * 60 * 90))
+            let competition = await fetch(`https://sports.core.api.espn.com/v2/sports/baseball/leagues/mlb/events/${event.id}/competitions/${event.id}?lang=en&region=us`)
+            let competitionJSON = await competition.json()
+            for (const competitor of competitionJSON.competitors) {
+                let startingPitcher = competitor.probables.find((p) => p.name === 'probableStartingPitcher').playerId
+                let startingPitcherStats = await fetch(`https://sports.core.api.espn.com/v2/sports/baseball/leagues/mlb/events/${event.id}/competitions/${event.id}/competitors/${competitor.id}/roster/${startingPitcher}/statistics/0?lang=en&region=us`)
+                let spStatJSON = await startingPitcherStats.json()
+                if (spStatJSON.splits) {
+                    let statCategories = spStatJSON.splits.categories
+                    let statPayload = {}
+                    for (const category of statCategories) {
+                        for (const stat of category.stats) {
+                            if (stat.name !== 'saves' && stat.name !== 'savePct') {
+                                if (statMap[stat.name]) {
+                                    statPayload[statMap[stat.name][0].modelField] = stat.value
+                                }
+                            }
+                        }
+
+                    }
+                    console.log('old stats', competitor.id === game.homeTeam ? game.homeStats.data : game.awayStats.data)
+                    let teamStats = competitor.id === game.homeTeam ? game.homeStats : game.awayStats
+                    console.log('new stats', {
+                        ...teamStats.data,
+                        ...statPayload})
+                    // await db.Games.update({
+                    //     ...teamStats.data,
+                    //     ...statPayload
+                    // }, {where: {id: teamStats.id}})
+                }
+            }
+        } catch (err) {
+            console.log(err)
+            console.log(game.oddsApiID)
+        }
+    }
 }
 
 // hyperParam()
 // modelReset()
+// pastBaseballPitcherStats()
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed }

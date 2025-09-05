@@ -106,6 +106,7 @@ const statDBSaver = async (game, team, sport, gameSQL, homeAway) => {
             if(stat !== 'BSBsaves' && stat !== 'BSBsavePct' && stat !== 'BSBshutouts') teamStats[stat] = team.pitcherStats[probablePitcher.id][stat]
         }
     }
+    console.log(teamStats)
     await db.Stats.upsert({
         gameId: gameSQL.id, // Use the SQL game ID
         teamId: team.id, // Use the SQL team ID
