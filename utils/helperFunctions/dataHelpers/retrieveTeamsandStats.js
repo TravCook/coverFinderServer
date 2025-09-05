@@ -559,38 +559,43 @@ const fetchAllTeamData = async (sport, teams, statYear, TeamModel, statWeights) 
                                 }
                             }
                         } else {
-                            if (!teamGames.probablePitcher) {
-                                const gameTime = new Date(teamGames.commence_time);
-                                const event = scoreBoardJSon.events.find((event) => (event.name === `${teamGames['awayTeamDetails.espnDisplayName']} at ${teamGames['homeTeamDetails.espnDisplayName']}`
-                                    || event.shortName === `${teamGames['awayTeamDetails.espnDisplayName']} @ ${teamGames['homeTeamDetails.espnDisplayName']}`
-                                    || event.shortName === `${teamGames['homeTeamDetails.espnDisplayName']} VS ${teamGames['awayTeamDetails.espnDisplayName']}`)
-                                    && Math.abs(new Date(event.date) - gameTime) < 1000 * 60 * 90)
-                                if (event) {
-                                    let competitionTeam = await event.competitions[0].competitors.find((c) => parseInt(c.id) === team.espnID)
-                                    let probablePitcher = competitionTeam.probables.find(p => p.name === 'probableStartingPitcher')
+                            const gameTime = new Date(teamGames.commence_time);
+                            const event = scoreBoardJSon.events.find((event) => (event.name === `${teamGames['awayTeamDetails.espnDisplayName']} at ${teamGames['homeTeamDetails.espnDisplayName']}`
+                                || event.shortName === `${teamGames['awayTeamDetails.espnDisplayName']} @ ${teamGames['homeTeamDetails.espnDisplayName']}`
+                                || event.shortName === `${teamGames['homeTeamDetails.espnDisplayName']} VS ${teamGames['awayTeamDetails.espnDisplayName']}`)
+                                && Math.abs(new Date(event.date) - gameTime) < 1000 * 60 * 90)
+                            if (event) {
+                                let competitionTeam = await event.competitions[0].competitors.find((c) => parseInt(c.id) === team.espnID)
+                                let probablePitcher = competitionTeam.probables.find(p => p.name === 'probableStartingPitcher')
 
-                                    let pitcherStats = await fetch(`https://sports.core.api.espn.com/v2/sports/baseball/leagues/mlb/seasons/2025/types/2/athletes/${probablePitcher.playerId}/statistics?lang=en&region=us`)
-                                    let pitcherStatsJSON = await pitcherStats.json()
-                                    if (pitcherStatsJSON.splits) {
-                                        for (const category of pitcherStatsJSON.splits.categories) {
-                                            if (category.name !== 'pitching') continue
-                                            for (const stat of category.stats) {
-                                                if (!team.pitcherStats) {
-                                                    team.pitcherStats = {}
-                                                }
-                                                if (!team.pitcherStats[probablePitcher.playerId]) {
-                                                    team.pitcherStats[probablePitcher.playerId] = {}
-                                                }
-                                                // need mutation to save pitcher stats to team
-                                                team.pitcherStats[probablePitcher.playerId] = updateTeamStats(team, stat.name, stat.value, stat.perGameValue, stat.displayValue, category.name, probablePitcher.playerId)
-
+                                let pitcherStats = await fetch(`https://sports.core.api.espn.com/v2/sports/baseball/leagues/mlb/seasons/2025/types/2/athletes/${probablePitcher.playerId}/statistics?lang=en&region=us`)
+                                let pitcherStatsJSON = await pitcherStats.json()
+                                if (pitcherStatsJSON.splits) {
+                                    for (const category of pitcherStatsJSON.splits.categories) {
+                                        if (category.name !== 'pitching') continue
+                                        for (const stat of category.stats) {
+                                            if (!team.pitcherStats) {
+                                                team.pitcherStats = {}
                                             }
+                                            if (!team.pitcherStats[probablePitcher.playerId]) {
+                                                team.pitcherStats[probablePitcher.playerId] = {}
+                                            }
+                                            // need mutation to save pitcher stats to team
+                                            team.pitcherStats[probablePitcher.playerId] = updateTeamStats(team, stat.name, stat.value, stat.perGameValue, stat.displayValue, category.name, probablePitcher.playerId)
+
                                         }
-                                    } 
-                                    await db.Games.update({
-                                        probablePitcher: probablePitcher.athlete
-                                    }, { where: { id: teamGames.id } })
+                                    }
                                 }
+                                let currentProbable = teamGames?.probablePitcher
+                                let updatePayload = {...currentProbable}
+                                if (team.espnDisplayName === teamGames['homeTeamDetails.espnDisplayName']) {
+                                    updatePayload.home = probablePitcher.athlete
+                                } else if (team.espnDisplayName === teamGames['awayTeamDetails.espnDisplayName']) {
+                                    updatePayload.away = probablePitcher.athlete
+                                }
+                                await db.Games.update({
+                                    probablePitcher: updatePayload
+                                }, { where: { id: teamGames.id } })
                             }
 
                         }
