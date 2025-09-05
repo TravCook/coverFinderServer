@@ -878,12 +878,12 @@ const modelReset = async () => {
     
     await mlModelTrainSeed()
 
-    // await dataSeed()
+    await dataSeed()
 
-    // await oddsSeed()
+    await oddsSeed()
 }
 
 // hyperParam()
-modelReset()
+// modelReset()
 
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed }
