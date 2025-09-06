@@ -105,6 +105,8 @@ const statDBSaver = async (game, team, sport, gameSQL, homeAway) => {
         for (const stat in team.pitcherStats[probablePitcher.id]) {
             if(stat !== 'BSBsaves' && stat !== 'BSBsavePct' && stat !== 'BSBshutouts') teamStats[stat] = team.pitcherStats[probablePitcher.id][stat]
         }
+    }else{
+        console.log(`NO PROBABLE STARTER FOR ${team.espnDisplayName}`)
     }
     console.log(teamStats)
     await db.Stats.upsert({
