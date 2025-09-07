@@ -127,7 +127,7 @@ const mlModelTrainSeed = async () => {
                     raw: true
                 });
                 if (global.gc) global.gc();
-                await pastGamesReIndex(upcomingGames, newSport)
+                // await pastGamesReIndex(upcomingGames, newSport)
                 if (global.gc) global.gc()
 
             } else {
