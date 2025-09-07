@@ -108,7 +108,6 @@ const statDBSaver = async (game, team, sport, gameSQL, homeAway) => {
     }else{
         console.log(`NO PROBABLE STARTER FOR ${team.espnDisplayName}`)
     }
-    console.log(teamStats)
     await db.Stats.upsert({
         gameId: gameSQL.id, // Use the SQL game ID
         teamId: team.id, // Use the SQL team ID
