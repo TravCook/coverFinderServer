@@ -18,6 +18,7 @@ const { Op } = Sequelize;
 const { gameDBSaver, statDBSaver } = require('../helperFunctions/dataHelpers/databaseSavers');
 const { isSportInSeason } = require('../helperFunctions/mlModelFuncs/sportHelpers')
 const { statConfigMap } = require('../statMaps')
+const cliProgress = require('cli-progress');
 
 // Suppress TensorFlow.js logging
 process.env.TF_CPP_MIN_LOG_LEVEL = '3'; // Suppress logs
@@ -126,7 +127,7 @@ const mlModelTrainSeed = async () => {
                     raw: true
                 });
                 if (global.gc) global.gc();
-                // await pastGamesReIndex(upcomingGames, newSport)
+                await pastGamesReIndex(upcomingGames, newSport)
                 if (global.gc) global.gc()
 
             } else {
@@ -879,9 +880,9 @@ const modelReset = async () => {
 
     await mlModelTrainSeed()
 
-    await dataSeed()
+    // await dataSeed()
 
-    await oddsSeed()
+    // await oddsSeed()
 }
 
 const pastBaseballPitcherStats = async () => {
@@ -911,7 +912,11 @@ const pastBaseballPitcherStats = async () => {
     })
     let plainGames = allPastBaseballGames.map((game) => game.get({ plain: true }))
     plainGames.sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time))
+    const bar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
+    let progress = 0;
 
+    console.log(`STARTING PAST BASEBALL GAMES`)
+    bar.start(plainGames.length, 0);
     for (const game of plainGames) {
         const year = new Date(game.commence_time).getFullYear()
         let statMap = {
@@ -954,25 +959,30 @@ const pastBaseballPitcherStats = async () => {
                         }
 
                     }
-                    console.log('old stats', competitor.id === game.homeTeam ? game.homeStats.data : game.awayStats.data)
+                    // console.log('old stats', competitor.id === game.homeTeam ? game.homeStats.data : game.awayStats.data)
                     let teamStats = competitor.id === game.homeTeam ? game.homeStats : game.awayStats
-                    console.log('new stats', {
-                        ...teamStats.data,
-                        ...statPayload})
-                    // await db.Games.update({
+                    // console.log('new stats', {
                     //     ...teamStats.data,
-                    //     ...statPayload
-                    // }, {where: {id: teamStats.id}})
+                    //     ...statPayload})
+                    await db.Games.update({
+                        ...teamStats.data,
+                        ...statPayload
+                    }, { where: { id: teamStats.id } })
+
                 }
             }
         } catch (err) {
             console.log(err)
             console.log(game.oddsApiID)
         }
+        progress += 1;
+        bar.update(progress);
     }
+    bar.stop();
+    console.log(`DONE`)
 }
 
 // hyperParam()
-// modelReset()
+modelReset()
 // pastBaseballPitcherStats()
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed }

@@ -102,7 +102,7 @@ const statDBSaver = async (game, team, sport, gameSQL, homeAway) => {
         } else {
             probablePitcher = gameSQL.probablePitcher.away
         }
-        for (const stat in team.pitcherStats[probablePitcher.id]) {
+        for (const stat in team.pitcherStats[gameSQL.probablePitcher.id]) {
             if(stat !== 'BSBsaves' && stat !== 'BSBsavePct' && stat !== 'BSBshutouts') teamStats[stat] = team.pitcherStats[probablePitcher.id][stat]
         }
     }else{
