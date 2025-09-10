@@ -61,7 +61,7 @@ const hyperparameterRandSearch = async (sports) => {
 
 
     for (let sport of sports.sort((a, b) => a.startMonth - b.startMonth)) {
-        // if(sport.name !== 'americanfootball_nfl' ) continue; // Skip baseball for now
+        if(sport.name !== 'basketball_wncaab' ) continue; // Skip baseball for now
         const batchSizeOptions = [16, 32, 64, 128];
         const neuronOptions = [64, 128, 256];
 
