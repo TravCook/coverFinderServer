@@ -101,17 +101,20 @@ const statDBSaver = async (game, team, sport, gameSQL, homeAway) => {
             probablePitcher = gameSQL.probablePitcher.away
         }
         for (const stat in team.pitcherStats[gameSQL.probablePitcher.id]) {
-            if(stat !== 'BSBsaves' && stat !== 'BSBsavePct' && stat !== 'BSBshutouts') teamStats[stat] = team.pitcherStats[probablePitcher.id][stat]
+            if (stat !== 'BSBsaves' && stat !== 'BSBsavePct' && stat !== 'BSBshutouts') teamStats[stat] = team.pitcherStats[probablePitcher.id][stat]
         }
-    }else if(gameSQL.probablePitcher === null && sport.name === 'baseball_mlb') {
+    } else if (gameSQL.probablePitcher === null && sport.name === 'baseball_mlb') {
         let allPitchers = Object.values(team.pitcherStats)
-        if(allPitchers.length > 0) {
-            for (const pitcher in allPitchers) {
-                for (const stat in allPitchers[pitcher]) {
-                    let statAverage = (statAverage + allPitchers[pitcher][stat]) / allPitchers.length
-                    
-                    if(stat !== 'BSBsaves' && stat !== 'BSBsavePct' && stat !== 'BSBshutouts') teamStats[stat] = statAverage
+        if (allPitchers.length > 0) {
+
+            for (const stat in team.pitcherStats[pitcher]) {
+                let statAverage
+                for (const pitcher in allPitchers) {
+                    statAverage += (allPitchers[pitcher][stat])
                 }
+                statAverage = statAverage / allPitchers.length
+                console.log(stat, statAverage)
+                if (stat !== 'BSBsaves' && stat !== 'BSBsavePct' && stat !== 'BSBshutouts') teamStats[stat] = statAverage
             }
         }
     }
