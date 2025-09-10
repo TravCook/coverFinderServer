@@ -261,7 +261,7 @@ const loadOrCreateModel = async (xs, sport, search) => {
                 // shared = tf.layers.batchNormalization().apply(shared); // optional but good with ReLU variants
                 // shared = tf.layers.leakyReLU({ alpha: 0.3 }).apply(shared);
                 // if (i % 2 === 0) {
-                // shared = tf.layers.dropout({ rate: hyperParams.dropoutReg }).apply(shared);
+                //     shared = tf.layers.dropout({ rate: hyperParams.dropoutReg }).apply(shared);
                 // }
             }
             // Score output: regression head (predicts [homeScore, awayScore])
@@ -290,9 +290,9 @@ const loadOrCreateModel = async (xs, sport, search) => {
 const mlModelTraining = async (gameData, sport, search, gameCount, allPastGames) => {
     const statMap = statConfigMap[sport.espnSport].default;
     const hyperParams = await getHyperParams(sport, search)
-    xs= [] 
-    ysWins = [] 
-    ysScore =[]
+    xs = []
+    ysWins = []
+    ysScore = []
     let teamStatsHistory = {};
     // Step 1: Flatten all scores into one array
     let allScores = allPastGames.flatMap(game => [game.homeScore, game.awayScore]);
@@ -542,20 +542,20 @@ const predictions = async (sportOdds, ff, model, sport, past, search, teamHistor
         };
 
         // Track changes and distributions
-        // if (game.predictedWinner !== predictedWinner) {
-        //     predictionsChanged++;
+        if (game.predictedWinner !== predictedWinner) {
+            predictionsChanged++;
 
-            if (!past && !search) {
-                const oldWinner = game.predictedWinner === 'home'
-                    ? game['homeTeamDetails.espnDisplayName']
-                    : game['awayTeamDetails.espnDisplayName'];
-                const newWinner = predictedWinner === 'home'
-                    ? game['homeTeamDetails.espnDisplayName']
-                    : game['awayTeamDetails.espnDisplayName'];
+        if (!past && !search) {
+            const oldWinner = game.predictedWinner === 'home'
+                ? game['homeTeamDetails.espnDisplayName']
+                : game['awayTeamDetails.espnDisplayName'];
+            const newWinner = predictedWinner === 'home'
+                ? game['homeTeamDetails.espnDisplayName']
+                : game['awayTeamDetails.espnDisplayName'];
 
-                console.log(`Prediction changed for game ${game.id}: ${predictedWinner === 'home' ? 'HOME' : 'AWAY'} ${oldWinner} → ${newWinner}  (Confidence: ${predictionConfidence}) Score ([home, away]) [${Math.round(homeScore)}, ${Math.round(awayScore)}]`);
-            }
-        // }
+            console.log(`Prediction changed for game ${game.id}: ${predictedWinner === 'home' ? 'HOME' : 'AWAY'} ${oldWinner} → ${newWinner}  (Confidence: ${predictionConfidence}) Score ([home, away]) [${Math.round(homeScore)}, ${Math.round(awayScore)}]`);
+        }
+        }
 
         if (game.predictionConfidence !== predictionConfidence) {
             newConfidencePredictions++;
@@ -692,7 +692,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, teamHistor
 };
 
 const trainSportModelKFold = async (sport, gameData, search) => {
-    const hyperParams = await getHyperParams(sport, search)
+    let hyperParams = await getHyperParams(sport, search)
     console.log(hyperParams)
     // Sort historical game data and slice off the most recent 10% for testing
     const sortedGameData = gameData

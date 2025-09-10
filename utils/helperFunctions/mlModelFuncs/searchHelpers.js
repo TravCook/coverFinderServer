@@ -23,8 +23,17 @@ const score = (ci, sampleSize) => {
     const ciWidthPenalty = (ci.upper - ci.lower); // narrower = better
     const sizeBonus = Math.log(sampleSize); // diminishing returns to size
 
-    return ciMidpoint - ciWidthPenalty + sizeBonus * 0.001; // tune 0.01 as weight
+    return ciMidpoint - ciWidthPenalty + (sizeBonus * .01); // tune 0.01 as weight
 };
+
+const calculateProfitFromUSOdds = (odds, stake) => {
+    if (odds > 0) {
+        return (odds / 100) * stake;
+    } else {
+        return (100 / Math.abs(odds)) * stake;
+    }
+};
+
 
 
 const hyperparameterRandSearch = async (sports) => {
@@ -53,8 +62,8 @@ const hyperparameterRandSearch = async (sports) => {
 
     for (let sport of sports.sort((a, b) => a.startMonth - b.startMonth)) {
         // if(sport.name !== 'americanfootball_nfl' ) continue; // Skip baseball for now
-            const batchSizeOptions = [16, 32, 64, 128];
-            const neuronOptions = [64, 128, 256];
+        const batchSizeOptions = [16, 32, 64, 128];
+        const neuronOptions = [64, 128, 256];
 
         console.log(`--------------- ${sport.name} @ ${moment().format('HH:mm:ss')} -------------------`);
 
@@ -129,7 +138,7 @@ const hyperparameterRandSearch = async (sports) => {
         await optimizer.optimize(objective, space, 9);
 
         const bestParams = optimizer.getBestParams();
-        console.log(`Best Parameters for ${sport.name}:`, bestParams);
+
 
         const processedParams = {
             learningRate: bestParams.learningRate,
@@ -147,10 +156,10 @@ const hyperparameterRandSearch = async (sports) => {
             winPctLoss: bestParams.winPctLossWeight,
             earlyStopPatience: Math.round(bestParams.earlyStopPatience)
         };
-
-        await db.HyperParams.update(processedParams, {
-            where: { sport: sport.id }
-        });
+        console.log(`Best Parameters for ${sport.name}:`, processedParams);
+        // await db.HyperParams.update(processedParams, {
+        //     where: { sport: sport.id }
+        // });
 
     }
 
@@ -224,139 +233,232 @@ const valueBetGridSearch = async (sport) => {
         ]
     })
     let plainGames = sportGames.map(game => game.get({ plain: true })); // Convert Sequelize instances to plain objects
-    if (sport.name === 'baseball_mlb') {
-        // Parallelize across sportsbooks
-        for (const sportsbook of sportsbooks) {
-            let sportsbookSettings = await db.ValueBetSettings.findOne({ where: { bookmaker: sportsbook, sport: sport.id }, raw: true });
-            let storeCI =
-                sportsbookSettings?.bestConfidenceInterval ||
-                { lower: 0, upper: 0 }
-            let bestCIScore =
-                // sportsbookSettings?.bestCISCore || 
-                0
-            let finalSettings = {
-                bookmaker: sportsbook,
-                settings: {
-                    // winPercentIncrease: 0,
-                    indexDiffSmallNum: sportsbookSettings?.indexDiffSmall || 0,
-                    indexDiffRangeNum: sportsbookSettings?.indexDiffRange || 0,
-                    confidenceLowNum: sportsbookSettings?.confidenceSmall || 0,
-                    confidenceRangeNum: sportsbookSettings?.confidenceRange || 0,
-                }
+    // if (sport.name === 'baseball_mlb') {
+    // Parallelize across sportsbooks
+    console.log(`${new Date(sportGames[0]?.commence_time)} - ${new Date(sportGames[sportGames.length - 1]?.commence_time)} | Total Games: ${plainGames.length}`)
+    for (const sportsbook of sportsbooks) {
+        let sportsbookSettings = await db.ValueBetSettings.findOne({ where: { bookmaker: sportsbook, sport: sport.id }, raw: true });
+        let storeCI =
+            sportsbookSettings?.bestConfidenceInterval ||
+            { lower: 0, upper: 0 }
+        let bestCIScore =
+            // sportsbookSettings?.bestCISCore || 
+            0
+        let finalSettings = {
+            bookmaker: sportsbook,
+            settings: {
+                // winPercentIncrease: 0,
+                indexDiffSmallNum: sportsbookSettings?.indexDiffSmall || 0,
+                indexDiffRangeNum: sportsbookSettings?.indexDiffRange || 0,
+                confidenceLowNum: sportsbookSettings?.confidenceSmall || 0,
+                confidenceRangeNum: sportsbookSettings?.confidenceRange || 0,
+            }
 
-            };
-            for (const indexDifSmall of indexDiffSmallNum) {
-                for (const indexDiffRange of indexDiffRangeNum) {
-                    for (const confidenceLow of confidenceLowNum) {
-                        for (const confidenceRange of confidenceRangeNum) {
-                            let totalGames = plainGames.filter((game) => {
-                                const bookmaker = game.bookmakers.find(b => b.key === sportsbook);
-                                if (!bookmaker) return false;
+        };
+        let bestProfit = -Infinity;
+        let bestROI = -Infinity;
 
-                                const market = bookmaker.markets.find(m => m.key === 'h2h');
-                                if (!market || !market.outcomes) return false;
+        for (const indexDifSmall of indexDiffSmallNum) {
+            for (const indexDiffRange of indexDiffRangeNum) {
+                for (const confidenceLow of confidenceLowNum) {
+                    for (const confidenceRange of confidenceRangeNum) {
+                        let filteredGames = plainGames.filter((game) => {
+                            const bookmaker = game.bookmakers.find(b => b.key === sportsbook);
+                            if (!bookmaker) return false;
 
-                                const indexDiff = game.predictedWinner === 'home' ?
-                                    game.homeTeamScaledIndex - game.awayTeamScaledIndex :
-                                    game.awayTeamScaledIndex - game.homeTeamScaledIndex;
+                            const market = bookmaker.markets.find(m => m.key === 'h2h');
+                            if (!market || !market.outcomes) return false;
 
-                                const predictionConfidence = game.predictionConfidence;
+                            const indexDiff = game.predictedWinner === 'home'
+                                ? game.homeTeamScaledIndex - game.awayTeamScaledIndex
+                                : game.awayTeamScaledIndex - game.homeTeamScaledIndex;
 
-                                return market.outcomes.some(o => {
-                                    const isCorrectTeam = (
-                                        (game.predictedWinner === 'home' && game.homeTeamDetails.espnDisplayName === o.name) ||
-                                        (game.predictedWinner === 'away' && game.awayTeamDetails.espnDisplayName === o.name)
-                                    );
-                                    return (
-                                        indexDiff >= indexDifSmall &&
-                                        indexDiff < (indexDifSmall + indexDiffRange) &&
-                                        predictionConfidence > confidenceLow &&
-                                        predictionConfidence < (confidenceLow + confidenceRange) &&
-                                        // (o.impliedProbability * 100) < game.winPercent &&
-                                        isCorrectTeam
-                                    );
-                                });
+                            const predictionConfidence = game.predictionConfidence;
+
+                            return market.outcomes.some(o => {
+                                const isCorrectTeam =
+                                    (game.predictedWinner === 'home' && o.name === game.homeTeamDetails.espnDisplayName) ||
+                                    (game.predictedWinner === 'away' && o.name === game.awayTeamDetails.espnDisplayName);
+
+                                return (
+                                    indexDiff >= indexDifSmall &&
+                                    indexDiff < (indexDifSmall + indexDiffRange) &&
+                                    predictionConfidence > confidenceLow &&
+                                    predictionConfidence < (confidenceLow + confidenceRange) &&
+                                    isCorrectTeam
+                                );
                             });
+                        });
 
-                            let correctGames = totalGames.filter((game) => game.predictionCorrect === true);
-                            let winRate = totalGames.length > 0 ? correctGames.length / totalGames.length : 0;
-                            function calculateConfidenceInterval(winrate, sampleSize, confidenceLevel) {
-                                // Define z-scores for common confidence levels
-                                const zScores = {
-                                    90: 1.645,  // Z-score for 90% confidence
-                                    95: 1.96,   // Z-score for 95% confidence
-                                    99: 2.576   // Z-score for 99% confidence
-                                };
+                        // Calculate total profit
+                        let netProfit = filteredGames.reduce((acc, game) => {
+                            const bookmaker = game.bookmakers.find(b => b.key === sportsbook);
+                            const market = bookmaker?.markets.find(m => m.key === 'h2h');
+                            const outcome = market?.outcomes.find(o =>
+                                (game.predictedWinner === 'home' && o.name === game.homeTeamDetails.espnDisplayName) ||
+                                (game.predictedWinner === 'away' && o.name === game.awayTeamDetails.espnDisplayName)
+                            );
 
-                                // Check if the confidence level is valid
-                                if (!zScores[confidenceLevel]) {
-                                    throw new Error('Invalid confidence level. Use 90, 95, or 99.');
-                                }
+                            if (!outcome) return acc;
 
-                                // Calculate the z-score for the given confidence level
-                                const z = zScores[confidenceLevel];
-
-                                // Calculate the margin of error
-                                const marginOfError = z * Math.sqrt((winrate * (1 - winrate)) / sampleSize);
-
-                                // Calculate the confidence interval
-                                const lowerBound = winrate - marginOfError;
-                                const upperBound = winrate + marginOfError;
-
-                                // Return the result as an object
-                                return {
-                                    lower: lowerBound,
-                                    upper: upperBound
-                                };
+                            if (game.predictionCorrect === true) {
+                                return acc + calculateProfitFromUSOdds(outcome.price, 1);
+                            } else if (game.predictionCorrect === false) {
+                                return acc - 1;
                             }
-                            let newCI
-                            if (totalGames.length > plainGames.length / 20) { // Ensure we have enough games to calculate a meaningful CI
-                                newCI = calculateConfidenceInterval(winRate, totalGames.length, 95);
 
-                                const newScore = score(newCI, totalGames.length)
-                                if (newScore > bestCIScore) {
-                                    storeCI = newCI
-                                    finalWinrate = winRate;
-                                    finalTotalGames = totalGames.length;
-                                    bestCIScore = newScore
-                                    finalSettings.settings = {
-                                        indexDiffSmallNum: indexDifSmall,
-                                        indexDiffRangeNum: indexDiffRange,
-                                        confidenceLowNum: confidenceLow,
-                                        confidenceRangeNum: confidenceRange,
-                                        bestWinrate: winRate,
-                                        bestTotalGames: totalGames.length,
-                                        bestConfidenceInterval: storeCI,
-                                        bestCIScore: bestCIScore
-                                    };
-                                    await db.ValueBetSettings.update({
-                                        indexDiffSmall: finalSettings.settings.indexDiffSmallNum,
-                                        indexDiffRange: finalSettings.settings.indexDiffRangeNum,
-                                        confidenceSmall: finalSettings.settings.confidenceLowNum,
-                                        confidenceRange: finalSettings.settings.confidenceRangeNum,
-                                        bestWinrate: finalSettings.settings.bestWinrate,
-                                        bestTotalGames: finalSettings.settings.bestTotalGames,
-                                        bestConfidenceInterval: finalSettings.settings.bestConfidenceInterval,
-                                        bestCIScore: bestCIScore
-                                    }, {
-                                        where: {
-                                            bookmaker: sportsbook,
-                                            sport: sport.id
-                                        },
-                                    })
+                            return acc;
+                        }, 0);
+
+                        let roi = filteredGames.length > 0 ? (netProfit / filteredGames.length) * 100 : -Infinity;
+
+                        if (roi > bestROI && filteredGames.length > plainGames.length / 5) {
+                            bestROI = roi;
+
+                            finalSettings.settings = {
+                                indexDiffSmallNum: indexDifSmall,
+                                indexDiffRangeNum: indexDiffRange,
+                                confidenceLowNum: confidenceLow,
+                                confidenceRangeNum: confidenceRange,
+                                bestProfit: netProfit,
+                                bestROI: roi,
+                                bestTotalGames: filteredGames.length
+                            };
+
+                            await db.ValueBetSettings.update({
+                                indexDiffSmall: indexDifSmall,
+                                indexDiffRange: indexDiffRange,
+                                confidenceSmall: confidenceLow,
+                                confidenceRange: confidenceRange,
+                                bestProfit: netProfit,
+                                bestTotalGames: filteredGames.length
+                            }, {
+                                where: {
+                                    bookmaker: sportsbook,
+                                    sport: sport.id
                                 }
-                            }
+                            });
                         }
                     }
                 }
             }
-            if (sportsbook === 'fanduel') {
-                console.log(sport.name)
-                console.log('New Best Settings: ', finalSettings)
-            }
+        }
 
-        };
-    }
+        // for (const indexDifSmall of indexDiffSmallNum) {
+        //     for (const indexDiffRange of indexDiffRangeNum) {
+        //         for (const confidenceLow of confidenceLowNum) {
+        //             for (const confidenceRange of confidenceRangeNum) {
+        //                 let totalGames = plainGames.filter((game) => {
+        //                     const bookmaker = game.bookmakers.find(b => b.key === sportsbook);
+        //                     if (!bookmaker) return false;
+
+        //                     const market = bookmaker.markets.find(m => m.key === 'h2h');
+        //                     if (!market || !market.outcomes) return false;
+
+        //                     const indexDiff = game.predictedWinner === 'home' ?
+        //                         game.homeTeamScaledIndex - game.awayTeamScaledIndex :
+        //                         game.awayTeamScaledIndex - game.homeTeamScaledIndex;
+
+        //                     const predictionConfidence = game.predictionConfidence;
+
+        //                     return market.outcomes.some(o => {
+        //                         const isCorrectTeam = (
+        //                             (game.predictedWinner === 'home' && game.homeTeamDetails.espnDisplayName === o.name) ||
+        //                             (game.predictedWinner === 'away' && game.awayTeamDetails.espnDisplayName === o.name)
+        //                         );
+        //                         return (
+        //                             indexDiff >= indexDifSmall &&
+        //                             indexDiff < (indexDifSmall + indexDiffRange) &&
+        //                             predictionConfidence > confidenceLow &&
+        //                             predictionConfidence < (confidenceLow + confidenceRange) &&
+        //                             // (o.impliedProbability * 100) < game.winPercent &&
+        //                             isCorrectTeam
+        //                         );
+        //                     });
+        //                 });
+
+        //                 let correctGames = totalGames.filter((game) => game.predictionCorrect === true);
+        //                 let winRate = totalGames.length > 0 ? correctGames.length / totalGames.length : 0;
+        //                 function calculateConfidenceInterval(winrate, sampleSize, confidenceLevel) {
+        //                     // Define z-scores for common confidence levels
+        //                     const zScores = {
+        //                         90: 1.645,  // Z-score for 90% confidence
+        //                         95: 1.96,   // Z-score for 95% confidence
+        //                         99: 2.576   // Z-score for 99% confidence
+        //                     };
+
+        //                     // Check if the confidence level is valid
+        //                     if (!zScores[confidenceLevel]) {
+        //                         throw new Error('Invalid confidence level. Use 90, 95, or 99.');
+        //                     }
+
+        //                     // Calculate the z-score for the given confidence level
+        //                     const z = zScores[confidenceLevel];
+
+        //                     // Calculate the margin of error
+        //                     const marginOfError = z * Math.sqrt((winrate * (1 - winrate)) / sampleSize);
+
+        //                     // Calculate the confidence interval
+        //                     const lowerBound = winrate - marginOfError;
+        //                     const upperBound = winrate + marginOfError;
+
+        //                     // Return the result as an object
+        //                     return {
+        //                         lower: lowerBound,
+        //                         upper: upperBound
+        //                     };
+        //                 }
+        //                 let newCI
+        //                 if (totalGames.length > plainGames.length / 5) { // Ensure we have enough games to calculate a meaningful CI
+        //                     newCI = calculateConfidenceInterval(winRate, totalGames.length, 95);
+
+        //                     const newScore = score(newCI, totalGames.length)
+        //                     if(sport.name === 'americanfootball_ncaaf' && sportsbook === 'fanduel')
+        //                     // console.log(`Settings: ${sport.name} | ${sportsbook} | indexDiffSmall: ${indexDifSmall}, indexDiffRange: ${indexDiffRange}, confidenceLow: ${confidenceLow}, confidenceRange: ${confidenceRange} => Total Games: ${totalGames.length}, Correct Games: ${correctGames.length} (${(winRate * 100).toFixed(2)}%), CI: [${(newCI.lower * 100).toFixed(2)}%, ${(newCI.upper * 100).toFixed(2)}%], CI Score: ${newScore.toFixed(4)}`);
+
+        //                     if (newScore > bestCIScore) {
+        //                         storeCI = newCI
+        //                         finalWinrate = winRate;
+        //                         finalTotalGames = totalGames.length;
+        //                         bestCIScore = newScore
+        //                         finalSettings.settings = {
+        //                             indexDiffSmallNum: indexDifSmall,
+        //                             indexDiffRangeNum: indexDiffRange,
+        //                             confidenceLowNum: confidenceLow,
+        //                             confidenceRangeNum: confidenceRange,
+        //                             bestWinrate: winRate,
+        //                             bestTotalGames: correctGames.length,
+        //                             bestConfidenceInterval: storeCI,
+        //                             bestCIScore: bestCIScore
+        //                         };
+        //                         await db.ValueBetSettings.update({
+        //                             indexDiffSmall: finalSettings.settings.indexDiffSmallNum,
+        //                             indexDiffRange: finalSettings.settings.indexDiffRangeNum,
+        //                             confidenceSmall: finalSettings.settings.confidenceLowNum,
+        //                             confidenceRange: finalSettings.settings.confidenceRangeNum,
+        //                             bestWinrate: finalSettings.settings.bestWinrate,
+        //                             bestTotalGames: finalSettings.settings.bestTotalGames,
+        //                             bestConfidenceInterval: finalSettings.settings.bestConfidenceInterval,
+        //                             bestCIScore: bestCIScore
+        //                         }, {
+        //                             where: {
+        //                                 bookmaker: sportsbook,
+        //                                 sport: sport.id
+        //                             },
+        //                         })
+        //                     }
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
+        if (sportsbook === 'fanduel') {
+            console.log(sport.name)
+            console.log('New Best Settings: ', finalSettings)
+        }
+
+    };
+    // }
 
 };
 

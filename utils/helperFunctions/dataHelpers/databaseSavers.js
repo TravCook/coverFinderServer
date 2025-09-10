@@ -1,8 +1,6 @@
 const { normalizeTeamName } = require("./dataSanitizers")
 const { getImpliedProbability } = require("../../constants")
 const db = require('../../../models_sql');
-const { exists } = require("../../../models/Odds");
-const Odds = require("../../../models/Odds");
 
 const gameDBSaver = async (game, sport, past) => {
     let homeTeam = await db.Teams.findOne({ where: { espnDisplayName: normalizeTeamName(game.home_team, game.sport_key), league: sport.name }, raw: true })
@@ -105,8 +103,17 @@ const statDBSaver = async (game, team, sport, gameSQL, homeAway) => {
         for (const stat in team.pitcherStats[gameSQL.probablePitcher.id]) {
             if(stat !== 'BSBsaves' && stat !== 'BSBsavePct' && stat !== 'BSBshutouts') teamStats[stat] = team.pitcherStats[probablePitcher.id][stat]
         }
-    }else{
-        console.log(`NO PROBABLE STARTER FOR ${team.espnDisplayName}`)
+    }else if(gameSQL.probablePitcher === null && sport.name === 'baseball_mlb') {
+        let allPitchers = Object.values(team.pitcherStats)
+        if(allPitchers.length > 0) {
+            for (const pitcher in allPitchers) {
+                for (const stat in allPitchers[pitcher]) {
+                    let statAverage = (statAverage + allPitchers[pitcher][stat]) / allPitchers.length
+                    
+                    if(stat !== 'BSBsaves' && stat !== 'BSBsavePct' && stat !== 'BSBshutouts') teamStats[stat] = statAverage
+                }
+            }
+        }
     }
     await db.Stats.upsert({
         gameId: gameSQL.id, // Use the SQL game ID

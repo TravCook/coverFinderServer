@@ -65,7 +65,7 @@ const mlModelTrainSeed = async () => {
     for (let sport of sports) {
         let inSeason = isSportInSeason(sport)
         // Multi-year sports (e.g., NFL, NBA, NHL, etc.)
-        if (inSeason) {
+        if (sport) {
             let upcomingGames = odds.filter((game) => game.sport_key === sport.name)
             let pastGames = await db.Games.findAll({
                 where: { complete: true, sport_key: sport.name },
@@ -874,15 +874,20 @@ const espnSeed = async () => {
 const hyperParam = async () => {
     const sports = await db.Sports.findAll({ include: [{ model: db.MlModelWeights, as: 'MlModelWeights' }, { model: db.HyperParams, as: 'hyperParams' }], raw: true, order: [['name', 'ASC']] });
     hyperparameterRandSearch(sports)
+
+    // for (const sport of sports) {
+    //     await valueBetGridSearch(sport)
+    // }
+
 }
 
 const modelReset = async () => {
 
     await mlModelTrainSeed()
 
-    await dataSeed()
+    // await dataSeed()
 
-    await oddsSeed()
+    // await oddsSeed()
 }
 
 const pastBaseballPitcherStats = async () => {

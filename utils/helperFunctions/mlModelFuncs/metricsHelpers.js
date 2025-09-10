@@ -103,9 +103,9 @@ function printOverallMetrics(foldResults) {
     // for (const [label, count] of Object.entries(totalCounts)) {
     //     console.log(`${label}: ${count} (${((count / total) * 100).toFixed(2)}%)`);
     // }
-    // console.log(`Average Spread MAE: ${avgSpreadMAE.toFixed(2)}`);
-    // console.log(`Average Total MAE: ${avgTotalMAE.toFixed(2)}`);
-    // console.log(`--- Overall Performance Avg MAE: ${avgMAE.toFixed(4)} ---`);
+    console.log(`Average Spread MAE: ${avgSpreadMAE.toFixed(2)}`);
+    console.log(`Average Total MAE: ${avgTotalMAE.toFixed(2)}`);
+    console.log(`--- Overall Performance Avg MAE: ${avgMAE.toFixed(4)} ---`);
     return {avgSpreadMAE, avgTotalMAE, avgMAE, totalCounts}
 }
 
