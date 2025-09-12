@@ -190,9 +190,9 @@ const getHyperParams = (sport, search) => {
         // l2reg: search
         //     ? sport.hyperParameters.l2reg
         //     : sport['hyperParams.l2Reg'],
-        // dropoutReg: search
-        //     ? sport.hyperParameters.dropoutReg
-        //     : sport['hyperParams.dropoutReg'],
+        dropoutReg: search
+            ? sport.hyperParameters.dropoutReg
+            : sport['hyperParams.dropoutReg'],
         hiddenLayerNum: search
             ? sport.hyperParameters.hiddenLayerNum
             : sport['hyperParams.hiddenLayers'],
@@ -261,7 +261,7 @@ const loadOrCreateModel = async (xs, sport, search) => {
                 // shared = tf.layers.batchNormalization().apply(shared); // optional but good with ReLU variants
                 // shared = tf.layers.leakyReLU({ alpha: 0.3 }).apply(shared);
                 // if (i % 2 === 0) {
-                //     shared = tf.layers.dropout({ rate: hyperParams.dropoutReg }).apply(shared);
+                //     shared = tf.layers.dropout({ rate: hyperParams.dropoutReg * 2 }).apply(shared);
                 // }
             }
             // Score output: regression head (predicts [homeScore, awayScore])
@@ -689,6 +689,8 @@ const predictions = async (sportOdds, ff, model, sport, past, search, teamHistor
 
     }
 
+
+
 };
 
 const trainSportModelKFold = async (sport, gameData, search) => {
@@ -943,6 +945,9 @@ const trainSportModelKFold = async (sport, gameData, search) => {
     await extractAndSaveFeatureImportances(finalModel, sport);
 
     if (global.gc) global.gc();
+    //cleanup
+    // tf.disposeVariables();
+    // tf.engine().reset();
     console.log(`ml model done for ${sport.name} @ ${moment().format('HH:mm:ss')}`);
     return finalModel;
 };

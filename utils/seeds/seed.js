@@ -65,7 +65,7 @@ const mlModelTrainSeed = async () => {
     for (let sport of sports) {
         let inSeason = isSportInSeason(sport)
         // Multi-year sports (e.g., NFL, NBA, NHL, etc.)
-        if (sport) {
+        if (inSeason) {
             let upcomingGames = odds.filter((game) => game.sport_key === sport.name)
             let pastGames = await db.Games.findAll({
                 where: { complete: true, sport_key: sport.name },
@@ -136,6 +136,10 @@ const mlModelTrainSeed = async () => {
             console.log(`${sport.name} ML DONE @ ${moment().format('HH:mm:ss')}`)
             if (global.gc) global.gc();
             pastGames = null
+            teamStatsHistory= null
+            upcomingGames = null
+            model = null
+
         } else {
             console.log(`${sport.name} NOT IN SEASON`)
         }
@@ -340,7 +344,6 @@ const oddsSeed = async () => {
         } catch (error) {
             if (retries === 0) throw error;
             console.log(`Retrying request... (${retries} attempts left)`);
-            // await delay(delayMs);
             return axiosWithBackoff(url, retries - 1, delayMs * 2);  // Exponential backoff
         }
     };
@@ -417,7 +420,7 @@ const oddsSeed = async () => {
             if (err) throw (err)
         }
     };
-    await fetchDataWithBackoff(sports.filter(sport => sport.name === 'baseball_mlb'));
+    await fetchDataWithBackoff(sports.filter(sport => isSportInSeason(sport)));
     let allPastGamesSQL = await db.Games.findAll({
         where: {
             complete: true, // Only include completed games
@@ -885,9 +888,9 @@ const modelReset = async () => {
 
     await mlModelTrainSeed()
 
-    // await dataSeed()
+    await dataSeed()
 
-    // await oddsSeed()
+    await oddsSeed()
 }
 
 const pastBaseballPitcherStats = async () => {

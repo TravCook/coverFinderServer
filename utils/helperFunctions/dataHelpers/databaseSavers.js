@@ -106,7 +106,7 @@ const statDBSaver = async (game, team, sport, gameSQL, homeAway) => {
     } else if (gameSQL.probablePitcher === null && sport.name === 'baseball_mlb') {
         let allPitchers = Object.values(team.pitcherStats)
         if (allPitchers.length > 0) {
-
+            console.log(team.pitcherStats[allPitchers[0]])
             for (const stat in team.pitcherStats[allPitchers[0]]) {
                 let statAverage
                 for (const pitcher in allPitchers) {
