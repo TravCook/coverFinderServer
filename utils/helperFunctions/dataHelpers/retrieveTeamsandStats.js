@@ -731,6 +731,8 @@ const retrieveTeamsandStats = async (sports) => {
             })
             await fetchAllTeamData(sport, teams, sport.statYear, db.Teams, statWeights)
             console.log(`Finished ${sport.name} TEAM SEEDING @ ${moment().format('HH:mm:ss')}`)
+            teams = null
+            statWeights = null
         }
     }
     sportGames = null

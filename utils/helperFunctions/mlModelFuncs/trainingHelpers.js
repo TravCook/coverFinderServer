@@ -177,6 +177,46 @@ const extractSportFeatures = (homeStats, awayStats, league, allPastGamesSorted, 
 
 
 const getHyperParams = (sport, search) => {
+    const useDropoutReg = (sport.name === 'americanfootball_ncaaf' || sport.name === 'basketball_nba' || sport.name === 'icehockey_nhl');
+    if (useDropoutReg) {
+        return {
+            learningRate: search
+                ? sport.hyperParameters.learningRate
+                : sport['hyperParams.learningRate'],
+            batchSize: search
+                ? sport.hyperParameters.batchSize
+                : sport['hyperParams.batchSize'],
+            epochs: search
+                ? sport.hyperParameters.epochs
+                : sport['hyperParams.epochs'],
+            // l2reg: search
+            //     ? sport.hyperParameters.l2reg
+            //     : sport['hyperParams.l2Reg'],
+            dropoutReg: search
+                ? sport.hyperParameters.dropoutReg
+                : sport['hyperParams.dropoutReg'],
+            hiddenLayerNum: search
+                ? sport.hyperParameters.hiddenLayerNum
+                : sport['hyperParams.hiddenLayers'],
+            layerNeurons: search
+                ? sport.hyperParameters.layerNeurons
+                : sport['hyperParams.layerNeurons'],
+            kFolds: search ? sport.hyperParameters.kFolds : sport['hyperParams.kFolds'], // always comes from the saved hyperParams
+            // kernalInitializer: sport['hyperParams.kernalInitializer'] || 'glorotUniform',
+            decayFactor: search ? sport.hyperParameters.gameDecayValue : sport['hyperParams.decayFactor'],
+            gameDecayThreshold: search ? sport.hyperParameters.decayStepSize : sport['hyperParams.gameDecayThreshold'],
+            historyLength: search ? sport.hyperParameters.historyLength : sport['hyperParams.historyLength'],
+            scoreLoss: search
+                ? sport.hyperParameters.scoreLossWeight
+                : sport['hyperParams.scoreLoss'],
+            winPctLoss: search
+                ? sport.hyperParameters.winPctLossWeight
+                : sport['hyperParams.winPctLoss'],
+            earlyStopPatience: search
+                ? sport.hyperParameters.earlyStopPatience
+                : sport['hyperParams.earlyStopPatience']
+        };
+    }
     return {
         learningRate: search
             ? sport.hyperParameters.learningRate
@@ -190,9 +230,6 @@ const getHyperParams = (sport, search) => {
         // l2reg: search
         //     ? sport.hyperParameters.l2reg
         //     : sport['hyperParams.l2Reg'],
-        dropoutReg: search
-            ? sport.hyperParameters.dropoutReg
-            : sport['hyperParams.dropoutReg'],
         hiddenLayerNum: search
             ? sport.hyperParameters.hiddenLayerNum
             : sport['hyperParams.hiddenLayers'],
@@ -248,6 +285,10 @@ const loadOrCreateModel = async (xs, sport, search) => {
             const hyperParams = getHyperParams(sport, search);
             const l2Strength = hyperParams.l2reg || 0; // Default L2 regularization strength
             const input = tf.input({ shape: [xs[0].length] });
+            const useBatchNorm = (sport.name === 'americanfootball_nfl' || sport.name === 'basketball_ncaab');
+            const useDropoutEveryOther = (sport.name === 'americanfootball_ncaaf' || sport.name === 'basketball_nba' || sport.name === 'icehockey_nhl');
+            // Baseline: otherwise (mlb, wncaab)
+
 
 
             let shared = input
@@ -258,11 +299,15 @@ const loadOrCreateModel = async (xs, sport, search) => {
                     // kernelRegularizer: tf.regularizers.l2({ l2: l2Strength })
                 }).apply(shared);
 
-                // shared = tf.layers.batchNormalization().apply(shared); // optional but good with ReLU variants
-                // shared = tf.layers.leakyReLU({ alpha: 0.3 }).apply(shared);
-                // if (i % 2 === 0) {
-                //     shared = tf.layers.dropout({ rate: hyperParams.dropoutReg * 2 }).apply(shared);
-                // }
+                if (useBatchNorm) {
+                    shared = tf.layers.batchNormalization().apply(shared); // optional but good with ReLU variants
+                    shared = tf.layers.leakyReLU({ alpha: 0.3 }).apply(shared);
+                }
+
+
+                if (i % 2 === 0 && useDropoutEveryOther) {
+                    shared = tf.layers.dropout({ rate: hyperParams.dropoutReg * 2 }).apply(shared);
+                }
             }
             // Score output: regression head (predicts [homeScore, awayScore])
             const scoreOutput = tf.layers.dense({
@@ -545,16 +590,16 @@ const predictions = async (sportOdds, ff, model, sport, past, search, teamHistor
         if (game.predictedWinner !== predictedWinner) {
             predictionsChanged++;
 
-        if (!past && !search) {
-            const oldWinner = game.predictedWinner === 'home'
-                ? game['homeTeamDetails.espnDisplayName']
-                : game['awayTeamDetails.espnDisplayName'];
-            const newWinner = predictedWinner === 'home'
-                ? game['homeTeamDetails.espnDisplayName']
-                : game['awayTeamDetails.espnDisplayName'];
+            if (!past && !search) {
+                const oldWinner = game.predictedWinner === 'home'
+                    ? game['homeTeamDetails.espnDisplayName']
+                    : game['awayTeamDetails.espnDisplayName'];
+                const newWinner = predictedWinner === 'home'
+                    ? game['homeTeamDetails.espnDisplayName']
+                    : game['awayTeamDetails.espnDisplayName'];
 
-            console.log(`Prediction changed for game ${game.id}: ${predictedWinner === 'home' ? 'HOME' : 'AWAY'} ${oldWinner} → ${newWinner}  (Confidence: ${predictionConfidence}) Score ([home, away]) [${Math.round(homeScore)}, ${Math.round(awayScore)}]`);
-        }
+                console.log(`Prediction changed for game ${game.id}: ${predictedWinner === 'home' ? 'HOME' : 'AWAY'} ${oldWinner} → ${newWinner}  (Confidence: ${predictionConfidence}) Score ([home, away]) [${Math.round(homeScore)}, ${Math.round(awayScore)}]`);
+            }
         }
 
         if (game.predictionConfidence !== predictionConfidence) {

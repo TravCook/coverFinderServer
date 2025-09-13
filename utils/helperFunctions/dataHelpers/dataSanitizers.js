@@ -51,6 +51,10 @@ const normalizeTeamName = (teamName, league) => {
         "UMass Minutemen": `Massachusetts Minutemen`,
         "Louisiana Ragin Cajuns": `Louisiana Ragin' Cajuns`,
         "Southeastern Louisiana Lions": `SE Louisiana Lions`,
+        "Houston Baptist Huskies": `Houston Christian Huskies`,
+        "William and Mary Tribe": `William & Mary Tribe`,
+        "Youngstown St Penguins": `Youngstown State Penguins`,
+        "Southern University Jaguars": `Southern Jaguars`,
     }
 
     if (league === 'basketball_ncaab' || league === 'basketball_wncaab') {

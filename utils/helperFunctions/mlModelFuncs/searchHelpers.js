@@ -39,28 +39,48 @@ const calculateProfitFromUSOdds = (odds, stake) => {
 const hyperparameterRandSearch = async (sports) => {
     console.log(`STARTING HYPERPARAM SEARCH @ ${moment().format('HH:mm:ss')}`);
 
-    const space = {
-        learningRate: { type: 'log', min: 1e-5, max: 5e-3 },
-        batchSize: { type: 'int', min: 0, max: 3 }, // 0 = 16, 1 = 32, ...
-        epochs: { type: 'int', min: 30, max: 100 },
-        hiddenLayerNum: { type: 'int', min: 4, max: 8 },
-        layerNeurons: { type: 'int', min: 0, max: 2 }, // 0 = 64, 1 = 128, 2 = 256
-        // l2reg: { type: 'log', min: 1e-5, max: 5e-2 },
-        dropoutReg: { type: 'float', min: 0.0, max: 0.3 },
-        kFolds: { type: 'int', min: 3, max: 6 },
-        historyLength: { type: 'int', min: 30, max: 100 },
-        gameDecayValue: { type: 'float', min: 0.60, max: 0.99 },
-        decayStepSize: { type: 'int', min: 5, max: 80 },
-        scoreLossWeight: { type: 'float', min: 2.0, max: 8.0 },
-        winPctLossWeight: { type: 'float', min: 0.3, max: 4.0 },
-        earlyStopPatience: { type: 'int', min: 4, max: 10 }
-    };
+
 
 
 
 
 
     for (let sport of sports.sort((a, b) => a.startMonth - b.startMonth)) {
+        const useDropoutReg = (sport.name === 'americanfootball_ncaaf' || sport.name === 'basketball_nba' || sport.name === 'icehockey_nhl');
+        let space = {
+            learningRate: { type: 'log', min: 1e-5, max: 5e-3 },
+            batchSize: { type: 'int', min: 0, max: 3 }, // 0 = 16, 1 = 32, ...
+            epochs: { type: 'int', min: 30, max: 100 },
+            hiddenLayerNum: { type: 'int', min: 4, max: 8 },
+            layerNeurons: { type: 'int', min: 0, max: 2 }, // 0 = 64, 1 = 128, 2 = 256
+            // l2reg: { type: 'log', min: 1e-5, max: 5e-2 },
+            kFolds: { type: 'int', min: 3, max: 6 },
+            historyLength: { type: 'int', min: 30, max: 100 },
+            gameDecayValue: { type: 'float', min: 0.60, max: 0.99 },
+            decayStepSize: { type: 'int', min: 5, max: 80 },
+            scoreLossWeight: { type: 'float', min: 2.0, max: 8.0 },
+            winPctLossWeight: { type: 'float', min: 0.3, max: 4.0 },
+            earlyStopPatience: { type: 'int', min: 4, max: 10 }
+        };
+        if (useDropoutReg) {
+            space = {
+                learningRate: { type: 'log', min: 1e-5, max: 5e-3 },
+                batchSize: { type: 'int', min: 0, max: 3 }, // 0 = 16, 1 = 32, ...
+                epochs: { type: 'int', min: 30, max: 100 },
+                hiddenLayerNum: { type: 'int', min: 4, max: 8 },
+                layerNeurons: { type: 'int', min: 0, max: 2 }, // 0 = 64, 1 = 128, 2 = 256
+                // l2reg: { type: 'log', min: 1e-5, max: 5e-2 },
+                dropoutReg: { type: 'float', min: 0.0, max: 0.3 },
+                kFolds: { type: 'int', min: 3, max: 6 },
+                historyLength: { type: 'int', min: 30, max: 100 },
+                gameDecayValue: { type: 'float', min: 0.60, max: 0.99 },
+                decayStepSize: { type: 'int', min: 5, max: 80 },
+                scoreLossWeight: { type: 'float', min: 2.0, max: 8.0 },
+                winPctLossWeight: { type: 'float', min: 0.3, max: 4.0 },
+                earlyStopPatience: { type: 'int', min: 4, max: 10 }
+            };
+        }
+
         // if(sport.name !== 'basketball_wncaab' ) continue; // Skip baseball for now
         const batchSizeOptions = [16, 32, 64, 128];
         const neuronOptions = [64, 128, 256];
@@ -157,9 +177,9 @@ const hyperparameterRandSearch = async (sports) => {
             earlyStopPatience: Math.round(bestParams.earlyStopPatience)
         };
         console.log(`Best Parameters for ${sport.name}:`, processedParams);
-        // await db.HyperParams.update(processedParams, {
-        //     where: { sport: sport.id }
-        // });
+        await db.HyperParams.update(processedParams, {
+            where: { sport: sport.id }
+        });
 
     }
 
