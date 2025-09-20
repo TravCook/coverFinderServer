@@ -55,6 +55,8 @@ const normalizeTeamName = (teamName, league) => {
         "William and Mary Tribe": `William & Mary Tribe`,
         "Youngstown St Penguins": `Youngstown State Penguins`,
         "Southern University Jaguars": `Southern Jaguars`,
+        "Gardner-Webb Runnin Bulldogs": `Gardner-Webb Runnin' Bulldogs`,
+        "McNeese State Cowboys": `McNeese Cowboys`,
     }
 
     if (league === 'basketball_ncaab' || league === 'basketball_wncaab') {
