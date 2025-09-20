@@ -991,6 +991,6 @@ const pastBaseballPitcherStats = async () => {
 }
 
 // mlModelTrainSeed()
-modelReset()
+// modelReset()
 // pastBaseballPitcherStats()
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed }
