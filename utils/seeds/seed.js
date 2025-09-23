@@ -134,9 +134,11 @@ const mlModelTrainSeed = async () => {
                 console.log(`NOT ENOUGH ${sport.name} DATA`)
             }
             console.log(`${sport.name} ML DONE @ ${moment().format('HH:mm:ss')}`)
+            tf.disposeVariables();
+            tf.engine().reset();
             if (global.gc) global.gc();
             pastGames = null
-            teamStatsHistory= null
+            teamStatsHistory = null
             upcomingGames = null
             model = null
 
@@ -876,11 +878,11 @@ const espnSeed = async () => {
 
 const valueBet = async () => {
     const sports = await db.Sports.findAll({ include: [{ model: db.MlModelWeights, as: 'MlModelWeights' }, { model: db.HyperParams, as: 'hyperParams' }], raw: true, order: [['name', 'ASC']] });
-    // hyperparameterRandSearch(sports)
+    hyperparameterRandSearch(sports)
 
-    for (const sport of sports) {
-        await valueBetGridSearch(sport)
-    }
+    // for (const sport of sports) {
+    //     await valueBetGridSearch(sport)
+    // }
 
 }
 
@@ -991,6 +993,6 @@ const pastBaseballPitcherStats = async () => {
 }
 
 // valueBet()
-// modelReset()
+modelReset()
 // pastBaseballPitcherStats()
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed }

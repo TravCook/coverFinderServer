@@ -177,7 +177,7 @@ const extractSportFeatures = (homeStats, awayStats, league, allPastGamesSorted, 
 
 
 const getHyperParams = (sport, search) => {
-    const useDropoutReg = (sport.name === 'americanfootball_ncaaf' || sport.name === 'basketball_nba' || sport.name === 'icehockey_nhl');
+    const useDropoutReg = ( sport.name === 'basketball_nba' || sport.name === 'icehockey_nhl');
     if (useDropoutReg) {
         return {
             learningRate: search
@@ -259,7 +259,7 @@ const repeatPredictions = async (model, inputTensor, numPasses) => {
     const winProbs = []
 
     for (let i = 0; i < numPasses; i++) {
-        const [predictedScores, predictedWinProb] = await model.predict(inputTensor);
+        const [predictedScores, predictedWinProb] = model.predict(inputTensor);
         let score = predictedScores.arraySync()
         let winProb = predictedWinProb.arraySync()
         predictions.push(score[0]); // Each prediction is [homeScore, awayScore]
@@ -284,9 +284,10 @@ const loadOrCreateModel = async (xs, sport, search) => {
         } else {
             const hyperParams = getHyperParams(sport, search);
             const l2Strength = hyperParams.l2reg || 0; // Default L2 regularization strength
+            const initializer = tf.initializers.randomNormal({ seed: 122021 });
             const input = tf.input({ shape: [xs[0].length] });
-            const useBatchNorm = (sport.name === 'americanfootball_nfl' || sport.name === 'basketball_ncaab');
-            const useDropoutEveryOther = (sport.name === 'americanfootball_ncaaf' || sport.name === 'basketball_nba' || sport.name === 'icehockey_nhl');
+            const useBatchNorm = ( sport.name === 'basketball_ncaab');
+            const useDropoutEveryOther = ( sport.name === 'basketball_nba' || sport.name === 'icehockey_nhl');
             // Baseline: otherwise (mlb, wncaab)
 
 
@@ -296,7 +297,7 @@ const loadOrCreateModel = async (xs, sport, search) => {
                 shared = tf.layers.dense({
                     units: hyperParams.layerNeurons,
                     activation: 'relu',
-                    // kernelRegularizer: tf.regularizers.l2({ l2: l2Strength })
+                    kernelInitializer: initializer,
                 }).apply(shared);
 
                 if (useBatchNorm) {
@@ -567,13 +568,18 @@ const predictions = async (sportOdds, ff, model, sport, past, search, teamHistor
             (predScore[0] * testScoreStdDev) + testScoreMean,
             (predScore[1] * testScoreStdDev) + testScoreMean
         ]
-        // let [homeScore, awayScore] = predScore
+        if(homeScore < 0) homeScore = 0
+        if(awayScore < 0) awayScore = 0
+        // Prediction confidence is the probability of the predicted winner
 
         let predictionConfidence = predWinProb > 0.5 ? predWinProb[0] : 1 - predWinProb[0];
 
         // Avoid ties
         if (Math.round(homeScore) === Math.round(awayScore)) {
             tieGames++;
+            if(sport.name === 'americanfootball_nfl' || sport.name === 'americanfootball_ncaaf'){
+                predWinProb[0] > 0.5 ? homeScore+=7 : awayScore+=7;
+            }
             predWinProb[0] > 0.5 ? homeScore++ : awayScore++;
         }
         let predictedWinner = homeScore > awayScore ? 'home' : 'away';
@@ -590,16 +596,16 @@ const predictions = async (sportOdds, ff, model, sport, past, search, teamHistor
         // if (game.predictedWinner !== predictedWinner) {
         //     predictionsChanged++;
 
-            if (!past && !search) {
-                const oldWinner = game.predictedWinner === 'home'
-                    ? game['homeTeamDetails.espnDisplayName']
-                    : game['awayTeamDetails.espnDisplayName'];
-                const newWinner = predictedWinner === 'home'
-                    ? game['homeTeamDetails.espnDisplayName']
-                    : game['awayTeamDetails.espnDisplayName'];
+        if (!past && !search) {
+            const oldWinner = game.predictedWinner === 'home'
+                ? game['homeTeamDetails.espnDisplayName']
+                : game['awayTeamDetails.espnDisplayName'];
+            const newWinner = predictedWinner === 'home'
+                ? game['homeTeamDetails.espnDisplayName']
+                : game['awayTeamDetails.espnDisplayName'];
 
-                console.log(`Prediction changed for game ${game.id}: ${predictedWinner === 'home' ? 'HOME' : 'AWAY'} ${oldWinner} → ${newWinner}  (Confidence: ${predictionConfidence}) Score ([home, away]) [${Math.round(homeScore)}, ${Math.round(awayScore)}]`);
-            }
+            console.log(`Prediction changed for game ${game.id}: ${predictedWinner === 'home' ? 'HOME' : 'AWAY'} ${oldWinner} → ${newWinner}  (Confidence: ${predictionConfidence}) Score ([home, away]) [${Math.round(homeScore)}, ${Math.round(awayScore)}]`);
+        }
         // }
 
         if (game.predictionConfidence !== predictionConfidence) {
@@ -657,7 +663,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, teamHistor
         }
 
         if (!past && !search) {
-            await db.Games.update(updatePayload, { where: { id: game.id } });
+            // await db.Games.update(updatePayload, { where: { id: game.id } });
         }
 
         if (past || search) {
@@ -739,6 +745,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, teamHistor
 };
 
 const trainSportModelKFold = async (sport, gameData, search) => {
+
     let hyperParams = await getHyperParams(sport, search)
     console.log(hyperParams)
     // Sort historical game data and slice off the most recent 10% for testing
@@ -759,6 +766,17 @@ const trainSportModelKFold = async (sport, gameData, search) => {
     bar.start(totalFolds, 0);
 
     let sortedPastGames = gameData.sort((a, b) => new Date(b.commence_time) - new Date(a.commence_time));
+
+    // Step 1: Flatten all scores into one array
+    let allScores = gameData.flatMap(game => [game.homeScore, game.awayScore]);
+
+    // Step 2: Compute mean
+    let testScoreMean = allScores.reduce((acc, score) => acc + score, 0) / allScores.length;
+
+    // Step 3: Compute standard deviation
+    let testScoreStdDev = Math.sqrt(
+        allScores.reduce((acc, score) => acc + Math.pow(score - testScoreMean, 2), 0) / allScores.length
+    );
 
     for (let foldIndex = 1; foldIndex <= numFolds; foldIndex++) {
         // Define training and validation split for this fold
@@ -789,17 +807,6 @@ const trainSportModelKFold = async (sport, gameData, search) => {
         const spreadErrors = [];
         const totalErrors = [];
 
-        // Step 1: Flatten all scores into one array
-        let allScores = gameData.flatMap(game => [game.homeScore, game.awayScore]);
-
-        // Step 2: Compute mean
-        let testScoreMean = allScores.reduce((acc, score) => acc + score, 0) / allScores.length;
-
-        // Step 3: Compute standard deviation
-        let testScoreStdDev = Math.sqrt(
-            allScores.reduce((acc, score) => acc + Math.pow(score - testScoreMean, 2), 0) / allScores.length
-        );
-
         for (const game of testData) {
             const homeStats = game['homeStats.data'];
             const awayStats = game['awayStats.data'];
@@ -827,13 +834,16 @@ const trainSportModelKFold = async (sport, gameData, search) => {
             testXs.push(statFeatures);
             testYsScore.push(homeScoreLabel);
             testYsWins.push(homeWinLabel);
-            const [avgScore, avgWinProb] = await repeatPredictions(model, tf.tensor2d([statFeatures]), 10);
+            const inputTensor = tf.tensor2d([statFeatures]);
+            const [avgScore, avgWinProb] = await repeatPredictions(model, inputTensor, 10);
+            inputTensor.dispose();  // ✅ manual cleanup
+
             let [predHome, predAway] = [
                 (avgScore[0] * testScoreStdDev) + testScoreMean,
                 (avgScore[1] * testScoreStdDev) + testScoreMean
             ]
-            // let [predHome, predAway] = avgScore
-            // const [predHome, predAway] = avgScore;
+            if(predHome < 0) predHome = 0
+            if(predAway < 0) predAway = 0
             const [actualHome, actualAway] = [game.homeScore, game.awayScore];
 
             const predSpread = predHome - predAway;
@@ -878,8 +888,13 @@ const trainSportModelKFold = async (sport, gameData, search) => {
 
     // Aggregate results
     const { avgSpreadMAE, avgTotalMAE, avgMAE, totalCounts } = printOverallMetrics(foldResults);
+
+    let deNormalizedMAE = avgMAE * testScoreStdDev;
+
+    console.log(`--- Overall Performance Avg MAE: ${deNormalizedMAE.toFixed(2)} ---`);
+
     if (!search) await db.HyperParams.update({
-        scoreMAE: avgMAE,
+        scoreMAE: deNormalizedMAE,
         totalMAE: avgTotalMAE,
         spreadMAE: avgSpreadMAE
     }, {
@@ -962,6 +977,8 @@ const trainSportModelKFold = async (sport, gameData, search) => {
         console.log(`  - Total MAE: ${((-(avgTotalMAE) * 1.5)).toFixed(2)}`);
         console.log(`  - Avg MAE: ${((-(avgMAE) * 2.0)).toFixed(2)}`);
         console.log(`--- FINAL HYPERPARAM SCORE: ${(compositeScore).toFixed(2)} ---`);
+        tf.disposeVariables();
+        tf.engine().reset();
         return winRate;
     }
 
@@ -969,11 +986,11 @@ const trainSportModelKFold = async (sport, gameData, search) => {
         .sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time)); // All
 
 
-    const { model: retrainedModel } = await mlModelTraining(
+    const { model } = await mlModelTraining(
         fullTrainingData, sport, search, gameCount, sortedGameData
     );
 
-    finalModel = retrainedModel;
+    finalModel = model;
 
 
     // // --- Model Saving ---
@@ -990,9 +1007,7 @@ const trainSportModelKFold = async (sport, gameData, search) => {
     await extractAndSaveFeatureImportances(finalModel, sport);
 
     if (global.gc) global.gc();
-    //cleanup
-    // tf.disposeVariables();
-    // tf.engine().reset();
+
     console.log(`ml model done for ${sport.name} @ ${moment().format('HH:mm:ss')}`);
     return finalModel;
 };
