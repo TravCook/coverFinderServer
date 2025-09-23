@@ -177,7 +177,7 @@ const extractSportFeatures = (homeStats, awayStats, league, allPastGamesSorted, 
 
 
 const getHyperParams = (sport, search) => {
-    const useDropoutReg = ( sport.name === 'basketball_nba' || sport.name === 'icehockey_nhl');
+    const useDropoutReg = (sport.name === 'basketball_nba' || sport.name === 'icehockey_nhl');
     if (useDropoutReg) {
         return {
             learningRate: search
@@ -286,8 +286,8 @@ const loadOrCreateModel = async (xs, sport, search) => {
             const l2Strength = hyperParams.l2reg || 0; // Default L2 regularization strength
             const initializer = tf.initializers.randomNormal({ seed: 122021 });
             const input = tf.input({ shape: [xs[0].length] });
-            const useBatchNorm = ( sport.name === 'basketball_ncaab');
-            const useDropoutEveryOther = ( sport.name === 'basketball_nba' || sport.name === 'icehockey_nhl');
+            const useBatchNorm = (sport.name === 'basketball_ncaab');
+            const useDropoutEveryOther = (sport.name === 'basketball_nba' || sport.name === 'icehockey_nhl');
             // Baseline: otherwise (mlb, wncaab)
 
 
@@ -568,8 +568,8 @@ const predictions = async (sportOdds, ff, model, sport, past, search, teamHistor
             (predScore[0] * testScoreStdDev) + testScoreMean,
             (predScore[1] * testScoreStdDev) + testScoreMean
         ]
-        if(homeScore < 0) homeScore = 0
-        if(awayScore < 0) awayScore = 0
+        if (homeScore < 0) homeScore = 0
+        if (awayScore < 0) awayScore = 0
         // Prediction confidence is the probability of the predicted winner
 
         let predictionConfidence = predWinProb > 0.5 ? predWinProb[0] : 1 - predWinProb[0];
@@ -577,10 +577,12 @@ const predictions = async (sportOdds, ff, model, sport, past, search, teamHistor
         // Avoid ties
         if (Math.round(homeScore) === Math.round(awayScore)) {
             tieGames++;
-            if(sport.name === 'americanfootball_nfl' || sport.name === 'americanfootball_ncaaf'){
-                predWinProb[0] > 0.5 ? homeScore+=7 : awayScore+=7;
+            if (sport.name === 'americanfootball_nfl' || sport.name === 'americanfootball_ncaaf') {
+                predWinProb[0] > 0.5 ? homeScore += 7 : awayScore += 7;
+            } else {
+                predWinProb[0] > 0.5 ? homeScore++ : awayScore++;
             }
-            predWinProb[0] > 0.5 ? homeScore++ : awayScore++;
+
         }
         let predictedWinner = homeScore > awayScore ? 'home' : 'away';
         if (predictedWinner === 'home') home++;
@@ -842,8 +844,8 @@ const trainSportModelKFold = async (sport, gameData, search) => {
                 (avgScore[0] * testScoreStdDev) + testScoreMean,
                 (avgScore[1] * testScoreStdDev) + testScoreMean
             ]
-            if(predHome < 0) predHome = 0
-            if(predAway < 0) predAway = 0
+            if (predHome < 0) predHome = 0
+            if (predAway < 0) predAway = 0
             const [actualHome, actualAway] = [game.homeScore, game.awayScore];
 
             const predSpread = predHome - predAway;
