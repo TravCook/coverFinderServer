@@ -749,6 +749,23 @@ const predictions = async (sportOdds, ff, model, sport, past, search, teamHistor
 const trainSportModelKFold = async (sport, gameData, search) => {
 
     let hyperParams = await getHyperParams(sport, search)
+    if (sport.name === 'americanfootball_nfl') {
+        hyperParams = {
+            learningRate: 0.004074814017681368,
+            batchSize: 128,
+            epochs: 89,
+            hiddenLayerNum: 6,
+            layerNeurons: 256,
+            kFolds: 3,
+            decayFactor: 0.8946985020317333,
+            gameDecayThreshold: 68,
+            historyLength: 94,
+            scoreLoss: 3.9417335525530746,
+            winPctLoss: 3.79951249685954,
+            earlyStopPatience: 9
+        }
+
+    }
     console.log(hyperParams)
     // Sort historical game data and slice off the most recent 10% for testing
     const sortedGameData = gameData
