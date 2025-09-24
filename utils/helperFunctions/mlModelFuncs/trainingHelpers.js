@@ -333,7 +333,7 @@ const loadOrCreateModel = async (xs, sport, search) => {
     }
 };
 
-const mlModelTraining = async (gameData, sport, search, gameCount, allPastGames) => {
+const mlModelTraining = async (gameData, sport, search, gameCount, allPastGames, final) => {
     const statMap = statConfigMap[sport.espnSport].default;
     const hyperParams = await getHyperParams(sport, search)
     xs = []
@@ -350,6 +350,13 @@ const mlModelTraining = async (gameData, sport, search, gameCount, allPastGames)
     let scoreStdDev = Math.sqrt(
         allScores.reduce((acc, score) => acc + Math.pow(score - scoreMean, 2), 0) / allScores.length
     );
+    let progress
+    if (final) {
+        let bar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
+        let totalGames = gameData.length
+        progress = 0;
+        bar.start(totalGames, 0);
+    }
     // --- Feature Extraction + Labeling ---
     for (const game of gameData) {
         const homeStats = game['homeStats.data'];
@@ -395,7 +402,12 @@ const mlModelTraining = async (gameData, sport, search, gameCount, allPastGames)
         }
 
         gameCount++;
+        if (final) {
+            progress += 1;
+            bar.update(progress);
+        }
     }
+    bar.stop();
     checkFeatureLeakage(xs, ysScore, ysWins);
 
     // --- Tensor Conversion ---
@@ -1006,7 +1018,7 @@ const trainSportModelKFold = async (sport, gameData, search) => {
 
 
     const { model } = await mlModelTraining(
-        fullTrainingData, sport, search, gameCount, sortedGameData
+        fullTrainingData, sport, search, gameCount, sortedGameData, true
     );
 
     finalModel = model;
