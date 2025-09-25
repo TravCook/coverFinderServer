@@ -3,6 +3,7 @@ const { Odds, PastGameOdds, Sport } = require('../../../models');
 const db = require('../../../models_sql');
 const Sequelize = require('sequelize');
 const { Op } = Sequelize;
+const tf = require('@tensorflow/tfjs-node');
 const { trainSportModelKFold } = require('../../helperFunctions/mlModelFuncs/trainingHelpers')
 const cliProgress = require('cli-progress');
 const fs = require('fs');
@@ -180,6 +181,8 @@ const hyperparameterRandSearch = async (sports) => {
         await db.HyperParams.update(processedParams, {
             where: { sport: sport.id }
         });
+        tf.disposeVariables();
+        tf.engine().reset();
 
     }
 

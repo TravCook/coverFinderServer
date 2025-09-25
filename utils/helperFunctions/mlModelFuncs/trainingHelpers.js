@@ -351,8 +351,9 @@ const mlModelTraining = async (gameData, sport, search, gameCount, allPastGames,
         allScores.reduce((acc, score) => acc + Math.pow(score - scoreMean, 2), 0) / allScores.length
     );
     let progress
+    let bar
     if (final) {
-        let bar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
+        bar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
         let totalGames = gameData.length
         progress = 0;
         bar.start(totalGames, 0);
