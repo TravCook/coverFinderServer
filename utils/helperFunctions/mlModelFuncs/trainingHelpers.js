@@ -408,7 +408,7 @@ const mlModelTraining = async (gameData, sport, search, gameCount, allPastGames,
             bar.update(progress);
         }
     }
-    bar.stop();
+    if (final) bar.stop()
     checkFeatureLeakage(xs, ysScore, ysWins);
 
     // --- Tensor Conversion ---
