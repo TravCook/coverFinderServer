@@ -112,14 +112,13 @@ const statDBSaver = async (game, team, sport, gameSQL, homeAway) => {
                 if (stat !== 'BSBsaves' && stat !== 'BSBsavePct' && stat !== 'BSBshutouts') teamStats[stat] = statAverage
             }
         }
-        console.log(teamStats)
     }
     await db.Stats.upsert({
         gameId: gameSQL.id, // Use the SQL game ID
         teamId: team.id, // Use the SQL team ID
         sport: sport.id, // Use the SQL sport ID
         data: {
-            ...team.currentStats, // Spread the home team stats
+            teamStats, // Spread the home team stats
         }
     })
 

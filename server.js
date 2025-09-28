@@ -35,11 +35,11 @@ app.use(routes);
 // Cron job configurations
 const timezone = 'America/Denver';
 const cronJobs = [
-  {
-    cronTime: '0 */5 4-23 * * *', //every 1 minutes 1.2 mb -- removes old games && updates live scores 
-    onTick: dataSeed.removeSeed,
-    timezone
-  },
+  // {
+  //   cronTime: '0 */1 4-23 * * *', //every 1 minutes 1.2 mb -- removes old games && updates live scores 
+  //   onTick: dataSeed.removeSeed,
+  //   timezone
+  // },
   {
     cronTime: '0 0 4,8,12,16,20 * * *', // Runs at 8:00 AM, 2:00 PM, and 9:00 PM -- retrieves odds from the-odds-api -- 53 sec TODO: 1,3,6,9,12,14,16,18,22
     onTick: dataSeed.oddsSeed,
