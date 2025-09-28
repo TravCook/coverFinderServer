@@ -287,7 +287,7 @@ const loadOrCreateModel = async (xs, sport, search) => {
             const initializer = tf.initializers.randomNormal({ seed: 122021 });
             const input = tf.input({ shape: [xs[0].length] });
             const useBatchNorm = (sport.name === 'basketball_ncaab');
-            const useDropoutEveryOther = (sport.name === 'basketball_nba' || sport.name === 'icehockey_nhl');
+            const useDropoutEveryOther = (sport.name === 'basketball_nba' || sport.name === 'icehockey_nhl' || sport.name === 'americanfootball_nfl' || sport.name === 'americanfootball_ncaaf');
             // Baseline: otherwise (mlb, wncaab)
 
 
