@@ -558,7 +558,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, teamHistor
         allScores.reduce((acc, score) => acc + Math.pow(score - testScoreMean, 2), 0) / allScores.length
     );
     for (const game of sportOdds) {
-        if (new Date(game.commence_time) < new Date() && !search) console.warn('PREDICTING PAST GAME:', game.id, game.commence_time, new Date(game.commence_time) < new Date())
+        if (new Date(game.commence_time) < new Date() && !search) continue
         const homeRawStats = game['homeStats.data'];
         const awayRawStats = game['awayStats.data'];
 
