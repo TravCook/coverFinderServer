@@ -177,7 +177,7 @@ const extractSportFeatures = (homeStats, awayStats, league, allPastGamesSorted, 
 
 
 const getHyperParams = (sport, search) => {
-    const useDropoutReg = (sport.name === 'basketball_nba' || sport.name === 'icehockey_nhl');
+    const useDropoutReg = (sport.name === 'basketball_nba' || sport.name === 'icehockey_nhl' || sport.name === 'americanfootball_nfl' || sport.name === 'americanfootball_ncaaf');
     if (useDropoutReg) {
         return {
             learningRate: search
