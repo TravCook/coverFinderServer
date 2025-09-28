@@ -177,7 +177,7 @@ const extractSportFeatures = (homeStats, awayStats, league, allPastGamesSorted, 
 
 
 const getHyperParams = (sport, search) => {
-    const useDropoutReg = (sport.name === 'basketball_nba' || sport.name === 'icehockey_nhl' || sport.name === 'americanfootball_nfl' || sport.name === 'americanfootball_ncaaf');
+    const useDropoutReg = (sport.name === 'basketball_nba' || sport.name === 'icehockey_nhl' );
     if (useDropoutReg) {
         return {
             learningRate: search
@@ -287,7 +287,7 @@ const loadOrCreateModel = async (xs, sport, search) => {
             const initializer = tf.initializers.randomNormal({ seed: 122021 });
             const input = tf.input({ shape: [xs[0].length] });
             const useBatchNorm = (sport.name === 'basketball_ncaab');
-            const useDropoutEveryOther = (sport.name === 'basketball_nba' || sport.name === 'icehockey_nhl' || sport.name === 'americanfootball_nfl' || sport.name === 'americanfootball_ncaaf');
+            const useDropoutEveryOther = (sport.name === 'basketball_nba' || sport.name === 'icehockey_nhl' );
             // Baseline: otherwise (mlb, wncaab)
 
 
@@ -297,7 +297,7 @@ const loadOrCreateModel = async (xs, sport, search) => {
                 shared = tf.layers.dense({
                     units: hyperParams.layerNeurons,
                     activation: 'relu',
-                    // kernelInitializer: initializer,
+                    kernelInitializer: initializer,
                 }).apply(shared);
 
                 if (useBatchNorm) {
