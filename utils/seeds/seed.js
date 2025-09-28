@@ -65,7 +65,7 @@ const mlModelTrainSeed = async () => {
     for (let sport of sports) {
         let inSeason = isSportInSeason(sport)
         // Multi-year sports (e.g., NFL, NBA, NHL, etc.)
-        if (inSeason && sport.name !== 'baseball_mlb') {
+        if (inSeason) {
             let upcomingGames = odds.filter((game) => game.sport_key === sport.name)
             let pastGames = await db.Games.findAll({
                 where: { complete: true, sport_key: sport.name },
@@ -369,7 +369,7 @@ const oddsSeed = async () => {
         } else if (currentHour >= 11 && currentHour < 17) {
             requests = sports.map(sport =>
 
-                axiosWithBackoff(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_TCDEV}&regions=us&oddsFormat=american&markets=h2h,spreads,totals`)
+                axiosWithBackoff(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_LOWRES}&regions=us&oddsFormat=american&markets=h2h,spreads,totals`)
 
             );
         } else if (currentHour >= 17 && currentHour < 24) {
@@ -889,11 +889,11 @@ const valueBet = async () => {
 
 const modelReset = async () => {
 
-    // await mlModelTrainSeed()
+    await mlModelTrainSeed()
 
     // await dataSeed()
 
-    await oddsSeed()
+    // await oddsSeed()
 }
 
 const pastBaseballPitcherStats = async () => {

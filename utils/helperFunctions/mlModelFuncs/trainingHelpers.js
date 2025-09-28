@@ -337,40 +337,6 @@ const mlModelTraining = async (gameData, sport, search, gameCount, allPastGames,
     const statMap = statConfigMap[sport.espnSport].default;
     let hyperParams = await getHyperParams(sport, search)
 
-    if (sport.name === 'americanfootball_ncaaf') {
-        hyperParams = {
-            learningRate: 0.003181873410522846,
-            batchSize: 64,
-            epochs: 99,
-            hiddenLayerNum: 5,
-            layerNeurons: 128,
-            kFolds: 4,
-            decayFactor: 0.6939702195998885,
-            gameDecayThreshold: 8,
-            historyLength: 50,
-            scoreLoss: 6.801183439984383,
-            winPctLoss: 0.8896273055049464,
-            earlyStopPatience: 9
-        }
-    }
-    if (sport.name === 'americanfootball_nfl') {
-        hyperParams = {
-
-            learningRate: 0.004074814017681368,
-            batchSize: 128,
-            epochs: 89,
-            hiddenLayerNum: 6,
-            layerNeurons: 256,
-            kFolds: 3,
-            decayFactor: 0.8946985020317333,
-            gameDecayThreshold: 68,
-            historyLength: 94,
-            scoreLoss: 3.9417335525530746,
-            winPctLoss: 3.79951249685954,
-            earlyStopPatience: 9
-
-        }
-    }
     xs = []
     ysWins = []
     ysScore = []
@@ -592,7 +558,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, teamHistor
         allScores.reduce((acc, score) => acc + Math.pow(score - testScoreMean, 2), 0) / allScores.length
     );
     for (const game of sportOdds) {
-        if (new Date(game.commence_time) < new Date() && !search) continue
+        if (new Date(game.commence_time) < new Date() && !search) console.warn('PREDICTING PAST GAME:', game.id, game.commence_time, new Date(game.commence_time) < new Date())
         const homeRawStats = game['homeStats.data'];
         const awayRawStats = game['awayStats.data'];
 
@@ -797,40 +763,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, teamHistor
 const trainSportModelKFold = async (sport, gameData, search) => {
 
     let hyperParams = await getHyperParams(sport, search)
-        if (sport.name === 'americanfootball_ncaaf') {
-        hyperParams = {
-            learningRate: 0.003181873410522846,
-            batchSize: 64,
-            epochs: 99,
-            hiddenLayerNum: 5,
-            layerNeurons: 128,
-            kFolds: 4,
-            decayFactor: 0.6939702195998885,
-            gameDecayThreshold: 8,
-            historyLength: 50,
-            scoreLoss: 6.801183439984383,
-            winPctLoss: 0.8896273055049464,
-            earlyStopPatience: 9
-        }
-    }
-    if (sport.name === 'americanfootball_nfl') {
-        hyperParams = {
 
-            learningRate: 0.004074814017681368,
-            batchSize: 128,
-            epochs: 89,
-            hiddenLayerNum: 6,
-            layerNeurons: 256,
-            kFolds: 3,
-            decayFactor: 0.8946985020317333,
-            gameDecayThreshold: 68,
-            historyLength: 94,
-            scoreLoss: 3.9417335525530746,
-            winPctLoss: 3.79951249685954,
-            earlyStopPatience: 9
-
-        }
-    }
     console.log(hyperParams)
     // Sort historical game data and slice off the most recent 10% for testing
     const sortedGameData = gameData
