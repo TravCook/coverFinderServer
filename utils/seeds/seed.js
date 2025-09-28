@@ -369,7 +369,7 @@ const oddsSeed = async () => {
         } else if (currentHour >= 11 && currentHour < 17) {
             requests = sports.map(sport =>
 
-                axiosWithBackoff(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_LOWRES}&regions=us&oddsFormat=american&markets=h2h,spreads,totals`)
+                axiosWithBackoff(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_SMOKEY}&regions=us&oddsFormat=american&markets=h2h,spreads,totals`)
 
             );
         } else if (currentHour >= 17 && currentHour < 24) {
