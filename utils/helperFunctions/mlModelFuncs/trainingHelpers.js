@@ -455,7 +455,7 @@ const mlModelTraining = async (gameData, sport, search, gameCount, allPastGames,
         epochs: hyperParams.epochs,
         batchSize: hyperParams.batchSize,
         validationData: [xsVal, { scoreOutput: ysScoresVal, winProbOutput: ysWinVal }],
-        verbose: false,
+        verbose: true,
         callbacks: [
             tf.callbacks.earlyStopping({
                 monitor: 'val_loss',
