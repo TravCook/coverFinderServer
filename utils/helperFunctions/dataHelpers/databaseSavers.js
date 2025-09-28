@@ -117,7 +117,7 @@ const statDBSaver = async (game, team, sport, gameSQL, homeAway) => {
         teamId: team.id, // Use the SQL team ID
         sport: sport.id, // Use the SQL sport ID
         data: {
-            teamStats, // Spread the home team stats
+            ...teamStats, // Spread the home team stats
         }
     })
 

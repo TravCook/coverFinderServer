@@ -369,7 +369,7 @@ const oddsSeed = async () => {
         } else if (currentHour >= 11 && currentHour < 17) {
             requests = sports.map(sport =>
 
-                axiosWithBackoff(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_LOWRES}&regions=us&oddsFormat=american&markets=h2h,spreads,totals`)
+                axiosWithBackoff(`https://api.the-odds-api.com/v4/sports/${sport.name}/odds/?apiKey=${process.env.ODDS_KEY_TCDEV}&regions=us&oddsFormat=american&markets=h2h,spreads,totals`)
 
             );
         } else if (currentHour >= 17 && currentHour < 24) {
@@ -380,6 +380,7 @@ const oddsSeed = async () => {
             );
         }
         const data = await Promise.all(requests)
+        console.log(`Odds fetched @ ${moment().format('HH:mm:ss')}, beginning DB save...`)
         try {
             for (const item of data) {
                 for (const event of item.data) {
@@ -878,21 +879,21 @@ const espnSeed = async () => {
 
 const valueBet = async () => {
     const sports = await db.Sports.findAll({ include: [{ model: db.MlModelWeights, as: 'MlModelWeights' }, { model: db.HyperParams, as: 'hyperParams' }], raw: true, order: [['name', 'ASC']] });
-    // hyperparameterRandSearch(sports)
+    hyperparameterRandSearch(sports)
 
-    for (const sport of sports) {
-        await valueBetGridSearch(sport)
-    }
+    // for (const sport of sports) {
+    //     await valueBetGridSearch(sport)
+    // }
 
 }
 
 const modelReset = async () => {
 
-    await mlModelTrainSeed()
+    // await mlModelTrainSeed()
 
     // await dataSeed()
 
-    // await oddsSeed()
+    await oddsSeed()
 }
 
 const pastBaseballPitcherStats = async () => {

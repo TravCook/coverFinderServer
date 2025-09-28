@@ -177,7 +177,7 @@ const extractSportFeatures = (homeStats, awayStats, league, allPastGamesSorted, 
 
 
 const getHyperParams = (sport, search) => {
-    const useDropoutReg = (sport.name === 'basketball_nba' || sport.name === 'icehockey_nhl' );
+    const useDropoutReg = (sport.name === 'basketball_nba' || sport.name === 'icehockey_nhl');
     if (useDropoutReg) {
         return {
             learningRate: search
@@ -282,50 +282,50 @@ const loadOrCreateModel = async (xs, sport, search) => {
         // if (fs.existsSync(modelPath) && !search) {
         //     return await tf.loadLayersModel(`file://${modelPath}`);
         // } else {
-            const hyperParams = getHyperParams(sport, search);
-            const l2Strength = hyperParams.l2reg || 0; // Default L2 regularization strength
-            const initializer = tf.initializers.randomNormal({ seed: 122021 });
-            const input = tf.input({ shape: [xs[0].length] });
-            const useBatchNorm = (sport.name === 'basketball_ncaab');
-            const useDropoutEveryOther = (sport.name === 'basketball_nba' || sport.name === 'icehockey_nhl' );
-            // Baseline: otherwise (mlb, wncaab)
+        const hyperParams = getHyperParams(sport, search);
+        const l2Strength = hyperParams.l2reg || 0; // Default L2 regularization strength
+        const initializer = tf.initializers.randomNormal({ seed: 122021 });
+        const input = tf.input({ shape: [xs[0].length] });
+        const useBatchNorm = (sport.name === 'basketball_ncaab');
+        const useDropoutEveryOther = (sport.name === 'basketball_nba' || sport.name === 'icehockey_nhl');
+        // Baseline: otherwise (mlb, wncaab)
 
 
 
-            let shared = input
-            for (let i = 0; i < hyperParams.hiddenLayerNum; i++) {
-                shared = tf.layers.dense({
-                    units: hyperParams.layerNeurons,
-                    activation: 'relu',
-                    kernelInitializer: initializer,
-                }).apply(shared);
+        let shared = input
+        for (let i = 0; i < hyperParams.hiddenLayerNum; i++) {
+            shared = tf.layers.dense({
+                units: hyperParams.layerNeurons,
+                activation: 'relu',
+                kernelInitializer: initializer,
+            }).apply(shared);
 
-                if (useBatchNorm) {
-                    shared = tf.layers.batchNormalization().apply(shared); // optional but good with ReLU variants
-                    shared = tf.layers.leakyReLU({ alpha: 0.3 }).apply(shared);
-                }
-
-
-                if (i % 2 === 0 && useDropoutEveryOther) {
-                    shared = tf.layers.dropout({ rate: hyperParams.dropoutReg * 2 }).apply(shared);
-                }
+            if (useBatchNorm) {
+                shared = tf.layers.batchNormalization().apply(shared); // optional but good with ReLU variants
+                shared = tf.layers.leakyReLU({ alpha: 0.3 }).apply(shared);
             }
-            // Score output: regression head (predicts [homeScore, awayScore])
-            const scoreOutput = tf.layers.dense({
-                units: 2, activation: 'linear', name: 'scoreOutput',
-                // kernelRegularizer: tf.regularizers.l2({ l2: l2Strength })
-            }).apply(shared);
-            // Win probability output: classification head (sigmoid)
-            const winProbOutput = tf.layers.dense({
-                units: 1, activation: 'sigmoid', name: 'winProbOutput',
-                // kernelRegularizer: tf.regularizers.l2({ l2: l2Strength })
-            }).apply(shared);
-            // Define the model
-            const model = tf.model({
-                inputs: input,
-                outputs: [scoreOutput, winProbOutput]
-            });
-            return model;
+
+
+            if (i % 2 === 0 && useDropoutEveryOther) {
+                shared = tf.layers.dropout({ rate: hyperParams.dropoutReg * 2 }).apply(shared);
+            }
+        }
+        // Score output: regression head (predicts [homeScore, awayScore])
+        const scoreOutput = tf.layers.dense({
+            units: 2, activation: 'linear', name: 'scoreOutput',
+            // kernelRegularizer: tf.regularizers.l2({ l2: l2Strength })
+        }).apply(shared);
+        // Win probability output: classification head (sigmoid)
+        const winProbOutput = tf.layers.dense({
+            units: 1, activation: 'sigmoid', name: 'winProbOutput',
+            // kernelRegularizer: tf.regularizers.l2({ l2: l2Strength })
+        }).apply(shared);
+        // Define the model
+        const model = tf.model({
+            inputs: input,
+            outputs: [scoreOutput, winProbOutput]
+        });
+        return model;
 
         // }
     } catch (err) {
@@ -335,7 +335,42 @@ const loadOrCreateModel = async (xs, sport, search) => {
 
 const mlModelTraining = async (gameData, sport, search, gameCount, allPastGames, final) => {
     const statMap = statConfigMap[sport.espnSport].default;
-    const hyperParams = await getHyperParams(sport, search)
+    let hyperParams = await getHyperParams(sport, search)
+
+    if (sport.name === 'americanfootball_ncaaf') {
+        hyperParams = {
+            learningRate: 0.003181873410522846,
+            batchSize: 64,
+            epochs: 99,
+            hiddenLayerNum: 5,
+            layerNeurons: 128,
+            kFolds: 4,
+            decayFactor: 0.6939702195998885,
+            gameDecayThreshold: 8,
+            historyLength: 50,
+            scoreLoss: 6.801183439984383,
+            winPctLoss: 0.8896273055049464,
+            earlyStopPatience: 9
+        }
+    }
+    if (sport.name === 'americanfootball_nfl') {
+        hyperParams = {
+
+            learningRate: 0.004074814017681368,
+            batchSize: 128,
+            epochs: 89,
+            hiddenLayerNum: 6,
+            layerNeurons: 256,
+            kFolds: 3,
+            decayFactor: 0.8946985020317333,
+            gameDecayThreshold: 68,
+            historyLength: 94,
+            scoreLoss: 3.9417335525530746,
+            winPctLoss: 3.79951249685954,
+            earlyStopPatience: 9
+
+        }
+    }
     xs = []
     ysWins = []
     ysScore = []
@@ -762,8 +797,25 @@ const predictions = async (sportOdds, ff, model, sport, past, search, teamHistor
 const trainSportModelKFold = async (sport, gameData, search) => {
 
     let hyperParams = await getHyperParams(sport, search)
+        if (sport.name === 'americanfootball_ncaaf') {
+        hyperParams = {
+            learningRate: 0.003181873410522846,
+            batchSize: 64,
+            epochs: 99,
+            hiddenLayerNum: 5,
+            layerNeurons: 128,
+            kFolds: 4,
+            decayFactor: 0.6939702195998885,
+            gameDecayThreshold: 8,
+            historyLength: 50,
+            scoreLoss: 6.801183439984383,
+            winPctLoss: 0.8896273055049464,
+            earlyStopPatience: 9
+        }
+    }
     if (sport.name === 'americanfootball_nfl') {
         hyperParams = {
+
             learningRate: 0.004074814017681368,
             batchSize: 128,
             epochs: 89,
@@ -776,8 +828,8 @@ const trainSportModelKFold = async (sport, gameData, search) => {
             scoreLoss: 3.9417335525530746,
             winPctLoss: 3.79951249685954,
             earlyStopPatience: 9
-        }
 
+        }
     }
     console.log(hyperParams)
     // Sort historical game data and slice off the most recent 10% for testing
