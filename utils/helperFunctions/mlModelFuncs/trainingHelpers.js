@@ -297,7 +297,7 @@ const loadOrCreateModel = async (xs, sport, search) => {
                 shared = tf.layers.dense({
                     units: hyperParams.layerNeurons,
                     activation: 'relu',
-                    kernelInitializer: initializer,
+                    // kernelInitializer: initializer,
                 }).apply(shared);
 
                 if (useBatchNorm) {
