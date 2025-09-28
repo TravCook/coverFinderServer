@@ -177,7 +177,7 @@ const extractSportFeatures = (homeStats, awayStats, league, allPastGamesSorted, 
 
 
 const getHyperParams = (sport, search) => {
-    const useDropoutReg = (sport.name === 'basketball_nba' || sport.name === 'icehockey_nhl');
+    const useDropoutReg = (sport.name === 'basketball_nba' || sport.name === 'icehockey_nhl' );
     if (useDropoutReg) {
         return {
             learningRate: search
@@ -286,8 +286,8 @@ const loadOrCreateModel = async (xs, sport, search) => {
         const l2Strength = hyperParams.l2reg || 0; // Default L2 regularization strength
         const initializer = tf.initializers.randomNormal({ seed: 122021 });
         const input = tf.input({ shape: [xs[0].length] });
-        const useBatchNorm = (sport.name === 'basketball_ncaab');
-        const useDropoutEveryOther = (sport.name === 'basketball_nba' || sport.name === 'icehockey_nhl');
+        const useBatchNorm = (sport.name === 'basketball_ncaab' );
+        const useDropoutEveryOther = (sport.name === 'basketball_nba' || sport.name === 'icehockey_nhl' );
         // Baseline: otherwise (mlb, wncaab)
 
 
