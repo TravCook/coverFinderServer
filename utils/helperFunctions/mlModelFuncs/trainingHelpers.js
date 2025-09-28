@@ -279,9 +279,9 @@ const repeatPredictions = async (model, inputTensor, numPasses) => {
 const loadOrCreateModel = async (xs, sport, search) => {
     const modelPath = `./model_checkpoint/${sport.name}_model/model.json`;
     try {
-        if (fs.existsSync(modelPath) && !search) {
-            return await tf.loadLayersModel(`file://${modelPath}`);
-        } else {
+        // if (fs.existsSync(modelPath) && !search) {
+        //     return await tf.loadLayersModel(`file://${modelPath}`);
+        // } else {
             const hyperParams = getHyperParams(sport, search);
             const l2Strength = hyperParams.l2reg || 0; // Default L2 regularization strength
             const initializer = tf.initializers.randomNormal({ seed: 122021 });
@@ -327,7 +327,7 @@ const loadOrCreateModel = async (xs, sport, search) => {
             });
             return model;
 
-        }
+        // }
     } catch (err) {
         console.error("Model loading/creation error:", err);
     }
