@@ -886,9 +886,9 @@ const valueBet = async () => {
 
 const modelReset = async () => {
 
-    // await mlModelTrainSeed()
+    await mlModelTrainSeed()
 
-    // await dataSeed()
+    await dataSeed()
 
     await oddsSeed()
 }
@@ -991,6 +991,6 @@ const pastBaseballPitcherStats = async () => {
 }
 // mlModelTrainSeed()
 // valueBet()
-modelReset()
+// modelReset()
 // pastBaseballPitcherStats()
 module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed }
