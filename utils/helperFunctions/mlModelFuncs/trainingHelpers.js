@@ -10,34 +10,60 @@ const { evaluateFoldMetrics, printOverallMetrics } = require('./metricsHelpers')
 const { getZScoreNormalizedStats } = require('./normalizeHelpers')
 
 async function extractAndSaveFeatureImportances(model, sport) {
-    const dropoutRate = sport['hyperParams.dropoutReg'] || 0;
-    const hiddenLayerCount = sport['hyperParams.hiddenLayerNum'];
+    const statMap = statConfigMap[sport.espnSport].default;
+    const inputSize = statMap.length;
 
-    let currentWeights = model.layers[1].getWeights()[0]; // Input to first hidden
+    const hyperParams = getHyperParams(sport, false);
+    const hiddenLayerCount = hyperParams.hiddenLayerNum;
+    const dropoutRate = hyperParams.dropoutReg || 0;
+
+    // 1. Get input-to-gated weights (feature gating layer)
+    const inputToGateWeights = model.layers[1].getWeights()[0]; // weights of the featureGate layer (sigmoid)
+    
+    // 2. Multiply layer (element-wise gating), so multiply input by gate weights
+    const gatedInputWeights = tf.mul(inputToGateWeights, tf.onesLike(inputToGateWeights)); // element-wise multiply
+
+    let currentWeights = gatedInputWeights;
+
+    // 3. Traverse through hidden layers
+    let layerPointer = 3; // model.layers[0] = input, [1] = featureGate, [2] = multiply, [3+] = dense layers
+
     for (let i = 0; i < hiddenLayerCount; i++) {
-        const layerIndex = 2 + i * (dropoutRate > 0 ? 2 : 1);
-        const nextWeights = model.layers[layerIndex].getWeights()[0];
-        currentWeights = tf.matMul(currentWeights, nextWeights);
+        // Skip batch norm or activation layers
+        while (layerPointer < model.layers.length &&
+               model.layers[layerPointer].getWeights().length === 0) {
+            layerPointer++;
+        }
+
+        const denseLayer = model.layers[layerPointer];
+        const weights = denseLayer.getWeights()[0]; // weight matrix
+
+        currentWeights = tf.matMul(currentWeights, weights);
+        layerPointer++;
     }
 
+    // 4. Connect to output layer (scoreOutput)
     const scoreOutputLayer = model.getLayer('scoreOutput');
-    const finalWeights = scoreOutputLayer.getWeights()[0];
-    const featureToOutput = tf.matMul(currentWeights, finalWeights);
+    const finalWeights = scoreOutputLayer.getWeights()[0]; // shape: [last_hidden_units, 1]
 
-    let importanceScores = tf.abs(featureToOutput).sum(1);
-    importanceScores = importanceScores.div(importanceScores.max());
+    const featureToOutput = tf.matMul(currentWeights, finalWeights); // shape: [input_features, 1]
+
+    // 5. Normalize importance scores
+    let importanceScores = tf.abs(featureToOutput).sum(1); // sum across output
+    importanceScores = importanceScores.div(importanceScores.max()); // normalize [0, 1]
 
     const scoresArr = await importanceScores.array();
-    const statMap = statConfigMap[sport.espnSport].default
 
     const featureImportanceWithLabels = statMap.map((stat, i) => ({
         feature: stat,
         importance: scoresArr[i]
-    }))
+    }));
 
-    const inputToHiddenWeights = await model.layers[1].getWeights()[0].array();
-    const hiddenToOutputWeights = await scoreOutputLayer.getWeights()[0].array();
+    // Optional: Save raw weights for debugging or UI
+    const inputToHiddenWeights = await inputToGateWeights.array(); // raw feature gate weights
+    const hiddenToOutputWeights = await finalWeights.array();
 
+    // 6. Save to DB
     await db.MlModelWeights.upsert({
         sport: sport.id,
         inputToHiddenWeights,
@@ -45,6 +71,7 @@ async function extractAndSaveFeatureImportances(model, sport) {
         featureImportanceScores: featureImportanceWithLabels
     });
 }
+
 
 function pearsonCorrelation(x, y) {
     const n = x.length;
@@ -1013,7 +1040,7 @@ const trainSportModelKFold = async (sport, gameData, search) => {
     }
 
     // // Extract feature importances
-    // await extractAndSaveFeatureImportances(finalModel, sport);
+    await extractAndSaveFeatureImportances(finalModel, sport);
 
     if (global.gc) global.gc();
 

@@ -891,9 +891,9 @@ const modelReset = async () => {
 
     await mlModelTrainSeed()
 
-    // await dataSeed()
+    await dataSeed()
 
-    // await oddsSeed()
+    await oddsSeed()
 }
 
 const pastBaseballPitcherStats = async () => {
