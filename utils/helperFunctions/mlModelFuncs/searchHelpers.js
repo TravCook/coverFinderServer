@@ -47,7 +47,7 @@ const hyperparameterRandSearch = async (sports) => {
 
 
     for (let sport of sports.sort((a, b) => a.startMonth - b.startMonth)) {
-        if( sport.name !== 'americanfootball_nfl') continue; // Skip college football for now
+        // if( sport.name !== 'americanfootball_nfl') continue; // Skip college football for now
         const useDropoutReg = ( sport.name === 'basketball_nba' || sport.name === 'icehockey_nhl' );
         let space = {
             learningRate: { type: 'log', min: 1e-5, max: 5e-3 },
@@ -57,11 +57,11 @@ const hyperparameterRandSearch = async (sports) => {
             layerNeurons: { type: 'int', min: 0, max: 2 }, // 0 = 64, 1 = 128, 2 = 256
             // l2reg: { type: 'log', min: 1e-5, max: 5e-2 },
             kFolds: { type: 'int', min: 3, max: 6 },
-            historyLength: { type: 'int', min: 30, max: 100 },
+            historyLength: { type: 'int', min: 10, max: 100 },
             gameDecayValue: { type: 'float', min: 0.60, max: 0.99 },
-            decayStepSize: { type: 'int', min: 5, max: 80 },
-            scoreLossWeight: { type: 'float', min: 2.0, max: 8.0 },
-            winPctLossWeight: { type: 'float', min: 0.3, max: 4.0 },
+            decayStepSize: { type: 'int', min: 1, max: 80 },
+            // scoreLossWeight: { type: 'float', min: 2.0, max: 8.0 },
+            // winPctLossWeight: { type: 'float', min: 0.3, max: 4.0 },
             earlyStopPatience: { type: 'int', min: 4, max: 10 }
         };
         if (useDropoutReg) {
@@ -74,11 +74,11 @@ const hyperparameterRandSearch = async (sports) => {
                 // l2reg: { type: 'log', min: 1e-5, max: 5e-2 },
                 dropoutReg: { type: 'float', min: 0.0, max: 0.3 },
                 kFolds: { type: 'int', min: 3, max: 6 },
-                historyLength: { type: 'int', min: 30, max: 100 },
+                historyLength: { type: 'int', min: 10, max: 100 },
                 gameDecayValue: { type: 'float', min: 0.60, max: 0.99 },
-                decayStepSize: { type: 'int', min: 5, max: 80 },
-                scoreLossWeight: { type: 'float', min: 2.0, max: 8.0 },
-                winPctLossWeight: { type: 'float', min: 0.3, max: 4.0 },
+                decayStepSize: { type: 'int', min: 1, max: 80 },
+                // scoreLossWeight: { type: 'float', min: 2.0, max: 8.0 },
+                // winPctLossWeight: { type: 'float', min: 0.3, max: 4.0 },
                 earlyStopPatience: { type: 'int', min: 4, max: 10 }
             };
         }
@@ -174,8 +174,8 @@ const hyperparameterRandSearch = async (sports) => {
             historyLength: Math.round(bestParams.historyLength),
             decayFactor: bestParams.gameDecayValue,
             gameDecayThreshold: Math.round(bestParams.decayStepSize),
-            scoreLoss: bestParams.scoreLossWeight,
-            winPctLoss: bestParams.winPctLossWeight,
+            // scoreLoss: bestParams.scoreLossWeight,
+            // winPctLoss: bestParams.winPctLossWeight,
             earlyStopPatience: Math.round(bestParams.earlyStopPatience)
         };
         console.log(`Best Parameters for ${sport.name}:`, processedParams);

@@ -59,27 +59,27 @@ function evaluateRegressionMetrics(yTrueTensor, yPredTensor) {
     };
 }
 
-function evaluateFoldMetrics(testXs, testYsScore, testYsWins, scorePreds, winProbPreds) {
+function evaluateFoldMetrics(testXs, testYsScore, scorePreds, winProbPreds) {
     const testXsTensor = tf.tensor2d(testXs);
-    const testYsScoreTensor = tf.tensor2d(testYsScore, [testYsScore.length, 2]);
-    const testYsWinsTensor = tf.tensor2d(testYsWins, [testYsWins.length, 1]);
-    const scorePredsTensor = tf.tensor2d(scorePreds, [scorePreds.length, 2]);
-    const winPredsTensor = tf.tensor2d(winProbPreds, [winProbPreds.length, 1]);
+    const testYsScoreTensor = tf.tensor2d(testYsScore, [testYsScore.length, 1]);
+    // const testYsWinsTensor = tf.tensor2d(testYsWins, [testYsWins.length, 1]);
+    const scorePredsTensor = tf.tensor2d(scorePreds, [scorePreds.length, 1]);
+    // const winPredsTensor = tf.tensor2d(winProbPreds, [winProbPreds.length, 1]);
 
-    const metrics = evaluateMetrics(testYsWinsTensor, winPredsTensor);
+    // const metrics = evaluateMetrics(testYsWinsTensor, winPredsTensor);
     const regressionMetrics = evaluateRegressionMetrics(testYsScoreTensor, scorePredsTensor);
 
     testXsTensor.dispose();
     testYsScoreTensor.dispose();
-    testYsWinsTensor.dispose();
+    // testYsWinsTensor.dispose();
     scorePredsTensor.dispose();
-    winPredsTensor.dispose();
+    // winPredsTensor.dispose();
 
     return {
         mse: regressionMetrics.mse,
         rmse: regressionMetrics.rmse,
         mae: regressionMetrics.mae,
-        ...metrics,
+        // ...metrics,
     };
 }
 
