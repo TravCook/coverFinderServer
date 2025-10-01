@@ -8,6 +8,7 @@ const { createServer } = require('node:http');
 const { CronJob } = require('cron');
 const { setIo } = require('./socketManager'); // Import the socket manager
 const dataSeed = require('./utils/seeds/seed.js');
+const os = require('os'); 
 
 function logMemoryUsage() {
     const used = process.memoryUsage(); // memory used by Node
