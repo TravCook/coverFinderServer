@@ -11,7 +11,24 @@ const { CronJob } = require('cron');
 const { setIo } = require('./socketManager'); // Import the socket manager
 const dataSeed = require('./utils/seeds/seed.js');
 
+function logMemoryUsage() {
+    const used = process.memoryUsage(); // memory used by Node
+    const totalMem = os.totalmem();     // total system memory
+    const freeMem = os.freemem();       // free system memory
 
+    const toMB = (bytes) => (bytes / 1024 / 1024).toFixed(2);
+
+    console.log('--- Memory Usage ---');
+    console.log(`Heap Used     : ${toMB(used.heapUsed)} MB`);
+    console.log(`Heap Total    : ${toMB(used.heapTotal)} MB ${((used.heapUsed / used.heapTotal) * 100).toFixed(2)}%`);
+    console.log(`RSS           : ${toMB(used.rss)} MB (Resident Set Size)`);
+    console.log(`External      : ${toMB(used.external)} MB`);
+    console.log(`Array Buffers : ${toMB(used.arrayBuffers)} MB`);
+    console.log(`System Free   : ${toMB(freeMem)} MB`);
+    console.log(`System Total  : ${toMB(totalMem)} MB`);
+    console.log(`System Used   : ${toMB(totalMem - freeMem)} MB`);
+    console.log('---------------------\n');
+}
 // Initialize the app and create a port
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -96,6 +113,7 @@ cronJobs.forEach(({ cronTime, onTick, timezone }) => {
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`Listening on PORT: ${PORT}`);
+  logMemoryUsage()
 });
 
 module.exports = io;

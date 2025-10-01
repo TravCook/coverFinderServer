@@ -24,22 +24,22 @@ const os = require('os');
 // Suppress TensorFlow.js logging
 process.env.TF_CPP_MIN_LOG_LEVEL = '3'; // Suppress logs
 function logMemoryUsage() {
-  const used = process.memoryUsage(); // memory used by Node
-  const totalMem = os.totalmem();     // total system memory
-  const freeMem = os.freemem();       // free system memory
+    const used = process.memoryUsage(); // memory used by Node
+    const totalMem = os.totalmem();     // total system memory
+    const freeMem = os.freemem();       // free system memory
 
-  const toMB = (bytes) => (bytes / 1024 / 1024).toFixed(2);
+    const toMB = (bytes) => (bytes / 1024 / 1024).toFixed(2);
 
-  console.log('--- Memory Usage ---');
-  console.log(`Heap Used     : ${toMB(used.heapUsed)} MB`);
-  console.log(`Heap Total    : ${toMB(used.heapTotal)} MB ${((used.heapUsed / used.heapTotal) * 100).toFixed(2)}%`);
-  console.log(`RSS           : ${toMB(used.rss)} MB (Resident Set Size)`);
-  console.log(`External      : ${toMB(used.external)} MB`);
-  console.log(`Array Buffers : ${toMB(used.arrayBuffers)} MB`);
-  console.log(`System Free   : ${toMB(freeMem)} MB`);
-  console.log(`System Total  : ${toMB(totalMem)} MB`);
-  console.log(`System Used   : ${toMB(totalMem - freeMem)} MB`);
-  console.log('---------------------\n');
+    console.log('--- Memory Usage ---');
+    console.log(`Heap Used     : ${toMB(used.heapUsed)} MB`);
+    console.log(`Heap Total    : ${toMB(used.heapTotal)} MB ${((used.heapUsed / used.heapTotal) * 100).toFixed(2)}%`);
+    console.log(`RSS           : ${toMB(used.rss)} MB (Resident Set Size)`);
+    console.log(`External      : ${toMB(used.external)} MB`);
+    console.log(`Array Buffers : ${toMB(used.arrayBuffers)} MB`);
+    console.log(`System Free   : ${toMB(freeMem)} MB`);
+    console.log(`System Total  : ${toMB(totalMem)} MB`);
+    console.log(`System Used   : ${toMB(totalMem - freeMem)} MB`);
+    console.log('---------------------\n');
 }
 
 const dataSeed = async () => {
@@ -52,6 +52,7 @@ const dataSeed = async () => {
     sports = null
     logMemoryUsage()
     if (global.gc) global.gc();
+    logMemoryUsage()
 } //UPDATED FOR SQL
 
 const mlModelTrainSeed = async () => {
@@ -626,7 +627,7 @@ const oddsSeed = async () => {
     }
     allPastGamesSQL = null
     sports = null
-
+    logMemoryUsage()
     if (global.gc) global.gc();
     console.log(`ODDS FETCHED AND STORED @ ${moment().format('HH:mm:ss')}`)
     logMemoryUsage()
