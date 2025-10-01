@@ -3,8 +3,6 @@ require('dotenv').config();
 const cors = require('cors');
 const path = require('path');
 const routes = require('./routes');
-const db = require('./config/connection');
-const sqlDB = require('./models_sql/index.js'); // Import the SQL database connection
 const { Server } = require('socket.io');
 const { createServer } = require('node:http');
 const { CronJob } = require('cron');
@@ -29,6 +27,7 @@ function logMemoryUsage() {
     console.log(`System Used   : ${toMB(totalMem - freeMem)} MB`);
     console.log('---------------------\n');
 }
+ logMemoryUsage()
 // Initialize the app and create a port
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -38,7 +37,7 @@ app.use(cors({ origin: '*' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, '../client/build')));
-
+ logMemoryUsage()
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
