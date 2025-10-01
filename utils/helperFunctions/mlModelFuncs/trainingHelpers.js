@@ -447,6 +447,7 @@ const mlModelTraining = async (gameData, sport, search, gameCount, allPastGames,
     const xsVal = xsTensor.slice([trainSize, 0], [valSize, xsTensor.shape[1]]);
     const ysScoresVal = ysScoresTensor.slice([trainSize, 0], [valSize, ysScoresTensor.shape[1]]);
 
+
     // --- Model Setup ---
     const model = await loadOrCreateModel(xs, sport, search);
 
@@ -480,10 +481,6 @@ const mlModelTraining = async (gameData, sport, search, gameCount, allPastGames,
     // --- Clean up ---
     xsTensor.dispose();
     ysScoresTensor.dispose();
-    xsTrain.dispose();
-    ysScoresTrain.dispose();
-    xsVal.dispose();
-    ysScoresVal.dispose();
 
     return { model, updatedGameCount: gameCount, teamStatsHistory };
 };

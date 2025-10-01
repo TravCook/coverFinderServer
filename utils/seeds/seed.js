@@ -19,26 +19,49 @@ const { gameDBSaver, statDBSaver } = require('../helperFunctions/dataHelpers/dat
 const { isSportInSeason } = require('../helperFunctions/mlModelFuncs/sportHelpers')
 const { statConfigMap } = require('../statMaps')
 const cliProgress = require('cli-progress');
+const os = require('os');
 
 // Suppress TensorFlow.js logging
 process.env.TF_CPP_MIN_LOG_LEVEL = '3'; // Suppress logs
+function logMemoryUsage() {
+  const used = process.memoryUsage(); // memory used by Node
+  const totalMem = os.totalmem();     // total system memory
+  const freeMem = os.freemem();       // free system memory
+
+  const toMB = (bytes) => (bytes / 1024 / 1024).toFixed(2);
+
+  console.log('--- Memory Usage ---');
+  console.log(`Heap Used     : ${toMB(used.heapUsed)} MB`);
+  console.log(`Heap Total    : ${toMB(used.heapTotal)} MB ${((used.heapUsed / used.heapTotal) * 100).toFixed(2)}%`);
+  console.log(`RSS           : ${toMB(used.rss)} MB (Resident Set Size)`);
+  console.log(`External      : ${toMB(used.external)} MB`);
+  console.log(`Array Buffers : ${toMB(used.arrayBuffers)} MB`);
+  console.log(`System Free   : ${toMB(freeMem)} MB`);
+  console.log(`System Total  : ${toMB(totalMem)} MB`);
+  console.log(`System Used   : ${toMB(totalMem - freeMem)} MB`);
+  console.log('---------------------\n');
+}
 
 const dataSeed = async () => {
     console.log("DB CONNECTED ------------------------------------------------- STARTING DATA SEED")
+    logMemoryUsage()
     // UPDATE TEAMS WITH MOST RECENT STATS // WORKING AS LONG AS DYNAMIC STAT YEAR CAN WORK CORRECTLY
     let sports = await db.Sports.findAll({})
     await retrieveTeamsandStats(sports)
     console.info(`Full Seeding complete! 🌱 @ ${moment().format('HH:mm:ss')}`);
+    sports = null
+    logMemoryUsage()
     if (global.gc) global.gc();
 } //UPDATED FOR SQL
 
 const mlModelTrainSeed = async () => {
+    logMemoryUsage()
     let fourYearsAgo = new Date()
     fourYearsAgo.setFullYear(fourYearsAgo.getFullYear() - 4)
 
     console.log("DB CONNECTED ------------------------------------------------- STARTING ML SEED")
-    const sports = await db.Sports.findAll({ include: [{ model: db.MlModelWeights, as: 'MlModelWeights' }, { model: db.HyperParams, as: 'hyperParams' }], raw: true, order: [['name', 'ASC']] });
-    const odds = await db.Games.findAll({
+    let sports = await db.Sports.findAll({ include: [{ model: db.MlModelWeights, as: 'MlModelWeights' }, { model: db.HyperParams, as: 'hyperParams' }], raw: true, order: [['name', 'ASC']] });
+    let odds = await db.Games.findAll({
         where: { complete: false }, include: [
             { model: db.Teams, as: 'homeTeamDetails' },
             { model: db.Teams, as: 'awayTeamDetails' },
@@ -65,7 +88,7 @@ const mlModelTrainSeed = async () => {
     for (let sport of sports) {
         let inSeason = isSportInSeason(sport)
         // Multi-year sports (e.g., NFL, NBA, NHL, etc.)
-        if (sport.name === 'baseball_mlb') {
+        if (inSeason) {
             let upcomingGames = odds.filter((game) => game.sport_key === sport.name)
             let pastGames = await db.Games.findAll({
                 where: { complete: true, sport_key: sport.name },
@@ -96,7 +119,7 @@ const mlModelTrainSeed = async () => {
                 console.log(`${sport.name} ML STARTING @ ${moment().format('HH:mm:ss')}`)
                 let model = await trainSportModelKFold(sport, pastGames, false)
                 const historyLength = sport['hyperParams.historyLength'];
-                const teamStatsHistory = {};
+                let teamStatsHistory = {};
 
                 for (const game of pastGames.sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time))) {
                     const homeTeamId = game.homeTeam;
@@ -126,6 +149,8 @@ const mlModelTrainSeed = async () => {
                     include: [{ model: db.MlModelWeights, as: 'MlModelWeights' }, { model: db.HyperParams, as: 'hyperParams' }],
                     raw: true
                 });
+                teamStatsHistory = null
+                model = null
                 if (global.gc) global.gc();
                 // await pastGamesReIndex(upcomingGames, newSport)
                 if (global.gc) global.gc()
@@ -138,9 +163,8 @@ const mlModelTrainSeed = async () => {
             tf.engine().reset();
             if (global.gc) global.gc();
             pastGames = null
-            teamStatsHistory = null
             upcomingGames = null
-            model = null
+
 
         } else {
             console.log(`${sport.name} NOT IN SEASON`)
@@ -332,11 +356,14 @@ const mlModelTrainSeed = async () => {
 
     // console.log("Message sent:", info.messageId);
     // if (global.gc) global.gc();
-
+    sports = null
+    odds = null
+    logMemoryUsage()
 }
 
 const oddsSeed = async () => {
-    const sports = await db.Sports.findAll({ include: [{ model: db.MlModelWeights, as: 'MlModelWeights' }, { model: db.HyperParams, as: 'hyperParams' }], raw: true, order: [['name', 'ASC']] });
+    logMemoryUsage()
+    let sports = await db.Sports.findAll({ include: [{ model: db.MlModelWeights, as: 'MlModelWeights' }, { model: db.HyperParams, as: 'hyperParams' }], raw: true, order: [['name', 'ASC']] });
     // RETRIEVE ODDS
     console.log(`BEGINNING ODDS SEEDING @ ${moment().format('HH:mm:ss')}`)
     const axiosWithBackoff = async (url, retries = 5, delayMs = 1000) => {
@@ -500,7 +527,7 @@ const oddsSeed = async () => {
         if (isSportInSeason(sport)) {
             const modelPath = `./model_checkpoint/${sport.name}_model/model.json`;
             if (fs.existsSync(modelPath)) {
-                model = await tf.loadLayersModel(`file://./model_checkpoint/${sport.name}_model/model.json`);
+                let model = await tf.loadLayersModel(`file://./model_checkpoint/${sport.name}_model/model.json`);
                 model.compile({
                     optimizer: tf.train.adam(sport['hyperParams.learningRate']),
                     loss: {
@@ -514,7 +541,7 @@ const oddsSeed = async () => {
                     }
                 });
                 const historyLength = sport['hyperParams.historyLength'];
-                const teamStatsHistory = {};
+                let teamStatsHistory = {};
 
 
                 for (const game of allPastGamesSQL.sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time))) {
@@ -539,12 +566,22 @@ const oddsSeed = async () => {
                     }
                 }
                 await predictions(sportGamesSQL, [], model, sport, false, false, teamStatsHistory, allPastGamesSQL.filter((game) => game.sport_key === sport.name))
+
+                tf.disposeVariables();
+                model = null
+                tf.engine().reset();
+                if (global.gc) global.gc();
+                teamStatsHistory = null
             } else {
                 console.log(`Model not found for ${sport.name}. Skipping predictions.`);
             }
 
             await indexAdjuster(sportGamesSQL, sport, allPastGamesSQL, sport['MlModelWeights.featureImportanceScores'])
         }
+
+        sportGamesSQL = null
+
+        // DYNAMICALLY UPDATE SPORT STAT YEAR IF NEEDED
         let inSeason = isSportInSeason(sport)
         if (inSeason) {
             // During season, keep the sport's statYear as is
@@ -586,10 +623,13 @@ const oddsSeed = async () => {
             //     { where: { id } }
             // );
         }
-
     }
+    allPastGamesSQL = null
+    sports = null
+
     if (global.gc) global.gc();
     console.log(`ODDS FETCHED AND STORED @ ${moment().format('HH:mm:ss')}`)
+    logMemoryUsage()
 } //UPDATED FOR SQL
 
 const removeSeed = async () => {
@@ -605,7 +645,7 @@ const removeSeed = async () => {
         ], raw: true, order: [['commence_time', 'ASC']]
     });
     await removePastGames(currentOddsSQL);
-    const currentOdds = await db.Games.findAll({
+    let currentOdds = await db.Games.findAll({
         where: {
             complete: false
         },
@@ -668,7 +708,7 @@ const removeSeed = async () => {
             }
         ]
     });
-    const pastOdds = await db.Games.findAll({
+    let pastOdds = await db.Games.findAll({
         where: {
             complete: true,
             commence_time: { [Op.gte]: today } // Ensure the commence_time is greater than or equal to today
@@ -734,7 +774,9 @@ const removeSeed = async () => {
     });
     await emitToClients('gameUpdate', currentOdds);
     await emitToClients('pastGameUpdate', pastOdds);
-
+    currentOdds = null
+    pastOdds = null
+    currentOddsSQL = null
     if (global.gc) global.gc();
 } // UPDATED FOR SQL
 
@@ -993,4 +1035,4 @@ const pastBaseballPitcherStats = async () => {
 // valueBet()
 // modelReset()
 // pastBaseballPitcherStats()
-module.exports = { dataSeed, oddsSeed, removeSeed, espnSeed, mlModelTrainSeed }
+module.exports = { dataSeed, oddsSeed, removeSeed, mlModelTrainSeed }
