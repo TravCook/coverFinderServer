@@ -49,7 +49,6 @@ const io = new Server(server, {
 setIo(io)
 app.use(routes);
 
-const os = require('os');
 
 // Cron job configurations
 const timezone = 'America/Denver';
