@@ -829,10 +829,8 @@ const trainSportModelKFold = async (sport, gameData, search) => {
 
         const testXs = [];
         const testYsScore = [];
-        const testYsWins = [];
 
         const scorePredictionsArray = [];
-        const winProbPredictionsArray = [];
         const spreadErrors = [];
         const totalErrors = [];
         let sortedGamesForFeatures = gameData.sort((a, b) => new Date(b.commence_time) - new Date(a.commence_time))
