@@ -152,6 +152,7 @@ const mlModelTrainSeed = async () => {
                 });
                 teamStatsHistory = null
                 model = null
+                logMemoryUsage()
                 if (global.gc) global.gc();
                 // await pastGamesReIndex(upcomingGames, newSport)
                 if (global.gc) global.gc()
