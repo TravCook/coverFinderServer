@@ -44,7 +44,7 @@ function logMemoryUsage() {
 
 const dataSeed = async () => {
     console.log("DB CONNECTED ------------------------------------------------- STARTING DATA SEED")
-    logMemoryUsage()
+    
     // UPDATE TEAMS WITH MOST RECENT STATS // WORKING AS LONG AS DYNAMIC STAT YEAR CAN WORK CORRECTLY
     let sports = await db.Sports.findAll({})
     await retrieveTeamsandStats(sports)
@@ -52,11 +52,9 @@ const dataSeed = async () => {
     sports = null
     logMemoryUsage()
     if (global.gc) global.gc();
-    logMemoryUsage()
 } //UPDATED FOR SQL
 
 const mlModelTrainSeed = async () => {
-    logMemoryUsage()
     let fourYearsAgo = new Date()
     fourYearsAgo.setFullYear(fourYearsAgo.getFullYear() - 4)
 
@@ -364,7 +362,6 @@ const mlModelTrainSeed = async () => {
 }
 
 const oddsSeed = async () => {
-    logMemoryUsage()
     let sports = await db.Sports.findAll({ include: [{ model: db.MlModelWeights, as: 'MlModelWeights' }, { model: db.HyperParams, as: 'hyperParams' }], raw: true, order: [['name', 'ASC']] });
     // RETRIEVE ODDS
     console.log(`BEGINNING ODDS SEEDING @ ${moment().format('HH:mm:ss')}`)
@@ -628,7 +625,6 @@ const oddsSeed = async () => {
     }
     allPastGamesSQL = null
     sports = null
-    logMemoryUsage()
     if (global.gc) global.gc();
     console.log(`ODDS FETCHED AND STORED @ ${moment().format('HH:mm:ss')}`)
     logMemoryUsage()
@@ -932,9 +928,9 @@ const modelReset = async () => {
 
     await mlModelTrainSeed()
 
-    await dataSeed()
+    // await dataSeed()
 
-    await oddsSeed()
+    // await oddsSeed()
 }
 
 const pastBaseballPitcherStats = async () => {

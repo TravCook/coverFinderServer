@@ -8,6 +8,25 @@ const cliProgress = require('cli-progress');
 const { baseballStatMap, basketballStatMap, footballStatMap, hockeyStatMap, statConfigMap } = require('../../statMaps')
 const { evaluateFoldMetrics, printOverallMetrics } = require('./metricsHelpers')
 const { getZScoreNormalizedStats } = require('./normalizeHelpers')
+const os = require('os');
+function logMemoryUsage() {
+    const used = process.memoryUsage(); // memory used by Node
+    const totalMem = os.totalmem();     // total system memory
+    const freeMem = os.freemem();       // free system memory
+
+    const toMB = (bytes) => (bytes / 1024 / 1024).toFixed(2);
+
+    console.log('--- Memory Usage ---');
+    console.log(`Heap Used     : ${toMB(used.heapUsed)} MB`);
+    console.log(`Heap Total    : ${toMB(used.heapTotal)} MB ${((used.heapUsed / used.heapTotal) * 100).toFixed(2)}%`);
+    console.log(`RSS           : ${toMB(used.rss)} MB (Resident Set Size)`);
+    console.log(`External      : ${toMB(used.external)} MB`);
+    console.log(`Array Buffers : ${toMB(used.arrayBuffers)} MB`);
+    console.log(`System Free   : ${toMB(freeMem)} MB`);
+    console.log(`System Total  : ${toMB(totalMem)} MB`);
+    console.log(`System Used   : ${toMB(totalMem - freeMem)} MB`);
+    console.log('---------------------\n');
+}
 
 async function extractAndSaveFeatureImportances(model, sport) {
     const statMap = statConfigMap[sport.espnSport].default;
@@ -624,16 +643,16 @@ const predictions = async (sportOdds, ff, model, sport, past, search, teamHistor
         // if (game.predictedWinner !== predictedWinner) {
         //     predictionsChanged++;
 
-        if (!past && !search) {
-            const oldWinner = game.predictedWinner === 'home'
-                ? game['homeTeamDetails.espnDisplayName']
-                : game['awayTeamDetails.espnDisplayName'];
-            const newWinner = predictedWinner === 'home'
-                ? game['homeTeamDetails.espnDisplayName']
-                : game['awayTeamDetails.espnDisplayName'];
+        // if (!past && !search) {
+        //     const oldWinner = game.predictedWinner === 'home'
+        //         ? game['homeTeamDetails.espnDisplayName']
+        //         : game['awayTeamDetails.espnDisplayName'];
+        //     const newWinner = predictedWinner === 'home'
+        //         ? game['homeTeamDetails.espnDisplayName']
+        //         : game['awayTeamDetails.espnDisplayName'];
 
-            console.log(`Prediction changed for game ${game.id}: ${predictedWinner === 'home' ? 'HOME' : 'AWAY'} ${oldWinner} → ${newWinner}  (Confidence: ${predictionConfidence}) Score ([home, away]) [${Math.round(homeScore)}, ${Math.round(awayScore)}]`);
-        }
+        //     console.log(`Prediction changed for game ${game.id}: ${predictedWinner === 'home' ? 'HOME' : 'AWAY'} ${oldWinner} → ${newWinner}  (Confidence: ${predictionConfidence}) Score ([home, away]) [${Math.round(homeScore)}, ${Math.round(awayScore)}]`);
+        // }
         // }
 
         if (game.predictionConfidence !== predictionConfidence) {
@@ -691,7 +710,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, teamHistor
         }
 
         if (!past && !search) {
-            await db.Games.update(updatePayload, { where: { id: game.id } });
+            // await db.Games.update(updatePayload, { where: { id: game.id } });
         }
 
         if (past || search) {
@@ -913,6 +932,7 @@ const trainSportModelKFold = async (sport, gameData, search) => {
 
         progress += 1;
         bar.update(progress);
+        logMemoryUsage()
     }
 
     bar.stop();
