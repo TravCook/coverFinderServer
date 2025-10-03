@@ -916,11 +916,11 @@ const espnSeed = async () => {
 
 const valueBet = async () => {
     const sports = await db.Sports.findAll({ include: [{ model: db.MlModelWeights, as: 'MlModelWeights' }, { model: db.HyperParams, as: 'hyperParams' }], raw: true, order: [['name', 'ASC']] });
-    hyperparameterRandSearch(sports)
+    // hyperparameterRandSearch(sports)
 
-    // for (const sport of sports) {
-    //     await valueBetGridSearch(sport)
-    // }
+    for (const sport of sports) {
+        await valueBetGridSearch(sport)
+    }
 
 }
 
