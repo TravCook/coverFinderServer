@@ -31,7 +31,7 @@ function logMemoryUsage() {
  logMemoryUsage()
 // Initialize the app and create a port
 const app = express();
-const PORT = process.env.PORT || 3069;
+const PORT = process.env.PORT || 3001;
 
 // Set up body parsing, static, and route middleware
 app.use(cors({ origin: '*' }));
@@ -65,7 +65,7 @@ const cronJobs = [
   //   timezone,
   // },
   // {
-  //   cronTime: '0 30 6,9,12,15,18,21 * * *', //every hour, at the 30min mark, except 12-3 when ML train runs -- gets team stats and saves to db -- 2 min
+  //   cronTime: '0 30 */1 * * *', //every hour, at the 30min mark, except 12-3 when ML train runs -- gets team stats and saves to db -- 2 min
   //   onTick: dataSeed.dataSeed,
   //   timezone
   // },
