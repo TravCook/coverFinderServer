@@ -1,6 +1,3 @@
-const { unique } = require("@tensorflow/tfjs-node");
-const { modelName } = require("../models/Odds");
-
 module.exports = (sequelize, DataTypes) => {
     const Games = sequelize.define('Games', {
         id: {
