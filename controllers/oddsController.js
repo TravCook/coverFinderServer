@@ -56,7 +56,7 @@ module.exports = {
     async getAllOdds(req, res) {
         //     const today = new Date()
         const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 180); // 30 days ago
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 30); // 30 days ago
         sevenDaysAgo.setHours(0, 0, 0, 0); // Set to midnight 
         try {
             let data = myCache.get('fullData');
