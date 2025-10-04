@@ -1,7 +1,7 @@
 // TODO: STORE FOR LATER
 const { Odds, PastGameOdds, UsaFootballTeam, BasketballTeam, BaseballTeam, HockeyTeam, Sport, Weights } = require('../../../models');
 const { extractSportFeatures, loadOrCreateModel } = require('../mlModelFuncs/trainingHelpers.js')
-const tf = require('@tensorflow/tfjs');
+const tf = require('@tensorflow/tfjs-node');
 
 
 const pastGamesRePredict = async () => {
