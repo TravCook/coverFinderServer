@@ -13,7 +13,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@tensorflow/tfjs-node": "3.1.0",
+    "@tensorflow/tfjs": "^4.22.0",
     "axios": "^1.6.5",
     "bayesian-optimizer": "^1.2.0",
     "cheerio": "^1.0.0",
