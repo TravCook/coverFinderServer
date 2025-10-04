@@ -23,24 +23,7 @@ const os = require('os');
 
 // Suppress TensorFlow.js logging
 process.env.TF_CPP_MIN_LOG_LEVEL = '3'; // Suppress logs
-function logMemoryUsage() {
-    const used = process.memoryUsage(); // memory used by Node
-    const totalMem = os.totalmem();     // total system memory
-    const freeMem = os.freemem();       // free system memory
 
-    const toMB = (bytes) => (bytes / 1024 / 1024).toFixed(2);
-
-    console.log('--- Memory Usage ---');
-    console.log(`Heap Used     : ${toMB(used.heapUsed)} MB`);
-    console.log(`Heap Total    : ${toMB(used.heapTotal)} MB ${((used.heapUsed / used.heapTotal) * 100).toFixed(2)}%`);
-    console.log(`RSS           : ${toMB(used.rss)} MB (Resident Set Size)`);
-    console.log(`External      : ${toMB(used.external)} MB`);
-    console.log(`Array Buffers : ${toMB(used.arrayBuffers)} MB`);
-    console.log(`System Free   : ${toMB(freeMem)} MB`);
-    console.log(`System Total  : ${toMB(totalMem)} MB`);
-    console.log(`System Used   : ${toMB(totalMem - freeMem)} MB`);
-    console.log('---------------------\n');
-}
 
 const dataSeed = async () => {
     console.log("DB CONNECTED ------------------------------------------------- STARTING DATA SEED")
@@ -50,7 +33,7 @@ const dataSeed = async () => {
     await retrieveTeamsandStats(sports)
     console.info(`Full Seeding complete! 🌱 @ ${moment().format('HH:mm:ss')}`);
     sports = null
-    logMemoryUsage()
+    
     if (global.gc) global.gc();
 } //UPDATED FOR SQL
 
@@ -150,7 +133,7 @@ const mlModelTrainSeed = async () => {
                 });
                 teamStatsHistory = null
                 model = null
-                logMemoryUsage()
+                
                 if (global.gc) global.gc();
                 // await pastGamesReIndex(upcomingGames, newSport)
                 if (global.gc) global.gc()
@@ -358,7 +341,7 @@ const mlModelTrainSeed = async () => {
     // if (global.gc) global.gc();
     sports = null
     odds = null
-    logMemoryUsage()
+    
 }
 
 const oddsSeed = async () => {
@@ -627,7 +610,7 @@ const oddsSeed = async () => {
     sports = null
     if (global.gc) global.gc();
     console.log(`ODDS FETCHED AND STORED @ ${moment().format('HH:mm:ss')}`)
-    logMemoryUsage()
+    
 } //UPDATED FOR SQL
 
 const removeSeed = async () => {
@@ -928,9 +911,9 @@ const modelReset = async () => {
 
     await mlModelTrainSeed()
 
-    // await dataSeed()
+    await dataSeed()
 
-    // await oddsSeed()
+    await oddsSeed()
 }
 
 const pastBaseballPitcherStats = async () => {
@@ -1031,6 +1014,6 @@ const pastBaseballPitcherStats = async () => {
 }
 // mlModelTrainSeed()
 // valueBet()
-modelReset()
+// modelReset()
 // pastBaseballPitcherStats()
 module.exports = { dataSeed, oddsSeed, removeSeed, mlModelTrainSeed }

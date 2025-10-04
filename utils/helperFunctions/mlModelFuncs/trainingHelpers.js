@@ -38,7 +38,7 @@ async function extractAndSaveFeatureImportances(model, sport) {
 
     // 1. Get input-to-gated weights (feature gating layer)
     const inputToGateWeights = model.layers[1].getWeights()[0]; // weights of the featureGate layer (sigmoid)
-    
+
     // 2. Multiply layer (element-wise gating), so multiply input by gate weights
     const gatedInputWeights = tf.mul(inputToGateWeights, tf.onesLike(inputToGateWeights)); // element-wise multiply
 
@@ -50,7 +50,7 @@ async function extractAndSaveFeatureImportances(model, sport) {
     for (let i = 0; i < hiddenLayerCount; i++) {
         // Skip batch norm or activation layers
         while (layerPointer < model.layers.length &&
-               model.layers[layerPointer].getWeights().length === 0) {
+            model.layers[layerPointer].getWeights().length === 0) {
             layerPointer++;
         }
 
@@ -661,20 +661,20 @@ const predictions = async (sportOdds, ff, model, sport, past, search, teamHistor
         };
 
         // Track changes and distributions
-        // if (game.predictedWinner !== predictedWinner) {
-        //     predictionsChanged++;
+        if (game.predictedWinner !== predictedWinner) {
+            predictionsChanged++;
 
-        // if (!past && !search) {
-        //     const oldWinner = game.predictedWinner === 'home'
-        //         ? game['homeTeamDetails.espnDisplayName']
-        //         : game['awayTeamDetails.espnDisplayName'];
-        //     const newWinner = predictedWinner === 'home'
-        //         ? game['homeTeamDetails.espnDisplayName']
-        //         : game['awayTeamDetails.espnDisplayName'];
+            if (!past && !search) {
+                const oldWinner = game.predictedWinner === 'home'
+                    ? game['homeTeamDetails.espnDisplayName']
+                    : game['awayTeamDetails.espnDisplayName'];
+                const newWinner = predictedWinner === 'home'
+                    ? game['homeTeamDetails.espnDisplayName']
+                    : game['awayTeamDetails.espnDisplayName'];
 
-        //     console.log(`Prediction changed for game ${game.id}: ${predictedWinner === 'home' ? 'HOME' : 'AWAY'} ${oldWinner} → ${newWinner}  (Confidence: ${predictionConfidence}) Score ([home, away]) [${Math.round(homeScore)}, ${Math.round(awayScore)}]`);
-        // }
-        // }
+                console.log(`Prediction changed for game ${game.id}: ${predictedWinner === 'home' ? 'HOME' : 'AWAY'} ${oldWinner} → ${newWinner}  (Confidence: ${predictionConfidence}) Score ([home, away]) [${Math.round(homeScore)}, ${Math.round(awayScore)}]`);
+            }
+        }
 
         if (game.predictionConfidence !== predictionConfidence) {
             newConfidencePredictions++;
