@@ -483,12 +483,6 @@ const fetchAllTeamData = async (sport, teams, statYear, TeamModel, statWeights) 
             const teamRecordJson = await teamRecordResponse.json();
             updateTeamRecord(team, teamRecordJson);
 
-            // Fetch team stats
-            // pseudocode for baseball stat re-work
-            // find event in teams upcoming games
-            // find probable pitcher
-            // retrieve pitching stats for pitcher
-            // retrieve batting and fielding stats for team
             if (sport.name === 'baseball_mlb') {
                 let upcomingGames = await db.Games.findAll({
                     where: { sport_key: sport.name, complete: false },

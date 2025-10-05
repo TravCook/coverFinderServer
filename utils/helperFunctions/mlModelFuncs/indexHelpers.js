@@ -264,7 +264,7 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
                     const start = Math.max(0, gameIndex - 15);
                     const end = Math.min(currentOdds.length, gameIndex + 16); // +16 because slice is exclusive
 
-                    indexArray = currentOdds.sort((gameA,gameB) => new Date(gameA.commence_time) - new Date(gameB.commence_time)).slice(start, end).flatMap(mapGame => {
+                    indexArray = currentOdds.sort((gameA, gameB) => new Date(gameA.commence_time) - new Date(gameB.commence_time)).slice(start, end).flatMap(mapGame => {
                         const home = Number(mapGame.homeTeamIndex);
                         const away = Number(mapGame.awayTeamIndex);
                         return [home, away].filter(i => !isNaN(i));
@@ -274,9 +274,12 @@ const indexAdjuster = async (currentOdds, initalsport, allPastGames, weightArray
                 indexArray = await getTeamsIndexes(initalsport)
             }
             const avg = mean(indexArray);
-            // console.log(`Home Index: ${game.homeTeamIndex}, Away Index: ${game.awayTeamIndex} for game ID: ${game.id}`);
-            // console.log(`${game['homeTeamDetails.espnDisplayName']}: ${game.homeTeamScaledIndex}, ${game['awayTeamDetails.espnDisplayName']}: ${game.awayTeamScaledIndex} for game ID: ${game.id}`)
-            // console.log(avg)
+            if (initalsport.name === 'baseball_mlb'){
+                console.log(`Home Index: ${game.homeTeamIndex}, Away Index: ${game.awayTeamIndex} for game ID: ${game.id}`);
+                console.log(`${game['homeTeamDetails.espnDisplayName']}: ${game.homeTeamScaledIndex}, ${game['awayTeamDetails.espnDisplayName']}: ${game.awayTeamScaledIndex} for game ID: ${game.id}`)
+                console.log(avg)
+            }
+
             const std = stdDev(indexArray);
             const homeZ = zScore(game.homeTeamIndex, avg, std);
             const awayZ = zScore(game.awayTeamIndex, avg, std);
