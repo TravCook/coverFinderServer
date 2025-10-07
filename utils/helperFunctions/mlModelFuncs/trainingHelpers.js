@@ -166,73 +166,104 @@ const extractSportFeatures = (homeStats, awayStats, league, gameData, sortedGame
     let hourOfDay = gameDate.getHours() + (gameDate.getMinutes() / 60); // e.g., 14.5 for 2:30 PM
     let isHome = home ? 1 : 0;
     let teamId = home ? gameData.homeTeam : gameData.awayTeam
+    let opponentId = home ? gameData.awayTeam : gameData.homeTeam
     let pastTeamGames = sortedGames.find(g => (g.homeTeam === teamId || g.awayTeam === teamId) && new Date(g.commence_time) < gameDate)
     let restDays = pastTeamGames ? moment(gameDate).diff(moment(new Date(pastTeamGames.commence_time)), 'days') : 7
+
+    let gamesVsOpponent = sortedGames.filter(g =>
+        (g.homeTeam === teamId && g.awayTeam === opponentId || g.homeTeam === opponentId && g.awayTeam === teamId) &&
+        new Date(g.commence_time) < gameDate
+    );
+
+    let winRateVsOpponent = gamesVsOpponent.length > 0 ? (gamesVsOpponent.filter(g => (g.winner === 'home' && g.homeTeam === teamId) || (g.winner === 'away' && g.awayTeam === teamId)).length / gamesVsOpponent.length) : 0.5;
+
+    
 
     switch (league) {
         case 'americanfootball_nfl':
             let playoffMonthStartNFL = 1; // January
             let playoffGameNFL = (gameDate.getMonth() + 1) >= playoffMonthStartNFL
+            let daysSinceSeasonStartNFL = moment(gameDate).diff(moment(`${gameDate.getFullYear()}-09-01`), 'days');
             return footballStatMap.map(key => getNumericStat(homeStats, key))
                 .concat(footballStatMap.map(key => getNumericStat(awayStats, key)))
                 .concat([hourOfDay])
                 .concat([isHome])
                 .concat([restDays])
-                .concat([playoffGameNFL ? 1 : 0]);
+                .concat([playoffGameNFL ? 1 : 0])
+                .concat([daysSinceSeasonStartNFL])
+                .concat([winRateVsOpponent]);
         case 'americanfootball_ncaaf':
             let playoffMonthStartNCAAF = 12; // December
             let playoffGameNCAAF = (gameDate.getMonth() + 1) >= playoffMonthStartNCAAF
+            let daysSinceSeasonStartNCAAF = moment(gameDate).diff(moment(`${gameDate.getFullYear()}-09-01`), 'days');
             return footballStatMap.map(key => getNumericStat(homeStats, key))
                 .concat(footballStatMap.map(key => getNumericStat(awayStats, key)))
                 .concat([hourOfDay])
                 .concat([isHome])
                 .concat([restDays])
-                .concat([playoffGameNCAAF ? 1 : 0]);
+                .concat([playoffGameNCAAF ? 1 : 0])
+                .concat([daysSinceSeasonStartNCAAF])
+                .concat([winRateVsOpponent]);
         case 'icehockey_nhl':
             let playoffMonthStartNHL = 4; // April
             let playoffGameNHL = (gameDate.getMonth() + 1) >= playoffMonthStartNHL
+            let daysSinceSeasonStartNHL = moment(gameDate).diff(moment(`${gameDate.getFullYear()}-10-01`), 'days');
             return hockeyStatMap.map(key => getNumericStat(homeStats, key))
                 .concat(hockeyStatMap.map(key => getNumericStat(awayStats, key)))
                 .concat([hourOfDay])
                 .concat([isHome])
                 .concat([restDays])
-                .concat([playoffGameNHL ? 1 : 0]);
+                .concat([playoffGameNHL ? 1 : 0])
+                .concat([daysSinceSeasonStartNHL])
+                .concat([winRateVsOpponent]);
         case 'baseball_mlb':
             let playoffMonthStartMLB = 10; // October
             let playoffGameMLB = (gameDate.getMonth() + 1) >= playoffMonthStartMLB
+            let daysSinceSeasonStartMLB = moment(gameDate).diff(moment(`${gameDate.getFullYear()}-04-01`), 'days');
             return baseballStatMap.map(key => getNumericStat(homeStats, key))
                 .concat(baseballStatMap.map(key => getNumericStat(awayStats, key)))
                 .concat([hourOfDay])
                 .concat([isHome])
                 .concat([restDays])
-                .concat([playoffGameMLB ? 1 : 0]);
+                .concat([playoffGameMLB ? 1 : 0])
+                .concat([daysSinceSeasonStartMLB])
+                .concat([winRateVsOpponent]);
         case 'basketball_ncaab':
             let playoffMonthStartNCAAB = 3; // March
             let playoffGameNCAAB = (gameDate.getMonth() + 1) >= playoffMonthStartNCAAB
+            let daysSinceSeasonStartNCAAB = moment(gameDate).diff(moment(`${gameDate.getFullYear()}-11-01`), 'days');
             return basketballStatMap.map(key => getNumericStat(homeStats, key))
                 .concat(basketballStatMap.map(key => getNumericStat(awayStats, key)))
                 .concat([hourOfDay])
                 .concat([isHome])
                 .concat([restDays])
-                .concat([playoffGameNCAAB ? 1 : 0]);
+                .concat([playoffGameNCAAB ? 1 : 0])
+                .concat([daysSinceSeasonStartNCAAB])
+                .concat([winRateVsOpponent]);
         case 'basketball_wncaab':
             let playoffMonthStartWNCAAB = 3; // March
             let playoffGameWNCAAB = (gameDate.getMonth() + 1) >= playoffMonthStartWNCAAB
+            let daysSinceSeasonStartWNCAAB = moment(gameDate).diff(moment(`${gameDate.getFullYear()}-11-01`), 'days');
             return basketballStatMap.map(key => getNumericStat(homeStats, key))
                 .concat(basketballStatMap.map(key => getNumericStat(awayStats, key)))
                 .concat([hourOfDay])
                 .concat([isHome])
                 .concat([restDays])
-                .concat([playoffGameWNCAAB ? 1 : 0]);
+                .concat([playoffGameWNCAAB ? 1 : 0])
+                .concat([daysSinceSeasonStartWNCAAB])
+                .concat([winRateVsOpponent]);
         case 'basketball_nba':
             let playoffMonthStartNBA = 4; // April
             let playoffGameNBA = (gameDate.getMonth() + 1) >= playoffMonthStartNBA
+            let daysSinceSeasonStartNBA = moment(gameDate).diff(moment(`${gameDate.getFullYear()}-10-01`), 'days');
             return basketballStatMap.map(key => getNumericStat(homeStats, key))
                 .concat(basketballStatMap.map(key => getNumericStat(awayStats, key)))
                 .concat([hourOfDay])
                 .concat([isHome])
                 .concat([restDays])
-                .concat([playoffGameNBA ? 1 : 0]);
+                .concat([playoffGameNBA ? 1 : 0])
+                .concat([daysSinceSeasonStartNBA])
+                .concat([winRateVsOpponent]);
         default:
             return [];
     }
