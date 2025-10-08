@@ -95,12 +95,15 @@ const removePastGames = async (currentOdds) => {
                             }
                         }
                         else if (event.competitions[0].status.type.description === 'Postponed') {
-                            await db.Games.destroy({
-                                where: {
-                                    id: game.id
-                                },
+                            // await db.Games.destroy({
+                            //     where: {
+                            //         id: game.id
+                            //     },
 
-                            })
+                            // })
+                            console.log('Game Postponed:', game.id);
+                            console.log(`${game['awayTeamDetails.espnDisplayName']} at ${game['homeTeamDetails.espnDisplayName']}`)
+                            console.log(`https://site.api.espn.com/apis/site/v2/sports/${game.sport_title}/${game['homeTeamDetails.espnLeague']}/teams/${game['homeTeamDetails.espnID']}/schedule`)
                         }
                         // else if () {
                         //     await db.Games.update({
@@ -115,12 +118,15 @@ const removePastGames = async (currentOdds) => {
                         // }
                     }
                     else {
-                        await db.Games.destroy({
-                            where: {
-                                id: game.id
-                            },
+                        // await db.Games.destroy({
+                        //     where: {
+                        //         id: game.id
+                        //     },
 
-                        })
+                        // })
+                        console.log ('No matching event found for game:', game.id);
+                        console.log(`${game['awayTeamDetails.espnDisplayName']} at ${game['homeTeamDetails.espnDisplayName']}`)
+                        console.log(`https://site.api.espn.com/apis/site/v2/sports/${game.sport_title}/${game['homeTeamDetails.espnLeague']}/teams/${game['homeTeamDetails.espnID']}/schedule`)
                     }
                 } catch (err) {
                     console.log(game)
