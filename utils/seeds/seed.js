@@ -1012,7 +1012,7 @@ const pastBaseballPitcherStats = async () => {
     bar.stop();
     console.log(`DONE`)
 }
-// mlModelTrainSeed()
+// removeSeed()
 // valueBet()
 // modelReset()
 // pastBaseballPitcherStats()
