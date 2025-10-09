@@ -17,8 +17,8 @@ const removePastGames = async (currentOdds) => {
                     const gameTime = new Date(game.commence_time);
                     //find the event on the schedule
                     const event = homeTeamSchedJSON.events.find((event) => (event.name === `${game['awayTeamDetails.espnDisplayName']} at ${game['homeTeamDetails.espnDisplayName']}`
-                        || event.shortName === `${game['awayTeamDetails.espnDisplayName']} @ ${game['homeTeamDetails.espnDisplayName']}`
-                        || event.shortName === `${game['homeTeamDetails.espnDisplayName']} VS ${game['awayTeamDetails.espnDisplayName']}`)
+                        || event.shortName === `${game['awayTeamDetails.abbreviation']} @ ${game['homeTeamDetails.abbreviation']}`
+                        || event.shortName === `${game['homeTeamDetails.abbreviation']} VS ${game['awayTeamDetails.abbreviation']}`)
                         && Math.abs(new Date(event.date) - gameTime) < 1000 * 60 * 90
                     );
                     if (event) {
