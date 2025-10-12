@@ -47,7 +47,7 @@ const cronJobs = [
     timezone,
   },
   {
-    cronTime: '0 30 4,8,12,16,20 * * *', //every hour, at the 30min mark, except 12-3 when ML train runs -- gets team stats and saves to db -- 2 min
+    cronTime: '0 30 4-23 * * *', //every hour, at the 30min mark, except 12-3 when ML train runs -- gets team stats and saves to db -- 2 min
     onTick: dataSeed.dataSeed,
     timezone
   },
@@ -56,11 +56,11 @@ const cronJobs = [
     onTick: dataSeed.mlModelTrainSeed,
     timezone
   },
-  // {
-  //   cronTime: '0 0 0 * * */7', // Once a week at 12 am -- complete random searches for params and value bets
-  //   onTick: dataSeed.paramAndValueSeed,
-  //   timezone,
-  // },
+  {
+    cronTime: '0 0 3 * * */7', // Once a week at 12 am -- complete random searches for params and value bets
+    onTick: dataSeed.valueBetSearch,
+    timezone,
+  },
 ];
 
 // Create an object to track the running status of each cron job by its cronTime (or a unique ID)
