@@ -429,7 +429,7 @@ const oddsSeed = async () => {
 
             console.info('Odds Seeding complete! 🌱');
         } catch (err) {
-            if (err) throw (err)
+            if (err) console.log(err)
         }
     };
     await fetchDataWithBackoff(sports.filter(sport => isSportInSeason(sport)));
