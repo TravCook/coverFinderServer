@@ -217,10 +217,10 @@ const extractSportFeatures = (homeStats, awayStats, league, gameData, sortedGame
                 .concat([recentWinRate])
                 .concat([recentAvgPointsFor])
                 .concat([recentAvgPointsAgainst])
-                .concat(statDiffs)
-                .concat(statRatios)
-                .concat([hourSin, hourCos])
-                .concat([winRateProduct]);
+                // .concat(statDiffs)
+                // .concat(statRatios)
+                // .concat([hourSin, hourCos])
+                // .concat([winRateProduct]);
         case 'americanfootball_ncaaf':
             let playoffMonthStartNCAAF = 12; // December
             let playoffGameNCAAF = (gameDate.getMonth() + 1) >= playoffMonthStartNCAAF
@@ -235,10 +235,10 @@ const extractSportFeatures = (homeStats, awayStats, league, gameData, sortedGame
                 .concat([recentWinRate])
                 .concat([recentAvgPointsFor])
                 .concat([recentAvgPointsAgainst])
-                .concat(statDiffs)
-                .concat(statRatios)
-                .concat([hourSin, hourCos])
-                .concat([winRateProduct]);
+                // .concat(statDiffs)
+                // .concat(statRatios)
+                // .concat([hourSin, hourCos])
+                // .concat([winRateProduct]);
         case 'icehockey_nhl':
             let playoffMonthStartNHL = 4; // April
             let playoffGameNHL = (gameDate.getMonth() + 1) >= playoffMonthStartNHL
@@ -253,10 +253,10 @@ const extractSportFeatures = (homeStats, awayStats, league, gameData, sortedGame
                 .concat([recentWinRate])
                 .concat([recentAvgPointsFor])
                 .concat([recentAvgPointsAgainst])
-                .concat(statDiffs)
-                .concat(statRatios)
-                .concat([hourSin, hourCos])
-                .concat([winRateProduct]);
+                // .concat(statDiffs)
+                // .concat(statRatios)
+                // .concat([hourSin, hourCos])
+                // .concat([winRateProduct]);
         case 'baseball_mlb':
             let playoffMonthStartMLB = 10; // October
             let playoffGameMLB = (gameDate.getMonth() + 1) >= playoffMonthStartMLB
@@ -271,10 +271,10 @@ const extractSportFeatures = (homeStats, awayStats, league, gameData, sortedGame
                 .concat([recentWinRate])
                 .concat([recentAvgPointsFor])
                 .concat([recentAvgPointsAgainst])
-                .concat(statDiffs)
-                .concat(statRatios)
-                .concat([hourSin, hourCos])
-                .concat([winRateProduct]);
+                // .concat(statDiffs)
+                // .concat(statRatios)
+                // .concat([hourSin, hourCos])
+                // .concat([winRateProduct]);
         case 'basketball_ncaab':
             let playoffMonthStartNCAAB = 3; // March
             let playoffGameNCAAB = (gameDate.getMonth() + 1) >= playoffMonthStartNCAAB
@@ -289,10 +289,10 @@ const extractSportFeatures = (homeStats, awayStats, league, gameData, sortedGame
                 .concat([recentWinRate])
                 .concat([recentAvgPointsFor])
                 .concat([recentAvgPointsAgainst])
-                .concat(statDiffs)
-                .concat(statRatios)
-                .concat([hourSin, hourCos])
-                .concat([winRateProduct]);
+                // .concat(statDiffs)
+                // .concat(statRatios)
+                // .concat([hourSin, hourCos])
+                // .concat([winRateProduct]);
         case 'basketball_wncaab':
             let playoffMonthStartWNCAAB = 3; // March
             let playoffGameWNCAAB = (gameDate.getMonth() + 1) >= playoffMonthStartWNCAAB
@@ -307,10 +307,10 @@ const extractSportFeatures = (homeStats, awayStats, league, gameData, sortedGame
                 .concat([recentWinRate])
                 .concat([recentAvgPointsFor])
                 .concat([recentAvgPointsAgainst])
-                .concat(statDiffs)
-                .concat(statRatios)
-                .concat([hourSin, hourCos])
-                .concat([winRateProduct]);
+                // .concat(statDiffs)
+                // .concat(statRatios)
+                // .concat([hourSin, hourCos])
+                // .concat([winRateProduct]);
         case 'basketball_nba':
             let playoffMonthStartNBA = 4; // April
             let playoffGameNBA = (gameDate.getMonth() + 1) >= playoffMonthStartNBA
@@ -325,10 +325,10 @@ const extractSportFeatures = (homeStats, awayStats, league, gameData, sortedGame
                 .concat([recentWinRate])
                 .concat([recentAvgPointsFor])
                 .concat([recentAvgPointsAgainst])
-                .concat(statDiffs)
-                .concat(statRatios)
-                .concat([hourSin, hourCos])
-                .concat([winRateProduct]);
+                // .concat(statDiffs)
+                // .concat(statRatios)
+                // .concat([hourSin, hourCos])
+                // .concat([winRateProduct]);
         default:
             return [];
     }
