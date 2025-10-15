@@ -9,24 +9,6 @@ const { baseballStatMap, basketballStatMap, footballStatMap, hockeyStatMap, stat
 const { evaluateFoldMetrics, printOverallMetrics } = require('./metricsHelpers')
 const { getZScoreNormalizedStats } = require('./normalizeHelpers')
 const os = require('os');
-function logMemoryUsage() {
-    const used = process.memoryUsage(); // memory used by Node
-    const totalMem = os.totalmem();     // total system memory
-    const freeMem = os.freemem();       // free system memory
-
-    const toMB = (bytes) => (bytes / 1024 / 1024).toFixed(2);
-
-    console.log('--- Memory Usage ---');
-    console.log(`Heap Used     : ${toMB(used.heapUsed)} MB`);
-    console.log(`Heap Total    : ${toMB(used.heapTotal)} MB ${((used.heapUsed / used.heapTotal) * 100).toFixed(2)}%`);
-    console.log(`RSS           : ${toMB(used.rss)} MB (Resident Set Size)`);
-    console.log(`External      : ${toMB(used.external)} MB`);
-    console.log(`Array Buffers : ${toMB(used.arrayBuffers)} MB`);
-    console.log(`System Free   : ${toMB(freeMem)} MB`);
-    console.log(`System Total  : ${toMB(totalMem)} MB`);
-    console.log(`System Used   : ${toMB(totalMem - freeMem)} MB`);
-    console.log('---------------------\n');
-}
 
 async function extractAndSaveFeatureImportances(model, sport) {
     const statMap = statConfigMap[sport.espnSport].default;
@@ -177,8 +159,7 @@ const extractSportFeatures = (homeStats, awayStats, league, gameData, sortedGame
 
     let winRateVsOpponent = gamesVsOpponent.length > 0 ? (gamesVsOpponent.filter(g => (g.winner === 'home' && g.homeTeam === teamId) || (g.winner === 'away' && g.awayTeam === teamId)).length / gamesVsOpponent.length) : 0.5;
 
-    let twoWeeksAgo = moment(gameDate).subtract(14, 'days');
-    let recentGames = sortedGames.filter(g => (g.homeTeam === teamId || g.awayTeam === teamId) && moment(new Date(g.commence_time)).isBetween(twoWeeksAgo, gameDate));
+    let recentGames = sortedGames.filter(g => (g.homeTeam === teamId || g.awayTeam === teamId)).sort((a, b) => new Date(b.commence_time) - new Date(a.commence_time)).slice(0,25)
     let recentWinRate = recentGames.length > 0 ? (recentGames.filter(g => (g.winner === 'home' && g.homeTeam === teamId) || (g.winner === 'away' && g.awayTeam === teamId)).length / recentGames.length) : 0.5;
     let recentAvgPointsFor = recentGames.length > 0 ? (recentGames.reduce((acc, g) => {
         if (g.homeTeam === teamId) return acc + g.homeScore;
@@ -337,7 +318,7 @@ const extractSportFeatures = (homeStats, awayStats, league, gameData, sortedGame
 
 
 const getHyperParams = (sport, search) => {
-    const useDropoutReg = (sport.name === 'basketball_nba' || sport.name === 'icehockey_nhl');
+    const useDropoutReg = false
     if (useDropoutReg) {
         return {
             learningRate: search
@@ -426,8 +407,8 @@ const loadOrCreateModel = async (xs, sport, search) => {
         const hyperParams = getHyperParams(sport, search);
         const l2Strength = hyperParams.l2reg || 0; // Default L2 regularization strength
         const initializer = tf.initializers.randomNormal({ seed: 122021 });
-        const useBatchNorm = (sport.name === 'basketball_ncaab');
-        const useDropoutEveryOther = (sport.name === 'basketball_nba' || sport.name === 'icehockey_nhl');
+        // const useBatchNorm = (sport.name === 'basketball_ncaab');
+        // const useDropoutEveryOther = (sport.name === 'basketball_nba' || sport.name === 'icehockey_nhl');
 
 
         const input = tf.input({ shape: [xs[0].length] });
@@ -450,16 +431,16 @@ const loadOrCreateModel = async (xs, sport, search) => {
                 // kernelInitializer: initializer, // optional
             }).apply(shared);
 
-            if (useBatchNorm) {
-                dense = tf.layers.batchNormalization().apply(dense);
-                dense = tf.layers.leakyReLU({ alpha: 0.3 }).apply(dense); // or ReLU if preferred
-            }
+            // if (useBatchNorm) {
+            //     dense = tf.layers.batchNormalization().apply(dense);
+            //     dense = tf.layers.leakyReLU({ alpha: 0.3 }).apply(dense); // or ReLU if preferred
+            // }
 
             dense = tf.layers.reLU().apply(dense);
 
-            if (useDropoutEveryOther && i % 2 === 0) {
-                dense = tf.layers.dropout({ rate: hyperParams.dropoutReg * 2 }).apply(dense);
-            }
+            // if (useDropoutEveryOther && i % 2 === 0) {
+            //     dense = tf.layers.dropout({ rate: hyperParams.dropoutReg * 2 }).apply(dense);
+            // }
 
             // Add residual connection every 2 layers (skip connection)
             if (i > 0 && i % 2 === 0) {
@@ -1049,7 +1030,6 @@ const trainSportModelKFold = async (sport, gameData, search) => {
 
         progress += 1;
         bar.update(progress);
-        logMemoryUsage()
     }
 
     bar.stop();

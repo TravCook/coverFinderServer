@@ -910,7 +910,7 @@ const modelReset = async () => {
 
     await mlModelTrainSeed()
 
-    await dataSeed()
+    // await dataSeed()
 
     // await oddsSeed()
 }
