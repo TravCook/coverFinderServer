@@ -198,8 +198,8 @@ const extractSportFeatures = (homeStats, awayStats, league, gameData, sortedGame
                 .concat([recentWinRate])
                 .concat([recentAvgPointsFor])
                 .concat([recentAvgPointsAgainst])
-                .concat(statDiffs)
-                .concat(statRatios)
+                // .concat(statDiffs)
+                // .concat(statRatios)
                 // .concat([hourSin, hourCos])
                 // .concat([winRateProduct]);
         case 'americanfootball_ncaaf':
@@ -216,8 +216,8 @@ const extractSportFeatures = (homeStats, awayStats, league, gameData, sortedGame
                 .concat([recentWinRate])
                 .concat([recentAvgPointsFor])
                 .concat([recentAvgPointsAgainst])
-                .concat(statDiffs)
-                .concat(statRatios)
+                // .concat(statDiffs)
+                // .concat(statRatios)
                 // .concat([hourSin, hourCos])
                 // .concat([winRateProduct]);
         case 'icehockey_nhl':
@@ -234,8 +234,8 @@ const extractSportFeatures = (homeStats, awayStats, league, gameData, sortedGame
                 .concat([recentWinRate])
                 .concat([recentAvgPointsFor])
                 .concat([recentAvgPointsAgainst])
-                .concat(statDiffs)
-                .concat(statRatios)
+                // .concat(statDiffs)
+                // .concat(statRatios)
                 // .concat([hourSin, hourCos])
                 // .concat([winRateProduct]);
         case 'baseball_mlb':
@@ -252,8 +252,8 @@ const extractSportFeatures = (homeStats, awayStats, league, gameData, sortedGame
                 .concat([recentWinRate])
                 .concat([recentAvgPointsFor])
                 .concat([recentAvgPointsAgainst])
-                .concat(statDiffs)
-                .concat(statRatios)
+                // .concat(statDiffs)
+                // .concat(statRatios)
                 // .concat([hourSin, hourCos])
                 // .concat([winRateProduct]);
         case 'basketball_ncaab':
@@ -270,8 +270,8 @@ const extractSportFeatures = (homeStats, awayStats, league, gameData, sortedGame
                 .concat([recentWinRate])
                 .concat([recentAvgPointsFor])
                 .concat([recentAvgPointsAgainst])
-                .concat(statDiffs)
-                .concat(statRatios)
+                // .concat(statDiffs)
+                // .concat(statRatios)
                 // .concat([hourSin, hourCos])
                 // .concat([winRateProduct]);
         case 'basketball_wncaab':
@@ -288,8 +288,8 @@ const extractSportFeatures = (homeStats, awayStats, league, gameData, sortedGame
                 .concat([recentWinRate])
                 .concat([recentAvgPointsFor])
                 .concat([recentAvgPointsAgainst])
-                .concat(statDiffs)
-                .concat(statRatios)
+                // .concat(statDiffs)
+                // .concat(statRatios)
                 // .concat([hourSin, hourCos])
                 // .concat([winRateProduct]);
         case 'basketball_nba':
@@ -306,8 +306,8 @@ const extractSportFeatures = (homeStats, awayStats, league, gameData, sortedGame
                 .concat([recentWinRate])
                 .concat([recentAvgPointsFor])
                 .concat([recentAvgPointsAgainst])
-                .concat(statDiffs)
-                .concat(statRatios)
+                // .concat(statDiffs)
+                // .concat(statRatios)
                 // .concat([hourSin, hourCos])
                 // .concat([winRateProduct]);
         default:
