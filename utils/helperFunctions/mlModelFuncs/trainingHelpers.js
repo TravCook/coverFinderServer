@@ -159,7 +159,7 @@ const extractSportFeatures = (homeStats, awayStats, league, gameData, sortedGame
 
     let winRateVsOpponent = gamesVsOpponent.length > 0 ? (gamesVsOpponent.filter(g => (g.winner === 'home' && g.homeTeam === teamId) || (g.winner === 'away' && g.awayTeam === teamId)).length / gamesVsOpponent.length) : 0.5;
 
-    let recentGames = sortedGames.filter(g => (g.homeTeam === teamId || g.awayTeam === teamId)).sort((a, b) => new Date(b.commence_time) - new Date(a.commence_time)).slice(0,25)
+    let recentGames = sortedGames.filter(g => (g.homeTeam === teamId || g.awayTeam === teamId)).sort((a, b) => new Date(b.commence_time) - new Date(a.commence_time)).slice(0, 25)
     let recentWinRate = recentGames.length > 0 ? (recentGames.filter(g => (g.winner === 'home' && g.homeTeam === teamId) || (g.winner === 'away' && g.awayTeam === teamId)).length / recentGames.length) : 0.5;
     let recentAvgPointsFor = recentGames.length > 0 ? (recentGames.reduce((acc, g) => {
         if (g.homeTeam === teamId) return acc + g.homeScore;
@@ -170,11 +170,9 @@ const extractSportFeatures = (homeStats, awayStats, league, gameData, sortedGame
         else return acc + g.homeScore;
     }, 0) / recentGames.length) : 20;
 
-    let statDiffs = footballStatMap.map(key => getNumericStat(homeStats, key) - getNumericStat(awayStats, key));
-    let statRatios = footballStatMap.map(key => {
-        let away = getNumericStat(awayStats, key);
-        return away === 0 ? 1 : getNumericStat(homeStats, key) / away;
-    });
+    let statDiffs
+    let statRatios
+
 
     let hourSin = Math.sin(2 * Math.PI * hourOfDay / 24);
     let hourCos = Math.cos(2 * Math.PI * hourOfDay / 24);
@@ -188,6 +186,11 @@ const extractSportFeatures = (homeStats, awayStats, league, gameData, sortedGame
             let playoffMonthStartNFL = 1; // January
             let playoffGameNFL = (gameDate.getMonth() + 1) >= playoffMonthStartNFL
             let daysSinceSeasonStartNFL = moment(gameDate).diff(moment(`${gameDate.getFullYear()}-09-01`), 'days');
+            statDiffs = footballStatMap.map(key => getNumericStat(homeStats, key) - getNumericStat(awayStats, key));
+            // statRatios = footballStatMap.map(key => {
+            //     let away = getNumericStat(awayStats, key);
+            //     return away === 0 ? 1 : getNumericStat(homeStats, key) / away;
+            // });
             return footballStatMap.map(key => getNumericStat(homeStats, key))
                 .concat(footballStatMap.map(key => getNumericStat(awayStats, key)))
                 .concat([isHome])
@@ -198,14 +201,19 @@ const extractSportFeatures = (homeStats, awayStats, league, gameData, sortedGame
                 .concat([recentWinRate])
                 .concat([recentAvgPointsFor])
                 .concat([recentAvgPointsAgainst])
-                // .concat(statDiffs)
+                .concat(statDiffs)
                 // .concat(statRatios)
-                // .concat([hourSin, hourCos])
-                // .concat([winRateProduct]);
+        .concat([hourSin, hourCos])
+        .concat([winRateProduct]);
         case 'americanfootball_ncaaf':
             let playoffMonthStartNCAAF = 12; // December
             let playoffGameNCAAF = (gameDate.getMonth() + 1) >= playoffMonthStartNCAAF
             let daysSinceSeasonStartNCAAF = moment(gameDate).diff(moment(`${gameDate.getFullYear()}-09-01`), 'days');
+            statDiffs = footballStatMap.map(key => getNumericStat(homeStats, key) - getNumericStat(awayStats, key));
+            // statRatios = footballStatMap.map(key => {
+            //     let away = getNumericStat(awayStats, key);
+            //     return away === 0 ? 1 : getNumericStat(homeStats, key) / away;
+            // });
             return footballStatMap.map(key => getNumericStat(homeStats, key))
                 .concat(footballStatMap.map(key => getNumericStat(awayStats, key)))
                 .concat([isHome])
@@ -216,14 +224,19 @@ const extractSportFeatures = (homeStats, awayStats, league, gameData, sortedGame
                 .concat([recentWinRate])
                 .concat([recentAvgPointsFor])
                 .concat([recentAvgPointsAgainst])
-                // .concat(statDiffs)
+                .concat(statDiffs)
                 // .concat(statRatios)
-                // .concat([hourSin, hourCos])
-                // .concat([winRateProduct]);
+        .concat([hourSin, hourCos])
+        .concat([winRateProduct]);
         case 'icehockey_nhl':
             let playoffMonthStartNHL = 4; // April
             let playoffGameNHL = (gameDate.getMonth() + 1) >= playoffMonthStartNHL
             let daysSinceSeasonStartNHL = moment(gameDate).diff(moment(`${gameDate.getFullYear()}-10-01`), 'days');
+            statDiffs = hockeyStatMap.map(key => getNumericStat(homeStats, key) - getNumericStat(awayStats, key));
+            // statRatios = hockeyStatMap.map(key => {
+            //     let away = getNumericStat(awayStats, key);
+            //     return away === 0 ? 1 : getNumericStat(homeStats, key) / away;
+            // });
             return hockeyStatMap.map(key => getNumericStat(homeStats, key))
                 .concat(hockeyStatMap.map(key => getNumericStat(awayStats, key)))
                 .concat([isHome])
@@ -234,14 +247,19 @@ const extractSportFeatures = (homeStats, awayStats, league, gameData, sortedGame
                 .concat([recentWinRate])
                 .concat([recentAvgPointsFor])
                 .concat([recentAvgPointsAgainst])
-                // .concat(statDiffs)
+                .concat(statDiffs)
                 // .concat(statRatios)
-                // .concat([hourSin, hourCos])
-                // .concat([winRateProduct]);
+        .concat([hourSin, hourCos])
+        .concat([winRateProduct]);
         case 'baseball_mlb':
             let playoffMonthStartMLB = 10; // October
             let playoffGameMLB = (gameDate.getMonth() + 1) >= playoffMonthStartMLB
             let daysSinceSeasonStartMLB = moment(gameDate).diff(moment(`${gameDate.getFullYear()}-04-01`), 'days');
+            statDiffs = baseballStatMap.map(key => getNumericStat(homeStats, key) - getNumericStat(awayStats, key));
+            // statRatios = baseballStatMap.map(key => {
+            //     let away = getNumericStat(awayStats, key);
+            //     return away === 0 ? 1 : getNumericStat(homeStats, key) / away;
+            // });
             return baseballStatMap.map(key => getNumericStat(homeStats, key))
                 .concat(baseballStatMap.map(key => getNumericStat(awayStats, key)))
                 .concat([isHome])
@@ -252,14 +270,19 @@ const extractSportFeatures = (homeStats, awayStats, league, gameData, sortedGame
                 .concat([recentWinRate])
                 .concat([recentAvgPointsFor])
                 .concat([recentAvgPointsAgainst])
-                // .concat(statDiffs)
+                .concat(statDiffs)
                 // .concat(statRatios)
-                // .concat([hourSin, hourCos])
-                // .concat([winRateProduct]);
+        .concat([hourSin, hourCos])
+        .concat([winRateProduct]);
         case 'basketball_ncaab':
             let playoffMonthStartNCAAB = 3; // March
             let playoffGameNCAAB = (gameDate.getMonth() + 1) >= playoffMonthStartNCAAB
             let daysSinceSeasonStartNCAAB = moment(gameDate).diff(moment(`${gameDate.getFullYear()}-11-01`), 'days');
+            statDiffs = basketballStatMap.map(key => getNumericStat(homeStats, key) - getNumericStat(awayStats, key));
+            // statRatios = basketballStatMap.map(key => {
+            //     let away = getNumericStat(awayStats, key);
+            //     return away === 0 ? 1 : getNumericStat(homeStats, key) / away;
+            // });
             return basketballStatMap.map(key => getNumericStat(homeStats, key))
                 .concat(basketballStatMap.map(key => getNumericStat(awayStats, key)))
                 .concat([isHome])
@@ -270,14 +293,19 @@ const extractSportFeatures = (homeStats, awayStats, league, gameData, sortedGame
                 .concat([recentWinRate])
                 .concat([recentAvgPointsFor])
                 .concat([recentAvgPointsAgainst])
-                // .concat(statDiffs)
+                .concat(statDiffs)
                 // .concat(statRatios)
-                // .concat([hourSin, hourCos])
-                // .concat([winRateProduct]);
+        .concat([hourSin, hourCos])
+        .concat([winRateProduct]);
         case 'basketball_wncaab':
             let playoffMonthStartWNCAAB = 3; // March
             let playoffGameWNCAAB = (gameDate.getMonth() + 1) >= playoffMonthStartWNCAAB
             let daysSinceSeasonStartWNCAAB = moment(gameDate).diff(moment(`${gameDate.getFullYear()}-11-01`), 'days');
+            statDiffs = basketballStatMap.map(key => getNumericStat(homeStats, key) - getNumericStat(awayStats, key));
+            // statRatios = basketballStatMap.map(key => {
+            //     let away = getNumericStat(awayStats, key);
+            //     return away === 0 ? 1 : getNumericStat(homeStats, key) / away;
+            // });
             return basketballStatMap.map(key => getNumericStat(homeStats, key))
                 .concat(basketballStatMap.map(key => getNumericStat(awayStats, key)))
                 .concat([isHome])
@@ -288,14 +316,19 @@ const extractSportFeatures = (homeStats, awayStats, league, gameData, sortedGame
                 .concat([recentWinRate])
                 .concat([recentAvgPointsFor])
                 .concat([recentAvgPointsAgainst])
-                // .concat(statDiffs)
+                .concat(statDiffs)
                 // .concat(statRatios)
-                // .concat([hourSin, hourCos])
-                // .concat([winRateProduct]);
+        .concat([hourSin, hourCos])
+        .concat([winRateProduct]);
         case 'basketball_nba':
             let playoffMonthStartNBA = 4; // April
             let playoffGameNBA = (gameDate.getMonth() + 1) >= playoffMonthStartNBA
             let daysSinceSeasonStartNBA = moment(gameDate).diff(moment(`${gameDate.getFullYear()}-10-01`), 'days');
+            statDiffs = basketballStatMap.map(key => getNumericStat(homeStats, key) - getNumericStat(awayStats, key));
+            // statRatios = basketballStatMap.map(key => {
+            //     let away = getNumericStat(awayStats, key);
+            //     return away === 0 ? 1 : getNumericStat(homeStats, key) / away;
+            // });
             return basketballStatMap.map(key => getNumericStat(homeStats, key))
                 .concat(basketballStatMap.map(key => getNumericStat(awayStats, key)))
                 .concat([isHome])
@@ -306,10 +339,10 @@ const extractSportFeatures = (homeStats, awayStats, league, gameData, sortedGame
                 .concat([recentWinRate])
                 .concat([recentAvgPointsFor])
                 .concat([recentAvgPointsAgainst])
-                // .concat(statDiffs)
+                .concat(statDiffs)
                 // .concat(statRatios)
-                // .concat([hourSin, hourCos])
-                // .concat([winRateProduct]);
+        .concat([hourSin, hourCos])
+        .concat([winRateProduct]);
         default:
             return [];
     }
@@ -510,6 +543,7 @@ const mlModelTraining = async (gameData, sport, search, gameCount, allPastGames,
 
         const homeStatFeatures = await extractSportFeatures(normalizedHome, normalizedAway, sport.name, game, sortedGameData, true);
         const homeScoreLabel = ((game.homeScore - scoreMean) / scoreStdDev);
+        // console.dir(homeStatFeatures, { maxArrayLength: null });
 
         xs.push(homeStatFeatures);
         ysScore.push(homeScoreLabel);
@@ -630,8 +664,6 @@ const predictions = async (sportOdds, ff, model, sport, past, search, teamHistor
     let sixtyToSeventyMatchups = 0;
     let seventyToEightyMatchups = 0;
     let eightyToNinetyMatchups = 0;
-
-    let misMatched = 0;
     let matchedScore = 0;
     let spreadMatch = 0;
     let totalMatch = 0;
@@ -779,11 +811,6 @@ const predictions = async (sportOdds, ff, model, sport, past, search, teamHistor
 
             if (predictionConfidence > 0.9 && !wasCorrect) highConfLosers++;
 
-            if ((homeScore > awayScore && predictionConfidence < 0.5) ||
-                (homeScore < awayScore && predictionConfidence > 0.5)) {
-                misMatched++;
-            }
-
             if (Math.round(homeScore) === game.homeScore ||
                 Math.round(awayScore) === game.awayScore) {
                 matchedScore++;
@@ -836,7 +863,7 @@ const predictions = async (sportOdds, ff, model, sport, past, search, teamHistor
     // Summary output
     if (past || search) {
         console.log(`PREDICTION SCORE RANGE: [${minScorePredicted} - ${maxScorePredicted}] REAL SCORE RANGE: [${minScoreReal} - ${maxScoreReal}]`)
-        console.log(`OUT OF ${sportOdds.length} GAMES [TOTAL WINS: ${totalWins}, TOTAL LOSSES: ${totalLosses}]: MATCHED SPREADS: ${spreadMatch} MATCHED SCORES: ${matchedScore} MISMATCHED PREDICTIONS: ${misMatched} TIE GAMES: ${tieGames} HOME: ${home} AWAY: ${away}`);
+        console.log(`OUT OF ${sportOdds.length} GAMES [TOTAL WINS: ${totalWins}, TOTAL LOSSES: ${totalLosses}]: MATCHED SPREADS: ${spreadMatch} MATCHED SCORES: ${matchedScore} TIE GAMES: ${tieGames} HOME: ${home} AWAY: ${away}`);
     }
 
     let bucketCalibrationPenalty = 0;
