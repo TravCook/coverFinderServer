@@ -57,7 +57,7 @@ const cronJobs = [
     timezone
   },
   {
-    cronTime: '0 0 3 * * */7', // Once a week at 12 am -- complete random searches for params and value bets
+    cronTime: '0 30 2 * * */7', // Once a week at 12 am -- complete random searches for params and value bets
     onTick: dataSeed.valueBetSearch,
     timezone,
   },

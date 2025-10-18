@@ -47,7 +47,7 @@ const hyperparameterRandSearch = async (sports) => {
 
 
     for (let sport of sports.sort((a, b) => a.startMonth - b.startMonth)) {
-        // if( sport.name !== 'americanfootball_nfl') continue; // Skip college football for now
+        // if( sport.name !== 'basketball_ncaab' && sport.name !== 'basketball_wncaab') continue; // Skip college football for now
         const useDropoutReg = false;
         let space = {
             learningRate: { type: 'log', min: 1e-5, max: 5e-3 },
