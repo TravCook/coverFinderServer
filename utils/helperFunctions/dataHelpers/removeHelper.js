@@ -93,6 +93,11 @@ const removePastGames = async (currentOdds) => {
 
 
                             }
+                            else {
+                                console.log('No scoreboard event found for in-progress game:', game.id);
+                                console.log(`${game['awayTeamDetails.espnDisplayName']} at ${game['homeTeamDetails.espnDisplayName']}`)
+                                console.log(`https://site.api.espn.com/apis/site/v2/sports/${game['sportDetails.espnSport']}/${game['homeTeamDetails.espnLeague']}/scoreboard?dates=${moment(currentOdds[0].commence_time).format('YYYYMMDD')}-${moment(currentOdds[currentOdds.length - 1].commence_time).format('YYYYMMDD')}`)
+                            }
                         }
                         else if (event.competitions[0].status.type.description === 'Postponed') {
                             // await db.Games.destroy({
