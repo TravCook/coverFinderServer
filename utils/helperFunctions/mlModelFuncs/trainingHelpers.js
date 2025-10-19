@@ -143,32 +143,37 @@ const isValidStatBlock = (statsObj, sport) => {
 
 
 // Feature extraction per sport
-const extractSportFeatures = (homeStats, awayStats, league, gameData, sortedGames, home) => {
+const extractSportFeatures = (homeStats, awayStats, sport, gameData, sortedGames, home) => {
     let gameDate = new Date(gameData.commence_time)
     let hourOfDay = gameDate.getHours() + (gameDate.getMinutes() / 60); // e.g., 14.5 for 2:30 PM
     let isHome = home ? 1 : 0;
     let teamId = home ? gameData.homeTeam : gameData.awayTeam
     let opponentId = home ? gameData.awayTeam : gameData.homeTeam
     let pastTeamGames = sortedGames.find(g => (g.homeTeam === teamId || g.awayTeam === teamId) && new Date(g.commence_time) < gameDate)
-    let restDays = pastTeamGames ? moment(gameDate).diff(moment(new Date(pastTeamGames.commence_time)), 'days') : 7
+    let restDays = pastTeamGames ? moment(gameDate).diff(moment(new Date(pastTeamGames.commence_time)), 'days') : 0
 
     let gamesVsOpponent = sortedGames.filter(g =>
         (g.homeTeam === teamId && g.awayTeam === opponentId || g.homeTeam === opponentId && g.awayTeam === teamId) &&
         new Date(g.commence_time) < gameDate
     );
 
-    let winRateVsOpponent = gamesVsOpponent.length > 0 ? (gamesVsOpponent.filter(g => (g.winner === 'home' && g.homeTeam === teamId) || (g.winner === 'away' && g.awayTeam === teamId)).length / gamesVsOpponent.length) : 0.5;
+    let winRateVsOpponent = gamesVsOpponent.length > 0 ? (gamesVsOpponent.filter(g => (g.winner === 'home' && g.homeTeam === teamId) || (g.winner === 'away' && g.awayTeam === teamId)).length / gamesVsOpponent.length) : 0;
 
-    let recentGames = sortedGames.filter(g => (g.homeTeam === teamId || g.awayTeam === teamId)).sort((a, b) => new Date(b.commence_time) - new Date(a.commence_time)).slice(0, 25)
-    let recentWinRate = recentGames.length > 0 ? (recentGames.filter(g => (g.winner === 'home' && g.homeTeam === teamId) || (g.winner === 'away' && g.awayTeam === teamId)).length / recentGames.length) : 0.5;
+    let recentGames = sortedGames.filter(g => (g.homeTeam === teamId || g.awayTeam === teamId)).sort((a, b) => new Date(b.commence_time) - new Date(a.commence_time)).filter((game) => {
+        let sportStartMonth = sport.startMonth
+        let seasonStartDate = new Date(gameDate.getFullYear(), sportStartMonth - 1, 1);
+        let gameCommenceDate = new Date(game.commence_time);
+        return gameCommenceDate >= seasonStartDate; // Only include games from the current season
+    }).slice(0, 10)
+    let recentWinRate = recentGames.length > 0 ? (recentGames.filter(g => (g.winner === 'home' && g.homeTeam === teamId) || (g.winner === 'away' && g.awayTeam === teamId)).length / recentGames.length) : 0;
     let recentAvgPointsFor = recentGames.length > 0 ? (recentGames.reduce((acc, g) => {
         if (g.homeTeam === teamId) return acc + g.homeScore;
         else return acc + g.awayScore;
-    }, 0) / recentGames.length) : 20;
+    }, 0) / recentGames.length) : 0;
     let recentAvgPointsAgainst = recentGames.length > 0 ? (recentGames.reduce((acc, g) => {
         if (g.homeTeam === teamId) return acc + g.awayScore;
         else return acc + g.homeScore;
-    }, 0) / recentGames.length) : 20;
+    }, 0) / recentGames.length) : 0;
 
     let statDiffs
     let statRatios
@@ -181,7 +186,7 @@ const extractSportFeatures = (homeStats, awayStats, league, gameData, sortedGame
 
 
 
-    switch (league) {
+    switch (sport.name) {
         case 'americanfootball_nfl':
             let playoffMonthStartNFL = 1; // January
             let playoffGameNFL = (gameDate.getMonth() + 1) >= playoffMonthStartNFL
@@ -541,7 +546,7 @@ const mlModelTraining = async (gameData, sport, search, gameCount, allPastGames,
             continue;
         }
 
-        const homeStatFeatures = await extractSportFeatures(normalizedHome, normalizedAway, sport.name, game, sortedGameData, true);
+        const homeStatFeatures = await extractSportFeatures(normalizedHome, normalizedAway, sport, game, sortedGameData, true);
         const homeScoreLabel = ((game.homeScore - scoreMean) / scoreStdDev);
         // console.dir(homeStatFeatures, { maxArrayLength: null });
 
@@ -549,7 +554,7 @@ const mlModelTraining = async (gameData, sport, search, gameCount, allPastGames,
         ysScore.push(homeScoreLabel);
 
 
-        const awayStatFeatures = await extractSportFeatures(normalizedAway, normalizedHome, sport.name, game, sortedGameData, false);
+        const awayStatFeatures = await extractSportFeatures(normalizedAway, normalizedHome, sport, game, sortedGameData, false);
         const awayScoreLabel = ((game.awayScore - scoreMean) / scoreStdDev);
 
         xs.push(awayStatFeatures);
@@ -726,8 +731,8 @@ const predictions = async (sportOdds, ff, model, sport, past, search, teamHistor
             return;
         }
 
-        const homeStatFeatures = await extractSportFeatures(normalizedHome, normalizedAway, sport.name, game, sortedPastGames, true);
-        const awayStatFeatures = await extractSportFeatures(normalizedAway, normalizedHome, sport.name, game, sortedPastGames, false);
+        const homeStatFeatures = await extractSportFeatures(normalizedHome, normalizedAway, sport, game, sortedPastGames, true);
+        const awayStatFeatures = await extractSportFeatures(normalizedAway, normalizedHome, sport, game, sortedPastGames, false);
 
         const homeInputTensor = tf.tensor2d([homeStatFeatures]);
         const awayInputTensor = tf.tensor2d([awayStatFeatures]);
@@ -989,14 +994,14 @@ const trainSportModelKFold = async (sport, gameData, search) => {
                 console.log(game.id);
                 return;
             }
-            const homeStatFeatures = await extractSportFeatures(normalizedHome, normalizedAway, sport.name, game, sortedGamesForFeatures, true)
+            const homeStatFeatures = await extractSportFeatures(normalizedHome, normalizedAway, sport, game, sortedGamesForFeatures, true)
             const homeScoreLabel = ((game.homeScore - testScoreMean) / testScoreStdDev);
 
             testXs.push(homeStatFeatures);
             testYsScore.push(homeScoreLabel);
 
 
-            const awayStatFeatures = await extractSportFeatures(normalizedAway, normalizedHome, sport.name, game, sortedGamesForFeatures, false)
+            const awayStatFeatures = await extractSportFeatures(normalizedAway, normalizedHome, sport, game, sortedGamesForFeatures, false)
             const awayScoreLabel = ((game.awayScore - testScoreMean) / testScoreStdDev);
 
             testXs.push(awayStatFeatures);
