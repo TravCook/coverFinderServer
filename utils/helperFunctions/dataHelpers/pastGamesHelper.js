@@ -26,7 +26,7 @@ const pastGameStatsPoC = async () => {
             switch (sport.name) {
                 case 'americanfootball_nfl':
                 case 'americanfootball_ncaaf':
-                    teams = await UsaFootballTeam.find({ league: sport.league }).lean();
+                    teams = await db.Teams.find({ league: sport.league });
                     statMap = {
                         //-------------------------------AMERICAN FOOTBALL STATS---------------------------------------------
                         'completionPct': [{ modelField: 'USFBcompletionPercent', category: 'passing' }],
@@ -40,8 +40,8 @@ const pastGameStatsPoC = async () => {
                         'passingFirstDowns': [{ modelField: 'USFBpassingFirstDowns', category: 'passing' }],
                         'passingTouchdowns': [{ modelField: 'USFBpassingTouchdowns', category: 'passing' }],
                         'passingYards': [
-                            { USFBpassingYards: 'USFBPassingYards', category: 'passing' },
-                            { USFBpassingYardsPerGame: 'USFBPassingYardsPerGame', isPerGame: true, category: 'passing' }
+                            { modelField: 'USFBPassingYards', category: 'passing' },
+                            { modelField: 'USFBPassingYardsPerGame', isPerGame: true, category: 'passing' }
                         ],
                         'passingAttempts': [
                             { modelField: 'USFBpassingAttempts', category: 'passing' },
@@ -162,7 +162,7 @@ const pastGameStatsPoC = async () => {
                 case 'basketball_nba':
                 case 'basketball_ncaab':
                 case 'basketball_wncaab':
-                    teams = await BasketballTeam.find({ league: sport.league }).lean();
+                    teams = await BasketballTeam.find({ league: sport.league });
                     statMap = {        //------------------------------------BASKETBALL STATS--------------------------------------------------------------
                         'points': [{ modelField: 'BSKBtotalPoints', category: 'offensive' }],
                         'avgPoints': [{ modelField: 'BSKBpointsPerGame', category: 'offensive', isPerGame: true }],
@@ -184,7 +184,7 @@ const pastGameStatsPoC = async () => {
                         'turnovers': [{ modelField: 'BSKBoffensiveTurnovers', category: 'offensive' }],
                         'avgTurnovers': [{ modelField: 'BSKBturnoversPerGame', category: 'offensive' }],
                         'turnoverRatio': [{ modelField: 'BSKBturnoverRatio', category: 'offensive' }],
-                        'turnthreePointPctverRatio': [{ modelField: 'BSKBthreePointPct', category: 'offensive' }],
+                        'threePointPct': [{ modelField: 'BSKBthreePointPct', category: 'offensive' }],
                         'threePointFieldGoalsAttempted': [{ modelField: 'BSKBthreePointsAttempted', category: 'offensive' }],
                         'threePointFieldGoalsMade': [{ modelField: 'BSKBthreePointsMade', category: 'offensive' }],
                         'trueShootingPct': [{ modelField: 'BSKBtrueShootingPct', category: 'offensive' }],
@@ -208,7 +208,7 @@ const pastGameStatsPoC = async () => {
                     }
                     break;
                 case 'icehockey_nhl':
-                    teams = await HockeyTeam.find({ league: sport.league }).lean();
+                    teams = await HockeyTeam.find({ league: sport.league });
                     statMap = {
                         //------------------------------------HOCKEY STATS--------------------------------------------------------------
                         'goals': [{ modelField: 'HKYgoals', category: 'offensive' }],
@@ -341,7 +341,7 @@ const pastGameStatsPoC = async () => {
                     }
                     break;
                 case 'baseball_mlb':
-                    teams = await BaseballTeam.find({ league: sport.league }).lean();
+                    teams = await BaseballTeam.find({ league: sport.league });
                     statMap = {
                         //------------------------------------BASEBALL STATS--------------------------------------------------------------
                         'strikeouts': [

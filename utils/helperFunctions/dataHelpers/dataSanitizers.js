@@ -157,7 +157,7 @@ const getDynamicStatYear = (startMonth, endMonth, currentDate) => {
             return currentYear
         } else if (currentMonth < startMonth) { //out of season, before season starts
             return currentYear
-        } else if (currenMonth > endMonth) { // out of season after season happens
+        } else if (currentMonth > endMonth) { // out of season after season happens
             return currentYear + 1
         }
 
