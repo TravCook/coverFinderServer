@@ -42,7 +42,7 @@ const cronJobs = [
     timezone
   },
   {
-    cronTime: '0 0 3,8,13,18 * * *', // Runs at 8:00 AM, 2:00 PM, and 9:00 PM -- retrieves odds from the-odds-api -- 53 sec TODO: 1,3,6,9,12,14,16,18,22
+    cronTime: '0 0 8 * * *', // Runs at 8:00 AM, 2:00 PM, and 9:00 PM -- retrieves odds from the-odds-api -- 53 sec TODO: 1,3,6,9,12,14,16,18,22
     onTick: dataSeed.oddsSeed,
     timezone,
   },
