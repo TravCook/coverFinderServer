@@ -720,6 +720,7 @@ const pastBaseballPitcherStats = async () => {
     // Not used in main workflow; left for reference.
 };
 
+oddsSeed()
 
 // Export main seed functions
 module.exports = {
