@@ -1,0 +1,41 @@
+# --- Base on .gitignore ---
+.git
+.gitignore
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+*.log
+.env
+.env.*
+.DS_Store
+
+# --- Add Docker-specific ignores ---
+# Local development files
+.vscode/
+.idea/
+tests/
+notebooks/
+*.ipynb
+tmp/
+docs/
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env/
+ENV/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Docker files that shouldn't be copied
+docker-compose.yml
+Dockerfile
+.dockerignore
+/catboost_info

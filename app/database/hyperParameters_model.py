@@ -1,0 +1,51 @@
+from sqlalchemy import String, Integer, DateTime, Boolean, Float, JSON, Index, ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from .base import Base
+
+
+class HyperParameters(Base):
+    __tablename__ = "HyperParams"
+
+    # id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # sport: Mapped[int] = mapped_column(ForeignKey("Sports.id"), unique=True)
+    # regression_estimators: Mapped[int] = mapped_column(Integer, nullable=True, default=2500)
+    # regression_learning_rate: Mapped[float] = mapped_column(Float, nullable=True, default=.01)
+    # regression_max_depth: Mapped[int] = mapped_column(Integer, nullable=True, default=8)
+    # regression_subsample: Mapped[float] = mapped_column(Float, nullable=True, default=1)
+    # regression_colsample_bytree: Mapped[float] = mapped_column(Float, nullable=True, default=1)
+    # regression_reg_alpha: Mapped[float] = mapped_column(Float, nullable=True, default=.00)
+    # regression_reg_lambda: Mapped[float] = mapped_column(Float, nullable=True, default=.00)
+    # regression_min_child_weight: Mapped[float] = mapped_column(Integer, nullable=True, default=50)
+    # classification_estimators: Mapped[int] = mapped_column(Integer, nullable=True, default=2500)
+    # classification_learning_rate: Mapped[float] = mapped_column(Float, nullable=True, default=.01)
+    # classification_max_depth: Mapped[int] = mapped_column(Integer, nullable=True, default=8)
+    # classification_subsample: Mapped[float] = mapped_column(Float, nullable=True, default=1)
+    # classification_colsample_bytree: Mapped[float] = mapped_column(Float, nullable=True, default=1)
+    # classification_reg_alpha: Mapped[float] = mapped_column(Float, nullable=True, default=.00)
+    # classification_reg_lambda: Mapped[float] = mapped_column(Float, nullable=True, default=.00)
+    # classification_min_child_weight: Mapped[float] = mapped_column(Integer, nullable=True, default=50)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    sport: Mapped[int] = mapped_column(ForeignKey("Sports.id"), unique=True)
+    xgb_estimators: Mapped[int] = mapped_column(Integer, nullable=True, default=2500)
+    xgb_learning_rate: Mapped[float] = mapped_column(Float, nullable=True, default=.01)
+    xgb_max_depth: Mapped[int] = mapped_column(Integer, nullable=True, default=8)
+    xgb_subsample: Mapped[float] = mapped_column(Float, nullable=True, default=1)
+    xgb_colsample_bytree: Mapped[float] = mapped_column(Float, nullable=True, default=1)
+    xgb_reg_alpha: Mapped[float] = mapped_column(Float, nullable=True, default=.00)
+    xgb_reg_lambda: Mapped[float] = mapped_column(Float, nullable=True, default=.00)
+    xgb_min_child_weight: Mapped[float] = mapped_column(Float, nullable=True, default=.00)
+    lgb_num_leaves: Mapped[float] = mapped_column(Float, nullable=True, default=.00)
+    lgb_learning_rate: Mapped[float] = mapped_column(Float, nullable=True, default=.00)
+    lgb_feature_fraction: Mapped[float] = mapped_column(Float, nullable=True, default=.00)
+    lgb_bagging_fraction: Mapped[float] = mapped_column(Float, nullable=True, default=.00)
+    lgb_bagging_freq: Mapped[float] = mapped_column(Float, nullable=True, default=.00)
+    lgb_min_data_in_leaf: Mapped[float] = mapped_column(Float, nullable=True, default=.00)
+    lgb_lambda_l1: Mapped[float] = mapped_column(Float, nullable=True, default=.00)
+    lgb_lambda_l2: Mapped[float] = mapped_column(Float, nullable=True, default=.00)
+    lgb_n_estimators: Mapped[int] = mapped_column(Integer, nullable=True, default=2500)
+    cb_depth: Mapped[float] = mapped_column(Float, nullable=True, default=.00)
+    cb_learning_rate: Mapped[float] = mapped_column(Float, nullable=True, default=.00)
+    cb_l2_leaf_reg: Mapped[float] = mapped_column(Float, nullable=True, default=.00)
+    cb_bagging_temperature: Mapped[float] = mapped_column(Float, nullable=True, default=.00)
+    cb_iterations: Mapped[int] = mapped_column(Integer, nullable=True, default=2500)

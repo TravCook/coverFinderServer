@@ -1,0 +1,46 @@
+version: "3.9"
+
+services:
+  fastapi:
+    build: .
+    container_name: fastapi_app
+    volumes:
+      - .:/app
+      - ./app/models:/app/models
+    ports:
+      - "3001:3001"
+    depends_on:
+      - redis
+    command: uvicorn app.main:app --host 0.0.0.0 --port 3001
+    environment:
+      - TZ=America/Denver
+
+  celery_worker:
+    build: .
+    container_name: celery_worker
+    volumes:
+      - .:/app
+      - ./app/models:/app/models
+    depends_on:
+      - redis
+    command: celery -A app.celery_app.celery worker --loglevel=info
+    environment:
+      - TZ=America/Denver
+
+  celery_beat:
+    build: .
+    container_name: celery_beat
+    volumes:
+      - .:/app
+      - ./app/models:/app/models
+    depends_on:
+      - redis
+    command: celery -A app.celery_app.celery beat --loglevel=info
+    environment:
+      - TZ=America/Denver
+
+  redis:
+    image: redis:7
+    container_name: redis
+    ports:
+      - "6379:6379"

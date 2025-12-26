@@ -1,6 +1,10 @@
-node_modules
 model_checkpoint
 .env
-hyperParameterTesting
-valueBetTesting
 README.md
+/venv
+__pycache__/
+/app/sync_local_to_prod.py
+/app/prod_backup.dump
+.gitignore
+/app/models
+/catboost_info
