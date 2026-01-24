@@ -3,417 +3,357 @@ from datetime import datetime
 from app.helpers.dataHelpers.get_async_session_factory import get_async_session_factory
 from app.helpers.dataHelpers.db_getters.get_sports_sync import get_sports_sync
 from app.helpers.dataHelpers.db_setters.save_game_async import save_game_async
+from app.helpers.trainingHelpers.value_feature_extraction import extract_features, backtest_value_score_roi
 from app.helpers.dataHelpers.db_getters.get_games_sync import get_games_with_bookmakers_sync
 from app.helpers.dataHelpers.sport_in_season import sport_in_season
-from xgboost import  XGBClassifier
+from app.helpers.dataHelpers.db_setters.save_sport_async import save_sport
+from app.helpers.trainingHelpers.value_feature_extraction import us_odds_payout, us_to_decimal, plot_value_score_decile_returns
+from app.helpers.dataHelpers.db_setters.save_model_checkpoint import save_model_checkpoint
+from xgboost import XGBClassifier
+import matplotlib.pyplot as plt
+from statistics import mean, stdev
 import pandas as pd
-import numpy as np
 import logging
 import asyncio
-from dateutil import parser
-from collections import defaultdict
-from statistics import mean, stdev
 import pytz
+from itertools import product
+import numpy as np
+from collections import defaultdict
+from math import log
+
 
 PACIFIC_TZ = pytz.timezone("America/Los_Angeles")
 logger = logging.getLogger(__name__)
 
-def ev_condition(outcome, game, sportsbook=None, min_ev=0.0, custom_prob=None):
+def desirability_metric(roi, coverage, winrate, alpha=1, beta=1, gamma=1):
     """
-    outcome: object with .price or .odds
-    game: object with .prediction_confidence
-    sportsbook: unused here but kept for compatibility
-    min_ev: minimum expected value threshold
-    custom_prob: optional custom probability instead of game.prediction_confidence
+    Generalized metric for threshold selection.
     """
-
-    # 1. Use custom probability if provided
-    p_model = custom_prob if custom_prob is not None else game.predictionConfidence
-
-    # 2. Get odds
-    odds = getattr(outcome, 'price', None) or getattr(outcome, 'odds', None)
-    if odds is None:
-        return False
-
-    # 3. Convert American odds to decimal odds if in range
-    if (-1000 < odds < 1000):
-        if odds > 0:
-            odds = 1 + odds / 100
-        else:  # odds < 0
-            odds = 1 - 100 / odds
-
-    # 4. Compute EV
-    ev = (p_model * odds) - 1
-
-    return ev > min_ev
-
-
-def is_value_bet(game, game_sport, market="h2h", sportsbook=None):
-    best_outcome = None
-
-    # 1. Pick best outcome
-    for bookmaker in game.bookmakers:
-        market_data = next((m for m in bookmaker.markets if m.key == market), None)
-        if not market_data:
-            continue
-
-        for outcome in market_data.outcomes:
-            predicted_name = (
-                game.homeTeamDetails.espnDisplayName if game.predictedWinner == "home"
-                else game.awayTeamDetails.espnDisplayName
-            )
-            if outcome.name != predicted_name:
-                continue
-
-            if best_outcome is None or outcome.price > best_outcome.price:
-                best_outcome = outcome
-
-    if best_outcome is None:
-        return False
-
-    # 2. Compute edge
-    edge = game.predictionConfidence - best_outcome.impliedProbability
-
-    # 3. Handle sport-level stats
-    if not game_sport:
-        return False
-
-    sport_variance = game_sport.variance
-    sport_reliability = game_sport.reliabilityWeight
-    sport_threshold = game_sport.threshold
-
-    if not game_sport.valueBetSettings:
-        value_score = edge * (sport_reliability / sport_variance)
-    else:
-        segments = game_sport.valueBetSettings
-        avg_segment_variance = sum(s.segmentVariance for s in segments) / len(segments)
-        avg_segment_reliability = sum(s.segmentReliability for s in segments) / len(segments)
-        avg_segment_threshold = sum(s.segmentThreshold for s in segments) / len(segments)
-
-        final_variance = (sport_variance + avg_segment_variance) / 2
-        final_reliability = (sport_reliability + avg_segment_reliability) / 2
-        final_threshold = (sport_threshold + avg_segment_threshold) / 2
-
-        value_score = edge * (final_reliability / final_variance)
-
-    # 4. Apply threshold and expected value condition
-    return value_score >= (final_threshold if game_sport.valueBetSettings else sport_threshold) \
-           and ev_condition(best_outcome, game, sportsbook)
-
-
-
-def to_pacific_datetime(dt: datetime):
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=pytz.UTC)
-    return dt.astimezone(PACIFIC_TZ)
-
-
-def get_pacific_day_key(dt: datetime):
-    # Ensure timezone-aware
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=pytz.UTC)
-
-    # Convert to Pacific Time
-    dt = dt.astimezone(PACIFIC_TZ)
-
-    return dt.strftime("%Y-%m-%d")
-
-
-
-def split_games_by_day(games):
-    days = defaultdict(list)
-
-    for game in games:
-        key = get_pacific_day_key(game.commence_time)
-        days[key].append(game)
-
-    return dict(days)
-
-
-def log_day_sanity(games_by_day, sport_name):
-    logger.info(f"DAY SANITY CHECK — {sport_name}")
-
-    previous_day = None
-
-    sorted_day_keys = sorted(games_by_day.keys())
-
-    for day_key in sorted_day_keys:
-        games = games_by_day[day_key]
-
-        times = sorted(
-            to_pacific_datetime(g.commence_time) for g in games
-        )
-
-        logger.info(
-            f"  {day_key}: {len(games)} games | "
-            f"{times[0].strftime('%Y-%m-%d %H:%M')} → "
-            f"{times[-1].strftime('%Y-%m-%d %H:%M')} PT"
-        )
-
-        if previous_day and day_key < previous_day:
-            logger.error(f"❌ DAY ORDER ERROR: {previous_day} → {day_key}")
-
-        previous_day = day_key
-
-CONFIDENCE_BINS = [
-    (0.0, 0.1),
-    (0.1, 0.2),
-    (0.2, 0.3),
-    (0.3, 0.4),
-    (0.4, 0.5),
-    (0.5, 0.6),
-    (0.6, 0.7),
-    (0.7, 0.8),
-    (0.8, 0.9),
-    (0.9, 1.0),
-]
-BETTING_STRATEGIES = [
-    "flat",
-    "kelly-.1", "kelly-.15", "kelly-.2", "kelly-.25",
-    "kelly-.3", "kelly-.35", "kelly-.4", "kelly-.45",
-    "kelly-.5", "kelly-.55", "kelly-.6", "kelly-.65",
-    "kelly-.7", "kelly-.75", "kelly-.8", "kelly-.85",
-    "kelly-.9", "kelly-1.0",
-]
-
-def us_odds_payout(odds: float, stake: float) -> float:
+    return (roi ** alpha) * (coverage ** beta) * (winrate ** gamma)
+# Example: scale linearly from 0.5x to 1.5x Kelly based on decile
+def compute_stake_multiplier(summary, min_mult=0.75, max_mult=1.5):
     """
-    Calculate payout from US odds.
-
-    Parameters:
-        odds (float): US odds, e.g., +150 or -200
-        stake (float): Amount wagered
-
-    Returns:
-        float: Total payout (profit + original stake)
+    Maps decile to a stake multiplier.
+    Higher decile → bigger stake.
     """
-    if odds > 0:
-        # Positive odds: profit = stake * (odds / 100)
-        profit = stake * (odds / 100)
-    else:
-        # Negative odds: profit = stake * (100 / abs(odds))
-        profit = stake * (100 / abs(odds))
-
-    return stake + profit
-def us_to_decimal(odds: float) -> float:
-    """
-    Convert US odds to decimal odds.
-
-    Args:
-        odds (float): US odds. Positive for underdog, negative for favorite.
-
-    Returns:
-        float: Decimal odds
-    """
-    if odds > 0:
-        return 1 + (odds / 100)
-    else:
-        return 1 + (100 / abs(odds))
-
+    # Normalize decile to 0-1
+    normalized = summary["decile"].values / summary["decile"].max()
+    multipliers = min_mult + (max_mult - min_mult) * normalized
+    # Return dict: decile -> multiplier
+    return dict(zip(summary["decile"], multipliers))
 
 
 @celery.task
 def value_bet_backtest():
     asyncio.run(value_bet_backtest_async())
 
+async def value_bet_backtest_async(sport, AsyncSessionLocal, sport_games):
+        
+    logger.info(f"=============================GAMES TO SCORE FOR {sport.name}: {len(sport_games)}=============================================")
+    
+    clf = XGBClassifier(
+        n_estimators=200,
+        max_depth=4,
+        learning_rate=0.05,
+        subsample=0.8,
+        colsample_bytree=0.8,
+        scale_pos_weight=1,
+        eval_metric="logloss",
+        random_state=122021
+    )
 
-async def value_bet_backtest_async():
+
+
+    # Extract features
+    rows = extract_features(sport_games)
+
+    # Keep the full game object in the dataframe
+    df = pd.DataFrame(rows)
+
+    # Split into train and predict sets
+    train_df = df[df.complete & df.label.notna()]
+    predict_df = df[~df.complete]
+
+    # Prepare training data
+    X_train = pd.DataFrame(list(train_df["features"]))
+    y_train = train_df["label"].astype(int)
+
+    clf.fit(X_train, y_train)
+
+    # Only completed games with a value_score (i.e., prediction was made)
+    complete_games = [
+        game for game in sport_games
+        if game.complete and getattr(game, 'value_score', None) is not None
+    ]
+
+
+    best_thresh, roi_curve = backtest_value_score_roi(complete_games, sport)
+    # logger.info(f"{sport.name} OPTIMAL THRESHOLD: {best_thresh['threshold']}")
+    summary, bin_edges = plot_value_score_decile_returns(sport_games, sport)
+    decile_multipliers = compute_stake_multiplier(summary)
+
+    decile_info = []
+    for i in range(len(bin_edges) - 1):
+        decile_info.append({
+            "decile": i,
+            "min_value_score": bin_edges[i],
+            "max_value_score": bin_edges[i+1],
+            "multiplier": decile_multipliers[i]
+        })
+
+    payload = {
+        'sport': sport.id,
+        'value_threshold': best_thresh['threshold'],
+        'value_map': decile_info
+    }
+    
+    await save_sport(AsyncSessionLocal, payload)
+
+    # Make predictions for upcoming games
+    if not predict_df.empty:
+        X_pred = pd.DataFrame(list(predict_df["features"]))
+        predict_df = predict_df.copy()
+        predict_df["value_score"] = clf.predict_proba(X_pred)[:, 1]
+
+    # Save value scores back to the DB
+    for _, row in predict_df.iterrows():
+        game = row.game_obj  # Original game object preserved
+        payload = {"value_score": float(row.value_score)}
+        predictedWinner = game.homeTeamDetails.espnDisplayName if game.predictedWinner == 'home' else game.awayTeamDetails.espnDisplayName
+        predictedLoser = game.homeTeamDetails.espnDisplayName if game.predictedWinner == 'away' else game.awayTeamDetails.espnDisplayName
+        if(float(row.value_score) > best_thresh['threshold']):
+            logger.info(f"Value Score for game: {predictedWinner} to beat {predictedLoser} on {game.commence_time.astimezone(PACIFIC_TZ).date()} : {row.value_score:.2f}")
+        
+        await save_game_async(game, payload, AsyncSessionLocal, sport, False)
+    save_model_checkpoint(
+        sport.name,
+        regression_models=[],
+        calibration_model=None,
+        margin_scale=None,
+        value_classifier=clf
+    )
+
+
+
+async def value_bet_model_analysis():
     AsyncSessionLocal, engine = get_async_session_factory()
     all_sports = await get_sports_sync(AsyncSessionLocal)
     in_season_sports = [sport for sport in all_sports if sport_in_season(sport)]
 
+
     for sport in in_season_sports:
         sport_games = await get_games_with_bookmakers_sync(sport, AsyncSessionLocal)
+        logger.info(f"=============================GAMES TO SCORE FOR {sport.name}: {len(sport_games)}=============================================")
         clf = XGBClassifier(
-            n_estimators=200,         # start moderately high; early stopping can handle overfitting
-            max_depth=4,              # shallow trees to avoid overfitting
-            learning_rate=0.05,       # small steps for stable training
-            subsample=0.8,            # row sampling for regularization
-            colsample_bytree=0.8,     # column sampling for regularization
-            scale_pos_weight=1,       # adjust if your positive/negative labels are imbalanced
+            n_estimators=500,
+            max_depth=10,
+            learning_rate=0.05,
+            subsample=0.9,
+            colsample_bytree=0.9,
             eval_metric="logloss",
             random_state=122021
         )
+
         cumulative_features = []
         cumulative_labels = []
-        game_index = 0
-        logger.info(f"=============================GAMES TO SCORE FOR {sport.name}: {len(sport_games)}=============================================")
-        games_to_process = sorted(
-            sport_games,
-            key=lambda g: g.commence_time
-        )
         tracked_games_for_corr = []
-        from collections import defaultdict
 
-        # Store recent values by team
-        recent_spreads = defaultdict(list)      # e.g., recent point spreads
-        recent_confidences = defaultdict(list)  # recent prediction confidences
-        recent_errors = defaultdict(list)       # whether past predictions were correct (0/1)
+        recent_spreads = defaultdict(list)
+        recent_confidences = defaultdict(list)
+        recent_errors = defaultdict(list)
+        recent_ev = defaultdict(list)
+
+        games_to_process = sorted(sport_games, key=lambda g: g.commence_time)
+        game_index = 0
+
+        def safe_mean(x): return float(mean(x)) if x else 0.0
+        def safe_std(x): return float(stdev(x)) if len(x) > 1 else 0.0
 
         for game in games_to_process:
             best_h2h_outcome = None
             best_spread_outcome = None
+
             for bookmaker in game.bookmakers:
-                h2h_market_data = next((m for m in bookmaker.markets if m.key == 'h2h'), None)
-                if not h2h_market_data:
+                h2h = next((m for m in bookmaker.markets if m.key == "h2h"), None)
+                spreads = next((m for m in bookmaker.markets if m.key == "spreads"), None)
+                if not h2h or not spreads:
                     continue
 
-                spread_market_data = next((m for m in bookmaker.markets if m.key == 'spreads'), None)
-                if not spread_market_data:
-                    continue
-                for outcome in spread_market_data.outcomes:
-                    predicted_name = (
-                        game.homeTeamDetails.espnDisplayName if game.predictedWinner == "home"
-                        else game.awayTeamDetails.espnDisplayName
-                    )
-                    if outcome.name != predicted_name:
-                        continue
+                predicted_name = (
+                    game.homeTeamDetails.espnDisplayName
+                    if game.predictedWinner == "home"
+                    else game.awayTeamDetails.espnDisplayName
+                )
 
-                    if best_spread_outcome is None or outcome.price > best_spread_outcome.price:
-                        best_spread_outcome = outcome
+                for o in h2h.outcomes:
+                    if o.name == predicted_name:
+                        if best_h2h_outcome is None or o.price > best_h2h_outcome.price:
+                            best_h2h_outcome = o
 
-                for outcome in h2h_market_data.outcomes:
-                    predicted_name = (
-                        game.homeTeamDetails.espnDisplayName if game.predictedWinner == "home"
-                        else game.awayTeamDetails.espnDisplayName
-                    )
-                    if outcome.name != predicted_name:
-                        continue
+                for o in spreads.outcomes:
+                    if o.name == predicted_name:
+                        if best_spread_outcome is None or o.price > best_spread_outcome.price:
+                            best_spread_outcome = o
 
-                    if best_h2h_outcome is None or outcome.price > best_h2h_outcome.price:
-                        best_h2h_outcome = outcome
-
-            if best_h2h_outcome is None or best_spread_outcome is None:
+            if not best_h2h_outcome or not best_spread_outcome:
                 continue
-
-
-            # Inside your loop over games_to_process
 
             home = game.homeTeamDetails.espnDisplayName
             away = game.awayTeamDetails.espnDisplayName
             day_games = [g for g in games_to_process if g.commence_time.date() == game.commence_time.date()]
 
-            # Recent history for rolling features
-            home_recent_spreads = recent_spreads[home][-10:]  # last 10 games
-            away_recent_spreads = recent_spreads[away][-10:]
-
-            home_recent_confidences = recent_confidences[home][-10:]
-            away_recent_confidences = recent_confidences[away][-10:]
-
-            home_recent_errors = recent_errors[home][-10:]
-            away_recent_errors = recent_errors[away][-10:]
-
+            # --- Core projections ---
             projected_spread = game.predictedHomeScore - game.predictedAwayScore
             abs_projected_spread = abs(projected_spread)
             model_confidence = game.predictionConfidence
-            distance_mean = model_confidence - 0.5
-            spread_x_confidence = projected_spread * model_confidence
-            picked_home = 1 if game.predictedWinner == 'home' else 0
-            # distance_to_vegas_line
-            ev = (model_confidence * us_odds_payout(best_h2h_outcome.price, 1)) - ((1-model_confidence) * 1)
-            implied_probability = best_h2h_outcome.impliedProbability
+            picked_home = int(game.predictedWinner == "home")
 
-            # On-the-fly calculations
-            def safe_mean(lst):
-                return mean(lst) if lst else 0.0
+            decimal_odds = us_to_decimal(best_h2h_outcome.price)
+            implied_prob = best_h2h_outcome.impliedProbability
+            edge = model_confidence - implied_prob
 
-            def safe_stdev(lst):
-                return stdev(lst) if len(lst) > 1 else 0.0
+            ev = (model_confidence * (decimal_odds - 1)) - (1 - model_confidence)
 
-            # Disagreement with recent predictions
-            home_disagreement = abs(projected_spread - safe_mean(home_recent_spreads))
-            away_disagreement = abs(-projected_spread - safe_mean(away_recent_spreads))
+            # Kelly fraction (raw, unclipped)
+            b = decimal_odds - 1
+            q = 1 - model_confidence
+            raw_kelly = ((b * model_confidence) - q) / b if b > 0 else 0
 
-            # Accuracy history
-            home_recent_accuracy = safe_mean(home_recent_errors)
-            away_recent_accuracy = safe_mean(away_recent_errors)
+            # --- Rolling history ---
+            home_spreads = recent_spreads[home][-10:]
+            away_spreads = recent_spreads[away][-10:]
 
-            # Day-level ranks
-            abs_spreads_today = [abs(g.predictedHomeScore - g.predictedAwayScore) for g in day_games]
-            spread_rank_today = sum(1 for s in abs_spreads_today if abs_projected_spread >= s) / len(abs_spreads_today)
+            home_conf = recent_confidences[home][-10:]
+            away_conf = recent_confidences[away][-10:]
 
-            # Interaction terms
-            spread_x_disagreement = projected_spread * (home_disagreement + away_disagreement)
-            confidence_x_disagreement = model_confidence * (home_disagreement + away_disagreement)
+            home_err = recent_errors[home][-10:]
+            away_err = recent_errors[away][-10:]
 
+            home_ev = recent_ev[home][-10:]
+            away_ev = recent_ev[away][-10:]
+
+            # --- Disagreement metrics ---
+            home_disagreement = abs(projected_spread - safe_mean(home_spreads))
+            away_disagreement = abs(-projected_spread - safe_mean(away_spreads))
+            total_disagreement = home_disagreement + away_disagreement
+
+            # --- Cross-sectional (day-level) ---
+            day_abs_spreads = [abs(g.predictedHomeScore - g.predictedAwayScore) for g in day_games]
+            spread_rank_today = sum(abs_projected_spread >= s for s in day_abs_spreads) / len(day_abs_spreads)
+
+            day_confidences = [g.predictionConfidence for g in day_games]
+            confidence_rank_today = sum(model_confidence >= c for c in day_confidences) / len(day_confidences)
+
+            # --- Normalizations ---
+            spread_z = (
+                (abs_projected_spread - safe_mean(day_abs_spreads)) /
+                (safe_std(day_abs_spreads) + 1e-6)
+            )
+
+            confidence_z = (
+                (model_confidence - safe_mean(day_confidences)) /
+                (safe_std(day_confidences) + 1e-6)
+            )
+
+            # --- Interaction terms ---
+            spread_x_conf = projected_spread * model_confidence
+            conf_x_edge = model_confidence * edge
+            kelly_x_edge = raw_kelly * edge
+            conf_x_disagreement = model_confidence * total_disagreement
+            ev_x_conf = ev * model_confidence
+
+            # --- Risk proxies ---
+            confidence_volatility = safe_std(home_conf + away_conf)
+            recent_accuracy_mean = safe_mean(home_err + away_err)
+            recent_accuracy_std = safe_std(home_err + away_err)
+
+            # --- Final feature vector ---
             features = {
-                "projected_spread": float(projected_spread),
-                "abs_projected_spread": float(abs_projected_spread),
-                "model_confidence": float(model_confidence),
-                "distance_mean": float(distance_mean),
-                "spread_x_confidence": float(spread_x_confidence),
-                "picked_home": int(picked_home),
-                "ev": float(ev),
-                # "implied_probability": float(implied_probability),
+                # Core
+                "model_confidence": model_confidence,
+                "implied_probability": implied_prob,
+                "edge": edge,
+                "ev": ev,
+                "raw_kelly": raw_kelly,
 
-                "home_recent_confidences_mean": float(safe_mean(home_recent_confidences)),
-                "away_recent_confidences_mean": float(safe_mean(away_recent_confidences)),
-                "home_recent_confidences_stdev": float(safe_stdev(home_recent_confidences)),
-                "away_recent_confidences_stdev": float(safe_stdev(away_recent_confidences)),
+                # Spread
+                "projected_spread": projected_spread,
+                "abs_projected_spread": abs_projected_spread,
+                "spread_z": spread_z,
+                "spread_rank_today": spread_rank_today,
 
-                # Rolling / recent features
-                "home_recent_mean_spread": float(safe_mean(home_recent_spreads)),
-                "away_recent_mean_spread": float(safe_mean(away_recent_spreads)),
-                "home_recent_spread_std": float(safe_stdev(home_recent_spreads)),
-                "away_recent_spread_std": float(safe_stdev(away_recent_spreads)),
+                # Confidence
+                "confidence_z": confidence_z,
+                "confidence_rank_today": confidence_rank_today,
+                "confidence_volatility": confidence_volatility,
 
-                "home_recent_accuracy": float(home_recent_accuracy),
-                "away_recent_accuracy": float(away_recent_accuracy),
+                # History
+                "home_recent_spread_mean": safe_mean(home_spreads),
+                "away_recent_spread_mean": safe_mean(away_spreads),
+                "home_recent_conf_mean": safe_mean(home_conf),
+                "away_recent_conf_mean": safe_mean(away_conf),
+                "recent_accuracy_mean": recent_accuracy_mean,
+                "recent_accuracy_std": recent_accuracy_std,
+                "home_recent_ev_mean": safe_mean(home_ev),
+                "away_recent_ev_mean": safe_mean(away_ev),
 
-                # Disagreement features
-                "home_disagreement": float(home_disagreement),
-                "away_disagreement": float(away_disagreement),
-                "abs_disagreement": float(home_disagreement + away_disagreement),
+                # Disagreement
+                "home_disagreement": home_disagreement,
+                "away_disagreement": away_disagreement,
+                "total_disagreement": total_disagreement,
 
-                # Day-level features
-                "spread_rank_today": float(spread_rank_today),
+                # Interactions
+                "spread_x_conf": spread_x_conf,
+                "conf_x_edge": conf_x_edge,
+                "kelly_x_edge": kelly_x_edge,
+                "conf_x_disagreement": conf_x_disagreement,
+                "ev_x_conf": ev_x_conf,
 
-                # Interaction features
-                "spread_x_disagreement": float(spread_x_disagreement),
-                "confidence_x_disagreement": float(confidence_x_disagreement),
+                # Flags
+                "picked_home": picked_home,
             }
+
             if not game.complete:
-                value_score = clf.predict_proba(pd.DataFrame([features]))[0,1]
-                # logger.info(f"Value Score for game: {game.homeTeamDetails.espnDisplayName} vs {game.awayTeamDetails.espnDisplayName} on {game.commence_time} : {value_score} | Prediction: {game.predictionCorrect}")
-                payload={
-                    "value_score": value_score
-                }
-                await save_game_async(game, payload, AsyncSessionLocal, sport, False)
                 continue
 
-            # logger.info(features)
             label = int(game.predictionCorrect)
 
+            if len(set(cumulative_labels)) > 1:
+                X = pd.DataFrame(cumulative_features).astype(float)
+                y = np.array(cumulative_labels)
+                clf.fit(X, y)
 
-            X_train = pd.DataFrame(cumulative_features).astype(float)
-            y_train = np.array(cumulative_labels)
+                value_score = clf.predict_proba(pd.DataFrame([features]))[0, 1]
 
-            if game_index > 10:
-                clf.fit(X_train, y_train)
-                # value_score = clf.predict_proba(pd.DataFrame([features]))[:,1]  # gives probability of correct prediction
-                value_score = clf.predict_proba(pd.DataFrame([features]))[0,1]
-                tracked_games_for_corr.append({"value_score":value_score,"prediction": int(game.predictionCorrect),"stake": 1,"odds": us_to_decimal(best_h2h_outcome.price)})
-                # payload={
-                #     "value_score": value_score
-                # }
-                # await save_game_async(game, payload, AsyncSessionLocal, sport, False)
+                tracked_games_for_corr.append({
+                    "value_score": value_score,
+                    "prediction": label,
+                    "stake": 1,
+                    "odds": decimal_odds
+                })
+                payload={ "value_score": value_score }
+                await save_game_async(game, payload, AsyncSessionLocal, sport, False)
 
-
-            
             cumulative_features.append(features)
             cumulative_labels.append(label)
-            # Update history for next games
-            recent_spreads[home].append(game.predictedHomeScore - game.predictedAwayScore)
-            recent_spreads[away].append(game.predictedAwayScore - game.predictedHomeScore)
 
-            recent_confidences[home].append(game.predictionConfidence)
-            recent_confidences[away].append(1 - game.predictionConfidence if game.predictedWinner == 'home' else game.predictionConfidence)
+            # --- Update rolling history ---
+            recent_spreads[home].append(projected_spread)
+            recent_spreads[away].append(-projected_spread)
 
-            recent_errors[home].append(int(game.predictionCorrect))
-            recent_errors[away].append(int(game.predictionCorrect))
+            recent_confidences[home].append(model_confidence)
+            recent_confidences[away].append(1 - model_confidence)
 
+            recent_errors[home].append(label)
+            recent_errors[away].append(label)
+
+            if picked_home:
+                recent_ev[home].append(ev)
+            else:
+                recent_ev[away].append(ev)
 
             game_index += 1
+
 
         df = pd.DataFrame(tracked_games_for_corr)
 
@@ -421,19 +361,11 @@ async def value_bet_backtest_async():
         corr_df = df.drop(columns=['stake']).corr()
         logger.info(corr_df)
 
-
-        # Assume your df has these columns:
-        # 'score_bin' -> binned value score
-        # 'prediction' -> 1 if correct, 0 if incorrect
-        # 'stake' -> how much was bet
-        # 'odds' -> decimal odds (or you can convert from US odds)
-
         df['score_bin'] = pd.cut(df['value_score'], bins=[0, 0.33, 0.66, 1.0], labels=['low','medium','high'])
 
         # # Calculate profit for each game
         
         df['profit'] = df.apply(lambda row: row['stake'] * (row['odds'] -1) if row['prediction'] else -row['stake'], axis=1)
-
 
         summary = df.groupby('score_bin', observed=True).agg(
             win_rate=('prediction', 'mean'),
@@ -444,5 +376,4 @@ async def value_bet_backtest_async():
 
         logger.info(summary)
 
-        
-                
+

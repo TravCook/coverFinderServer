@@ -1,6 +1,7 @@
 import asyncio
 import pandas as pd
 import logging
+import gc
 from app.celery_app.celery import celery
 from xgboost import XGBRegressor, XGBClassifier
 from catboost import CatBoostRegressor
@@ -16,7 +17,7 @@ import numpy as np
 from app.helpers.betting_helpers.value_segment_helper import value_segment_search, compute_segment_threshold, get_best_odds_for_game
 from app.helpers.dataHelpers.sport_in_season import sport_in_season
 from app.helpers.dataHelpers.db_getters.get_sports_sync import get_sports_sync
-from app.helpers.dataHelpers.db_getters.get_games_sync import get_games_sync
+from app.helpers.dataHelpers.db_getters.get_games_sync import get_games_with_bookmakers_sync
 from app.helpers.trainingHelpers.feature_extraction import feature_extraction, feature_extraction_single
 from app.helpers.dataHelpers.is_game_today import is_game_today
 from app.helpers.config_helpers.stat_config import stat_config_map
@@ -27,6 +28,7 @@ from app.helpers.dataHelpers.get_async_session_factory import get_async_session_
 from app.helpers.dataHelpers.db_setters.save_game_async import save_game_async
 from app.helpers.dataHelpers.db_setters.save_sport_async import save_sport
 from app.helpers.trainingHelpers.rolling_window_split import RollingTimeSeriesSplit
+from app.tasks.value_bet_backtest_task import value_bet_backtest_async
 logger = logging.getLogger(__name__)
 scaler = StandardScaler()
 
@@ -134,7 +136,7 @@ async def train_k_fold_async():
         # ---------------------------------------------------------------
         # Load & sort game data
         # ---------------------------------------------------------------
-        sport_games = await get_games_sync(sport, AsyncSessionLocal)
+        sport_games = await get_games_with_bookmakers_sync(sport, AsyncSessionLocal)
         upcoming_games = list(filter(lambda g: not g.complete, sport_games))
         past_games = sorted(
             filter(lambda g: g.complete, sport_games),
@@ -464,6 +466,8 @@ async def train_k_fold_async():
         await save_sport(AsyncSessionLocal, payload)
 
         await value_segment_search(sport, past_games)
+
+        await value_bet_backtest_async(sport, AsyncSessionLocal, sport_games)
         # ==================================================================
         # SAVE CHECKPOINT
         # ==================================================================
@@ -476,6 +480,10 @@ async def train_k_fold_async():
         )
 
         logger.info(f"===== FINISHED TRAINING FOR {sport.name} =====")
+
+
+
+
 
             
         logger.info(f"===== STARTING PREDICTIONS FOR {sport.name} =====")
@@ -652,12 +660,14 @@ async def train_k_fold_async():
         await save_ml_weights(sport, payload, AsyncSessionLocal)
         await save_ml_weights(sport, payload_team, AsyncSessionLocal)
 
-        # logger.info("==== ENSEMBLE FEATURE IMPORTANCE (normalized) ====")
-        # for f in combined_importance_sorted:  # top 20 features
-        #     logger.info(f"{f['feature']}: {f['importance']*100:.2f}%")
-
-        # logger.info("==== ENSEMBLE TEAM FEATURE IMPORTANCE (normalized) ====")
-        # for f in combined_team_importance_sorted:  # top 20 team features
-        #     logger.info(f"{f['feature']}: {f['importance']*100:.4f}%")
+        del sport_games, upcoming_games, past_games
+        del train_features, train_scores, train_labels
+        del test_features, test_scores, test_labels
+        del train_df, test_df
+        del train_data_full, valid_data_full  # LightGBM Datasets
+        del final_xgb, final_lgb, final_cb
+        del oof_margins, oof_labels, oof_mae_scores
+        del iso
+        gc.collect()
 
         await engine.dispose()

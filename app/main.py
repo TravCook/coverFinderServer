@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.encoders import jsonable_encoder
 from datetime import datetime, timedelta
-from sqlalchemy import select, and_
+from sqlalchemy.sql import Select, Delete, Update, Insert, and_
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.exc import InterfaceError
 from sqlalchemy.orm import sessionmaker, selectinload
@@ -15,10 +15,14 @@ from app.database.sport_model import Sports
 from app.database.bookmaker_model import Bookmakers
 from app.database.market_model import Markets
 from app.database.team_model import Teams
+from app.database.stat_model import Stats
 from app.database.mlModelWeights import MlModelWeights
-from app.schemas.baseResponeSchema import APIResponse
+from app.schemas.baseResponeSchema import APIResponse, DeleteResponse
+from app.schemas.oddsDeleteRequestSchema import OddsDeleteRequest
 from app.helpers.dataHelpers.sport_in_season import sport_in_season
 from app.helpers.dataHelpers.get_async_session_factory import get_async_session_factory
+import logging
+logger = logging.getLogger(__name__)
 
 # ------------------- Setup -------------------
 AsyncSessionLocal, engine = get_async_session_factory()
@@ -40,17 +44,21 @@ cache_timestamp: Optional[datetime] = None
 CACHE_TTL_SECONDS = 30  # cache valid for 30 seconds
 
 # ------------------- Helper function -------------------
-async def run_query(query_fn, retries=2):
-    for attempt in range(retries + 1):
-        try:
-            async with AsyncSessionLocal() as session:
-                result = await session.execute(query_fn())
-                return result.scalars().all()
-        except InterfaceError as e:
-            if attempt < retries:
-                await asyncio.sleep(1)  # wait a bit and retry
-            else:
-                raise
+
+
+async def run_query(query_or_fn):
+    async with AsyncSessionLocal() as session:
+        stmt = query_or_fn() if callable(query_or_fn) else query_or_fn
+        result = await session.execute(stmt)
+        await session.commit()
+
+        # SELECT → return rows
+        if isinstance(stmt, Select):
+            return result.scalars().all()
+
+        # DELETE / UPDATE / INSERT → return affected row count
+        return result.rowcount
+
 
 #--------------------LIVE SCORE STREAM ------------------
 
@@ -58,23 +66,28 @@ async def event_stream():
     now = datetime.now()
     today = now - timedelta(days=1)
     while True:
-        upcoming_query_fn = lambda: select(Games).where(Games.complete == False).options(
+        upcoming_query_fn = lambda: Select(Games).where(Games.complete == False).options(
             selectinload(Games.homeTeamDetails),
             selectinload(Games.awayTeamDetails),
             selectinload(Games.bookmakers).selectinload(Bookmakers.markets).selectinload(Markets.outcomes)
         )
-        past_query_fn = lambda: select(Games).where(
+        past_query_fn = lambda: Select(Games).where(
             and_(Games.complete == True, Games.commence_time >= today)
         ).options(
             selectinload(Games.homeTeamDetails),
             selectinload(Games.awayTeamDetails),
             selectinload(Games.bookmakers).selectinload(Bookmakers.markets).selectinload(Markets.outcomes)
         )
+        sports_query_fn = lambda: Select(Sports).options(
+            selectinload(Sports.hyperParameters),
+            selectinload(Sports.valueBetSettings),
+        )
 
         try:
-            upcoming_games, past_games = await asyncio.gather(
+            upcoming_games, past_games, sports = await asyncio.gather(
                 run_query(upcoming_query_fn),
                 run_query(past_query_fn),
+                run_query(sports_query_fn)
             )
         except InterfaceError:
             # skip this iteration if connection failed
@@ -84,6 +97,7 @@ async def event_stream():
         data = {
             "odds": jsonable_encoder(upcoming_games),
             "pastGames": jsonable_encoder(past_games),
+            "sports": jsonable_encoder(sports)
         }
         yield f"data: {json.dumps(data)} \n\n"
         await asyncio.sleep(2)
@@ -91,6 +105,22 @@ async def event_stream():
 @app.get("/liveUpdates")
 async def sse_endpoint():
     return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+@app.post("/api/odds/delete", response_model=DeleteResponse)
+async def delete_game(request: OddsDeleteRequest):
+    game_id = request.game_id
+    logger.info(game_id)
+
+    delete_stat_fn = lambda: Delete(Stats).where(Stats.gameId == game_id)
+    delete_game_fn = lambda: Delete(Games).where(Games.id == game_id)
+
+    await run_query(delete_stat_fn)
+    logger.info("DELETED STATS")
+
+    await run_query(delete_game_fn)
+    logger.info("DELETED GAMES")
+
+    return {"message": "POST received", "game_id": game_id}
 
 
 # ------------------- Routes -------------------
@@ -105,13 +135,13 @@ async def read_root():
     #     return cache
 
     # ------------------- Prepare query lambdas -------------------
-    upcoming_query_fn = lambda: select(Games).where(Games.complete == False).options(
+    upcoming_query_fn = lambda: Select(Games).where(Games.complete == False).options(
         selectinload(Games.homeTeamDetails),
         selectinload(Games.awayTeamDetails),
         selectinload(Games.bookmakers).selectinload(Bookmakers.markets).selectinload(Markets.outcomes)
     )
 
-    past_query_fn = lambda: select(Games).where(
+    past_query_fn = lambda: Select(Games).where(
         and_(Games.complete == True, Games.commence_time >= thirty_days_ago)
     ).options(
         selectinload(Games.homeTeamDetails),
@@ -119,13 +149,13 @@ async def read_root():
         selectinload(Games.bookmakers).selectinload(Bookmakers.markets).selectinload(Markets.outcomes)
     )
 
-    sports_query_fn = lambda: select(Sports).options(
+    sports_query_fn = lambda: Select(Sports).options(
         selectinload(Sports.hyperParameters),
         selectinload(Sports.valueBetSettings),
     )
 
-    teams_query_fn = lambda: select(Teams)
-    weights_query_fn = lambda: select(MlModelWeights)
+    teams_query_fn = lambda: Select(Teams)
+    weights_query_fn = lambda: Select(MlModelWeights)
 
     # ------------------- Run queries concurrently -------------------
     upcoming_games, past_games, sports, teams, weights = await asyncio.gather(
@@ -151,6 +181,8 @@ async def read_root():
 
     return response
 
+
+    
 # ------------------- Run -------------------
 if __name__ == "__main__":
     import uvicorn

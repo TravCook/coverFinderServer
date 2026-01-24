@@ -8,13 +8,26 @@ class Markets(Base):
     __tablename__ = "Markets"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    bookmakerId: Mapped[int] = mapped_column(ForeignKey("Bookmakers.id"))
+
+    bookmakerId: Mapped[int] = mapped_column(
+        ForeignKey("Bookmakers.id", ondelete="CASCADE"),
+        nullable=False
+    )
+
     key: Mapped[str] = mapped_column(String, nullable=False)
 
-    #relationships
-    bookmaker: Mapped["Bookmakers"] = relationship("Bookmakers", foreign_keys=[bookmakerId], back_populates="markets")
-    outcomes: Mapped[list["Outcomes"]] = relationship("Outcomes", foreign_keys="[Outcomes.marketId]", back_populates="market", cascade="all, delete-orphan")
+    # relationships
+    bookmaker: Mapped["Bookmakers"] = relationship(
+        "Bookmakers",
+        back_populates="markets"
+    )
+
+    outcomes: Mapped[list["Outcomes"]] = relationship(
+        "Outcomes",
+        back_populates="market",
+        cascade="all, delete-orphan"
+    )
 
     __table_args__ = (
-        Index('ix_market_bookmaker_key', 'bookmakerId', 'key', unique=True),
+        Index("ix_market_bookmaker_key", "bookmakerId", "key", unique=True),
     )

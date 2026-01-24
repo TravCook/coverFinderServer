@@ -27,8 +27,8 @@ class Sports(Base):
     calibrationECE: Mapped[float] = mapped_column(Float, nullable=True)
     reliabilityWeight: Mapped[float] = mapped_column(Float, nullable=True)
     threshold: Mapped[float] = mapped_column(Float, nullable=True)
-    # optimalBettingStrategy: Mapped[str] = mapped_column(String, nullable=True)
-    # kelleyPct: Mapped[float] = mapped_column(Float, nullable=True)
+    value_threshold: Mapped[float] = mapped_column(Float, nullable=True)
+    value_map: Mapped[JSON] = mapped_column(JSON, nullable=True)
 
     # relationships
     games: Mapped[list["Games"]] = relationship("Games", foreign_keys="[Games.sport]", cascade="all, delete-orphan")

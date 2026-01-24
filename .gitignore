@@ -4,6 +4,7 @@ README.md
 /venv
 __pycache__/
 /app/sync_local_to_prod.py
+/app/sync_prod_to_local.py
 /app/prod_backup.dump
 .gitignore
 /app/models

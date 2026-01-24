@@ -19,6 +19,8 @@ class SportRead(BaseModel):
     threshold: Optional[float] = None
     hyperParameters: HyperParamRead
     valueBetSettings: list[ValueBetRead]
+    value_threshold: Optional[float] = None
+    value_map: Optional[list] = None
 
 
     class Config:

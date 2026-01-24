@@ -11,3 +11,7 @@ class APIResponse(BaseModel):
     sports: List[SportRead]
     teams: List[TeamRead]
     mlModelWeights: List[MlModelWeights]
+
+class DeleteResponse(BaseModel):
+    message: str
+    game_id: int

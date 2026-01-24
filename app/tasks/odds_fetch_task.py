@@ -14,6 +14,7 @@ from app.helpers.dataHelpers.db_getters.load_model_checkpoint import load_model_
 from app.helpers.dataHelpers.prediction_history_builder import prediction_history_builder
 from app.helpers.dataHelpers.is_game_today import is_game_today
 from app.helpers.trainingHelpers.feature_extraction import feature_extraction_single
+from app.helpers.trainingHelpers.value_feature_extraction import value_extract_features_single, value_history_builder
 import pandas as pd
 from zoneinfo import ZoneInfo  # Python 3.9
 from datetime import datetime, timedelta
@@ -22,6 +23,17 @@ import numpy as np
 from datetime import datetime
 logger = logging.getLogger(__name__)
 
+def games_on_same_day(game, games):
+    """
+    Return all games that occur on the same calendar day as `game`.
+
+    Comparison is done using game.commence_time.date().
+    """
+    target_date = game.commence_time.date()
+    return [
+        g for g in games
+        if g.commence_time.date() == target_date
+    ]
 
 
 
@@ -35,12 +47,9 @@ async def odds_fetch_async():
     AsyncSessionLocal, engine = get_async_session_factory()
     all_sports = await get_sports_sync(AsyncSessionLocal)
     in_season_sports = [sport for sport in all_sports if sport_in_season(sport)]
-    for sport in in_season_sports:
-        logger.info(F"{sport.name} IS IN SEASON")
     fetched_odds = await fetch_odds_api_with_backoff(in_season_sports)
     
     logger.info('======================AMOUNT OF FETCHED GAMES==================')
-    logger.info(len(fetched_odds))
 
     for game in fetched_odds:
         commence_time_str  = game['commence_time']
@@ -105,7 +114,7 @@ async def odds_fetch_async():
         logger.info(f"----------------------------Starting Prediction for {sport.name}-----------------------")
         
         # Load regression ensemble + isotonic calibration
-        regression_models, iso, margin_scale = load_model_checkpoint(sport.name)
+        regression_models, iso, margin_scale, value_clf = load_model_checkpoint(sport.name)
         final_xgb, final_lgb, final_cb = regression_models  # unpack ensemble
 
         # Get all games for this sport
@@ -119,6 +128,7 @@ async def odds_fetch_async():
 
         # Build team history for feature extraction
         team_history, last_games_info, team_home_history, team_away_history, team_vs_team_history, team_elo, team_elo_history, team_sos_components, last_seen_season_month = prediction_history_builder(past_games, sport)
+        history = value_history_builder(past_games)
 
         # ----------------------------------------- UPCOMING GAME PREDICTIONS ---------------------------------------------------
         for game in sorted(upcoming_games, key=lambda g: g.commence_time):
@@ -143,11 +153,20 @@ async def odds_fetch_async():
                 team_sos_components, last_seen_season_month
             )
 
+            same_day_games = games_on_same_day(game, upcoming_games)
+
+            prediction_value_features = value_extract_features_single(game, same_day_games ,history)
+
             if not prediction_features:
                 logger.info(f"NO FEATURES DETECTED FOR GAME {game.id} {game.homeTeamDetails.espnDisplayName} vs {game.awayTeamDetails.espnDisplayName}")
                 continue
 
             prediction_df = pd.DataFrame(prediction_features)
+            if prediction_value_features is not None:
+                value_df = pd.DataFrame([prediction_value_features])
+                value_score = value_clf.predict_proba(value_df)[0, 1]
+
+            # logger.info(value_score)
             # Ensure column order matches training if needed:
             # prediction_df = prediction_df.reindex(columns=feature_labels_as_DataFrame.columns, fill_value=0)
 
@@ -204,6 +223,7 @@ async def odds_fetch_async():
                     f"PREDICTED WINNER: "
                     f"{game.homeTeamDetails.espnDisplayName if homeScore > awayScore else game.awayTeamDetails.espnDisplayName} "
                     f"CONFIDENCE: {predictionConfidence * 100:.2f}%"
+                    f"VALUE SCORE: {value_score:.2f}"
                 )
 
             # ---------------------------------------------------------------
@@ -213,8 +233,11 @@ async def odds_fetch_async():
                 "predictedWinner": "home" if homeScore > awayScore else "away",
                 "predictionConfidence": predictionConfidence,
                 "predictedHomeScore": homeScore,
-                "predictedAwayScore": awayScore
+                "predictedAwayScore": awayScore,
             }
+
+            if value_score is not None:
+                payload["value_score"] = value_score
 
             await save_game_async(game, payload, AsyncSessionLocal, sport)
 

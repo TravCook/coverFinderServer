@@ -2,6 +2,7 @@ from app.celery_app.celery import celery
 import logging
 import asyncio
 import json
+import re
 from zoneinfo import ZoneInfo  # Python 3.9
 from sqlalchemy import select, delete
 from sqlalchemy.orm import selectinload
@@ -18,6 +19,39 @@ logger = logging.getLogger(__name__)
 def format_espn_date(date_str: str) -> str:
     """Return ESPN-style YYYYMMDD string from ISO datetime."""
     return date_str.strftime("%Y%m%d")
+
+def parse_espn_makeup_date(date_str, year):
+    for fmt in ("%b %d %Y", "%B %d %Y"):
+        try:
+            return datetime.strptime(f"{date_str} {year}", fmt)
+        except ValueError:
+            continue
+    return None
+
+
+def extract_rescheduled_datetime(event, tz="America/Denver"):
+    """
+    Returns a timezone-aware datetime or None
+    """
+    notes = event.get("notes", [])
+    for note in notes:
+        headline = note.get("headline", "")
+
+        # Example: "Makeup date Jan 29"
+        match = re.search(r"Makeup date\s+([A-Za-z]+\s+\d{1,2})", headline)
+        if match:
+            date_str = match.group(1)
+
+            # ESPN omits year → infer from season
+            current_year = datetime.now(ZoneInfo(tz)).year
+            dt = parse_espn_makeup_date(date_str, current_year)
+            if not dt:
+                return None
+
+
+            return dt.replace(tzinfo=ZoneInfo(tz))
+
+    return None
 
 
 
@@ -158,15 +192,6 @@ async def remove_games_async():
                     await save_game_async(game, payload, AsyncSessionLocal, game.sportDetails, False)
                 # 4️⃣ Handle in-progress games
                 elif status.get("description") in ("In Progress", "Halftime", "End of Period"):
-
-
-                    # scoreboard_url = (
-                    #     f"https://site.api.espn.com/apis/site/v2/sports/"
-                    #     f"{game.sportDetails.espnSport}/"
-                    #     f"{game.homeTeamDetails.espnLeague}/scoreboard?"
-                    #     f"dates={start_date}-{end_date}"
-                    # )
-
                     # scoreboard_json = await fetch_data(scoreboard_url, session)
                     sb_event = next((ev for ev in scoreboard_json['events'] if ev["id"] == event["id"]), None)
 
@@ -202,7 +227,29 @@ async def remove_games_async():
                 elif status.get("description") == "Postponed":
                     print(f"Game Postponed: {game.id}")
                     print(f"{game.awayTeamDetails.espnDisplayName} at {game.homeTeamDetails.espnDisplayName}")
-                    print(scoreboard_url)
+
+                    # Try to extract new start time
+                    new_commence_time = extract_rescheduled_datetime(event["competitions"][0])
+                    payload = {
+                        "complete": False,
+                        "timeRemaining": "POSTPONED",
+                    }
+
+                    if new_commence_time:
+                        payload["commence_time"] = new_commence_time
+                        print(f"Rescheduled for {new_commence_time.isoformat()}")
+                    else:
+                        payload["commence_time"] = None
+                        print("Makeup date not yet announced")
+                    logger.info(payload)
+                    await save_game_async(
+                        game,
+                        payload,
+                        AsyncSessionLocal,
+                        game.sportDetails,
+                        False
+                    )
+                    continue
 
             except Exception as e:
                 logger.info(e)
@@ -210,9 +257,5 @@ async def remove_games_async():
                 print(f"{game.awayTeamDetails.espnDisplayName} at {game.homeTeamDetails.espnDisplayName}")
                 print(scoreboard_url)
                 continue
-
-
-
-
 
         logger.info("THIS IS WHEN GAMES GET REMOVED")

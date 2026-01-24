@@ -14,6 +14,7 @@ services:
     command: uvicorn app.main:app --host 0.0.0.0 --port 3001
     environment:
       - TZ=America/Denver
+    restart: unless-stopped
 
   celery_worker:
     build: .
@@ -26,6 +27,7 @@ services:
     command: celery -A app.celery_app.celery worker --loglevel=info
     environment:
       - TZ=America/Denver
+    restart: unless-stopped
 
   celery_beat:
     build: .
@@ -38,9 +40,11 @@ services:
     command: celery -A app.celery_app.celery beat --loglevel=info
     environment:
       - TZ=America/Denver
+    restart: unless-stopped
 
   redis:
     image: redis:7
     container_name: redis
     ports:
       - "6379:6379"
+    restart: unless-stopped
