@@ -17,7 +17,7 @@ import numpy as np
 from app.helpers.betting_helpers.value_segment_helper import value_segment_search, compute_segment_threshold, get_best_odds_for_game
 from app.helpers.dataHelpers.sport_in_season import sport_in_season
 from app.helpers.dataHelpers.db_getters.get_sports_sync import get_sports_sync
-from app.helpers.dataHelpers.db_getters.get_games_sync import get_games_with_bookmakers_sync
+from app.helpers.dataHelpers.db_getters.get_games_sync import get_games_sync
 from app.helpers.trainingHelpers.feature_extraction import feature_extraction, feature_extraction_single
 from app.helpers.dataHelpers.is_game_today import is_game_today
 from app.helpers.config_helpers.stat_config import stat_config_map
@@ -136,7 +136,7 @@ async def train_k_fold_async():
         # ---------------------------------------------------------------
         # Load & sort game data
         # ---------------------------------------------------------------
-        sport_games = await get_games_with_bookmakers_sync(sport, AsyncSessionLocal)
+        sport_games = await get_games_sync(sport, AsyncSessionLocal)
         upcoming_games = list(filter(lambda g: not g.complete, sport_games))
         past_games = sorted(
             filter(lambda g: g.complete, sport_games),
