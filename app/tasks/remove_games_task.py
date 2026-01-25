@@ -239,7 +239,8 @@ async def remove_games_async():
                         payload["commence_time"] = new_commence_time
                         print(f"Rescheduled for {new_commence_time.isoformat()}")
                     else:
-                        payload["commence_time"] = None
+                        tomorrow = now + timedelta(days=1)
+                        payload["commence_time"] = tomorrow
                         print("Makeup date not yet announced")
                     logger.info(payload)
                     await save_game_async(
