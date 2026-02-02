@@ -62,8 +62,12 @@ async def value_bet_backtest_async(sport, AsyncSessionLocal, sport_games):
         random_state=122021
     )
 
-
-
+    # Only completed games with a value_score (i.e., prediction was made)
+    complete_games = [
+        game for game in sport_games
+        if game.complete and getattr(game, 'value_score', None) is not None
+    ]
+    if len(complete_games) == 0: return
     # Extract features
     rows = extract_features(sport_games)
 
@@ -79,13 +83,6 @@ async def value_bet_backtest_async(sport, AsyncSessionLocal, sport_games):
     y_train = train_df["label"].astype(int)
 
     clf.fit(X_train, y_train)
-
-    # Only completed games with a value_score (i.e., prediction was made)
-    complete_games = [
-        game for game in sport_games
-        if game.complete and getattr(game, 'value_score', None) is not None
-    ]
-
 
     best_thresh, roi_curve = backtest_value_score_roi(complete_games, sport)
     # logger.info(f"{sport.name} OPTIMAL THRESHOLD: {best_thresh['threshold']}")

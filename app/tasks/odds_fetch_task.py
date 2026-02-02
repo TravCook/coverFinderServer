@@ -111,11 +111,18 @@ async def odds_fetch_async():
             logger.info(F"Missing Home or Away team for {game['home_team']} vs {game['away_team']} in sport {game['sport_key']}")
 
     for sport in in_season_sports:
-        logger.info(f"----------------------------Starting Prediction for {sport.name}-----------------------")
-        
-        # Load regression ensemble + isotonic calibration
+        logger.info(
+            f"----------------------------Starting Prediction for {sport.name}-----------------------"
+        )
+
         regression_models, iso, margin_scale, value_clf = load_model_checkpoint(sport.name)
-        final_xgb, final_lgb, final_cb = regression_models  # unpack ensemble
+
+        if not regression_models:
+            logger.warning(f"Models not found for {sport.name}, skipping.")
+            continue
+
+        final_xgb, final_lgb, final_cb = regression_models
+
 
         # Get all games for this sport
         sport_games = await get_games_sync(sport, AsyncSessionLocal)
