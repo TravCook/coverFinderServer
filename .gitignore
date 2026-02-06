@@ -9,3 +9,4 @@ __pycache__/
 .gitignore
 /app/models
 /catboost_info
+/celerybeat-schedule

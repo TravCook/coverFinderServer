@@ -117,16 +117,14 @@ async def event_stream():
 
         delta_upcoming = get_deltas(upcoming_dict, previous_state["upcoming"])
         delta_past = get_deltas(past_dict, previous_state["past"])
-        delta_sports = get_deltas(sports_dict, previous_state["sports"])
 
         # Skip sending if nothing changed
-        if delta_upcoming or delta_past or delta_sports:
-            yield f"data: {json.dumps({'odds': delta_upcoming, 'pastGames': delta_past, 'sports': delta_sports})}\n\n"
+        if delta_upcoming or delta_past:
+            yield f"data: {json.dumps({'odds': delta_upcoming, 'pastGames': delta_past, 'sports': sports_dict})}\n\n"
 
             # Update previous_state
             previous_state["upcoming"] = deepcopy(upcoming_dict)
             previous_state["past"] = deepcopy(past_dict)
-            previous_state["sports"] = deepcopy(sports_dict)
 
         await asyncio.sleep(2)
 
