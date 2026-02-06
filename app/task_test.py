@@ -9,4 +9,4 @@ from app.tasks.value_bet_backtest_task import value_bet_backtest_async, value_be
 
 
 if __name__ == "__main__":
-    asyncio.run(odds_fetch_async())
+    asyncio.run(fetch_team_stats_async())

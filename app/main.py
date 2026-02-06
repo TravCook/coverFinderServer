@@ -10,6 +10,7 @@ from typing import Optional
 import asyncio
 import json
 from fastapi.responses import StreamingResponse
+from fastapi.middleware.gzip import GZipMiddleware
 from app.database.game_model import Games
 from app.database.sport_model import Sports
 from app.database.bookmaker_model import Bookmakers
@@ -37,7 +38,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
+app.add_middleware(GZipMiddleware, minimum_size=500)
 # ------------------- Simple in-memory cache -------------------
 cache: Optional[dict] = None
 cache_timestamp: Optional[datetime] = None
@@ -62,10 +63,22 @@ async def run_query(query_or_fn):
 
 #--------------------LIVE SCORE STREAM ------------------
 
+from copy import deepcopy
+
+# Store last sent data in memory
+previous_state = {
+    "upcoming": {},
+    "past": {},
+    "sports": {}
+}
+
 async def event_stream():
+    global previous_state
     now = datetime.now()
     today = now - timedelta(days=1)
+
     while True:
+        # Queries (same as before)
         upcoming_query_fn = lambda: Select(Games).where(Games.complete == False).options(
             selectinload(Games.homeTeamDetails),
             selectinload(Games.awayTeamDetails),
@@ -90,17 +103,33 @@ async def event_stream():
                 run_query(sports_query_fn)
             )
         except InterfaceError:
-            # skip this iteration if connection failed
             await asyncio.sleep(2)
             continue
 
-        data = {
-            "odds": jsonable_encoder(upcoming_games),
-            "pastGames": jsonable_encoder(past_games),
-            "sports": jsonable_encoder(sports)
-        }
-        yield f"data: {json.dumps(data)} \n\n"
+        # Convert lists to dicts keyed by ID for easy diffing
+        upcoming_dict = {g.id: jsonable_encoder(g) for g in upcoming_games}
+        past_dict = {g.id: jsonable_encoder(g) for g in past_games}
+        sports_dict = {s.id: jsonable_encoder(s) for s in sports}
+
+        # Compute deltas (only new or changed entries)
+        def get_deltas(new, old):
+            return {k: v for k, v in new.items() if old.get(k) != v}
+
+        delta_upcoming = get_deltas(upcoming_dict, previous_state["upcoming"])
+        delta_past = get_deltas(past_dict, previous_state["past"])
+        delta_sports = get_deltas(sports_dict, previous_state["sports"])
+
+        # Skip sending if nothing changed
+        if delta_upcoming or delta_past or delta_sports:
+            yield f"data: {json.dumps({'odds': delta_upcoming, 'pastGames': delta_past, 'sports': delta_sports})}\n\n"
+
+            # Update previous_state
+            previous_state["upcoming"] = deepcopy(upcoming_dict)
+            previous_state["past"] = deepcopy(past_dict)
+            previous_state["sports"] = deepcopy(sports_dict)
+
         await asyncio.sleep(2)
+
 
 @app.get("/liveUpdates")
 async def sse_endpoint():

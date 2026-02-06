@@ -64,6 +64,28 @@ async def past_game_data_builder():
                     logger.info(F"Dates range from {sorted_games[0]['date']} to {sorted_games[-1]['date']}")
                     bad_data_games = 0
 
+                    #BUILD PARENT LIST OF GAMES
+                    # NEW DB MODELS TO CREATE -> ROSTER, PLAYER, 
+                    # ROSTER DB MODEL
+                        #TEAM
+                        #LEAGUE
+                        #TIMEFRAME FIRST DATE IS WHEN RECORD IS CREATED, SECOND UPDATES EVERY GAME WHERE ROSTER IS USED
+                        #PLAYERS LIST OF IDS THAT MAKE UP THE ACTIVE PLAYERS FOR THE TIME PERIOD FOR THE TEAM - THIS IS HOW WE WILL MAINTAIN UNIQUENESS IN DB WITH TEAM:PLAYERS THERE SHOULD NEVER BE DUPLICATES
+                    # PLAYER DB MODEL
+                        #TEAM
+                        #LEAGUE
+                        #ROSTERS - LIST OF PAST ROSTERS PLAYER HAS BEEN ON BY ID -- PAST GAMES WILL HAVE TO USE THE LIST OF PLAYERS IN THE GAME RECORD, UPCOMING GAMES WILL USE TEAM DEPTH CHART AND EXCLUDE ANY PLAYER THAT SAYS OUT FOR ANY REASON
+                        #STATS - CURRENT STATS OR PREVIOUS SEASON STATS IF OUT OF SEASON
+                        #PLAYER INFO - NUMBER, HEIGHT, THAT KIND OF THING
+                    #THIS WAY EVERY GAME HAS A ROSTER AND EACH ROSTER HAS STATS THAT COME TOGETHER FROM THE PLAYER CONTEXT
+                    #BECAUSE THEN FOR UPCOMING GAMES, WE CAN LOOK AT AN UPCOMING ROSTER, AND AT THE TIME OF SAVING THE GAME OR TRAINING, WE CAN ONLY USE STATS FROM PLAYERS IN THE PROJECTED ROSTER
+                    #THIS WOULD ACCOUNT FOR INJURIES AND MISSING PLAYERS BECAUSE MODEL WILL NO LONGER TRAIN ON STATS FOR PLAYERS THAT WERE NOT IN THE GAME OR WILL NOT BE IN THE GAME
+                    
+                    #GAME
+                        #RECORD EACH PLAYERS ID IN A 'GAME ROSTER' FOR EACH TEAM
+                        #COMBINE PLAYER STATS INTO A TEAM STAT BLOCK
+                        #SAVE TEAM STATS FROM A PLAYER CONTEXT LEVEL
+
                     for game in sorted_games:
                         # things needed for each game for training
                         home_team = next((t for t in game['competitions'][0]['competitors'] if t['homeAway'] == 'home'), None)
@@ -93,7 +115,7 @@ async def past_game_data_builder():
 
                         home_stat_url = (F"https://sports.core.api.espn.com/v2/sports/{sport.espnSport}/leagues/{sport.league}/events/{game['id']}/competitions/{game['id']}/competitors/{home_team['id']}/statistics")
                         away_stat_url = (F"https://sports.core.api.espn.com/v2/sports/{sport.espnSport}/leagues/{sport.league}/events/{game['id']}/competitions/{game['id']}/competitors/{away_team['id']}/statistics")
-                        # logger.info(home_stat_url)
+                        # INSIDE OF EACH STAT (RESPONSE - SPLIT - CATEGORY) LIVES A SECTION FOR ATHLETES, EACH ATHLETE HAS ITS OWN STATS PAGE, FOR EACH CATEGORY.USE TEAMS DEPTH CHARTS TO JUST DO GAME - ROSTER UPDATE- STAT UPDATE - SAVE GAME
                         home_stat_response = await fetch_data(home_stat_url, session)
                         away_stat_response = await fetch_data(away_stat_url, session)
                         home_team_stats = home_stat_response['splits'] if 'splits' in home_stat_response else []
