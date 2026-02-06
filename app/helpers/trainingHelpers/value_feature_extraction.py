@@ -18,10 +18,10 @@ def render_results_row(result):
     f"ROI: {result['roi']:.2f} | "
     f"PEAK: {result['peak_bankroll']:.2f} | "
     f"AVG_DD: {result['avg_drawdown']:.2%} | "
-    f"PPB: {result['profit_per_bet']:.3f} | "
-    f"STD: {result['return_std']:.3f} | "
-    f"sem={result['sem']:.3f} | conf={result['confidence']:.2f} | tanh={np.tanh(result['confidence']):.2f}"
-    f"COMBINED SCORE: {result['combined_score']:.2f} | "
+    # f"PPB: {result['profit_per_bet']:.3f} | "
+    # f"STD: {result['return_std']:.3f} | "
+    # f"sem={result['sem']:.3f} | conf={result['confidence']:.2f} | tanh={np.tanh(result['confidence']):.2f}"
+    f"COMBINED SCORE: {result['combined_score']:.4f} | "
 )
 def us_odds_payout(odds: float, stake: float) -> float:
     """
