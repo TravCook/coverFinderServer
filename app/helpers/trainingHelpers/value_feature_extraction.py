@@ -522,10 +522,7 @@ def plot_value_score_decile_returns(games, sport=None, num_bins=5, n_bootstrap=1
 
     for game in games:
         # --- find best outcome (same logic you already use) ---
-
-        if game.value_score < sport.value_threshold:
-            continue
-        
+      
         best_outcome = None
         for bookmaker in game.bookmakers:
             if bookmaker.key != 'fanduel':
@@ -562,6 +559,9 @@ def plot_value_score_decile_returns(games, sport=None, num_bins=5, n_bootstrap=1
             unit_return = us_odds_payout(best_outcome.price, 1.0) - 1.0
         else:
             unit_return = -1.0
+
+        if game.value_score < sport.value_threshold:
+            continue
 
         rows.append({
             "value_score": game.value_score,
