@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from sqlalchemy.sql import Select, Delete, Update, Insert, and_
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.exc import InterfaceError
-from sqlalchemy.orm import sessionmaker, selectinload, with_loader_criteria, contains_eager
+from sqlalchemy.orm import sessionmaker, selectinload, with_loader_criteria
 from typing import Optional
 import asyncio
 import json
@@ -168,22 +168,21 @@ async def read_root():
 
     past_query_fn = lambda: (
         Select(Games)
-        .join(Games.bookmakers)
         .where(
             and_(
                 Games.complete == True,
                 Games.commence_time >= thirty_days_ago,
-                Bookmakers.key == 'fanduel'
             )
         )
         .options(
-            contains_eager(Games.bookmakers)
+            selectinload(Games.bookmakers.and_(Bookmakers.key == "fanduel"))
                 .selectinload(Bookmakers.markets)
                 .selectinload(Markets.outcomes),
             selectinload(Games.homeTeamDetails),
             selectinload(Games.awayTeamDetails),
         )
     )
+
 
     sports_query_fn = lambda: Select(Sports).options(
         selectinload(Sports.hyperParameters),
