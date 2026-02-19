@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from sqlalchemy.sql import Select, Delete, Update, Insert, and_
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.exc import InterfaceError
-from sqlalchemy.orm import sessionmaker, selectinload, with_loader_criteria
+from sqlalchemy.orm import sessionmaker, selectinload, with_loader_criteria, contains_eager
 from typing import Optional
 import asyncio
 import json
@@ -166,13 +166,23 @@ async def read_root():
         selectinload(Games.bookmakers).selectinload(Bookmakers.markets).selectinload(Markets.outcomes)
     )
 
-    past_query_fn = lambda: Select(Games).where(
-        and_(Games.complete == True, Games.commence_time >= thirty_days_ago)
-    ).options(
-        selectinload(Games.homeTeamDetails),
-        selectinload(Games.awayTeamDetails),
-        selectinload(Games.bookmakers).selectinload(Bookmakers.markets).selectinload(Markets.outcomes),
-        with_loader_criteria(Bookmakers, Bookmakers.key == 'fanduel', include_aliases=True)
+    past_query_fn = lambda: (
+        Select(Games)
+        .join(Games.bookmakers)
+        .where(
+            and_(
+                Games.complete == True,
+                Games.commence_time >= thirty_days_ago,
+                Bookmakers.key == 'fanduel'
+            )
+        )
+        .options(
+            contains_eager(Games.bookmakers)
+                .selectinload(Bookmakers.markets)
+                .selectinload(Markets.outcomes),
+            selectinload(Games.homeTeamDetails),
+            selectinload(Games.awayTeamDetails),
+        )
     )
 
     sports_query_fn = lambda: Select(Sports).options(

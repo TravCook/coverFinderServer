@@ -31,7 +31,7 @@ def desirability_metric(roi, coverage, winrate, alpha=1, beta=1, gamma=1):
     """
     return (roi ** alpha) * (coverage ** beta) * (winrate ** gamma)
 # Example: scale linearly from 0.5x to 1.5x Kelly based on decile
-def compute_stake_multiplier(summary, min_mult=0.75, max_mult=1.5):
+def compute_stake_multiplier(summary, min_mult=0.7, max_mult=1.5):
     """
     Maps decile to a stake multiplier.
     Higher decile → bigger stake.
