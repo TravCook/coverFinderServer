@@ -560,8 +560,8 @@ def plot_value_score_decile_returns(games, sport=None, num_bins=5, n_bootstrap=1
         else:
             unit_return = -1.0
 
-        if game.value_score < sport.value_threshold:
-            continue
+        # if game.value_score < sport.value_threshold:
+        #     continue
 
         rows.append({
             "value_score": game.value_score,
